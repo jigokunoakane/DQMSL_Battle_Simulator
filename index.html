@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GPシミュレーター</title>
+</head>
+<style>
+    /* ポップアップwindow部分 */
+    #overlay {
+        visibility: hidden;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 70;
+        width: 100%;
+        height: 100%;
+        transition: visibility 0s, opacity 0.1s linear;
+    }
+
+    /* オーバーレイの背景部分 */
+    #bg_gray {
+        background: rgba(0,0,0,0.5);
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 80;
+    }
+
+    /* ウィンドウ部分 */
+    #window {
+        width: 50%;
+        padding: 20px;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0px 0px 20px -6px rgba(0,0,0,0.6);
+        z-index: 90;
+        opacity: 0;
+        transition: opacity 0.2s linear;  /*ここでウィンドウ出現時のラグを指定*/
+    }
+	
+.monster-image {
+        width: 60px; /* 画像の幅を適切なサイズに調整 */
+        height: 60px; /* 高さは幅に合わせて自動調整 */
+    }
+
+
+  </style>
+
+<body>
+  <h2>GPシミュレーター</h2>
+  <img src="icon/unselected.jpg" id="popup_image1" height ="90" width="90">
+  <img src="icon/unselected.jpg" id="popup_image2" height ="90" width="90">
+  <img src="icon/unselected.jpg" id="popup_image3" height ="90" width="90">
+  <img src="icon/unselected.jpg" id="popup_image4" height ="90" width="90">
+  <img src="icon/unselected.jpg" id="popup_image5" height ="90" width="90">
+  
+
+    <!-- ポップアップ部分 -->
+    <div id="overlay">
+        <label for="popup" id="bg_gray"></label> <!-- ウィンドウの外のグレーの領域 -->
+
+        <div id="window"> <!-- ウィンドウ部分 -->
+            <div id="msg"> <!-- ウィンドウのコンテンツ -->
+                <h3>モンスターを選択</h3>
+				<button onclick="selectMonster('sinri')"> <img src="/icon/sinri.jpeg" class="monster-image"></button>
+              <button onclick="selectMonster('rusia')"> <img src="/icon/rusia.jpeg" class="monster-image"></button>
+              <button onclick="selectMonster('orochi')"> <img src="/icon/orochi.jpeg" class="monster-image"></button>
+              <button onclick="selectMonster('monster4')"> <img src="/icon/monster4.jpeg" class="monster-image"></button>
+          </div>
+      </div>
+        </div>
+    </div>
+
+
+
+
+</body>
+<script>
+
+let selectingmonster = "";
+ document.getElementById('popup_image1').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'visible';
+        document.getElementById('window').style.opacity = '1';
+		selectingmonster = popup_image1
+    });
+ document.getElementById('popup_image2').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'visible';
+        document.getElementById('window').style.opacity = '1';
+		selectingmonster = popup_image2
+    });
+ document.getElementById('popup_image3').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'visible';
+        document.getElementById('window').style.opacity = '1';
+		selectingmonster = popup_image3
+    });
+document.getElementById('popup_image4').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'visible';
+        document.getElementById('window').style.opacity = '1';
+		selectingmonster = popup_image4
+    });
+document.getElementById('popup_image5').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'visible';
+        document.getElementById('window').style.opacity = '1';
+		selectingmonster = popup_image5
+    });
+	
+	
+
+    document.getElementById('bg_gray').addEventListener('click', function() {
+        document.getElementById('overlay').style.visibility = 'hidden';
+        document.getElementById('window').style.opacity = '0';
+    });
+	
+	
+function selectMonster(monsterName) {
+        // ポップアップウィンドウ内で選択したモンスターの画像をポップアップを開く画像に置き換える
+        const monsterImageSrc = '/icon/' + monsterName + '.jpeg';
+		document.getElementById(selectingmonster).src = monsterImageSrc;
+       // document.getElementById('popup_image').src = monsterImageSrc;
+
+        // ポップアップウィンドウを閉じる
+        document.getElementById('overlay').style.visibility = 'hidden';
+        document.getElementById('window').style.opacity = '0';
+    }
+
+
+
+const monsters = [
+    {
+        name: "スライム",
+		id: "slime",
+		type: "スラ",
+        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
+		skill: "",
+		attribute: ""
+		//lsとかもね。あとは装備種込の表示配列、ls込、内部やバフ込のtemporary status
+    },
+    {
+        name: "ドラキュラ",
+		id: "dora",
+		type: "悪魔",
+        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
+		skill: "",
+		attribute: ""
+    },
+    {
+        name: "ペンギン",
+		id: "penguin",
+		type: "鳥",
+        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
+		skill: "",
+		attribute: ""
+    }
+];
+
+
+
+function monsterchange(){
+//モンスター変更時にここを駆動 味方と敵でfunを分けて軽量化したりしても可
+
+//このvalueは日本語名で制御。
+const ally1name = document.getElementById("ally1name").value;
+/*
+const ally2name = document.getElementById("ally2name").value;
+const ally3name = document.getElementById("ally3name").value;
+const ally4name = document.getElementById("ally4name").value;
+const ally5name = document.getElementById("ally5name").value;
+
+const enemy1name = document.getElementById("enemy1name").value;
+const enemy2name = document.getElementById("enemy2name").value;
+const enemy3name = document.getElementById("enemy3name").value;
+const enemy4name = document.getElementById("enemy4name").value;
+const enemy5name = document.getElementById("enemy5name").value;
+*/
+
+
+// ユーザーが選択したモンスターを見つけ、ally1~配列にデータを格納
+const ally1 = monsters.find(monster => monster.name === ally1name);
+/*
+const ally2 = monsters.find(monster => monster.name === ally2name);
+const ally3 = monsters.find(monster => monster.name === ally3name);
+const ally4 = monsters.find(monster => monster.name === ally4name);
+const ally5 = monsters.find(monster => monster.name === ally5name);
+
+const enemy1 = monsters.find(monster => monster.name === enemy1name);
+const enemy2 = monsters.find(monster => monster.name === enemy2name);
+const enemy3 = monsters.find(monster => monster.name === enemy3name);
+const enemy4 = monsters.find(monster => monster.name === enemy4name);
+const enemy5 = monsters.find(monster => monster.name === enemy5name);
+*/
+
+console.log(ally1);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 閉じるボタン
+#btn_cloth {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #CE5D8B;
+    border-radius: 5px;
+    z-index: 100;
+    cursor: pointer;
+}
+
+閉じるボタンテンプレ
+#btn_cloth:hover {
+    opacity: 0.7;
+}
+#btn_cloth span,
+#btn_cloth span::before {
+    display: block;
+    height: 3px;
+    width: 25px;
+    border-radius: 3px;
+    background: #fff;
+}
+#btn_cloth span {
+    transform: rotate(45deg);
+}
+#btn_cloth span::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    transform: rotate(-90deg);
+}
+
+/コンテンツ部分のスタイル 
+body {
+    margin: 30px;
+}
+
+
+これは単純に下線、使える
+#txt_label {
+    text-decoration: underline;
+    cursor: pointer;
+}
+#txt_label:hover {
+    opacity: 0.7;
+}
+
+ クリックで表示遷移
+#popup:checked ~ #overlay {
+    visibility: visible;
+}
+#popup:checked ~ #overlay #window {
+    animation: fadein 500ms forwards;
+    animation-timing-function: ease-in-out;
+}
+@keyframes fadein {
+    100% {
+        opacity: 1;
+    }
+}
+
+
+*/
+
+
+
+
+
+
+
+</script>
+
+</body>
+</html>
+
