@@ -6,6 +6,25 @@
   <title>GPシミュレーター</title>
 </head>
 <style>
+
+html {
+    -ms-touch-action:manipulation;
+    touch-action:manipulation;
+  }
+    body {
+  user-select: none;
+  /* CSS3 */
+  -moz-user-select: none;
+  /* Firefox */
+  -webkit-user-select: none;
+  /* Safari、Chrome */
+  -ms-user-select: none;
+  /* Microsoft */
+  font-family: sans-serif;
+  font-weight:400;
+  font-size: 100%;
+}
+
     /* ポップアップwindow部分 */
     #overlay {
         visibility: hidden;
@@ -31,8 +50,8 @@
 
     /* ウィンドウ部分 */
     #window {
-        width: 50%;
-        padding: 20px;
+        width: 90%;
+        padding-left: 15px;
         position: fixed;
         left: 50%;
         top: 50%;
@@ -44,55 +63,82 @@
         opacity: 0;
         transition: opacity 0.2s linear;  /*ここでウィンドウ出現時のラグを指定*/
 		
-		gap: 10px; /* 画像間の間隔 */
-    }
-	
-
-	
-	.allyicons {
-    display: block;
-    float: left;
-    margin-right: 5px; /* 画像間の間隔 */
-    width: calc(20% - 5px); /* 画面横一杯に並ぶように設定（画像の幅の20%） */
-    max-width: 90px; /* 画像の最大幅 */
-    height: auto;
-  }
-
-  @media screen and (max-width: 480px) {
-    .allyicons {
-      width: calc(100% - 5px); /* スマートフォンの場合は1列に並ぶように設定 */
-      max-width: none; /* 画像の最大幅を解除 */
-    }
-  }
- .allmonstericons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    width: calc(100% - 40px); /* 余白を除いた領域 */
+		display: flex; /* flexbox を使って子要素を横並びに配置 */
+    flex-wrap: wrap; /* 要素が親要素をはみ出す場合に折り返す */
     gap: 10px; /* 画像間の間隔 */
-}
-
-.allmonstericons img {
-    /* 画像のスタイルを指定 */
-    width: calc(20% - 10px); /* 画像の横幅を均等に */
-    height: auto; /* 高さを自動調整 */
-    max-height: calc(20vw - 10px); /* 画像の最大高さを設定 */
-    object-fit: cover; /* 画像を切り抜いて表示 */
-}
-	
+overflow: auto; /* コンテンツがウィンドウからはみ出した場合にスクロールバーを表示 */
+  max-height: 80vh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
+    }
 	
 
+/*ポップアップウィンドウ内*/
+  .allmonstericons {
+    width: calc(20% - 10px); /* ボタン5つ横並びにするために幅調整 */
+	max-width: 70px; /* 画像の最大幅pc */
+  margin-right: 0.05rem;
+  margin-left: 0.05rem;
+  margin-bottom: 0.1rem;
+    height: auto;
+}
 
+/* パテ */
+
+.allyicons-container {
+  display: flex; /* flexbox を使用して横並びにする */
+  justify-content: flex-start; /* 左揃えにする */
+  flex-wrap: wrap;
+}
+
+.allyicon-wrapper {
+  flex-basis: calc(20% - 5px); /* 横幅を20%に設定して横に5つ並ぶようにする */
+  max-width: 70px; /* 画像の最大幅を設定 */
+  margin-bottom: 10px;
+     margin-left: 2.5px;
+  margin-right: 2.5px;
+}
+
+.allyicons {
+  display: block; /* 縦に並べる */
+  width: 100%; /* 画像の幅を100%に設定して親要素にフィットさせる */
+  height: auto;
+  margin-bottom: 2px;
+}
+
+.gear-icon {
+  width: 70%;
+  height: auto;
+  display: block; /* 中央揃えするためにブロック要素にする */
+  margin: 0 auto; /* 水平方向に中央揃えする */
+}
+
+
+  
   </style>
-
 <body>
   <h2>GPシミュレーター</h2>
-  <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
-  <img src="images/icons/unselected.jpeg" id="allyicon2" class="allyicons">
-  <img src="images/icons/unselected.jpeg" id="allyicon3" class="allyicons">
-  <img src="images/icons/unselected.jpeg" id="allyicon4" class="allyicons">
-  <img src="images/icons/unselected.jpeg" id="allyicon5" class="allyicons">
-  
+  <div>プレイヤーAのパテ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w150</div>
+  <div class="allyicons-container">
+  <span class="allyicon-wrapper">
+    <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
+    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+  </span>
+  <span class="allyicon-wrapper">
+    <img src="images/icons/unselected.jpeg" id="allyicon2" class="allyicons">
+    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+  </span>
+  <span class="allyicon-wrapper">
+    <img src="images/icons/unselected.jpeg" id="allyicon3" class="allyicons">
+    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+  </span>
+  <span class="allyicon-wrapper">
+    <img src="images/icons/unselected.jpeg" id="allyicon4" class="allyicons">
+    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+  </span>
+  <span class="allyicon-wrapper">
+    <img src="images/icons/unselected.jpeg" id="allyicon5" class="allyicons">
+    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+  </span>
+</div>
   
   
 
@@ -103,14 +149,59 @@
         <div id="window"> <!-- ウィンドウ部分 -->
             <div id="msg"> <!-- ウィンドウのコンテンツ -->
                 <h3>モンスターを選択</h3>
-				<button class = "allmonstericons" onclick="selectMonster('sinri')"> <img src="images/icons/sinri.jpeg" class="monster-image"></button>
-              <button class = "allmonstericons" onclick="selectMonster('rusia')"> <img src="images/icons/rusia.jpeg" class="monster-image"></button>
-              <button class = "allmonstericons" onclick="selectMonster('orochi')"> <img src="images/icons/orochi.jpeg" class="monster-image"></button>
-              <button class = "allmonstericons" onclick="selectMonster('monster4')"> <img src="images/icons/monster4.jpeg" class="monster-image"></button>
-          </div>
+				<div>超系</div>
+<img class="allmonstericons" src="images/icons/sinri.jpeg" onclick="selectMonster('sinri')">
+<img class="allmonstericons" src="images/icons/rusia.jpeg" onclick="selectMonster('rusia')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>ドラゴン系</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>悪魔系</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>tako系</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>おっとせい</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+
+	</div>
       </div>
-        </div>
-    </div>
+	  </div>
+
+	
 
 
 
@@ -128,18 +219,21 @@ allyIcons.forEach(icon => {
         selectingmonster = icon.id;
     });
 });
+//どの枠を選択中か取得
 
     document.getElementById('bg_gray').addEventListener('click', function() {
+	//ここoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
         document.getElementById('overlay').style.visibility = 'hidden';
         document.getElementById('window').style.opacity = '0';
     });
+//まわりクリックで閉じる
 	
 	
 function selectMonster(monsterName) {
         // ポップアップウィンドウ内で選択したモンスターの画像をポップアップを開く画像に置き換える
-        const monsterImageSrc = 'images/icons/' + monsterName + '.jpeg';
-		document.getElementById(selectingmonster).src = monsterImageSrc;
-
+        const newmonsterImageSrc = 'images/icons/' + monsterName + '.jpeg';
+		document.getElementById(selectingmonster).src = newmonsterImageSrc;
+//取得した選択中の枠に、ウィンドウ内で選択したモンスターを代入
         // ポップアップウィンドウを閉じる
         document.getElementById('overlay').style.visibility = 'hidden';
         document.getElementById('window').style.opacity = '0';
@@ -174,6 +268,7 @@ const monsters = [
 		attribute: ""
     }
 ];
+//ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
 
 
 
@@ -227,80 +322,13 @@ console.log(ally1);
 
 
 
-/* 閉じるボタン
-#btn_cloth {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #CE5D8B;
-    border-radius: 5px;
-    z-index: 100;
-    cursor: pointer;
-}
-
-閉じるボタンテンプレ
-#btn_cloth:hover {
-    opacity: 0.7;
-}
-#btn_cloth span,
-#btn_cloth span::before {
-    display: block;
-    height: 3px;
-    width: 25px;
-    border-radius: 3px;
-    background: #fff;
-}
-#btn_cloth span {
-    transform: rotate(45deg);
-}
-#btn_cloth span::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    transform: rotate(-90deg);
-}
-
-/コンテンツ部分のスタイル 
-body {
-    margin: 30px;
-}
+/* ゴミ箱
 
 
-これは単純に下線、使える
-#txt_label {
-    text-decoration: underline;
-    cursor: pointer;
-}
-#txt_label:hover {
-    opacity: 0.7;
-}
 
- クリックで表示遷移
-#popup:checked ~ #overlay {
-    visibility: visible;
-}
-#popup:checked ~ #overlay #window {
-    animation: fadein 500ms forwards;
-    animation-timing-function: ease-in-out;
-}
-@keyframes fadein {
-    100% {
-        opacity: 1;
-    }
-}
 
 
 */
-
-
-
-
-
 
 
 </script>
