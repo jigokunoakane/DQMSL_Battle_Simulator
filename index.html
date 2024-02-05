@@ -43,23 +43,57 @@
         z-index: 90;
         opacity: 0;
         transition: opacity 0.2s linear;  /*ここでウィンドウ出現時のラグを指定*/
+		
+		gap: 10px; /* 画像間の間隔 */
     }
 	
-.monster-image {
-        width: 60px; /* 画像の幅を適切なサイズに調整 */
-        height: 60px; /* 高さは幅に合わせて自動調整 */
+
+	
+	.allyicons {
+    display: block;
+    float: left;
+    margin-right: 5px; /* 画像間の間隔 */
+    width: calc(20% - 5px); /* 画面横一杯に並ぶように設定（画像の幅の20%） */
+    max-width: 90px; /* 画像の最大幅 */
+    height: auto;
+  }
+
+  @media screen and (max-width: 480px) {
+    .allyicons {
+      width: calc(100% - 5px); /* スマートフォンの場合は1列に並ぶように設定 */
+      max-width: none; /* 画像の最大幅を解除 */
     }
+  }
+ .allmonstericons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: calc(100% - 40px); /* 余白を除いた領域 */
+    gap: 10px; /* 画像間の間隔 */
+}
+
+.allmonstericons img {
+    /* 画像のスタイルを指定 */
+    width: calc(20% - 10px); /* 画像の横幅を均等に */
+    height: auto; /* 高さを自動調整 */
+    max-height: calc(20vw - 10px); /* 画像の最大高さを設定 */
+    object-fit: cover; /* 画像を切り抜いて表示 */
+}
+	
+	
 
 
   </style>
 
 <body>
   <h2>GPシミュレーター</h2>
-  <img src="icon/unselected.jpg" id="popup_image1" height ="90" width="90">
-  <img src="icon/unselected.jpg" id="popup_image2" height ="90" width="90">
-  <img src="icon/unselected.jpg" id="popup_image3" height ="90" width="90">
-  <img src="icon/unselected.jpg" id="popup_image4" height ="90" width="90">
-  <img src="icon/unselected.jpg" id="popup_image5" height ="90" width="90">
+  <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
+  <img src="images/icons/unselected.jpeg" id="allyicon2" class="allyicons">
+  <img src="images/icons/unselected.jpeg" id="allyicon3" class="allyicons">
+  <img src="images/icons/unselected.jpeg" id="allyicon4" class="allyicons">
+  <img src="images/icons/unselected.jpeg" id="allyicon5" class="allyicons">
+  
+  
   
 
     <!-- ポップアップ部分 -->
@@ -69,10 +103,10 @@
         <div id="window"> <!-- ウィンドウ部分 -->
             <div id="msg"> <!-- ウィンドウのコンテンツ -->
                 <h3>モンスターを選択</h3>
-				<button onclick="selectMonster('sinri')"> <img src="/icon/sinri.jpeg" class="monster-image"></button>
-              <button onclick="selectMonster('rusia')"> <img src="/icon/rusia.jpeg" class="monster-image"></button>
-              <button onclick="selectMonster('orochi')"> <img src="/icon/orochi.jpeg" class="monster-image"></button>
-              <button onclick="selectMonster('monster4')"> <img src="/icon/monster4.jpeg" class="monster-image"></button>
+				<button class = "allmonstericons" onclick="selectMonster('sinri')"> <img src="images/icons/sinri.jpeg" class="monster-image"></button>
+              <button class = "allmonstericons" onclick="selectMonster('rusia')"> <img src="images/icons/rusia.jpeg" class="monster-image"></button>
+              <button class = "allmonstericons" onclick="selectMonster('orochi')"> <img src="images/icons/orochi.jpeg" class="monster-image"></button>
+              <button class = "allmonstericons" onclick="selectMonster('monster4')"> <img src="images/icons/monster4.jpeg" class="monster-image"></button>
           </div>
       </div>
         </div>
@@ -84,34 +118,16 @@
 </body>
 <script>
 
+//monster選択部分
 let selectingmonster = "";
- document.getElementById('popup_image1').addEventListener('click', function() {
+const allyIcons = document.querySelectorAll('[id^="allyicon"]');
+allyIcons.forEach(icon => {
+    icon.addEventListener('click', function() {
         document.getElementById('overlay').style.visibility = 'visible';
         document.getElementById('window').style.opacity = '1';
-		selectingmonster = popup_image1
+        selectingmonster = icon.id;
     });
- document.getElementById('popup_image2').addEventListener('click', function() {
-        document.getElementById('overlay').style.visibility = 'visible';
-        document.getElementById('window').style.opacity = '1';
-		selectingmonster = popup_image2
-    });
- document.getElementById('popup_image3').addEventListener('click', function() {
-        document.getElementById('overlay').style.visibility = 'visible';
-        document.getElementById('window').style.opacity = '1';
-		selectingmonster = popup_image3
-    });
-document.getElementById('popup_image4').addEventListener('click', function() {
-        document.getElementById('overlay').style.visibility = 'visible';
-        document.getElementById('window').style.opacity = '1';
-		selectingmonster = popup_image4
-    });
-document.getElementById('popup_image5').addEventListener('click', function() {
-        document.getElementById('overlay').style.visibility = 'visible';
-        document.getElementById('window').style.opacity = '1';
-		selectingmonster = popup_image5
-    });
-	
-	
+});
 
     document.getElementById('bg_gray').addEventListener('click', function() {
         document.getElementById('overlay').style.visibility = 'hidden';
@@ -121,9 +137,8 @@ document.getElementById('popup_image5').addEventListener('click', function() {
 	
 function selectMonster(monsterName) {
         // ポップアップウィンドウ内で選択したモンスターの画像をポップアップを開く画像に置き換える
-        const monsterImageSrc = '/icon/' + monsterName + '.jpeg';
+        const monsterImageSrc = 'images/icons/' + monsterName + '.jpeg';
 		document.getElementById(selectingmonster).src = monsterImageSrc;
-       // document.getElementById('popup_image').src = monsterImageSrc;
 
         // ポップアップウィンドウを閉じる
         document.getElementById('overlay').style.visibility = 'hidden';
