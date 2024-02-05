@@ -26,7 +26,7 @@ html {
 }
 
     /* ポップアップwindow部分 */
-    #overlay {
+    .overlay {
         visibility: hidden;
         position: fixed;
         left: 0;
@@ -35,10 +35,11 @@ html {
         width: 100%;
         height: 100%;
         transition: visibility 0s, opacity 0.1s linear;
+	    pointer-events: auto; /* クリックやスクロールが可能になるように設定 */
     }
 
     /* オーバーレイの背景部分 */
-    #bg_gray {
+    .bg_gray {
         background: rgba(0,0,0,0.5);
         width: 100%;
         height: 100%;
@@ -49,9 +50,10 @@ html {
     }
 
     /* ウィンドウ部分 */
-    #window {
+    .popupwindow {
         width: 90%;
         padding-left: 15px;
+		padding-bottom: 15px;
         position: fixed;
         left: 50%;
         top: 50%;
@@ -72,7 +74,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 	
 
 /*ポップアップウィンドウ内*/
-  .allmonstericons {
+  .allmonstericons,.allgear {
     width: calc(20% - 10px); /* ボタン5つ横並びにするために幅調整 */
 	max-width: 70px; /* 画像の最大幅pc */
   margin-right: 0.05rem;
@@ -115,38 +117,37 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   
   </style>
 <body>
-  <h2>GPシミュレーター</h2>
+  <h2>脱法GPシミュレーター</h2>
   <div>プレイヤーAのパテ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w150</div>
   <div class="allyicons-container">
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
-    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+    <img src="images/gear/ungeared.jpeg" id="allygear1" class="gear-icon">
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon2" class="allyicons">
-    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+    <img src="images/gear/ungeared.jpeg" id="allygear2" class="gear-icon">
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon3" class="allyicons">
-    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+    <img src="images/gear/ungeared.jpeg" id="allygear3" class="gear-icon">
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon4" class="allyicons">
-    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+    <img src="images/gear/ungeared.jpeg" id="allygear4" class="gear-icon">
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon5" class="allyicons">
-    <img src="images/gear/ungeared.jpeg" class="gear-icon">
+    <img src="images/gear/ungeared.jpeg" id="allygear5" class="gear-icon">
   </span>
 </div>
   
   
 
     <!-- ポップアップ部分 -->
-    <div id="overlay">
-        <label for="popup" id="bg_gray"></label> <!-- ウィンドウの外のグレーの領域 -->
-
-        <div id="window"> <!-- ウィンドウ部分 -->
+    <div id="selectmonsteroverlay" class = "overlay">
+        <div id="selectmonsterbg_gray" class = "bg_gray"></div> <!-- ウィンドウの外のグレーの領域 -->
+        <div id="selectmonsterpopupwindow" class = "popupwindow"> <!-- ウィンドウ部分 -->
             <div id="msg"> <!-- ウィンドウのコンテンツ -->
                 <h3>モンスターを選択</h3>
 				<div>超系</div>
@@ -170,7 +171,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<div>tako系</div>
+<div>おっとせい</div>
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
@@ -201,7 +202,31 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
       </div>
 	  </div>
 
-	
+    <!-- ポップアップ部分 -->
+    <div id="selectgearoverlay" class = "overlay">
+        <div id="selectgearbg_gray" class = "bg_gray"></div> <!-- ウィンドウの外のグレーの領域 -->
+        <div id="selectgearpopupwindow" class = "popupwindow"> <!-- ウィンドウ部分 -->
+            <div id="msg"> <!-- ウィンドウのコンテンツ -->
+                <h3>装備を選択</h3>
+				<div>爪</div>
+<img class="allgear" src="images/gear/metanail.jpeg" onclick="selectgear('metanail')">
+<img class="allgear" src="images/gear/ryujinnail.jpeg" onclick="selectgear('ryujinnail')">
+<div>ヤリ</div>
+<img class="allgear" src="images/gear/kudaki.jpeg" onclick="selectgear('kudaki')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<div>ヤリやり</div>
+<img class="allgear" src="images/gear/kudaki.jpeg" onclick="selectgear('kudaki')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+<img class="allgear" src="images/gear/shoten.jpeg" onclick="selectgear('shoten')">
+
+	</div>
+      </div>
+	  </div>
 
 
 
@@ -214,17 +239,17 @@ let selectingmonster = "";
 const allyIcons = document.querySelectorAll('[id^="allyicon"]');
 allyIcons.forEach(icon => {
     icon.addEventListener('click', function() {
-        document.getElementById('overlay').style.visibility = 'visible';
-        document.getElementById('window').style.opacity = '1';
+        document.getElementById('selectmonsteroverlay').style.visibility = 'visible';
+        document.getElementById('selectmonsterpopupwindow').style.opacity = '1';
         selectingmonster = icon.id;
     });
 });
 //どの枠を選択中か取得
 
-    document.getElementById('bg_gray').addEventListener('click', function() {
-	//ここoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
-        document.getElementById('overlay').style.visibility = 'hidden';
-        document.getElementById('window').style.opacity = '0';
+    document.getElementById('selectmonsteroverlay').addEventListener('click', function() {
+	//ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
+        document.getElementById('selectmonsteroverlay').style.visibility = 'hidden';
+        document.getElementById('selectmonsterpopupwindow').style.opacity = '0';
     });
 //まわりクリックで閉じる
 	
@@ -235,9 +260,44 @@ function selectMonster(monsterName) {
 		document.getElementById(selectingmonster).src = newmonsterImageSrc;
 //取得した選択中の枠に、ウィンドウ内で選択したモンスターを代入
         // ポップアップウィンドウを閉じる
-        document.getElementById('overlay').style.visibility = 'hidden';
-        document.getElementById('window').style.opacity = '0';
+        document.getElementById('selectmonsteroverlay').style.visibility = 'hidden';
+        document.getElementById('selectmonsterpopupwindow').style.opacity = '0';
     }
+	
+	
+	
+	//装備選択部分
+let selectinggear = "";
+const allyGear = document.querySelectorAll('[id^="allygear"]');
+allyGear.forEach(icon => {
+    icon.addEventListener('click', function() {
+        document.getElementById('selectgearoverlay').style.visibility = 'visible';
+        document.getElementById('selectgearpopupwindow').style.opacity = '1';
+        selectinggear = icon.id;
+    });
+});
+//どの装備枠を選択中か取得
+
+    document.getElementById('selectgearoverlay').addEventListener('click', function() {
+	//ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
+        document.getElementById('selectgearoverlay').style.visibility = 'hidden';
+        document.getElementById('selectgearpopupwindow').style.opacity = '0';
+    });
+//まわりクリックで閉じる
+	
+	
+function selectgear(gearName) {
+        // ポップアップウィンドウ内で選択した装備の画像をポップアップを開く画像に置き換える
+        const newgearImageSrc = 'images/gear/' + gearName + '.jpeg';
+		document.getElementById(selectinggear).src = newgearImageSrc;
+//取得した選択中の枠に、ウィンドウ内で選択した装備を代入
+        // ポップアップウィンドウを閉じる
+        document.getElementById('selectgearoverlay').style.visibility = 'hidden';
+        document.getElementById('selectgearpopupwindow').style.opacity = '0';
+    }
+	
+	
+
 
 
 
