@@ -35,7 +35,6 @@ html {
         width: 100%;
         height: 100%;
         transition: visibility 0s, opacity 0.1s linear;
-	    pointer-events: auto; /* クリックやスクロールが可能になるように設定 */
     }
 
     /* オーバーレイの背景部分 */
@@ -227,7 +226,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 	</div>
       </div>
 	  </div>
-
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>あ
 
 
 
@@ -239,6 +238,7 @@ let selectingmonster = "";
 const allyIcons = document.querySelectorAll('[id^="allyicon"]');
 allyIcons.forEach(icon => {
     icon.addEventListener('click', function() {
+	    document.body.style.overflow = 'hidden';
         document.getElementById('selectmonsteroverlay').style.visibility = 'visible';
         document.getElementById('selectmonsterpopupwindow').style.opacity = '1';
         selectingmonster = icon.id;
@@ -250,6 +250,7 @@ allyIcons.forEach(icon => {
 	//ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
         document.getElementById('selectmonsteroverlay').style.visibility = 'hidden';
         document.getElementById('selectmonsterpopupwindow').style.opacity = '0';
+		document.body.style.overflow = '';
     });
 //まわりクリックで閉じる
 	
@@ -262,8 +263,9 @@ function selectMonster(monsterName) {
         // ポップアップウィンドウを閉じる
         document.getElementById('selectmonsteroverlay').style.visibility = 'hidden';
         document.getElementById('selectmonsterpopupwindow').style.opacity = '0';
+		document.body.style.overflow = '';
     }
-	
+	//ウィンドウ内クリックでそれを代入してウィンドウを閉じる
 	
 	
 	//装備選択部分
@@ -271,6 +273,7 @@ let selectinggear = "";
 const allyGear = document.querySelectorAll('[id^="allygear"]');
 allyGear.forEach(icon => {
     icon.addEventListener('click', function() {
+	    document.body.style.overflow = 'hidden';
         document.getElementById('selectgearoverlay').style.visibility = 'visible';
         document.getElementById('selectgearpopupwindow').style.opacity = '1';
         selectinggear = icon.id;
@@ -279,9 +282,10 @@ allyGear.forEach(icon => {
 //どの装備枠を選択中か取得
 
     document.getElementById('selectgearoverlay').addEventListener('click', function() {
-	//ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
+	//ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
         document.getElementById('selectgearoverlay').style.visibility = 'hidden';
         document.getElementById('selectgearpopupwindow').style.opacity = '0';
+		document.body.style.overflow = '';
     });
 //まわりクリックで閉じる
 	
@@ -294,9 +298,15 @@ function selectgear(gearName) {
         // ポップアップウィンドウを閉じる
         document.getElementById('selectgearoverlay').style.visibility = 'hidden';
         document.getElementById('selectgearpopupwindow').style.opacity = '0';
+		document.body.style.overflow = '';
     }
-	
-	
+//ウィンドウ内クリックでそれを代入してウィンドウを閉じる
+
+
+
+
+
+
 
 
 
