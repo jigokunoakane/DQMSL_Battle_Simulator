@@ -23,7 +23,46 @@ html {
   font-family: sans-serif;
   font-weight:400;
   font-size: 100%;
+  max-width: 360px
 }
+
+/*いつもの*/
+.normalbutton {
+  height: 1.6rem;
+  width: max-content;
+  padding: 0rem 0.6rem;
+  margin-left: 0.1rem;
+  margin-right: 0.1rem;
+  text-align: center;
+  border: none;
+  border-radius: 0.85rem;
+  background-color: #e9e9e9;
+  color: #0075fb;
+  font-size: 1rem;
+}
+select {
+  -webkit-appearance: none;
+  /* ベンダープレフィックス(Google Chrome、Safari用) */
+  -moz-appearance: none;
+  /* ベンダープレフィックス(Firefox用) */
+  appearance: none;
+  /* 標準のスタイルを無効にする */
+  height: 1.6rem;
+  width: max-content;
+  padding: 0rem 0.5rem;
+  margin-left: 0rem;
+  margin-right: 0.3rem;
+  text-align: left;
+  border: none;
+  border-radius: 0.85rem;
+  background-color: #e9e9e9;
+  color: #0075fb;
+  font-size: 1rem;
+}
+
+
+
+
 
     /* ポップアップwindow部分 */
     .overlay {
@@ -82,17 +121,18 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
     height: auto;
 }
 
-/* パテ */
+/* パテ画像部分 */
 
 .allyicons-container {
   display: flex; /* flexbox を使用して横並びにする */
   justify-content: flex-start; /* 左揃えにする */
   flex-wrap: wrap;
+  position: relative;
 }
 
 .allyicon-wrapper {
   flex-basis: calc(20% - 5px); /* 横幅を20%に設定して横に5つ並ぶようにする */
-  max-width: 70px; /* 画像の最大幅を設定 */
+  /*max-width: 70px;  画像の最大幅を設定 */
   margin-bottom: 10px;
      margin-left: 2.5px;
   margin-right: 2.5px;
@@ -112,8 +152,78 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   margin: 0 auto; /* 水平方向に中央揃えする */
 }
 
+/*ステータス種詳細部分*/
 
-  
+.statusandseed-container {
+  display: flex;/*横並び*/
+}
+
+.status-info-title,
+.status-info-colon,
+.status-info-status,
+.status-info-seedgear,
+.status-info-seed-title,
+.status-info-seed-seed {
+ line-height: 1.3; /* テキストの高さをリセットして均等にする */
+}
+
+.status-info-status {
+   text-align: right; /* テキストを右揃えにする */
+}
+
+.status-info-title {
+   width: 15%;
+}
+.status-info-colon {
+   width: 8%;
+}
+.status-info-status {
+   width: 10%;
+}
+.status-info-space {
+   width: 10%;
+}
+.status-info-seedgear {
+   width: 25%;
+}
+
+.status-info-seed-title {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+.status-info-seed-seed {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+
+#resetseedbtn {
+ font-size: 0.8rem; /* 他よりも少し小さめに設定 */
+ height: 1.4rem;
+ padding: 0rem 0.4rem;
+}
+
+#resetseedbtn {
+  position: absolute;
+  right: 28rem;
+    bottom: 31rem;
+}
+
+.selectseed {
+ height: 1.1rem;
+ padding: 0rem 0.4rem;
+ margin-right: 0rem;
+ /*text-align: right;  テキストを右揃えにする */
+}
+
+
+
+
+#skill-flex-container {
+  display: flex; /*横並び*/
+}
+
+
+
   </style>
 <body>
   <h2>脱法GPシミュレーター</h2>
@@ -143,7 +253,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   
   
 
-    <!-- ポップアップ部分 -->
+    <!-- ポップアップ部分モンスター選択 -->
     <div id="selectmonsteroverlay" class = "overlay">
         <div id="selectmonsterbg_gray" class = "bg_gray"></div> <!-- ウィンドウの外のグレーの領域 -->
         <div id="selectmonsterpopupwindow" class = "popupwindow"> <!-- ウィンドウ部分 -->
@@ -201,7 +311,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
       </div>
 	  </div>
 
-    <!-- ポップアップ部分 -->
+    <!-- ポップアップ部分装備選択 -->
     <div id="selectgearoverlay" class = "overlay">
         <div id="selectgearbg_gray" class = "bg_gray"></div> <!-- ウィンドウの外のグレーの領域 -->
         <div id="selectgearpopupwindow" class = "popupwindow"> <!-- ウィンドウ部分 -->
@@ -226,6 +336,185 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 	</div>
       </div>
 	  </div>
+
+
+<div class="statusandseed-container">
+
+  <!-- ステータス名と値 -->
+  <div class="status-info-title">
+   <div>HP</div>
+   <div>MP</div>
+   <div>攻撃</div>
+   <div>防御</div>
+   <div>早さ</div>
+   <div>賢さ</div>
+  </div>
+  <div class="status-info-colon">
+   <div>:</div>
+   <div>:</div>
+   <div>:</div>
+   <div>:</div>
+   <div>:</div>
+   <div>:</div>
+  </div>
+  <div class="status-info-status">
+   <div id = "status-info-displayHP">0</div>
+   <div id = "status-info-displayMP">0</div>
+   <div id = "status-info-displayatk">0</div>
+   <div id = "status-info-displaydef">0</div>
+   <div id = "status-info-displayspd">0</div>
+   <div id = "status-info-displayint">0</div>
+  </div>
+  <div class= "status-info-space"></div>
+  <div class="status-info-seedgear">
+   <div id = "status-info-seedgear-HP">(+24)</div>
+   <div id = "status-info-seedgear-MP">(+0)</div>
+   <div id = "status-info-seedgear-atk">(+40)</div>
+   <div id = "status-info-seedgear-def">(+0)</div>
+   <div id = "status-info-seedgear-spd">(+60)</div>
+   <div id = "status-info-seedgear-int">(+0)</div>
+  </div>
+  
+  
+  
+  
+  <!-- 種振り情報 -->
+<button id = "resetseedbtn" class = "normalbutton" onclick = "resetseed()">種リセット</button>
+  <div class="status-info-seed-title">
+	<div>攻撃</div>
+	<div>防御</div>
+	<div>早さ</div>
+	<div>賢さ</div>
+  </div>
+  <div class="status-info-seed-seed">
+	<div>
+	<select id= "selectseed-atk" class = "selectseed" onchange="updateOptions('selectseed-atk')">
+	<option value="0">0</option>
+	<option value="5">5</option>
+	<option value="10">10</option>
+	<option value="15">15</option>
+	<option value="20">20</option>
+	<option value="25">25</option>
+	<option value="30">30</option>
+	<option value="35">35</option>
+	<option value="40">40</option>
+	<option value="45">45</option>
+	<option value="50">50</option>
+	<option value="55">55</option>
+	<option value="60">60</option>
+	<option value="65">65</option>
+	<option value="70">70</option>
+	<option value="75">75</option>
+	<option value="80">80</option>
+	<option value="85">85</option>
+	<option value="90">90</option>
+	<option value="95">95</option>
+	<option value="100">100</option>
+	</select>
+	</div>
+	<div>
+	<select id= "selectseed-def" class = "selectseed" onchange="updateOptions('selectseed-def')">
+	<option value="0">0</option>
+	<option value="5">5</option>
+	<option value="10">10</option>
+	<option value="15">15</option>
+	<option value="20">20</option>
+	<option value="25">25</option>
+	<option value="30">30</option>
+	<option value="35">35</option>
+	<option value="40">40</option>
+	<option value="45">45</option>
+	<option value="50">50</option>
+	<option value="55">55</option>
+	<option value="60">60</option>
+	<option value="65">65</option>
+	<option value="70">70</option>
+	<option value="75">75</option>
+	<option value="80">80</option>
+	<option value="85">85</option>
+	<option value="90">90</option>
+	<option value="95">95</option>
+	<option value="100">100</option>
+	</select>
+	</div>
+	<div>
+	<select id= "selectseed-spd" class = "selectseed"onchange="updateOptions('selectseed-spd')">
+	<option value="0">0</option>
+	<option value="5">5</option>
+	<option value="10">10</option>
+	<option value="15">15</option>
+	<option value="20">20</option>
+	<option value="25">25</option>
+	<option value="30">30</option>
+	<option value="35">35</option>
+	<option value="40">40</option>
+	<option value="45">45</option>
+	<option value="50">50</option>
+	<option value="55">55</option>
+	<option value="60">60</option>
+	<option value="65">65</option>
+	<option value="70">70</option>
+	<option value="75">75</option>
+	<option value="80">80</option>
+	<option value="85">85</option>
+	<option value="90">90</option>
+	<option value="95">95</option>
+	<option value="100">100</option>
+	</select>
+	</div>
+	<div>
+	<select id= "selectseed-int" class = "selectseed" onchange="updateOptions('selectseed-int')">
+	<option value="0">0</option>
+	<option value="5">5</option>
+	<option value="10">10</option>
+	<option value="15">15</option>
+	<option value="20">20</option>
+	<option value="25">25</option>
+	<option value="30">30</option>
+	<option value="35">35</option>
+	<option value="40">40</option>
+	<option value="45">45</option>
+	<option value="50">50</option>
+	<option value="55">55</option>
+	<option value="60">60</option>
+	<option value="65">65</option>
+	<option value="70">70</option>
+	<option value="75">75</option>
+	<option value="80">80</option>
+	<option value="85">85</option>
+	<option value="90">90</option>
+	<option value="95">95</option>
+	<option value="100">100</option>
+	</select>
+	</div>
+  </div> <!-- seedselect -->
+  
+</div><!-- statusandseed-container -->
+
+
+<hr>
+<div class="skill-info-container">
+<div>特技変更</div>
+<br>
+<div class="skill-flex-container">
+<div>
+<div>1 <span id ="skill1"></div>
+<div>2 <span id ="skill2"></div>
+<div>3 <span id ="skill3"></div>
+<div>4 <span id ="skill4"></div>
+</div>
+
+
+
+
+
+</div><!-- skill-flex-container -->
+</div><!-- skill-info-container -->
+
+
+
+
+
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>あ
 
 
@@ -233,18 +522,25 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 </body>
 <script>
 
+const party = [
+    {},{},{},{},{}
+];
+
+
 //monster選択部分
-let selectingmonster = "";
+let selectingmonstericon = "";
+let selectingmonsternum = ""
 const allyIcons = document.querySelectorAll('[id^="allyicon"]');
 allyIcons.forEach(icon => {
     icon.addEventListener('click', function() {
 	    document.body.style.overflow = 'hidden';
         document.getElementById('selectmonsteroverlay').style.visibility = 'visible';
         document.getElementById('selectmonsterpopupwindow').style.opacity = '1';
-        selectingmonster = icon.id;
+        selectingmonstericon = icon.id;
+		let selectingmonsternum = selectingmonstericon.replace(/(icon|ally)/g, '');
     });
 });
-//どの枠を選択中か取得
+//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingmonstericonにidを格納-allyicon1、selectingmonsternumに1-5を格納
 
     document.getElementById('selectmonsteroverlay').addEventListener('click', function() {
 	//ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
@@ -256,10 +552,32 @@ allyIcons.forEach(icon => {
 	
 	
 function selectMonster(monsterName) {
-        // ポップアップウィンドウ内で選択したモンスターの画像をポップアップを開く画像に置き換える
         const newmonsterImageSrc = 'images/icons/' + monsterName + '.jpeg';
-		document.getElementById(selectingmonster).src = newmonsterImageSrc;
-//取得した選択中の枠に、ウィンドウ内で選択したモンスターを代入
+		document.getElementById(selectingmonstericon).src = newmonsterImageSrc;
+//取得した選択中の枠に、ポップアップウィンドウ内で選択したモンスターの画像を代入
+
+const numberinparty = selectingmonsternum-1;
+party[numberinparty] = monsters.find(monster => monster.id == monsterName);
+//selectingmonsternum-1でparty配列内の何番目の要素か指定、party配列内に引数monsterNameとidが等しいmonsterのデータの配列を代入
+
+//下のinfoへの代入テスト
+//一旦画像変更時にinfoにデータを出すようにするが、のちのち移動
+document.getElementById('status-info-displayHP').innerHTML = party[numberinparty].status.HP;
+document.getElementById('status-info-displayMP').innerHTML = party[numberinparty].status.MP;
+document.getElementById('status-info-displayatk').innerHTML = party[numberinparty].status.atk;
+document.getElementById('status-info-displaydef').innerHTML = party[numberinparty].status.def;
+document.getElementById('status-info-displayspd').innerHTML = party[numberinparty].status.spd;
+document.getElementById('status-info-displayint').innerHTML = party[numberinparty].status.int;
+//特技を取り出す
+//party[numberinparty].skill[0]がryohu
+
+document.getElementById('skill1').innerHTML = skill.find(item => item.id === party[numberinparty].skill[0]).name;
+document.getElementById('skill2').innerHTML = skill.find(item => item.id === party[numberinparty].skill[1]).name;
+document.getElementById('skill3').innerHTML = skill.find(item => item.id === party[numberinparty].skill[2]).name;
+document.getElementById('skill4').innerHTML = skill.find(item => item.id === party[numberinparty].skill[3]).name;
+
+
+
         // ポップアップウィンドウを閉じる
         document.getElementById('selectmonsteroverlay').style.visibility = 'hidden';
         document.getElementById('selectmonsterpopupwindow').style.opacity = '0';
@@ -301,10 +619,75 @@ function selectgear(gearName) {
 		document.body.style.overflow = '';
     }
 //ウィンドウ内クリックでそれを代入してウィンドウを閉じる
+//装備選択部分終了
 
 
 
 
+//種保存
+
+
+const selectseedatk = document.getElementById("selectseed-atk").value;
+const selectseeddef = document.getElementById("selectseed-def").value;
+const selectseedspd = document.getElementById("selectseed-spd").value;
+const selectseedint = document.getElementById("selectseed-int").value;
+
+
+/*
+select変化時、全部の合計値を算出、
+120-その合計値を算出 = remain
+いずれかのselectをクリックした際に、そのselectでは、現状の値+remainを超える選択肢をdisable化
+*/
+
+//種max120制御
+document.addEventListener("DOMContentLoaded", function() {
+  const selectElements = document.querySelectorAll(".selectseed");
+  
+  // 各select要素のchangeイベントにリスナーを追加
+  selectElements.forEach(selectElement => {
+    selectElement.addEventListener("change", function() {
+      updateSelectOptions();
+    });
+  });
+  
+  function updateSelectOptions() {
+    const selectedValues = Array.from(selectElements).map(selectElement => parseInt(selectElement.value));
+    const total = selectedValues.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+    
+    // 各select要素の選択肢を更新
+    selectElements.forEach(selectElement => {
+      const currentValue = parseInt(selectElement.value);
+      
+      // 一時的に全ての選択肢を有効化
+      const options = selectElement.querySelectorAll("option");
+      options.forEach(option => {
+        option.disabled = false;
+      });
+      
+      // 選択肢を無効化するかどうかを決定
+      options.forEach(option => {
+        const optionValue = parseInt(option.value);
+        if (optionValue + total > 120) {
+          option.disabled = optionValue !== currentValue;
+        }
+      });
+    });
+  }
+});
+
+
+
+//AI
+//ウェイト表示
+
+
+
+
+
+
+//monster data
+//枠を作成
+//必要に応じて、2パテ目とかも
 
 
 
@@ -313,32 +696,97 @@ function selectgear(gearName) {
 
 const monsters = [
     {
-        name: "スライム",
-		id: "slime",
-		type: "スラ",
-        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
-		skill: "",
+        name: "シンリ",
+		id: "sinri",
+		type: "ドラゴン",
+        status: { HP: 314, MP: 159, atk: 265, def: 111, spd: 1001, int: 1001 },
+		skill: [ "ryohu", "kagura", "jado", "zetsuhyo" ],
 		attribute: ""
 		//lsとかもね。あとは装備種込の表示配列、ls込、内部やバフ込のtemporary status
     },
     {
-        name: "ドラキュラ",
-		id: "dora",
+        name: "ルシア",
+		id: "rusia",
 		type: "悪魔",
-        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
-		skill: "",
+        status: { HP: 10, MP: 5, atk: 1008, def: 3, spd: 6, int: 7 },
+		skill: [ "ryoran", "shawer", "supahun", "ozo" ],
 		attribute: ""
     },
     {
         name: "ペンギン",
 		id: "penguin",
 		type: "鳥",
-        status: { HP: 10, MP: 5, str: 8, def: 3, spd: 6, int: 7 },
+        status: { HP: 10, MP: 5, atk: 8, def: 3, spd: 6, int: 7 },
 		skill: "",
 		attribute: ""
     }
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
+
+
+const skill = [
+    {
+        name: "涼風一陣",
+        id: "ryohu",
+        howToCalculate: "fix",
+        attribute: "no"
+    },
+    {
+        name: "神楽の術",
+        id: "kagura",
+        howToCalculate: "int",
+        attribute: "no"
+    },
+	{
+        name: "邪道のかくせい",
+        id: "jado",
+        howToCalculate: "no",
+        attribute: "no"
+    },
+	{
+        name: "絶氷の嵐",
+        id: "zetsuhyo",
+        howToCalculate: "int",
+        attribute: "ice"
+    },
+	{
+        name: "氷華大繚乱",
+        id: "ryoran",
+        howToCalculate: "atk",
+        attribute: "ice"
+    },
+	{
+        name: "フローズンシャワー",
+        id: "shawer",
+        howToCalculate: "fix",
+        attribute: "ice"
+    },
+	{
+        name: "スパふん",
+        id: "supahun",
+        howToCalculate: "fix",
+        attribute: "gira"
+    },
+	{
+        name: "おぞおた",
+        id: "ozo",
+        howToCalculate: "atk",
+        attribute: "no"
+    },
+
+
+//mera hyado gira io bagi dein doruma
+
+
+
+{}
+];
+
+
+
+
+
+
 
 
 
