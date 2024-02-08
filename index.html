@@ -7,6 +7,9 @@
 </head>
 <style>
 
+
+
+
 html {
     -ms-touch-action:manipulation;
     touch-action:manipulation;
@@ -121,6 +124,10 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
     height: auto;
 }
 
+
+
+
+
 /* パテ画像部分 */
 
 .allyicons-container {
@@ -129,6 +136,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   flex-wrap: wrap;
   position: relative;
 }
+
 
 .allyicon-wrapper {
   flex-basis: calc(20% - 5px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
@@ -151,12 +159,23 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   margin: 0 auto; /* 水平方向に中央揃えする */
 }
 
+
+#monsterinfo-tabs {
+  display: flex;
+}
+
+#monsterinfo-tabs span {
+  flex: 1; /* 各要素を均等に幅を分配 */
+}
+
+
 /*ステータス種詳細部分*/
 
 .statusandseed-container {
+  padding-left: 0.4rem;
   display: flex;/*横並び*/
-  background-color: rgba(0, 191, 255, 0.1);
-  margin-top:-0.7rem;
+  /*背景*/
+
   padding-top: 0.7rem;
 }
 
@@ -224,28 +243,30 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 
 
 
- /* background-color: #e0e0e0;  ホバー時の背景色 */
- /*  background-color: rgba(0, 191, 255, 0.1);*/
-
 #tab1, #tab2, #tab3, #tab4, #tab5 {
   display: block;
-  width: 93%;
+  /*width: 93%;*/
   text-align: center;
-  padding: 5px;
-  background-color: #f0f0f0; /* 背景色 */
+  padding: 0.2rem;
+  background-color: #f0f0f0;
   color: #333; /* テキストの色 */
-  font-size: 12px; /* テキストのサイズ */
+  font-size: 0.75rem; /* テキストのサイズ */
   border: 1px solid #ccc; /* 枠線のスタイル */
-  
-  margin-top: 5px; /* タブ間のマージン */
+  margin: 0;
+
   height: 1rem;
 
 }
 
+.statusandseed-container {
+ background-color: rgba(0, 191, 255, 0.1);
+}
+
 #tab2 {
 background-color: rgba(0, 191, 255, 0.1);
-border-bottom: none; /* 枠線のスタイル */
+border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 }
+
 
 
 
@@ -262,31 +283,33 @@ border-bottom: none; /* 枠線のスタイル */
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
     <img src="images/gear/ungeared.jpeg" id="allygear1" class="gear-icon">
-	<span id = "tab1">表示中</span>
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon2" class="allyicons">
     <img src="images/gear/ungeared.jpeg" id="allygear2" class="gear-icon">
-	<span id = "tab2">詳細</span>
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon3" class="allyicons">
     <img src="images/gear/ungeared.jpeg" id="allygear3" class="gear-icon">
-	<span id = "tab3">詳細</span>
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon4" class="allyicons">
     <img src="images/gear/ungeared.jpeg" id="allygear4" class="gear-icon">
-	<span id = "tab4">詳細</span>
   </span>
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon5" class="allyicons">
     <img src="images/gear/ungeared.jpeg" id="allygear5" class="gear-icon">
-	<span id = "tab5">詳細</span>
   </span>
+</div><!--finish allyicons-container-->
+
+<div id = "monsterinfo-tabs">
+	<span id = "tab1">詳細</span>
+	<span id = "tab2">表示中</span>
+	<span id = "tab3">詳細</span>
+	<span id = "tab4">詳細</span>
+	<span id = "tab5">詳細</span>
 </div>
 
-  
 
     <!-- ポップアップ部分モンスター選択 -->
     <div id="selectmonsteroverlay" class = "overlay">
@@ -888,6 +911,10 @@ console.log(ally1);
 
 
 /* ゴミ箱
+
+
+
+
 
 
 
