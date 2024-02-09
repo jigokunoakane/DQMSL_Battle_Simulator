@@ -164,7 +164,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   display: flex;
 }
 
-#monsterinfo-tabs span {
+#monsterinfo-tabs button {
   flex: 1; /* 各要素を均等に幅を分配 */
 }
 
@@ -177,6 +177,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   /*背景*/
 
   padding-top: 0.7rem;
+  padding-bottom: 0.4rem;
 }
 
 .status-info-title,
@@ -233,7 +234,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
  height: 1.1rem;
  padding: 0rem 0.4rem;
  margin-right: 0rem;
- /*text-align: right;  テキストを右揃えにする */
+ width: 2.5rem;
 }
 
 
@@ -243,7 +244,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
 
 
 
-#tab1, #tab2, #tab3, #tab4, #tab5 {
+.monster-info-tabs {
   display: block;
   /*width: 93%;*/
   text-align: center;
@@ -253,19 +254,23 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   font-size: 0.75rem; /* テキストのサイズ */
   border: 1px solid #ccc; /* 枠線のスタイル */
   margin: 0;
+  height: 1.5rem;
+}
 
-  height: 1rem;
-
+#tab1, #tab2, #tab3, #tab4 {
+  margin-right: -1px;
 }
 
 .statusandseed-container {
  background-color: rgba(0, 191, 255, 0.1);
 }
 
-#tab2 {
+.monster-info-tabs.selectedtab {
 background-color: rgba(0, 191, 255, 0.1);
 border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 }
+
+
 
 
 
@@ -303,11 +308,11 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 </div><!--finish allyicons-container-->
 
 <div id = "monsterinfo-tabs">
-	<span id = "tab1">詳細</span>
-	<span id = "tab2">表示中</span>
-	<span id = "tab3">詳細</span>
-	<span id = "tab4">詳細</span>
-	<span id = "tab5">詳細</span>
+	<button id = "tab1" class = "monster-info-tabs" onclick = "switchTab(1)">詳細</button>
+	<button id = "tab2" class = "monster-info-tabs" onclick = "switchTab(2)">詳細</button>
+	<button id = "tab3" class = "monster-info-tabs" onclick = "switchTab(3)">詳細</button>
+	<button id = "tab4" class = "monster-info-tabs" onclick = "switchTab(4)">詳細</button>
+	<button id = "tab5" class = "monster-info-tabs" onclick = "switchTab(5)">詳細</button>
 </div>
 
 
@@ -425,11 +430,11 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
   </div>
   <div class= "status-info-space"></div>
   <div class="status-info-seedgear">
-   <div id = "status-info-seedgear-HP">(+24)</div>
+   <div id = "status-info-seedgear-HP">(+0)</div>
    <div id = "status-info-seedgear-MP">(+0)</div>
-   <div id = "status-info-seedgear-atk">(+40)</div>
+   <div id = "status-info-seedgear-atk">(+0)</div>
    <div id = "status-info-seedgear-def">(+0)</div>
-   <div id = "status-info-seedgear-spd">(+60)</div>
+   <div id = "status-info-seedgear-spd">(+0)</div>
    <div id = "status-info-seedgear-int">(+0)</div>
   </div>
   
@@ -448,103 +453,103 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
   </div>
   <div class="status-info-seed-seed">
 	<div>
-	<select id= "selectseed-atk" class = "selectseed" onchange="updateOptions('selectseed-atk')">
+<select id= "selectseed-atk" class = "selectseed">
 	<option value="0">0</option>
-	<option value="5">5</option>
-	<option value="10">10</option>
-	<option value="15">15</option>
-	<option value="20">20</option>
-	<option value="25">25</option>
-	<option value="30">30</option>
-	<option value="35">35</option>
-	<option value="40">40</option>
-	<option value="45">45</option>
-	<option value="50">50</option>
-	<option value="55">55</option>
-	<option value="60">60</option>
-	<option value="65">65</option>
-	<option value="70">70</option>
-	<option value="75">75</option>
-	<option value="80">80</option>
-	<option value="85">85</option>
-	<option value="90">90</option>
-	<option value="95">95</option>
-	<option value="100">100</option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</span></option>
+	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+	<option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
+	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+	<option value="25">25&nbsp;&nbsp;&nbsp;攻撃+10</option>
+	<option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+	<option value="35">35&nbsp;&nbsp;&nbsp;攻撃+10</option>
+	<option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+	<option value="45">45&nbsp;&nbsp;&nbsp;攻撃+6</option>
+	<option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+	<option value="55">55&nbsp;&nbsp;&nbsp;攻撃+6</option>
+	<option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="65">65&nbsp;&nbsp;&nbsp;攻撃+6</option>
+	<option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="75">75&nbsp;&nbsp;&nbsp;攻撃+4</option>
+	<option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="85">85&nbsp;&nbsp;&nbsp;攻撃+2</option>
+	<option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
+	<option value="95">95&nbsp;&nbsp;&nbsp;攻撃+2</option>
+	<option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
 	</select>
 	</div>
 	<div>
-	<select id= "selectseed-def" class = "selectseed" onchange="updateOptions('selectseed-def')">
+	<select id= "selectseed-def" class = "selectseed">
 	<option value="0">0</option>
-	<option value="5">5</option>
-	<option value="10">10</option>
-	<option value="15">15</option>
-	<option value="20">20</option>
-	<option value="25">25</option>
-	<option value="30">30</option>
-	<option value="35">35</option>
-	<option value="40">40</option>
-	<option value="45">45</option>
-	<option value="50">50</option>
-	<option value="55">55</option>
-	<option value="60">60</option>
-	<option value="65">65</option>
-	<option value="70">70</option>
-	<option value="75">75</option>
-	<option value="80">80</option>
-	<option value="85">85</option>
-	<option value="90">90</option>
-	<option value="95">95</option>
-	<option value="100">100</option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</span></option>
+	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+	<option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
+	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="25">25&nbsp;&nbsp;&nbsp;防御+20</option>
+	<option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+	<option value="35">35&nbsp;&nbsp;&nbsp;防御+20</option>
+	<option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="45">45&nbsp;&nbsp;&nbsp;防御+12</option>
+	<option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+	<option value="55">55&nbsp;&nbsp;&nbsp;防御+12</option>
+	<option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="65">65&nbsp;&nbsp;&nbsp;防御+12</option>
+	<option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+	<option value="75">75&nbsp;&nbsp;&nbsp;防御+8</option>
+	<option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="85">85&nbsp;&nbsp;&nbsp;防御+4</option>
+	<option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="95">95&nbsp;&nbsp;&nbsp;防御+4</option>
+	<option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
 	</select>
 	</div>
 	<div>
-	<select id= "selectseed-spd" class = "selectseed"onchange="updateOptions('selectseed-spd')">
+	<select id= "selectseed-spd" class = "selectseed">
 	<option value="0">0</option>
-	<option value="5">5</option>
-	<option value="10">10</option>
-	<option value="15">15</option>
-	<option value="20">20</option>
-	<option value="25">25</option>
-	<option value="30">30</option>
-	<option value="35">35</option>
-	<option value="40">40</option>
-	<option value="45">45</option>
-	<option value="50">50</option>
-	<option value="55">55</option>
-	<option value="60">60</option>
-	<option value="65">65</option>
-	<option value="70">70</option>
-	<option value="75">75</option>
-	<option value="80">80</option>
-	<option value="85">85</option>
-	<option value="90">90</option>
-	<option value="95">95</option>
-	<option value="100">100</option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</span></option>
+	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+	<option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
+	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="25">25&nbsp;&nbsp;&nbsp;素早さ+10</option>
+	<option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+	<option value="35">35&nbsp;&nbsp;&nbsp;素早さ+10</option>
+	<option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="45">45&nbsp;&nbsp;&nbsp;素早さ+6</option>
+	<option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+	<option value="55">55&nbsp;&nbsp;&nbsp;素早さ+6</option>
+	<option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="65">65&nbsp;&nbsp;&nbsp;素早さ+6</option>
+	<option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+	<option value="75">75&nbsp;&nbsp;&nbsp;素早さ+4</option>
+	<option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="85">85&nbsp;&nbsp;&nbsp;素早さ+2</option>
+	<option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+	<option value="95">95&nbsp;&nbsp;&nbsp;素早さ+2</option>
+	<option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
 	</select>
 	</div>
 	<div>
-	<select id= "selectseed-int" class = "selectseed" onchange="updateOptions('selectseed-int')">
+	<select id= "selectseed-int" class = "selectseed">
 	<option value="0">0</option>
-	<option value="5">5</option>
-	<option value="10">10</option>
-	<option value="15">15</option>
-	<option value="20">20</option>
-	<option value="25">25</option>
-	<option value="30">30</option>
-	<option value="35">35</option>
-	<option value="40">40</option>
-	<option value="45">45</option>
-	<option value="50">50</option>
-	<option value="55">55</option>
-	<option value="60">60</option>
-	<option value="65">65</option>
-	<option value="70">70</option>
-	<option value="75">75</option>
-	<option value="80">80</option>
-	<option value="85">85</option>
-	<option value="90">90</option>
-	<option value="95">95</option>
-	<option value="100">100</option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</span></option>
+	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+	<option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
+	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+	<option value="25">25&nbsp;&nbsp;&nbsp;賢さ+20</option>
+	<option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+	<option value="35">35&nbsp;&nbsp;&nbsp;賢さ+20</option>
+	<option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+	<option value="45">45&nbsp;&nbsp;&nbsp;賢さ+12</option>
+	<option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+	<option value="55">55&nbsp;&nbsp;&nbsp;賢さ+12</option>
+	<option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="65">65&nbsp;&nbsp;&nbsp;賢さ+12</option>
+	<option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="75">75&nbsp;&nbsp;&nbsp;賢さ+8</option>
+	<option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+	<option value="85">85&nbsp;&nbsp;&nbsp;賢さ+4</option>
+	<option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+1</option>
+	<option value="95">95&nbsp;&nbsp;&nbsp;賢さ+4</option>
+	<option value="100">100&nbsp;&nbsp;&nbsp;MP+1</option>
 	</select>
 	</div>
   </div> <!-- seedselect -->
@@ -683,34 +688,26 @@ function selectgear(gearName) {
 
 
 
-function updateOptions(){
-}
-//種保存
-/*
-const selectseedatk = document.getElementById("selectseed-atk").value;
-const selectseeddef = document.getElementById("selectseed-def").value;
-const selectseedspd = document.getElementById("selectseed-spd").value;
-const selectseedint = document.getElementById("selectseed-int").value;
-
-let remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
-*/
-
-
-// remainingselectseedsumという変数を定義
-
+//種max120処理
 
 // select要素のリストを取得
 var selectElementsseed = document.querySelectorAll('.selectseed');
+
+//初期値
+let selectseedatk = document.getElementById("selectseed-atk").value;
+        let selectseeddef = document.getElementById("selectseed-def").value;
+        let selectseedspd = document.getElementById("selectseed-spd").value;
+        let selectseedint = document.getElementById("selectseed-int").value;
 
 // 各select要素に対してイベントリスナーを追加
 selectElementsseed.forEach(function(selectElement) {
     selectElement.addEventListener('change', function() {
         // 選択された数値を取得
-        var selectseedatk = document.getElementById("selectseed-atk").value;
-        var selectseeddef = document.getElementById("selectseed-def").value;
-        var selectseedspd = document.getElementById("selectseed-spd").value;
-        var selectseedint = document.getElementById("selectseed-int").value;
-
+        selectseedatk = document.getElementById("selectseed-atk").value;
+        selectseeddef = document.getElementById("selectseed-def").value;
+        selectseedspd = document.getElementById("selectseed-spd").value;
+        selectseedint = document.getElementById("selectseed-int").value;
+        updateseedgear();
         // どれだけ追加で振れるか
         var remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
 
@@ -733,24 +730,103 @@ selectElementsseed.forEach(function(selectElement) {
     });
 });
 
-
-
-
-
-
-
 /*
 select変化時、全部の合計値を算出、
 120-その合計値を算出 = remain
 いずれかのselectをクリックした際に、そのselectでは、現状の値+remainを超える選択肢をdisable化
 */
 
-//種max120制御
+const seedzoubun = {
+HP: "",
+MP: "",
+atk: "",
+def: "",
+spd: "",
+int: ""
+};
 
-//AI
-//ウェイト表示
+//本当は、種情報格納、そこから増分算出後格納、そしてその両者をdiaplay
+ function updateseedgear() {
+ 
+ //事前定義
+ function seedcalc (limit, targetarray) {
+let sum = 0;
+for (let i = 0; i < limit; i++) {
+    sum += targetarray[i];
+}
+return sum;
+}
+//種を5で割った数値までの配列内の項をすべて足す
+const atkseedarrayatk = [4, 0, 10, 0, 10, 0, 10, 0, 6, 0, 6, 0, 6, 0, 4, 0, 2, 0, 2, 0];
+const atkseedarrayHP = [0, 4, 0, 4, 0, 4, 0, 3, 0, 3, 0, 2, 0, 2, 0, 2, 0, 1, 0, 1];
+const defseedarraydef = [8, 0, 20, 0, 20, 0, 20, 0, 12, 0, 12, 0, 12, 0, 8, 0, 4, 0, 4, 0];
+const defseedarrayHP = [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2];
+const defseedarrayMP = [0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0];
 
-//お、remainingselectseedsumは、4つのselectの値の合計を120から引いた値であり、selectが変更されるたびに計算する。これを4つのselectそれぞれについて行う。
+const atkseedlimit = selectseedatk / 5;
+const defseedlimit = selectseeddef / 5;
+const spdseedlimit = selectseedspd / 5;
+const intseedlimit = selectseedint / 5;
+
+HPzoubun = seedcalc(atkseedlimit, atkseedarrayHP) + seedcalc(defseedlimit, defseedarrayHP) + seedcalc(spdseedlimit, defseedarrayMP);
+MPzoubun = seedcalc(defseedlimit, defseedarrayMP) + seedcalc(spdseedlimit, defseedarrayHP) + seedcalc(intseedlimit, atkseedarrayHP);
+atkzoubun = seedcalc(atkseedlimit, atkseedarrayatk);
+defzoubun = seedcalc(defseedlimit, defseedarraydef);
+spdzoubun = seedcalc(spdseedlimit, atkseedarrayatk);
+intzoubun = seedcalc(intseedlimit, defseedarraydef);
+
+//zoubun配列内に代入
+seedzoubun.HP = HPzoubun;
+seedzoubun.MP = MPzoubun;
+seedzoubun.atk = atkzoubun;
+seedzoubun.def = defzoubun;
+seedzoubun.spd = spdzoubun;
+seedzoubun.int = intzoubun;
+
+document.getElementById("status-info-seedgear-HP").textContent =`(+${HPzoubun})`;
+document.getElementById("status-info-seedgear-MP").textContent =`(+${MPzoubun})`;
+document.getElementById("status-info-seedgear-atk").textContent =`(+${atkzoubun})`;
+document.getElementById("status-info-seedgear-def").textContent =`(+${defzoubun})`;
+document.getElementById("status-info-seedgear-spd").textContent =`(+${spdzoubun})`;
+document.getElementById("status-info-seedgear-int").textContent =`(+${intzoubun})`;
+
+
+
+
+} //finish updateseedgear
+
+//タブ処理
+
+function addTabclass(targettabnum) {
+  const tabButtons = document.querySelectorAll('.monster-info-tabs');
+    const targetTabButton = document.getElementById(`tab${targettabnum}`);
+    tabButtons.forEach((tabButton) => {
+      tabButton.classList.remove("selectedtab");
+	   tabButton.textContent = "詳細";
+	});
+    targetTabButton.classList.add("selectedtab");
+    targetTabButton.textContent = "表示中";
+
+}
+
+let currentTab = 1;
+function switchTab(tabNumber) {
+
+  currentTab = tabNumber;
+
+//種やステの呼び出し
+
+  // タブボタンに枠線を追加する
+  addTabclass(tabNumber);
+
+}
+
+
+
+
+
+
+
 
 
 
@@ -758,11 +834,6 @@ select変化時、全部の合計値を算出、
 //monster data
 //枠を作成
 //必要に応じて、2パテ目とかも
-
-
-
-
-
 
 const monsters = [
     {
