@@ -164,7 +164,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   display: flex;
 }
 
-#monsterinfo-tabs button {
+#monsterinfo-tabs div {
   flex: 1; /* 各要素を均等に幅を分配 */
 }
 
@@ -254,9 +254,7 @@ overflow: auto; /* コンテンツがウィンドウからはみ出した場合�
   font-size: 0.75rem; /* テキストのサイズ */
   border: 1px solid #ccc; /* 枠線のスタイル */
   margin: 0;
-  height: 1.5rem;
-   outline: none;
-   box-shadow: none;
+  /*button時height: 1.5rem;*/
 }
 
 #tab1, #tab2, #tab3, #tab4 {
@@ -310,11 +308,11 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 </div><!--finish allyicons-container-->
 
 <div id = "monsterinfo-tabs">
-	<button id = "tab1" class = "monster-info-tabs" onclick = "switchTab(1)">詳細</button>
-	<button id = "tab2" class = "monster-info-tabs" onclick = "switchTab(2)">詳細</button>
-	<button id = "tab3" class = "monster-info-tabs" onclick = "switchTab(3)">詳細</button>
-	<button id = "tab4" class = "monster-info-tabs" onclick = "switchTab(4)">詳細</button>
-	<button id = "tab5" class = "monster-info-tabs" onclick = "switchTab(5)">詳細</button>
+	<div id = "tab1" class = "monster-info-tabs" onclick = "switchTab(1)">詳細</div>
+	<div id = "tab2" class = "monster-info-tabs" onclick = "switchTab(2)">詳細</div>
+	<div id = "tab3" class = "monster-info-tabs" onclick = "switchTab(3)">詳細</div>
+	<div id = "tab4" class = "monster-info-tabs" onclick = "switchTab(4)">詳細</div>
+	<div id = "tab5" class = "monster-info-tabs" onclick = "switchTab(5)">詳細</div>
 </div>
 
 
