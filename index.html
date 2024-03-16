@@ -9,9 +9,8 @@
 
 
 
-
 html {
-    -ms-touch-action:manipulation;
+        -ms-touch-action:manipulation;
     touch-action:manipulation;
   }
     body {
@@ -283,8 +282,17 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
   </style>
 <body>
   <h2>脱法GPシミュレーター</h2>
-  <div id = partyselect>
-  <div>プレイヤーAのパテ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w150</div>
+  <div id = "adjustpartypage"> 
+  <span id = "playerAorB"> プレイヤーA</span>&nbsp;
+  <select id = "selectparty" onchange = "selectparty()">
+  <option value = "1">パーティ1</option>
+  <option value = "2">パーティ2</option>
+  <option value = "3">パーティ3</option>
+  <option value = "4">パーティ4</option>
+  <option value = "5">パーティ5</option>
+  </select>
+  &nbsp;&nbsp;&nbsp;w150&nbsp;&nbsp;
+  <button id = "confirmparty" class = "normalbutton" onclick = "confirmparty()">パテ決定</button>
   <div class="allyicons-container">
   <span class="allyicon-wrapper">
     <img src="images/icons/unselected.jpeg" id="allyicon1" class="allyicons">
@@ -314,6 +322,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 	<div id = "tab3" class = "monster-info-tabs" onclick = "switchTab(3)">詳細</div>
 	<div id = "tab4" class = "monster-info-tabs" onclick = "switchTab(4)">詳細</div>
 	<div id = "tab5" class = "monster-info-tabs" onclick = "switchTab(5)">詳細</div>
+	<span id = "tab6" class = "monster-info-tabs" style="display: none;"></span>
 </div>
 
 
@@ -327,15 +336,10 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 <img class="allmonstericons" src="images/icons/sinri.jpeg" onclick="selectMonster('sinri')">
 <img class="allmonstericons" src="images/icons/rusia.jpeg" onclick="selectMonster('rusia')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<div>ドラゴン系</div>
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
-<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
+<div>あ</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('aaa')">
+<div>い</div>
+<img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('iii')">
 <div>悪魔系</div>
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
 <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')">
@@ -379,7 +383,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
     <div id="selectgearoverlay" class = "overlay">
         <div id="selectgearbg_gray" class = "bg_gray"></div> <!-- ウィンドウの外のグレーの領域 -->
         <div id="selectgearpopupwindow" class = "popupwindow"> <!-- ウィンドウ部分 -->
-            <div id="msg"> <!-- ウィンドウのコンテンツ -->
+            <div id="mmsg"> <!-- ウィンドウのコンテンツ -->
                 <h3>装備を選択</h3>
 				<div>爪</div>
 <img class="allgear" src="images/gear/metanail.jpeg" onclick="selectgear('metanail')">
@@ -422,21 +426,21 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
    <div>:</div>
   </div>
   <div class="status-info-status">
-   <div id = "status-info-displayHP">0</div>
-   <div id = "status-info-displayMP">0</div>
-   <div id = "status-info-displayatk">0</div>
-   <div id = "status-info-displaydef">0</div>
-   <div id = "status-info-displayspd">0</div>
-   <div id = "status-info-displayint">0</div>
+   <div id = "status-info-displayHP" class = "status-info-display">0</div>
+   <div id = "status-info-displayMP" class = "status-info-display">0</div>
+   <div id = "status-info-displayatk" class = "status-info-display">0</div>
+   <div id = "status-info-displaydef" class = "status-info-display">0</div>
+   <div id = "status-info-displayspd" class = "status-info-display">0</div>
+   <div id = "status-info-displayint" class = "status-info-display">0</div>
   </div>
   <div class= "status-info-space"></div>
   <div class="status-info-seedgear">
-   <div id = "status-info-seedgear-HP">(+0)</div>
-   <div id = "status-info-seedgear-MP">(+0)</div>
-   <div id = "status-info-seedgear-atk">(+0)</div>
-   <div id = "status-info-seedgear-def">(+0)</div>
-   <div id = "status-info-seedgear-spd">(+0)</div>
-   <div id = "status-info-seedgear-int">(+0)</div>
+   <div id = "status-info-seedgear-HP" class = "status-info-displayseedgear">(+0)</div>
+   <div id = "status-info-seedgear-MP" class = "status-info-displayseedgear">(+0)</div>
+   <div id = "status-info-seedgear-atk" class = "status-info-displayseedgear">(+0)</div>
+   <div id = "status-info-seedgear-def" class = "status-info-displayseedgear">(+0)</div>
+   <div id = "status-info-seedgear-spd" class = "status-info-displayseedgear">(+0)</div>
+   <div id = "status-info-seedgear-int" class = "status-info-displayseedgear">(+0)</div>
   </div>
   
   
@@ -456,7 +460,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 	<div>
 <select id= "selectseed-atk" class = "selectseed" onchange = "changeseedselect()">
 	<option value="0">0</option>
-	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</span></option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
 	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
 	<option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
 	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -481,7 +485,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 	<div>
 	<select id= "selectseed-def" class = "selectseed" onchange = "changeseedselect()">
 	<option value="0">0</option>
-	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</span></option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
 	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
 	<option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
 	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
@@ -506,7 +510,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 	<div>
 	<select id= "selectseed-spd" class = "selectseed" onchange = "changeseedselect()">
 	<option value="0">0</option>
-	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</span></option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
 	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
 	<option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
 	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
@@ -531,7 +535,7 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 	<div>
 	<select id= "selectseed-int" class = "selectseed" onchange = "changeseedselect()">
 	<option value="0">0</option>
-	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</span></option>
+	<option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
 	<option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
 	<option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
 	<option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -564,10 +568,10 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 <br>
 <div class="skill-flex-container">
 <div>
-<div>1 <span id ="skill1"></div>
-<div>2 <span id ="skill2"></div>
-<div>3 <span id ="skill3"></div>
-<div>4 <span id ="skill4"></div>
+<div>1 <span id ="skill1"></span></div>
+<div>2 <span id ="skill2"></span></div>
+<div>3 <span id ="skill3"></span></div>
+<div>4 <span id ="skill4"></span></div>
 </div>
 <br><br><br><br><br>
 
@@ -576,19 +580,266 @@ border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 
 </div><!-- skill-flex-container -->
 </div><!-- skill-info-container -->
-</div><!--partyselect -->
+</div><!--adjustpartypage -->
 
+<div id = "battlepage">
 
+戦闘画面
+<button id = "karibtn" class = "normalbutton">仮ボタン</button>
+<button id = "testbtn" class = "normalbutton">console出力</button>
+</div><!--finish battlepage-->
 
-
-
-
-</body>
 <script>
+  //初期処理
+  document.getElementById("battlepage").style.display = "none";
+const defaultMonster = {
+    name: "未選択",
+    id: "unselected",
+    type: "",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+    skill: [ "unselected", "unselected", "unselected", "unselected" ],
+    attribute: "",
+    seed: { atk: 0, def: 0, spd: 0, int: 0 } ,
+    gear:{
+        name: "",
+        id: "ungeared",
+	    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+        effect: "no"
+    },
+    gearzoubun: {
+	 HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 
+	 }
+};
 
-const party = [
-    {},{},{},{},{}
+const defaultparty = Array(5).fill(defaultMonster);
+/*let allparties = [
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] },
+  { party: [...defaultparty] }
 ];
+*/
+let allparties = Array.from({ length: 10 }, () => ({ party: [...defaultparty] }));
+let parties = [
+  { party: [...defaultparty] },
+  { party: [...defaultparty] }
+];
+
+// allparties[0].party が party1
+
+let party = [...defaultparty];
+let selectingpartynum = 1;
+//party初期化
+
+function selectparty() {
+    // 現在のpartyをselectingpartyに格納
+  allparties[selectingpartynum - 1].party = structuredClone(party)
+	console.log(allparties);
+
+	//シャローコピー
+	//やり方自体改善必要、chatに投げよう
+	//それまで選択中のpartyに格納
+    // selectingpartyを選択値に更新
+    selectingpartynum = parseInt(document.getElementById('selectparty').value);
+	party = structuredClone(allparties[selectingpartynum - 1].party);
+	//console.log(newparty, window[newparty], aaa, window, party2);
+	//party.splice(0, party.length, ...window[newparty]); 
+	// partyの要素を新しいpartyの要素で置き換える
+
+
+
+//仮party配列を操作し、選択中partyをいじった際に仮配列で上書き、新partyを上から下ろす
+
+
+
+//頭モンスターを選択状態に
+switchTab(1);
+/*
+
+document.getElementById('status-info-displayHP').textContent = "0";
+document.getElementById('status-info-displayMP').textContent = "0";
+document.getElementById('status-info-displayatk').textContent = "0";
+document.getElementById('status-info-displaydef').textContent = "0";
+document.getElementById('status-info-displayspd').textContent = "0";
+document.getElementById('status-info-displayint').textContent = "0";
+
+document.getElementById('status-info-seedgear-HP').textContent = "(+0)";
+document.getElementById('status-info-seedgear-MP').textContent = "(+0)";
+document.getElementById('status-info-seedgear-atk').textContent = "(+0)";
+document.getElementById('status-info-seedgear-def').textContent = "(+0)";
+document.getElementById('status-info-seedgear-spd').textContent = "(+0)";
+document.getElementById('status-info-seedgear-int').textContent = "(+0)";
+
+document.getElementById('selectseed-atk').value = 0;
+document.getElementById('selectseed-def').value = 0;
+document.getElementById('selectseed-spd').value = 0;
+document.getElementById('selectseed-int').value = 0;
+document.getElementById('skill1').textContent = "";
+document.getElementById('skill2').textContent = "";
+document.getElementById('skill3').textContent = "";
+document.getElementById('skill4').textContent = "";
+*/
+
+
+//icon10個
+
+
+function updateImage(elementId, id, gearId) {
+    var iconSrc = id ? 'images/icons/' + id + '.jpeg' : 'images/icons/unselected.jpeg';
+    var gearSrc = gearId ? 'images/gear/' + gearId + '.jpeg' : 'images/gear/ungeared.jpeg';
+    
+    document.getElementById(elementId).src = iconSrc;
+    document.getElementById('allygear' + elementId.slice(-1)).src = gearSrc;
+}
+
+updateImage('allyicon1', party[0]?.id, party[0]?.gear?.id);
+updateImage('allyicon2', party[1]?.id, party[1]?.gear?.id);
+updateImage('allyicon3', party[2]?.id, party[2]?.gear?.id);
+updateImage('allyicon4', party[3]?.id, party[3]?.gear?.id);
+updateImage('allyicon5', party[4]?.id, party[4]?.gear?.id);
+
+
+
+
+}
+
+let allyorenemy = "ally";
+// オプションを置き換える関数
+function replacepartyOptions() {
+    
+    selectElement.innerHTML = ""; // 現在のオプションをクリア
+
+    // 新しいオプションを追加
+    for (let i = 6; i <= 10; i++) {
+        selectElement.innerHTML += `<option value="${i}">パーティ${i - 5}</option>`;
+    }
+}
+// 元のオプションに戻す関数
+function restorepartyOptions() {
+    const selectElement = document.getElementById("selectparty");
+    selectElement.innerHTML = selectElement.firstElementChild.outerHTML;
+}
+
+
+
+
+function confirmparty(){
+  const selectpartymanipu = document.getElementById("selectparty");
+
+  //もしpartyの中にunselectedやungearedが入っていたらalert
+
+
+
+
+if (allyorenemy === "ally") {
+  //状態の保存とselect入れ替え
+  allyorenemy = "enemy";
+  document.getElementById("playerAorB").textContent = "プレイヤーB";
+  //新しいoptionを追加
+  for (let i = 6; i <= 10; i++) {
+    selectpartymanipu.innerHTML += `<option value="${i}">パーティ${i - 5}</option>`;
+    }
+  document.getElementById('selectparty').value = 6;
+  //現在の仮をpartiesへのコピー確定、selectpartyを6にして敵を表示状態にした上で、selectparty関数で仮の代入とenemy編成をhtmlに展開
+  parties[0] = structuredClone(party)
+  selectparty();
+  // 1から5までの選択肢を削除
+  selectpartymanipu.querySelectorAll('option[value="1"], option[value="2"], option[value="3"], option[value="4"], option[value="5"]').forEach(option => option.remove());
+}
+else {
+  //状態の保存とselect入れ替え
+  allyorenemy = "ally";
+  document.getElementById("playerAorB").textContent = "プレイヤーA";
+  //新しいoptionを追加
+  for (let i = 1; i <= 5; i++) {
+    selectpartymanipu.innerHTML += `<option value="${i}">パーティ${i}</option>`;
+    }
+  document.getElementById('selectparty').value = 1;
+  parties[1] = structuredClone(party)
+  selectparty();
+  //6-10を削除
+  selectpartymanipu.querySelectorAll('option[value="6"], option[value="7"], option[value="8"], option[value="9"], option[value="10"]').forEach(option => option.remove());
+  //displayで全体切り替え、startbattleへ
+  document.getElementById("adjustpartypage").style.display = "none";
+  document.getElementById("battlepage").style.display = "block";
+  startbattle();
+  console.log(parties);
+}
+}
+
+document.getElementById('karibtn').addEventListener('click', function() {
+  document.getElementById("adjustpartypage").style.display = "block";
+  document.getElementById("battlepage").style.display = "none";
+});
+document.getElementById('testbtn').addEventListener('click', function() {
+console.log(parties);
+});
+
+
+function startbattle(){
+
+
+  parties.forEach(party => {
+    party.forEach(monster => {
+        console.log(monster); // monsterオブジェクトを確認
+        console.log(monster.displaystatus); // displaystatusプロパティを確認
+    });
+});
+
+  //表示値からls反映してcurrentstatus生成
+// parties内の各パーティーについて処理を行う
+// parties内の各パーティーについて処理を行う
+parties.forEach(party => {
+    // パーティーのリーダースキルを取得
+    const leaderSkill = party[0].ls;
+    const lstarget = party[0].lstarget;
+
+    // 各モンスターについて処理を行う
+    party.forEach(monster => {
+        const defaultstatus = {};
+        // デフォルトのステータス倍率1倍でdefaultstatusを生成
+        Object.keys(monster.displaystatus).forEach(key => {
+            defaultstatus[key] = monster.displaystatus[key];
+        });
+
+        // lstargetがallの場合または各モンスターのtypeと一致する場合に処理を行う
+        if (lstarget === "all" || monster.type === lstarget) {
+            // lsで指定されたステータス倍率がある場合はそれに置き換える
+            Object.keys(defaultstatus).forEach(key => {
+                if (leaderSkill[key]) {
+                    defaultstatus[key] = Math.ceil(defaultstatus[key] * leaderSkill[key]);
+                }
+            });
+        }
+        
+        // defaultstatusをモンスターオブジェクトに追加
+        monster.defaultstatus = defaultstatus;
+    });
+});
+
+
+
+  /*
+  partiesの中身に、displaystatusからdefaultstatusを作成、lsと装備を格納
+  バフ管理システムと、currentstatusを作成
+
+最初の展開と処理
+ステータスとバフの管理
+コマンド入力
+先制アンカーと、行動順処理
+順番に特技発動、一発づつ処理
+hit処理、ダメージ処理、ダメージや死亡に対する処理、バトル終了フラグ確認のループ
+すべての行動が終わったら、コマンドに戻る
+
+ラウンド管理システム
+*/
+}
 
 
 //monster選択部分
@@ -723,6 +974,7 @@ function adjuststatusandskilldisplay() {
 
 //特技を取り出す、party[tabm1].skill[0]がryohu
 //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
+//console.log(party);
 document.getElementById('skill1').textContent = skill.find(item => item.id === party[tabm1].skill[0]).name;
 document.getElementById('skill2').textContent = skill.find(item => item.id === party[tabm1].skill[1]).name;
 document.getElementById('skill3').textContent = skill.find(item => item.id === party[tabm1].skill[2]).name;
@@ -920,39 +1172,133 @@ function switchTab(tabNumber) {
 
 const monsters = [
     {
-        name: "シンリ",
+    name: "シンリ",
 		id: "sinri",
 		type: "ドラゴン",
-        status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
+    status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
 		skill: [ "ryohu", "kagura", "jado", "zetsuhyo" ],
 		attribute: "",
-		seed: { atk: 0, def: 25, spd: 95, int: 0 }
-		//おすすめ装備は不要かな
-		//lsとかもね。元 種 装備 装備種込表示値、ls込のデフォ値と内部やバフ込のtemporary statusは戦闘中
+		seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { HP:200, spd: 200},
+    lstarget: "ドラゴン"
     },
     {
-        name: "ルシア",
+    name: "ルシア",
 		id: "rusia",
 		type: "悪魔",
-        status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
+    status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
 		skill: [ "ryoran", "shawer", "supahun", "ozo" ],
 		attribute: "",
-		seed: { atk: 25, def: 0, spd: 95, int: 0 }
+		seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP:0.1, spd: 0.1},
+    lstarget: "スライム"
     },
     {
-        name: "おろち",
+    name: "おろち",
 		id: "orochi",
 		type: "ドラゴン",
-        status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
+    status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
 		skill: [ "supahun", "ozo", "ozo", "ozo" ],
 		attribute: "",
-		seed: { atk: 25, def: 0, spd: 95, int: 0 }
+		seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP:100, spd: 100},
+    lstarget: "スライム"
+    },
+    {
+    name: "あ",
+		id: "aaa",
+		type: "ドラゴン",
+    status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
+		skill: [ "supahun", "ozo", "ozo", "ozo" ],
+		attribute: "",
+		seed: { atk: 0, def: 0, spd: 0, int: 0 },
+    ls: { HP:10, spd: 10},
+    lstarget: "all"
+    },
+    {
+    name: "い",
+		id: "iii",
+		type: "スライム",
+    status: { HP: 2, MP: 2, atk: 2, def: 2, spd: 2, int: 2 },
+		skill: [ "supahun", "ozo", "ozo", "ozo" ],
+		attribute: "",
+		seed: { atk: 0, def: 0, spd: 0, int: 0 },
+    ls: { HP:10, spd: 10},
+    lstarget: "all"
     }
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
-
+/*
+const parties = [
+    [
+        {
+            name: "シンリ",
+            id: "sinri",
+            type: "ドラゴン",
+            status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
+            skill: [ "ryohu", "kagura", "jado", "zetsuhyo" ],
+            attribute: "",
+            seed: { atk: 0, def: 25, spd: 95, int: 0 },
+            ls: { HP:1.3, spd: 1.5}
+            lstarget: "ドラゴン"
+        },
+        {
+            name: "ルシア",
+            id: "rusia",
+            type: "悪魔",
+            status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
+            skill: [ "ryoran", "shawer", "supahun", "ozo" ],
+            attribute: "",
+            seed: { atk: 25, def: 0, spd: 95, int: 0 }
+            ls: { HP:1.3, spd: 1.5}
+            lstarget: "スライム"
+        },
+        {
+            name: "おろち",
+            id: "orochi",
+            type: "ドラゴン",
+            status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
+            skill: [ "supahun", "ozo", "ozo", "ozo" ],
+            attribute: "",
+            seed: { atk: 25, def: 0, spd: 95, int: 0 }
+            ls: { HP:1.3, spd: 1.5}
+            lstarget: "ドラゴン"
+        }
+    ],
+    [
+    {
+            name: "スライム",
+            id: "slime",
+            type: "スライム",
+            status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
+            skill: [ "supahun", "ozo", "ozo", "ozo" ],
+            attribute: "",
+            seed: { atk: 25, def: 0, spd: 95, int: 0 }
+            ls: { HP:1.3, spd: 1.5}
+            lstarget: "ドラゴン"
+        },
+        {
+            name: "ドラキー",
+            id: "doraky",
+            type: "悪魔",
+            status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
+            skill: [ "ryoran", "shawer", "supahun", "ozo" ],
+            attribute: "",
+            seed: { atk: 25, def: 0, spd: 95, int: 0 }
+            ls: { HP:1.3, spd: 1.5}
+            lstarget: "ドラゴン"
+        }
+    ]
+];
+*/
 
 const skill = [
+    {
+        name: "",
+        id: "unselected",
+        howToCalculate: "",
+        attribute: ""
+    },
     {
         name: "涼風一陣",
         id: "ryohu",
@@ -1012,8 +1358,8 @@ const skill = [
 
 const gear = [
     {
-        name: "さんぷる",
-        id: "sample",
+        name: "",
+        id: "ungeared",
 	    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
         effect: "no"
     },
@@ -1107,8 +1453,12 @@ const enemy5 = monsters.find(monster => monster.name === enemy5name);
 装備もただ下にぶらさげるのではなく、いじる必要性
 同じモンスターを選択すると、party内の検索がばぐる
 
+注意点
+"" ; の忘れ
+idとかclassで検索すればわかる
 
 
+全モンスター選択しないと、displaystatusの初期設定が行われていないからdisplayからdefault出力時にバグる
 */
 
 
