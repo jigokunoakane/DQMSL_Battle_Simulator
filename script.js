@@ -202,9 +202,12 @@ function startbattle() {
       monster.defaultstatus = defaultstatus;
     });
   });
+  upadatecurrentstatus();
+  updateHPMPdisplay();
+}
+//finish startbattle
 
-  /*
-  
+/*
 バフ管理システムと、currentstatusを作成
 最初の展開と処理
 ステータスとバフの管理
@@ -216,8 +219,25 @@ hit処理、ダメージ処理、ダメージや死亡に対する処理、バ�
 
 ラウンド管理システム
 */
+
+//currentstatus生成
+function upadatecurrentstatus() {
+  parties.forEach((party) => {
+    // 各モンスターについて処理を行う
+    party.forEach((monster) => {
+      const currentstatus = {};
+      // デフォルトのステータス倍率1倍でdefaultstatusを生成
+      Object.keys(monster.defaultstatus).forEach((key) => {
+        currentstatus[key] = monster.defaultstatus[key];
+      });
+
+      // defaultstatusをモンスターオブジェクトに追加
+      monster.currentstatus = currentstatus;
+    });
+  });
 }
-//finish startbattle
+
+//特技選択画面
 document.getElementById("selectskillbtns").style.display = "none";
 //初期処理、divではなくclassでそれぞれ指定も可
 document.getElementById("openselectskillbtn").addEventListener("click", function () {
@@ -227,7 +247,20 @@ document.getElementById("openselectskillbtn").addEventListener("click", function
 function selectskill(whichskill) {
   document.getElementById("selectskillbtns").style.display = "none";
   document.getElementById("openselectskillbtn").style.display = "block";
-  document.getElementById("allymonster0").innerHTML = parties[0][0].defaultstatus.HP;
+}
+
+//HPMP表示を更新する
+function updateHPMPdisplay() {
+  document.getElementById("allymonster0").innerHTML = parties[0][0].currentstatus.HP;
+  document.getElementById("allymonster1").innerHTML = parties[0][1].currentstatus.HP;
+  document.getElementById("allymonster2").innerHTML = parties[0][2].currentstatus.HP;
+  document.getElementById("allymonster3").innerHTML = parties[0][3].currentstatus.HP;
+  document.getElementById("allymonster4").innerHTML = parties[0][4].currentstatus.HP;
+  document.getElementById("enemymonster0").innerHTML = parties[1][0].currentstatus.HP;
+  document.getElementById("enemymonster1").innerHTML = parties[1][1].currentstatus.HP;
+  document.getElementById("enemymonster2").innerHTML = parties[1][2].currentstatus.HP;
+  document.getElementById("enemymonster3").innerHTML = parties[1][3].currentstatus.HP;
+  document.getElementById("enemymonster4").innerHTML = parties[1][4].currentstatus.HP;
 }
 
 //monster選択部分
