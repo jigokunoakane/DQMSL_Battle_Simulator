@@ -1,0 +1,248 @@
+html {
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+body {
+  user-select: none;
+  /* CSS3 test*/
+  -moz-user-select: none;
+  /* Firefox */
+  -webkit-user-select: none;
+  /* Safari、Chrome */
+  -ms-user-select: none;
+  /* Microsoft */
+  font-family: sans-serif;
+  font-weight: 400;
+  font-size: 100%;
+  max-width: 360px;
+}
+
+/*いつもの*/
+.normalbutton {
+  height: 1.6rem;
+  width: max-content;
+  padding: 0rem 0.6rem;
+  margin-left: 0.1rem;
+  margin-right: 0.1rem;
+  text-align: center;
+  border: none;
+  border-radius: 0.85rem;
+  background-color: #e9e9e9;
+  color: #0075fb;
+  font-size: 1rem;
+}
+select {
+  -webkit-appearance: none;
+  /* ベンダープレフィックス(Google Chrome、Safari用) */
+  -moz-appearance: none;
+  /* ベンダープレフィックス(Firefox用) */
+  appearance: none;
+  /* 標準のスタイルを無効にする */
+  height: 1.6rem;
+  width: max-content;
+  padding: 0rem 0.5rem;
+  margin-left: 0rem;
+  margin-right: 0.3rem;
+  text-align: left;
+  border: none;
+  border-radius: 0.85rem;
+  background-color: #e9e9e9;
+  color: #0075fb;
+  font-size: 1rem;
+}
+
+/* ポップアップwindow部分 */
+.overlay {
+  visibility: hidden;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  width: 100%;
+  height: 100%;
+  transition: visibility 0s, opacity 0.1s linear;
+}
+
+/* オーバーレイの背景部分 */
+.bg_gray {
+  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+}
+
+/* ウィンドウ部分 */
+.popupwindow {
+  width: 90%;
+  padding-left: 15px;
+  padding-bottom: 15px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 0px 20px -6px rgba(0, 0, 0, 0.6);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.2s linear; /*ここでウィンドウ出現時のラグを指定*/
+
+  display: flex; /* flexbox を使って子要素を横並びに配置 */
+  flex-wrap: wrap; /* 要素が親要素をはみ出す場合に折り返す */
+  gap: 10px; /* 画像間の間隔 */
+  overflow: auto; /* コンテンツがウィンドウからはみ出した場合にスクロールバーを表示 */
+  max-height: 80vh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
+}
+
+/*ポップアップウィンドウ内*/
+.allmonstericons,
+.allgear {
+  width: calc(20% - 10px); /* ボタン5つ横並びにするために幅調整 */
+  max-width: 70px; /* 画像の最大幅pc */
+  margin-right: 0.05rem;
+  margin-left: 0.05rem;
+  margin-bottom: 0.1rem;
+  height: auto;
+}
+
+/* パテ画像部分 */
+
+.allyicons-container {
+  display: flex; /* flexbox を使用して横並びにする */
+  justify-content: flex-start; /* 左揃えにする */
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.allyicon-wrapper {
+  flex-basis: calc(20% - 5px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
+  margin-bottom: 10px;
+  margin-left: 2.5px;
+  margin-right: 2.5px;
+}
+
+.allyicons {
+  display: block; /* 縦に並べる */
+  width: 100%; /* 画像の幅を100%に設定して親要素にフィットさせる */
+  height: auto;
+  margin-bottom: 2px;
+}
+
+.gear-icon {
+  width: 70%;
+  height: auto;
+  display: block; /* 中央揃えするためにブロック要素にする */
+  margin: 0 auto; /* 水平方向に中央揃えする */
+}
+
+#monsterinfo-tabs {
+  display: flex;
+}
+
+#monsterinfo-tabs div {
+  flex: 1; /* 各要素を均等に幅を分配 */
+}
+
+/*ステータス種詳細部分*/
+
+.statusandseed-container {
+  padding-left: 0.4rem;
+  display: flex; /*横並び*/
+  /*背景*/
+
+  padding-top: 0.7rem;
+  padding-bottom: 0.4rem;
+}
+
+.status-info-title,
+.status-info-colon,
+.status-info-status,
+.status-info-seedgear,
+.status-info-seed-title,
+.status-info-seed-seed {
+  line-height: 1.3; /* テキストの高さをリセットして均等にする */
+}
+
+.status-info-status {
+  text-align: right; /* テキストを右揃えにする */
+}
+
+.status-info-title {
+  width: 15%;
+}
+.status-info-colon {
+  width: 8%;
+}
+.status-info-status {
+  width: 10%;
+}
+.status-info-space {
+  width: 8%;
+}
+.status-info-seedgear {
+  width: 23%;
+}
+
+.status-info-seed-title {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+.status-info-seed-seed {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+
+#resetseedbtn {
+  font-size: 0.8rem; /* 他よりも少し小さめに設定 */
+  height: 1.4rem;
+  padding: 0rem 0.4rem;
+}
+
+#resetseedbtn {
+  position: absolute;
+  right: 28rem;
+  bottom: 31rem;
+}
+
+.selectseed {
+  height: 1.1rem;
+  padding: 0rem 0.4rem;
+  margin-right: 0rem;
+  width: 2.5rem;
+}
+
+#skill-flex-container {
+  display: flex; /*横並び*/
+}
+
+.monster-info-tabs {
+  display: block;
+  /*width: 93%;*/
+  text-align: center;
+  padding: 0.2rem;
+  background-color: #f0f0f0;
+  color: #333; /* テキストの色 */
+  font-size: 0.75rem; /* テキストのサイズ */
+  border: 1px solid #ccc; /* 枠線のスタイル */
+  margin: 0;
+  /*button時height: 1.5rem;*/
+}
+
+#tab1,
+#tab2,
+#tab3,
+#tab4 {
+  margin-right: -1px;
+}
+
+.statusandseed-container {
+  background-color: rgba(0, 191, 255, 0.1);
+}
+
+.monster-info-tabs.selectedtab {
+  background-color: rgba(0, 191, 255, 0.1);
+  border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
+}
