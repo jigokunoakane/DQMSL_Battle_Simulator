@@ -66,9 +66,9 @@
             <img class="allmonstericons" src="images/icons/rusia.jpeg" onclick="selectMonster('rusia')" />
             <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')" />
             <div>あ</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('aaa')" />
+            <img class="allmonstericons" src="images/icons/masudora.jpeg" onclick="selectMonster('masudora')" />
             <div>い</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('iii')" />
+            <img class="allmonstericons" src="images/icons/voruka.jpeg" onclick="selectMonster('voruka')" />
             <div>悪魔系</div>
             <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')" />
             <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')" />
@@ -314,23 +314,23 @@
 
       <div id="enemymonstercontainerbattle" class="monstericons-container">
         <span class="monstericon-wrapper">
-          <img id="enemyicon1battle" class="monstericons" />
+          <img id="battleiconenemy0" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="enemyicon2battle" class="monstericons" />
+          <img id="battleiconenemy1" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="enemyicon3battle" class="monstericons" />
+          <img id="battleiconenemy2" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="enemyicon4battle" class="monstericons" />
+          <img id="battleiconenemy3" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="enemyicon5battle" class="monstericons" />
+          <img id="battleiconenemy4" class="monstericons" />
           <!-- bar -->
         </span>
       </div>
@@ -339,41 +339,80 @@
 
       <div id="allymonstercontainerbattle" class="monstericons-container">
         <span class="monstericon-wrapper">
-          <img id="allyicon1battle" class="monstericons" />
+          <img id="battleiconally0" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="allyicon2battle" class="monstericons" />
+          <img id="battleiconally1" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="allyicon3battle" class="monstericons" />
+          <img id="battleiconally2" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="allyicon4battle" class="monstericons" />
+          <img id="battleiconally3" class="monstericons" />
           <!-- bar -->
         </span>
         <span class="monstericon-wrapper">
-          <img id="allyicon5battle" class="monstericons" />
+          <img id="battleiconally4" class="monstericons" />
           <!-- bar -->
         </span>
       </div>
       <!-- finish allymonstercontainerbattle -->
-      <div id="displayallyHP">
-        <span id="displayallyHP0"></span>
-        <span id="displayallyHP1"></span>
-        <span id="displayallyHP2"></span>
-        <span id="displayallyHP3"></span>
-        <span id="displayallyHP4"></span>
+      <div class="monster-bar-container">
+        <div class="eachbarcontainer">
+          <div id="hpbarally0" class="bar hpbar">
+            <div id="hpbartextally0" class="bartext">0</div>
+            <div id="hpbarinnerally0" class="barinner" style="width: 50%"></div>
+          </div>
+          <div id="mpbarally0" class="bar mpbar">
+            <div id="mpbartextally0" class="bartext">0</div>
+            <div id="mpbarinnerally0" class="barinner" style="width: 50%"></div>
+          </div>
+        </div>
+        <div class="eachbarcontainer">
+          <div id="hpbarally1" class="bar hpbar">
+            <div id="hpbartextally1" class="bartext">0</div>
+            <div id="hpbarinnerally1" class="barinner" style="width: 50%"></div>
+          </div>
+          <div id="mpbarally1" class="bar mpbar">
+            <div id="mpbartextally1" class="bartext">0</div>
+            <div id="mpbarinnerally1" class="barinner" style="width: 50%"></div>
+          </div>
+        </div>
+        <div class="eachbarcontainer">
+          <div id="hpbarally2" class="bar hpbar">
+            <div id="hpbartextally2" class="bartext">0</div>
+            <div id="hpbarinnerally2" class="barinner" style="width: 50%"></div>
+          </div>
+          <div id="mpbarally2" class="bar mpbar">
+            <div id="mpbartextally2" class="bartext">0</div>
+            <div id="mpbarinnerally2" class="barinner" style="width: 50%"></div>
+          </div>
+        </div>
+        <div class="eachbarcontainer">
+          <div id="hpbarally3" class="bar hpbar">
+            <div id="hpbartextally3" class="bartext">0</div>
+            <div id="hpbarinnerally3" class="barinner" style="width: 50%"></div>
+          </div>
+          <div id="mpbarally3" class="bar mpbar">
+            <div id="mpbartextally3" class="bartext">0</div>
+            <div id="mpbarinnerally3" class="barinner" style="width: 50%"></div>
+          </div>
+        </div>
+        <div class="eachbarcontainer">
+          <div id="hpbarally4" class="bar hpbar">
+            <div id="hpbartextally4" class="bartext">0</div>
+            <div id="hpbarinnerally4" class="barinner" style="width: 50%"></div>
+          </div>
+          <div id="mpbarally4" class="bar mpbar">
+            <div id="mpbartextally4" class="bartext">0</div>
+            <div id="mpbarinnerally4" class="barinner" style="width: 50%"></div>
+          </div>
+        </div>
       </div>
-      <div id="displayallyMP">
-        <span id="displayallyMP0"></span>
-        <span id="displayallyMP1"></span>
-        <span id="displayallyMP2"></span>
-        <span id="displayallyMP3"></span>
-        <span id="displayallyMP4"></span>
-      </div>
+      <!-- finish monster-bar-container -->
 
       <button id="openselectskillbtn" class="normalbutton">とくぎ</button>
       <div id="selectskillbtns">

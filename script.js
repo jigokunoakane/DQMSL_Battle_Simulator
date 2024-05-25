@@ -191,7 +191,16 @@ function startbattle() {
     document.getElementById(elementId).src = iconSrc;
   }
   //partyの中身のidとgearidから、適切な画像を設定
-  updatebattleicons("enemyicon1battle", parties[0][0].id);
+  updatebattleicons("battleiconenemy0", parties[0][0].id);
+  updatebattleicons("battleiconenemy1", parties[0][1].id);
+  updatebattleicons("battleiconenemy2", parties[0][2].id);
+  updatebattleicons("battleiconenemy3", parties[0][3].id);
+  updatebattleicons("battleiconenemy4", parties[0][4].id);
+  updatebattleicons("battleiconally0", parties[1][0].id);
+  updatebattleicons("battleiconally1", parties[1][1].id);
+  updatebattleicons("battleiconally2", parties[1][2].id);
+  updatebattleicons("battleiconally3", parties[1][3].id);
+  updatebattleicons("battleiconally4", parties[1][4].id);
 }
 //finish startbattle 開始時処理終了
 
@@ -210,17 +219,18 @@ function selectskill(whichskill) {
 //HPMPのテキスト表示とバーを更新する
 function updateHPMPdisplay() {
   //テキスト表示を更新 これは戦闘開始時と毎ダメージ処理後に起動
-  document.getElementById("displayallyHP0").textContent = parties[0][0].currentstatus.HP;
-  document.getElementById("displayallyHP1").textContent = parties[0][1].currentstatus.HP;
-  document.getElementById("displayallyHP2").textContent = parties[0][2].currentstatus.HP;
-  document.getElementById("displayallyHP3").textContent = parties[0][3].currentstatus.HP;
-  document.getElementById("displayallyHP4").textContent = parties[0][4].currentstatus.HP;
-  document.getElementById("displayallyMP0").textContent = parties[0][0].currentstatus.MP;
-  document.getElementById("displayallyMP1").textContent = parties[0][1].currentstatus.MP;
-  document.getElementById("displayallyMP2").textContent = parties[0][2].currentstatus.MP;
-  document.getElementById("displayallyMP3").textContent = parties[0][3].currentstatus.MP;
-  document.getElementById("displayallyMP4").textContent = parties[0][4].currentstatus.MP;
+  document.getElementById("hpbartextally0").textContent = parties[0][0].currentstatus.HP;
+  document.getElementById("hpbartextally1").textContent = parties[0][1].currentstatus.HP;
+  document.getElementById("hpbartextally2").textContent = parties[0][2].currentstatus.HP;
+  document.getElementById("hpbartextally3").textContent = parties[0][3].currentstatus.HP;
+  document.getElementById("hpbartextally4").textContent = parties[0][4].currentstatus.HP;
+  document.getElementById("mpbartextally0").textContent = parties[0][0].currentstatus.MP;
+  document.getElementById("mpbartextally1").textContent = parties[0][1].currentstatus.MP;
+  document.getElementById("mpbartextally2").textContent = parties[0][2].currentstatus.MP;
+  document.getElementById("mpbartextally3").textContent = parties[0][3].currentstatus.MP;
+  document.getElementById("mpbartextally4").textContent = parties[0][4].currentstatus.MP;
   //todo:currentHPをdefaultで割って割合でバーの中身を調整
+  //todo:バーの調整はenemyについても
 }
 
 /*
@@ -244,6 +254,7 @@ let selectingmonstericon = "";
 let selectingmonsternum = "";
 let selectingmonsternumminus1 = "";
 const allyIcons = document.querySelectorAll('[id^="allyicon"]');
+//todo:これのせいでid:allyicon系は撲滅の必要
 allyIcons.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
@@ -544,7 +555,7 @@ const monsters = [
     skill: ["ryohu", "kagura", "jado", "zetsuhyo"],
     attribute: "",
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
-    ls: { HP: 200, spd: 200 },
+    ls: { HP: 1.3, spd: 1.3 },
     lstarget: "ドラゴン",
   },
   {
@@ -570,10 +581,10 @@ const monsters = [
     lstarget: "スライム",
   },
   {
-    name: "あ",
-    id: "aaa",
+    name: "マスドラ",
+    id: "masudora",
     type: "ドラゴン",
-    status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
+    status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 700, int: 700 },
     skill: ["supahun", "ozo", "ozo", "ozo"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
@@ -581,10 +592,10 @@ const monsters = [
     lstarget: "all",
   },
   {
-    name: "い",
-    id: "iii",
+    name: "ヴォルカ",
+    id: "voruka",
     type: "スライム",
-    status: { HP: 2, MP: 2, atk: 2, def: 2, spd: 2, int: 2 },
+    status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
     skill: ["supahun", "ozo", "ozo", "ozo"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },

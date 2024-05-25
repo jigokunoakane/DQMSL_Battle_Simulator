@@ -249,3 +249,38 @@ select {
   background-color: rgba(0, 191, 255, 0.1);
   border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
 }
+
+.monster-bar-container {
+  display: flex; /* flexbox を使用して横並びにする */
+  justify-content: flex-start; /* 左揃えにする */
+  position: relative;
+}
+
+.eachbarcontainer {
+  flex-basis: calc(20% - 5px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
+  margin-bottom: 10px;
+  margin-left: 2.5px;
+  margin-right: 2.5px;
+}
+
+.bar {
+  width: 4rem;
+  height: 20px;
+  background-color: #000;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+.bar-inner {
+  height: 100%;
+  background-color: #14fe02;
+  transition: width 0.5s ease-in-out;
+}
+.bar-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  line-height: 20px;
+  color: black;
+  font-weight: bold;
+}
