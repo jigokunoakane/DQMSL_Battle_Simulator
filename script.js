@@ -184,6 +184,14 @@ function startbattle() {
 
   updateHPMPdisplay();
   //初期処理不要、updateのみで対応
+
+  //imgのsrcを設定
+  function updatebattleicons(elementId, id) {
+    const iconSrc = "images/icons/" + id + ".jpeg";
+    document.getElementById(elementId).src = iconSrc;
+  }
+  //partyの中身のidとgearidから、適切な画像を設定
+  updatebattleicons("enemyicon1battle", parties[0][0].id);
 }
 //finish startbattle 開始時処理終了
 
@@ -202,17 +210,17 @@ function selectskill(whichskill) {
 //HPMPのテキスト表示とバーを更新する
 function updateHPMPdisplay() {
   //テキスト表示を更新 これは戦闘開始時と毎ダメージ処理後に起動
-  document.getElementById("allymonster0").textContent = parties[0][0].currentstatus.HP;
-  document.getElementById("allymonster1").textContent = parties[0][1].currentstatus.HP;
-  document.getElementById("allymonster2").textContent = parties[0][2].currentstatus.HP;
-  document.getElementById("allymonster3").textContent = parties[0][3].currentstatus.HP;
-  document.getElementById("allymonster4").textContent = parties[0][4].currentstatus.HP;
-  document.getElementById("enemymonster0").textContent = parties[1][0].currentstatus.HP;
-  document.getElementById("enemymonster1").textContent = parties[1][1].currentstatus.HP;
-  document.getElementById("enemymonster2").textContent = parties[1][2].currentstatus.HP;
-  document.getElementById("enemymonster3").textContent = parties[1][3].currentstatus.HP;
-  document.getElementById("enemymonster4").textContent = parties[1][4].currentstatus.HP;
-  //currentHPをdefaultで割って割合でバーの中身を調整
+  document.getElementById("displayallyHP0").textContent = parties[0][0].currentstatus.HP;
+  document.getElementById("displayallyHP1").textContent = parties[0][1].currentstatus.HP;
+  document.getElementById("displayallyHP2").textContent = parties[0][2].currentstatus.HP;
+  document.getElementById("displayallyHP3").textContent = parties[0][3].currentstatus.HP;
+  document.getElementById("displayallyHP4").textContent = parties[0][4].currentstatus.HP;
+  document.getElementById("displayallyMP0").textContent = parties[0][0].currentstatus.MP;
+  document.getElementById("displayallyMP1").textContent = parties[0][1].currentstatus.MP;
+  document.getElementById("displayallyMP2").textContent = parties[0][2].currentstatus.MP;
+  document.getElementById("displayallyMP3").textContent = parties[0][3].currentstatus.MP;
+  document.getElementById("displayallyMP4").textContent = parties[0][4].currentstatus.MP;
+  //todo:currentHPをdefaultで割って割合でバーの中身を調整
 }
 
 /*
