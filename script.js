@@ -12,7 +12,7 @@ const defaultMonster = {
     name: "",
     id: "ungeared",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-    effect: "no",
+    effect: "none",
   },
   gearzoubun: {
     HP: 0,
@@ -25,6 +25,7 @@ const defaultMonster = {
 };
 
 const defaultparty = Array(5).fill(defaultMonster);
+//defaultpartyにmonster5体を格納
 /*let allparties = [
   { party: [...defaultparty] },
   { party: [...defaultparty] },
@@ -39,7 +40,9 @@ const defaultparty = Array(5).fill(defaultMonster);
 ];
 */
 let allparties = Array.from({ length: 10 }, () => ({ party: [...defaultparty] }));
+//全パテの枠組みを用意
 let parties = [{ party: [...defaultparty] }, { party: [...defaultparty] }];
+//対戦に用いる2つのパテの枠組みを用意
 
 // allparties[0].party が party1
 
@@ -48,51 +51,18 @@ let selectingpartynum = 1;
 //party初期化
 
 function selectparty() {
-  // 現在のpartyをselectingpartyに格納
+  //パテ切り替え時に起動
+  // 現在の仮partyのdeep copyを、allparties内のselectingpartynum-1で指定された番目に格納
   allparties[selectingpartynum - 1].party = structuredClone(party);
-  console.log(allparties);
-
-  //シャローコピー
-  //やり方自体改善必要、chatに投げよう
-  //それまで選択中のpartyに格納
   // selectingpartyを選択値に更新
   selectingpartynum = parseInt(document.getElementById("selectparty").value);
+  //仮partyにa;;parties内の情報を下ろす
   party = structuredClone(allparties[selectingpartynum - 1].party);
-  //console.log(newparty, window[newparty], aaa, window, party2);
   //party.splice(0, party.length, ...window[newparty]);
-  // partyの要素を新しいpartyの要素で置き換える
-
-  //仮party配列を操作し、選択中partyをいじった際に仮配列で上書き、新partyを上から下ろす
 
   //頭モンスターを選択状態に
+  //これで、icon2種、ステ、種増分、種選択、特技の表示更新も兼ねる
   switchTab(1);
-  /*
-
-document.getElementById('status-info-displayHP').textContent = "0";
-document.getElementById('status-info-displayMP').textContent = "0";
-document.getElementById('status-info-displayatk').textContent = "0";
-document.getElementById('status-info-displaydef').textContent = "0";
-document.getElementById('status-info-displayspd').textContent = "0";
-document.getElementById('status-info-displayint').textContent = "0";
-
-document.getElementById('status-info-seedgear-HP').textContent = "(+0)";
-document.getElementById('status-info-seedgear-MP').textContent = "(+0)";
-document.getElementById('status-info-seedgear-atk').textContent = "(+0)";
-document.getElementById('status-info-seedgear-def').textContent = "(+0)";
-document.getElementById('status-info-seedgear-spd').textContent = "(+0)";
-document.getElementById('status-info-seedgear-int').textContent = "(+0)";
-
-document.getElementById('selectseed-atk').value = 0;
-document.getElementById('selectseed-def').value = 0;
-document.getElementById('selectseed-spd').value = 0;
-document.getElementById('selectseed-int').value = 0;
-document.getElementById('skill1').textContent = "";
-document.getElementById('skill2').textContent = "";
-document.getElementById('skill3').textContent = "";
-document.getElementById('skill4').textContent = "";
-*/
-
-  //icon10個
 
   function updateImage(elementId, id, gearId) {
     var iconSrc = id ? "images/icons/" + id + ".jpeg" : "images/icons/unselected.jpeg";
@@ -101,34 +71,21 @@ document.getElementById('skill4').textContent = "";
     document.getElementById(elementId).src = iconSrc;
     document.getElementById("allygear" + elementId.slice(-1)).src = gearSrc;
   }
-
+  //partyの中身のidとgearidから、適切な画像を設定
   updateImage("allyicon1", party[0]?.id, party[0]?.gear?.id);
   updateImage("allyicon2", party[1]?.id, party[1]?.gear?.id);
   updateImage("allyicon3", party[2]?.id, party[2]?.gear?.id);
   updateImage("allyicon4", party[3]?.id, party[3]?.gear?.id);
   updateImage("allyicon5", party[4]?.id, party[4]?.gear?.id);
 }
+//todo:allyiconというid名は変更必要
 
+//どちらのプレイヤーがパテ選択中かの関数定義
 let allyorenemy = "ally";
-// オプションを置き換える関数
-function replacepartyOptions() {
-  selectElement.innerHTML = ""; // 現在のオプションをクリア
-
-  // 新しいオプションを追加
-  for (let i = 6; i <= 10; i++) {
-    selectElement.innerHTML += `<option value="${i}">パーティ${i - 5}</option>`;
-  }
-}
-// 元のオプションに戻す関数
-function restorepartyOptions() {
-  const selectElement = document.getElementById("selectparty");
-  selectElement.innerHTML = selectElement.firstElementChild.outerHTML;
-}
-
 function confirmparty() {
   const selectpartymanipu = document.getElementById("selectparty");
 
-  //もしpartyの中にunselectedやungearedが入っていたらalert
+  //todo:もしpartyの中にunselectedやungearedが入っていたらalertしてesc
 
   if (allyorenemy === "ally") {
     //状態の保存とselect入れ替え
@@ -139,7 +96,8 @@ function confirmparty() {
       selectpartymanipu.innerHTML += `<option value="${i}">パーティ${i - 5}</option>`;
     }
     document.getElementById("selectparty").value = 6;
-    //現在の仮をpartiesへのコピー確定、selectpartyを6にして敵を表示状態にした上で、selectparty関数で仮の代入とenemy編成をhtmlに展開
+    //現在の仮partyを対戦用partiesにcopyして確定、selectpartyを6にして敵を表示状態にした上で
+    //selectparty関数で通常通り、未変更のallpartyies内のselectingpartynum-1番目に仮partyを格納、enemy編成をhtmlに展開
     parties[0] = structuredClone(party);
     selectparty();
     // 1から5までの選択肢を削除
@@ -155,13 +113,13 @@ function confirmparty() {
     document.getElementById("selectparty").value = 1;
     parties[1] = structuredClone(party);
     selectparty();
+    //これで戦闘画面から戻った場合はplayer1のparty1が表示
     //6-10を削除
     selectpartymanipu.querySelectorAll('option[value="6"], option[value="7"], option[value="8"], option[value="9"], option[value="10"]').forEach((option) => option.remove());
     //displayで全体切り替え、startbattleへ
     document.getElementById("adjustpartypage").style.display = "none";
     document.getElementById("battlepage").style.display = "block";
     startbattle();
-    console.log(parties);
   }
 }
 
@@ -202,12 +160,13 @@ function startbattle() {
       monster.defaultstatus = defaultstatus;
     });
   });
-  upadatecurrentstatus();
+  updatecurrentstatus();
   updateHPMPdisplay();
 }
 //finish startbattle
 
 /*
+todo:
 バフ管理システムと、currentstatusを作成
 最初の展開と処理
 ステータスとバフの管理
@@ -221,7 +180,7 @@ hit処理、ダメージ処理、ダメージや死亡に対する処理、バ�
 */
 
 //currentstatus生成
-function upadatecurrentstatus() {
+function updatecurrentstatus() {
   parties.forEach((party) => {
     // 各モンスターについて処理を行う
     party.forEach((monster) => {
@@ -262,6 +221,7 @@ function updateHPMPdisplay() {
   document.getElementById("enemymonster3").innerHTML = parties[1][3].currentstatus.HP;
   document.getElementById("enemymonster4").innerHTML = parties[1][4].currentstatus.HP;
 }
+///////////////////////////////////////////////
 
 //monster選択部分
 let selectingmonstericon = "";
@@ -617,69 +577,6 @@ const monsters = [
   },
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
-/*
-const parties = [
-    [
-        {
-            name: "シンリ",
-            id: "sinri",
-            type: "ドラゴン",
-            status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
-            skill: [ "ryohu", "kagura", "jado", "zetsuhyo" ],
-            attribute: "",
-            seed: { atk: 0, def: 25, spd: 95, int: 0 },
-            ls: { HP:1.3, spd: 1.5}
-            lstarget: "ドラゴン"
-        },
-        {
-            name: "ルシア",
-            id: "rusia",
-            type: "悪魔",
-            status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
-            skill: [ "ryoran", "shawer", "supahun", "ozo" ],
-            attribute: "",
-            seed: { atk: 25, def: 0, spd: 95, int: 0 }
-            ls: { HP:1.3, spd: 1.5}
-            lstarget: "スライム"
-        },
-        {
-            name: "おろち",
-            id: "orochi",
-            type: "ドラゴン",
-            status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
-            skill: [ "supahun", "ozo", "ozo", "ozo" ],
-            attribute: "",
-            seed: { atk: 25, def: 0, spd: 95, int: 0 }
-            ls: { HP:1.3, spd: 1.5}
-            lstarget: "ドラゴン"
-        }
-    ],
-    [
-    {
-            name: "スライム",
-            id: "slime",
-            type: "スライム",
-            status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
-            skill: [ "supahun", "ozo", "ozo", "ozo" ],
-            attribute: "",
-            seed: { atk: 25, def: 0, spd: 95, int: 0 }
-            ls: { HP:1.3, spd: 1.5}
-            lstarget: "ドラゴン"
-        },
-        {
-            name: "ドラキー",
-            id: "doraky",
-            type: "悪魔",
-            status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
-            skill: [ "ryoran", "shawer", "supahun", "ozo" ],
-            attribute: "",
-            seed: { atk: 25, def: 0, spd: 95, int: 0 }
-            ls: { HP:1.3, spd: 1.5}
-            lstarget: "ドラゴン"
-        }
-    ]
-];
-*/
 
 const skill = [
   {
@@ -692,19 +589,19 @@ const skill = [
     name: "涼風一陣",
     id: "ryohu",
     howToCalculate: "fix",
-    attribute: "no",
+    attribute: "none",
   },
   {
     name: "神楽の術",
     id: "kagura",
     howToCalculate: "int",
-    attribute: "no",
+    attribute: "none",
   },
   {
     name: "邪道のかくせい",
     id: "jado",
-    howToCalculate: "no",
-    attribute: "no",
+    howToCalculate: "none",
+    attribute: "none",
   },
   {
     name: "絶氷の嵐",
@@ -734,7 +631,7 @@ const skill = [
     name: "おぞおた",
     id: "ozo",
     howToCalculate: "atk",
-    attribute: "no",
+    attribute: "none",
   },
 
   //mera hyado gira io bagi dein doruma
@@ -747,68 +644,35 @@ const gear = [
     name: "",
     id: "ungeared",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-    effect: "no",
+    effect: "none",
   },
   {
     name: "メタ爪",
     id: "metanail",
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
-    effect: "no",
+    effect: "none",
   },
   {
     name: "竜神爪",
     id: "ryujinnail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
-    effect: "no",
+    effect: "none",
   },
   {
     name: "砕き",
     id: "kudaki",
     status: { HP: 0, MP: 0, atk: 22, def: 0, spd: 15, int: 0 },
-    effect: "no",
+    effect: "none",
   },
   {
     name: "昇天",
     id: "shoten",
     status: { HP: 0, MP: 0, atk: 23, def: 0, spd: 0, int: 28 },
-    effect: "no",
+    effect: "none",
   },
 
   {},
 ]; //finish gear
-
-function monsterchange() {
-  //モンスター変更時にここを駆動 味方と敵でfunを分けて軽量化したりしても可
-  //このvalueは日本語名で制御。
-  /*
-const ally1name = document.getElementById("ally1name").value;
-
-const ally2name = document.getElementById("ally2name").value;
-const ally3name = document.getElementById("ally3name").value;
-const ally4name = document.getElementById("ally4name").value;
-const ally5name = document.getElementById("ally5name").value;
-
-const enemy1name = document.getElementById("enemy1name").value;
-const enemy2name = document.getElementById("enemy2name").value;
-const enemy3name = document.getElementById("enemy3name").value;
-const enemy4name = document.getElementById("enemy4name").value;
-const enemy5name = document.getElementById("enemy5name").value;
-*/
-  // ユーザーが選択したモンスターを見つけ、ally1~配列にデータを格納
-  /*
-const ally1 = monsters.find(monster => monster.name === ally1name);
-const ally2 = monsters.find(monster => monster.name === ally2name);
-const ally3 = monsters.find(monster => monster.name === ally3name);
-const ally4 = monsters.find(monster => monster.name === ally4name);
-const ally5 = monsters.find(monster => monster.name === ally5name);
-
-const enemy1 = monsters.find(monster => monster.name === enemy1name);
-const enemy2 = monsters.find(monster => monster.name === enemy2name);
-const enemy3 = monsters.find(monster => monster.name === enemy3name);
-const enemy4 = monsters.find(monster => monster.name === enemy4name);
-const enemy5 = monsters.find(monster => monster.name === enemy5name);
-*/
-}
 
 function karitobattlepage() {
   document.getElementById("adjustpartypage").style.display = "none";
@@ -817,10 +681,7 @@ function karitobattlepage() {
   //temporary 戦闘画面移行用
 }
 
-/* ゴミ箱
-
-
-
+/* memo
 
 装備もただ下にぶらさげるのではなく、いじる必要
 同じモンスターを選択すると、party内の検索がばぐる
