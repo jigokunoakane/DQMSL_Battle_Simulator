@@ -120,10 +120,10 @@ select {
 
 .allyicon-wrapper,
 .monstericon-wrapper {
-  flex-basis: calc(20% - 5px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
+  flex-basis: calc(20% - 10px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
   margin-bottom: 10px;
-  margin-left: 2.5px;
-  margin-right: 2.5px;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .allyicons,
@@ -252,35 +252,70 @@ select {
 
 .monster-bar-container {
   display: flex; /* flexbox を使用して横並びにする */
-  justify-content: flex-start; /* 左揃えにする */
-  position: relative;
 }
 
 .eachbarcontainer {
-  flex-basis: calc(20% - 5px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
-  margin-bottom: 10px;
-  margin-left: 2.5px;
-  margin-right: 2.5px;
+  flex-basis: 20%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* 交差軸方向に中央寄せ */
 }
+/*flex-basis: calc(20% - 10px); 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
 
 .bar {
-  width: 4rem;
-  height: 20px;
+  width: 70%;
+  height: 0.5rem;
   background-color: #000;
-  border-radius: 5px;
+  border-radius: 0.25rem;
   position: relative;
-  overflow: hidden;
+  margin-bottom: 0.7rem;
+  border: 0.5px solid;
+  border-color: black;
+  box-shadow: 0 0 0 1.7px white;
 }
-.bar-inner {
+.barinner {
+  width: 40%; /* 現在のHP割合に応じて調整 */
   height: 100%;
   background-color: #14fe02;
+  border-radius: 0.25rem 0 0 0.25rem;
   transition: width 0.5s ease-in-out;
 }
-.bar-text {
+.bartext {
   position: absolute;
+  transform: translate(0%, -60%);
   width: 100%;
   text-align: center;
-  line-height: 20px;
-  color: black;
+  color: white;
   font-weight: bold;
+  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro";
+  font-size: 77%;
+  text-shadow: 0.5px 0.5px 0 #000000, -0.5px 0.5px 0 #000000, -0.5px -0.5px 0 #000000, 0.5px -0.5px 0 #000000, 0.5px 0px 0 #000000, 0px 0.5px 0 #000000, -0.5px 0px 0 #000000, 0px -0.5px 0 #000000;
+}
+
+.bardamaged {
+  background-color: #e52d0e;
+}
+
+.mpbarinner {
+  background-color: #07c0fd;
+}
+
+#battlepage {
+  background-color: #e7d69c;
+}
+
+#enemymonstercontainerbattle {
+  padding-top: 1.5rem;
+}
+
+#enemybars {
+  margin-bottom: 7rem;
+}
+
+#allymonstercontainerbattle {
+  padding-bottom: 0.1rem;
+}
+.monster-bar-container {
+  padding-bottom: 1rem;
 }
