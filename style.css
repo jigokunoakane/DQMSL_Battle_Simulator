@@ -243,6 +243,8 @@ select {
 
 .statusandseed-container {
   background-color: rgba(0, 191, 255, 0.1);
+  /*border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;*/
 }
 
 .monster-info-tabs.selectedtab {
