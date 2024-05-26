@@ -185,7 +185,7 @@ function startbattle() {
   updateHPMPdisplay();
   //初期処理不要、updateのみで対応
 
-  //imgのsrcを設定
+  //戦闘画面の10のimgのsrcを設定
   function updatebattleicons(elementId, id) {
     const iconSrc = "images/icons/" + id + ".jpeg";
     document.getElementById(elementId).src = iconSrc;
@@ -216,9 +216,8 @@ function selectskill(whichskill) {
   document.getElementById("openselectskillbtn").style.display = "block";
 }
 
-//HPMPのテキスト表示とバーを更新する
-function updateHPMPdisplay() {
-  //テキスト表示を更新 これは戦闘開始時と毎ダメージ処理後に起動
+//HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
+function updateHPMPdisplay(target, damage, oldHP) {
   document.getElementById("hpbartextally0").textContent = parties[0][0].currentstatus.HP;
   document.getElementById("hpbartextally1").textContent = parties[0][1].currentstatus.HP;
   document.getElementById("hpbartextally2").textContent = parties[0][2].currentstatus.HP;
@@ -229,12 +228,37 @@ function updateHPMPdisplay() {
   document.getElementById("mpbartextally2").textContent = parties[0][2].currentstatus.MP;
   document.getElementById("mpbartextally3").textContent = parties[0][3].currentstatus.MP;
   document.getElementById("mpbartextally4").textContent = parties[0][4].currentstatus.MP;
-  //todo:currentHPをdefaultで割って割合でバーの中身を調整
-  //todo:バーの調整はenemyについても
+  //textの調整
+  /*
+  const hpPercent = (target.currentHP / target.defaultHP) * 100;
+  target - 
+  const targetbar = hpbarinnerenemy + targetbarnum;
+
+  
+  //enemyのHP
+  const hpPercent = (targetbar.currentHP / targetbar.defaultHP) * 100;
+  const mpPercent = (monster.currentMP / monster.defaultMP) * 100;
+
+  const targetbar = hpbarinnerenemy + targetbarnum;
+  hpBar.style.width = hpPercent + '%';
+  mpBar.style.width = mpPercent + '%';
+  
+  //allyのHPMP
+*/
+}
+function applydamage(target, damage) {
+  const oldHP = target.currentstatus.HP;
+  //退避して送る
+  //くじけぬ処理
+  //targetのcurrentからdamageを引く
+  //死亡確認、死んでたらdeathflagを付与して死亡時処理も
+  //currentHPを更新
+  //表示更新
+  updateHPMPdisplay(target, damage, oldHP);
 }
 
+//todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
 /*
-todo:
 バフ管理システムと、currentstatusを作成
 最初の展開と処理
 ステータスとバフの管理
