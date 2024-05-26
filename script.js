@@ -191,30 +191,23 @@ function startbattle() {
     document.getElementById(elementId).src = iconSrc;
   }
   //partyの中身のidとgearidから、適切な画像を設定
-  updatebattleicons("battleiconenemy0", parties[0][0].id);
-  updatebattleicons("battleiconenemy1", parties[0][1].id);
-  updatebattleicons("battleiconenemy2", parties[0][2].id);
-  updatebattleicons("battleiconenemy3", parties[0][3].id);
-  updatebattleicons("battleiconenemy4", parties[0][4].id);
-  updatebattleicons("battleiconally0", parties[1][0].id);
-  updatebattleicons("battleiconally1", parties[1][1].id);
-  updatebattleicons("battleiconally2", parties[1][2].id);
-  updatebattleicons("battleiconally3", parties[1][3].id);
-  updatebattleicons("battleiconally4", parties[1][4].id);
+  updatebattleicons("battleiconenemy0", parties[1][0].id);
+  updatebattleicons("battleiconenemy1", parties[1][1].id);
+  updatebattleicons("battleiconenemy2", parties[1][2].id);
+  updatebattleicons("battleiconenemy3", parties[1][3].id);
+  updatebattleicons("battleiconenemy4", parties[1][4].id);
+  updatebattleicons("battleiconally0", parties[0][0].id);
+  updatebattleicons("battleiconally1", parties[0][1].id);
+  updatebattleicons("battleiconally2", parties[0][2].id);
+  updatebattleicons("battleiconally3", parties[0][3].id);
+  updatebattleicons("battleiconally4", parties[0][4].id);
 }
 //finish startbattle 開始時処理終了
 
 //特技選択画面
 document.getElementById("selectskillbtns").style.display = "none";
 //初期処理、divではなくclassでそれぞれ指定も可
-document.getElementById("openselectskillbtn").addEventListener("click", function () {
-  document.getElementById("selectskillbtns").style.display = "inline";
-  document.getElementById("openselectskillbtn").style.display = "none";
-});
-function selectskill(whichskill) {
-  document.getElementById("selectskillbtns").style.display = "none";
-  document.getElementById("openselectskillbtn").style.display = "block";
-}
+//document.getElementById("openselectskillbtn").addEventListener("click", function () {});
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
 function updateHPMPdisplay(target, damage, oldHP) {
@@ -256,6 +249,39 @@ function applydamage(target, damage) {
   //表示更新
   updateHPMPdisplay(target, damage, oldHP);
 }
+
+//まずは特技選択から
+
+let selectingwhichmonsterscommand = 0;
+function startselectingcommand() {
+  //とくぎボタン選択時、skillbtn4つを表示し、skill名4つを表示
+  //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
+  //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
+  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[0]).name;
+  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[1]).name;
+  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[2]).name;
+  document.getElementById("selectskillbtn4").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[3]).name;
+  document.getElementById("selectskillbtns").style.display = "inline";
+  document.getElementById("openselectskillbtn").style.display = "none";
+  //todo:skill id日本語化
+}
+
+function selectcommand(selectedskillnum) {
+  //selectedskillnumから選択されたskillを記録 これは上書きされうる
+
+  selectingwhichmonsterscommand += 1;
+  document.getElementById("selectskillbtns").style.display = "none";
+  document.getElementById("openselectskillbtn").style.display = "inline";
+  if (selectingwhichmonsterscommand > 4) {
+    alert("コマンドを終了しますか");
+  }
+}
+
+function backbtn() {
+  selectingwhichmonsterscommand -= 1;
+}
+//敵のコマンド処理はどうするか、AIか入力か選択画面を出す
+//parties、allyとenemyで分けずにごちゃ混ぜでもいいのでは
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
 /*
@@ -394,7 +420,6 @@ function adjuststatusandskilldisplay() {
 
   //特技を取り出す、party[tabm1].skill[0]がryohu
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  //console.log(party);
   document.getElementById("skill1").textContent = skill.find((item) => item.id === party[tabm1].skill[0]).name;
   document.getElementById("skill2").textContent = skill.find((item) => item.id === party[tabm1].skill[1]).name;
   document.getElementById("skill3").textContent = skill.find((item) => item.id === party[tabm1].skill[2]).name;
@@ -576,7 +601,7 @@ const monsters = [
     id: "sinri",
     type: "ドラゴン",
     status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
-    skill: ["ryohu", "kagura", "jado", "zetsuhyo"],
+    skill: ["ryohu", "kagura", "shotenslash", "tap"],
     attribute: "",
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1.3, spd: 1.3 },
@@ -598,7 +623,7 @@ const monsters = [
     id: "orochi",
     type: "ドラゴン",
     status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
-    skill: ["supahun", "ozo", "ozo", "ozo"],
+    skill: ["murakumo", "gokuen", "hoto", "boujin"],
     attribute: "",
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
@@ -609,21 +634,21 @@ const monsters = [
     id: "masudora",
     type: "ドラゴン",
     status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 700, int: 700 },
-    skill: ["supahun", "ozo", "ozo", "ozo"],
+    skill: ["tenkuryu", "endbreath", "tempest", "rengoku"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
     ls: { HP: 10, spd: 10 },
-    lstarget: "all",
+    lstarget: "ドラゴン",
   },
   {
     name: "ヴォルカ",
     id: "voruka",
     type: "スライム",
     status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
-    skill: ["supahun", "ozo", "ozo", "ozo"],
+    skill: ["lava", "niou", "taiju", "migawari"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
-    ls: { HP: 10, spd: 10 },
+    ls: { HP: 10, MP: 10 },
     lstarget: "all",
   },
 ];
@@ -649,16 +674,16 @@ const skill = [
     attribute: "none",
   },
   {
-    name: "邪道のかくせい",
-    id: "jado",
-    howToCalculate: "none",
+    name: "昇天斬り",
+    id: "shotenslash",
+    howToCalculate: "atk",
     attribute: "none",
   },
   {
-    name: "絶氷の嵐",
-    id: "zetsuhyo",
-    howToCalculate: "int",
-    attribute: "ice",
+    name: "タップダンス",
+    id: "tap",
+    howToCalculate: "none",
+    attribute: "none",
   },
   {
     name: "氷華大繚乱",
@@ -673,19 +698,103 @@ const skill = [
     attribute: "ice",
   },
   {
-    name: "スパふん",
-    id: "supahun",
-    howToCalculate: "fix",
-    attribute: "gira",
-  },
-  {
     name: "おぞおた",
     id: "ozo",
     howToCalculate: "atk",
     attribute: "none",
   },
+  {
+    name: "スパークふんしゃ",
+    id: "supahun",
+    howToCalculate: "fix",
+    attribute: "thun",
+  },
+  {
+    name: "天空竜の息吹",
+    id: "tenkuryu",
+    howToCalculate: "fix",
+    attribute: "light",
+  },
+  {
+    name: "エンドブレス",
+    id: "endbreath",
+    howToCalculate: "fix",
+    attribute: "none",
+  },
+  {
+    name: "テンペストブレス",
+    id: "tempest",
+    howToCalculate: "fix",
+    attribute: "wind",
+  },
+  {
+    name: "煉獄火炎",
+    id: "rengoku",
+    howToCalculate: "fix",
+    attribute: "fire",
+  },
+  {
+    name: "むらくもの息吹",
+    id: "murakumo",
+    howToCalculate: "fix",
+    attribute: "none",
+  },
+  {
+    name: "獄炎の息吹",
+    id: "gokuen",
+    howToCalculate: "fix",
+    attribute: "fire",
+  },
+  {
+    name: "ほとばしる暗闇",
+    id: "hoto",
+    howToCalculate: "fix",
+    attribute: "dark",
+  },
+  {
+    name: "防刃の守り",
+    id: "boujin",
+    howToCalculate: "none",
+    attribute: "none",
+  },
+  {
+    name: "ラヴァフレア",
+    id: "lava",
+    howToCalculate: "fix",
+    attribute: "fire",
+  },
+  {
+    name: "におうだち",
+    id: "niou",
+    howToCalculate: "none",
+    attribute: "none",
+  },
+  {
+    name: "大樹の守り",
+    id: "taiju",
+    howToCalculate: "none",
+    attribute: "none",
+  },
+  {
+    name: "みがわり",
+    id: "migawari",
+    howToCalculate: "fix",
+    attribute: "none",
+  },
+  {
+    name: "邪道のかくせい",
+    id: "jado",
+    howToCalculate: "none",
+    attribute: "none",
+  },
+  {
+    name: "絶氷の嵐",
+    id: "zetsuhyo",
+    howToCalculate: "int",
+    attribute: "ice",
+  },
 
-  //mera hyado gira io bagi dein doruma
+  //fire ice thun expl wind light dark
 
   {},
 ];
@@ -737,10 +846,12 @@ function karitobattlepage() {
 装備もただ下にぶらさげるのではなく、いじる必要
 同じモンスターを選択すると、party内の検索がばぐる
 
+skillの分離
+seed追加あとにls入れてるのか
+
 注意点
 "" ; の忘れ
 idとかclassで検索すればわかる
-
 
 全モンスター選択しないと、displaystatusの初期設定が行われていないからdisplayからdefault出力時にバグる
 */

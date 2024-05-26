@@ -65,9 +65,9 @@
             <img class="allmonstericons" src="images/icons/sinri.jpeg" onclick="selectMonster('sinri')" />
             <img class="allmonstericons" src="images/icons/rusia.jpeg" onclick="selectMonster('rusia')" />
             <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')" />
-            <div>あ</div>
+            <div>マスドラ</div>
             <img class="allmonstericons" src="images/icons/masudora.jpeg" onclick="selectMonster('masudora')" />
-            <div>い</div>
+            <div>ヴォルカ</div>
             <img class="allmonstericons" src="images/icons/voruka.jpeg" onclick="selectMonster('voruka')" />
             <div>悪魔系</div>
             <img class="allmonstericons" src="images/icons/orochi.jpeg" onclick="selectMonster('orochi')" />
@@ -436,12 +436,15 @@
       </div>
       <!-- finish monster-bar-container -->
 
-      <button id="openselectskillbtn" class="normalbutton">とくぎ</button>
+      <button id="openselectskillbtn" class="normalbutton" onclick="startselectingcommand()">とくぎ</button>
       <div id="selectskillbtns">
-        <button id="selectskillbtn1" class="normalbutton" onclick="selectskill(1)">特技1</button>
-        <button id="selectskillbtn2" class="normalbutton" onclick="selectskill(2)">特技2</button>
-        <button id="selectskillbtn3" class="normalbutton" onclick="selectskill(3)">特技3</button>
-        <button id="selectskillbtn4" class="normalbutton" onclick="selectskill(4)">特技4</button>
+        <button id="selectskillbtn1" class="normalbutton" onclick="selectcommand(1)">特技1</button>
+        <button id="selectskillbtn2" class="normalbutton" onclick="selectcommand(2)">特技2</button>
+        <button id="selectskillbtn3" class="normalbutton" onclick="selectcommand(3)">特技3</button>
+        <button id="selectskillbtn4" class="normalbutton" onclick="selectcommand(4)">特技4</button>
+      </div>
+      <div>
+        <button id="backbtn" class="normalbutton" onclick="backbtn()">戻る</button>
       </div>
     </div>
     <!--finish battlepage-->
