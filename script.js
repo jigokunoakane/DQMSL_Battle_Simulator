@@ -662,6 +662,23 @@ const skill = [
     attribute: "",
   },
   {
+    name: "",
+    id: "temp",
+    type: "", //spell slash martial breath ritual
+    howToCalculate: "", //atk int fix def spd
+    attribute: "", //fire ice thun expl wind light dark
+    order: "", //preemptive anchor
+    target: "", //single random all
+    numofhit: "",
+    ignoreProt: true,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreGuard: true,
+    ignoreEvasion: true,
+    //ignoreDazzle: true, penetrateIronize: true,
+    //配列って最後の,とかあと""ひっすなのか"
+  },
+  {
     name: "涼風一陣",
     id: "ryohu",
     howToCalculate: "fix",
@@ -793,8 +810,6 @@ const skill = [
     howToCalculate: "int",
     attribute: "ice",
   },
-
-  //fire ice thun expl wind light dark
 
   {},
 ];
