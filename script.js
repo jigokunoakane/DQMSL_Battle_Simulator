@@ -69,16 +69,15 @@ function selectparty() {
     var gearSrc = gearId ? "images/gear/" + gearId + ".jpeg" : "images/gear/ungeared.jpeg";
 
     document.getElementById(elementId).src = iconSrc;
-    document.getElementById("allygear" + elementId.slice(-1)).src = gearSrc;
+    document.getElementById("partygear" + elementId.slice(-1)).src = gearSrc;
   }
   //partyの中身のidとgearidから、適切な画像を設定
-  updateImage("allyicon1", party[0]?.id, party[0]?.gear?.id);
-  updateImage("allyicon2", party[1]?.id, party[1]?.gear?.id);
-  updateImage("allyicon3", party[2]?.id, party[2]?.gear?.id);
-  updateImage("allyicon4", party[3]?.id, party[3]?.gear?.id);
-  updateImage("allyicon5", party[4]?.id, party[4]?.gear?.id);
+  updateImage("partyicon1", party[0]?.id, party[0]?.gear?.id);
+  updateImage("partyicon2", party[1]?.id, party[1]?.gear?.id);
+  updateImage("partyicon3", party[2]?.id, party[2]?.gear?.id);
+  updateImage("partyicon4", party[3]?.id, party[3]?.gear?.id);
+  updateImage("partyicon5", party[4]?.id, party[4]?.gear?.id);
 }
-//todo:allyiconというid名は変更必要
 
 //どちらのプレイヤーがパテ選択中かの関数定義
 let allyorenemy = "ally";
@@ -303,21 +302,21 @@ hit処理、ダメージ処理、ダメージや死亡に対する処理、バ�
 let selectingmonstericon = "";
 let selectingmonsternum = "";
 let selectingmonsternumminus1 = "";
-const allyIcons = document.querySelectorAll('[id^="allyicon"]');
-//todo:これのせいでid:allyicon系は撲滅の必要
-allyIcons.forEach((icon) => {
+const partyIcons = document.querySelectorAll('[id^="partyicon"]');
+//todo:これのせいでpartyicon(gear)を含むidは撲滅の必要、現在はcontainerやwrapperをidではなくclass管理で回避
+partyIcons.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
     document.getElementById("selectmonsteroverlay").style.visibility = "visible";
     document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
     selectingmonstericon = icon.id;
-    selectingmonsternum = selectingmonstericon.replace(/(icon|ally)/g, "");
+    selectingmonsternum = selectingmonstericon.replace(/(party|icon)/g, "");
     selectingmonsternum = Number(selectingmonsternum);
     selectingmonsternumminus1 = selectingmonsternum - 1;
     //配列検索用に-1
   });
 });
-//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingmonstericonにidを格納-allyicon1、selectingmonsternumに1-5を格納、minus1に配列用で1引いてっか右脳
+//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingmonstericonにidを格納-partyicon1、selectingmonsternumに1-5を格納、minus1に配列用で1引いてっか右脳
 
 document.getElementById("selectmonsteroverlay").addEventListener("click", function () {
   //ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
@@ -333,7 +332,7 @@ function selectMonster(monsterName) {
   document.getElementById(selectingmonstericon).src = newmonsterImageSrc;
   //取得した選択中の枠に、ポップアップウィンドウ内で選択したモンスターの画像を代入
 
-  const targetgear = "allygear" + selectingmonsternum;
+  const targetgear = "partygear" + selectingmonsternum;
   document.getElementById(targetgear).src = "images/gear/ungeared.jpeg";
   //装備リセットのため装備アイコンを未選択にselectingmonsternum
 
@@ -368,20 +367,20 @@ let selectinggear = "";
 let selectinggearnum = "";
 let selectinggearnumminus1 = "";
 
-const allyGear = document.querySelectorAll('[id^="allygear"]');
-allyGear.forEach((icon) => {
+const partyGear = document.querySelectorAll('[id^="partygear"]');
+partyGear.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
     document.getElementById("selectgearoverlay").style.visibility = "visible";
     document.getElementById("selectgearpopupwindow").style.opacity = "1";
     selectinggear = icon.id;
-    selectinggearnum = selectinggear.replace(/(gear|ally)/g, "");
+    selectinggearnum = selectinggear.replace(/(party|gear)/g, "");
     selectinggearnum = Number(selectinggearnum);
     selectinggearnumminus1 = selectinggearnum - 1;
     //配列検索用に-1
   });
 });
-//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得、selectinggearにidを格納-allygear1、selectinggearnumに1-5を格納
+//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得、selectinggearにidを格納-partygear1、selectinggearnumに1-5を格納
 
 document.getElementById("selectgearoverlay").addEventListener("click", function () {
   //ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
@@ -862,7 +861,11 @@ function karitobattlepage() {
 同じモンスターを選択すると、party内の検索がばぐる
 
 skillの分離
-seed追加あとにls入れてるのか
+
+
+
+select関係の最適化
+
 
 注意点
 "" ; の忘れ

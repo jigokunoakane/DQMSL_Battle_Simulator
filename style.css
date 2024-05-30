@@ -110,35 +110,43 @@ select {
 
 /* パテ画像部分 */
 
-.allyicons-container,
+.partyicons-container,
+.partygears-container,
 .monstericons-container {
-  display: flex; /* flexbox を使用して横並びにする */
-  justify-content: flex-start; /* 左揃えにする */
-  flex-wrap: wrap;
-  position: relative;
+  display: flex;
 }
 
-.allyicon-wrapper,
-.monstericon-wrapper {
-  flex-basis: calc(20% - 10px); /* 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
-  margin-bottom: 10px;
-  margin-left: 5px;
-  margin-right: 5px;
-}
-
-.allyicons,
-.monstericons {
-  display: block; /* 縦に並べる */
-  width: 100%; /* 画像の幅を100%に設定して親要素にフィットさせる */
-  height: auto;
+.partyicons-container {
   margin-bottom: 2px;
+  margin-top: 2px;
 }
 
-.gear-icon {
-  width: 70%;
+.partygears-container {
+  margin-bottom: 6px;
+}
+
+.partyicon-wrapper,
+.partygear-wrapper,
+.monstericon-wrapper {
+  flex-basis: 20%;
+  display: flex;
+  justify-content: center; /*親要素に指定して中央に*/
+}
+
+.partyicon {
+  width: 80%;
   height: auto;
-  display: block; /* 中央揃えするためにブロック要素にする */
-  margin: 0 auto; /* 水平方向に中央揃えする */
+}
+
+.partygear {
+  width: 55%;
+  height: auto;
+}
+
+.monstericon {
+  width: 75%;
+  height: auto;
+  margin-bottom: 10px;
 }
 
 #monsterinfo-tabs {
@@ -256,6 +264,8 @@ select {
   display: flex; /* flexbox を使用して横並びにする */
 }
 
+/*戦闘画面*/
+
 .eachbarcontainer {
   flex-basis: 20%;
   display: flex;
@@ -263,7 +273,6 @@ select {
   justify-content: center;
   align-items: center; /* 交差軸方向に中央寄せ */
 }
-/*flex-basis: calc(20% - 10px); 入れ枠の横幅を20%に設定して横に5つ並ぶようにする */
 
 .bar {
   width: 70%;
