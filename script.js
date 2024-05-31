@@ -686,8 +686,9 @@ const skill = [
     ignoreSubstitute: true,
     ignoreGuard: true,
     ignoreEvasion: true,
+    MP: 76,
     //ignoreDazzle: true, penetrateIronize: true,
-    //配列って最後の,とかあと""ひっすなのか"
+    //文字列・数値格納可能 真偽値？？
     folowingskill: "ryohuzentai",
   },
   {
