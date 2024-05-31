@@ -27,16 +27,7 @@ const defaultMonster = {
 const defaultparty = Array(5).fill(defaultMonster);
 //defaultpartyにmonster5体を格納
 /*let allparties = [
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] },
-  { party: [...defaultparty] }
+  { party: [...defaultparty] }10
 ];
 */
 let allparties = Array.from({ length: 10 }, () => ({ party: [...defaultparty] }));
@@ -56,7 +47,7 @@ function selectparty() {
   allparties[selectingpartynum - 1].party = structuredClone(party);
   // selectingpartyを選択値に更新
   selectingpartynum = parseInt(document.getElementById("selectparty").value);
-  //仮partyにa;;parties内の情報を下ろす
+  //仮partyにallparties内の情報を下ろす
   party = structuredClone(allparties[selectingpartynum - 1].party);
   //party.splice(0, party.length, ...window[newparty]);
 
@@ -326,11 +317,22 @@ document.getElementById("selectmonsteroverlay").addEventListener("click", functi
 });
 //まわりクリックで閉じる
 
+document.querySelectorAll(".allmonstericons").forEach((img) => {
+  img.addEventListener("click", () => {
+    const imgsrc = img.getAttribute("src");
+    const selectedmonsterName = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
+    selectMonster(selectedmonsterName);
+  });
+});
+//window内の各画像クリックで、選択処理を起動
+
 function selectMonster(monsterName) {
   //ポップアップ内各画像クリック時に起動
   const newmonsterImageSrc = "images/icons/" + monsterName + ".jpeg";
   document.getElementById(selectingmonstericon).src = newmonsterImageSrc;
   //取得した選択中の枠に、ポップアップウィンドウ内で選択したモンスターの画像を代入
+  //todo:tabの処理と共通化
+  //todo:-1処理の削除
 
   const targetgear = "partygear" + selectingmonsternum;
   document.getElementById(targetgear).src = "images/gear/ungeared.jpeg";
@@ -389,6 +391,15 @@ document.getElementById("selectgearoverlay").addEventListener("click", function 
   document.body.style.overflow = "";
 });
 //まわりクリックで閉じる
+
+document.querySelectorAll(".allgear").forEach((img) => {
+  img.addEventListener("click", () => {
+    const imgsrc = img.getAttribute("src");
+    const selectedgearName = imgsrc.replace("images/gear/", "").replace(".jpeg", "");
+    selectgear(selectedgearName);
+  });
+});
+//window内の各画像クリックで、選択処理を起動
 
 function selectgear(gearName) {
   // ポップアップウィンドウ内で選択した装備の画像をポップアップを開く画像に置き換える
