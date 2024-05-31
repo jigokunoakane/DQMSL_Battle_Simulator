@@ -868,22 +868,3 @@ function karitobattlepage() {
   startbattle();
   //temporary 戦闘画面移行用
 }
-
-/* memo
-
-装備もただ下にぶらさげるのではなく、いじる必要
-同じモンスターを選択すると、party内の検索がばぐる
-
-skillの分離
-
-margin paddingまわり
-
-select関係の最適化
-
-
-注意点
-"" ; の忘れ
-idとかclassで検索すればわかる
-
-全モンスター選択しないと、displaystatusの初期設定が行われていないからdisplayからdefault出力時にバグる
-*/

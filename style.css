@@ -1,6 +1,7 @@
 html {
   -ms-touch-action: manipulation;
   touch-action: manipulation;
+  overflow-x: hidden;
 }
 body {
   user-select: none;
@@ -16,6 +17,7 @@ body {
   font-size: 100%;
   max-width: 360px;
   margin: 0;
+  overflow-x: hidden;
 }
 
 /*いつもの*/
@@ -347,7 +349,7 @@ select {
 
 #consolescreen {
   transform: translate(0%, -50%);
-  width: 96%;
+  width: 94%;
   height: 3rem;
   background-color: black;
   border: 2px solid white;
