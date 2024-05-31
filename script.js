@@ -244,20 +244,22 @@ function applydamage(target, damage) {
 
 let selectingwhichmonsterscommand = 0;
 function startselectingcommand() {
-  //とくぎボタン選択時、skillbtn4つを表示し、skill名4つを表示
+  //とくぎボタン選択時、skillbtn4つを表示し、skill名4つを表示(popout化？)
   //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[0]).name;
-  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[1]).name;
-  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[2]).name;
-  document.getElementById("selectskillbtn4").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[3]).name;
+  document.getElementById("selectskillbtn0").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[0]).name;
+  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[1]).name;
+  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[2]).name;
+  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[3]).name;
   document.getElementById("selectskillbtns").style.display = "inline";
   document.getElementById("openselectskillbtn").style.display = "none";
   //todo:skill id日本語化
+  //todo:inline?block?
 }
 
 function selectcommand(selectedskillnum) {
-  //selectedskillnumから選択されたskillを記録 これは上書きされうる
+  parties[0][selectingwhichmonsterscommand].skill[selectedskillnum];
+  //selectingwhichmonsterscommand番目のコマンドとして、selectedskillnumから選択されたskillを記録 上書きされうる
 
   selectingwhichmonsterscommand += 1;
   document.getElementById("selectskillbtns").style.display = "none";
@@ -686,6 +688,7 @@ const skill = [
     ignoreEvasion: true,
     //ignoreDazzle: true, penetrateIronize: true,
     //配列って最後の,とかあと""ひっすなのか"
+    folowingskill: "ryohuzentai",
   },
   {
     name: "涼風一陣",
@@ -872,7 +875,7 @@ function karitobattlepage() {
 
 skillの分離
 
-
+margin paddingまわり
 
 select関係の最適化
 

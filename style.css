@@ -324,12 +324,62 @@ select {
 }
 
 #enemybars {
-  margin-bottom: 7rem;
+  margin-bottom: 5rem;
 }
 
 #allymonstercontainerbattle {
-  padding-bottom: 0.1rem;
+  padding-bottom: 0.5rem;
 }
 .monster-bar-container {
   padding-bottom: 1rem;
+}
+
+#consolescreen-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#consolescreen {
+  transform: translate(0%, -50%);
+  width: 96%;
+  height: 3rem;
+  background-color: black;
+  border: 2px solid white;
+  border-radius: 10px;
+  /*padding: 10px 10px;*/
+  color: white;
+  font-weight: bold;
+  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+}
+
+#commandbtns-container {
+  display: flex;
+
+  justify-content: center;
+  align-items: center; /* 交差軸方向に中央寄せ */
+  flex-wrap: wrap;
+}
+
+.commandbtn {
+  width: 30%;
+  height: 3rem;
+  padding: 0rem;
+  margin: 2px;
+  text-align: center;
+  border: 1px solid #f3d58f;
+  box-shadow: 0.5px 0.5px 7px 0.5px #bf5455 inset;
+  border-radius: 0.5rem;
+  background-color: #9b1214;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+}
+
+#commandbtns-container,
+#allymonstercontainerbattle,
+#monster-bar-container-ally,
+#consolescreen-container {
+  background-color: black;
 }

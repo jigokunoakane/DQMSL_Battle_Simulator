@@ -355,30 +355,29 @@
         </div>
       </div>
 
+      <div id="consolescreen-container">
+        <div id="consolescreen"></div>
+      </div>
+
       <div id="allymonstercontainerbattle" class="monstericons-container">
         <div class="monstericon-wrapper">
           <img id="battleiconally0" class="monstericon" />
-          <!-- bar -->
         </div>
         <div class="monstericon-wrapper">
           <img id="battleiconally1" class="monstericon" />
-          <!-- bar -->
         </div>
         <div class="monstericon-wrapper">
           <img id="battleiconally2" class="monstericon" />
-          <!-- bar -->
         </div>
         <div class="monstericon-wrapper">
           <img id="battleiconally3" class="monstericon" />
-          <!-- bar -->
         </div>
         <div class="monstericon-wrapper">
           <img id="battleiconally4" class="monstericon" />
-          <!-- bar -->
         </div>
       </div>
       <!-- finish allymonstercontainerbattle -->
-      <div class="monster-bar-container">
+      <div id="monster-bar-container-ally" class="monster-bar-container">
         <div class="eachbarcontainer">
           <div id="hpbarally0" class="bar">
             <div id="hpbartextally0" class="bartext">0</div>
@@ -432,16 +431,26 @@
       </div>
       <!-- finish monster-bar-container -->
 
-      <button id="openselectskillbtn" class="normalbutton" onclick="startselectingcommand()">とくぎ</button>
-      <div id="selectskillbtns">
-        <button id="selectskillbtn1" class="normalbutton" onclick="selectcommand(1)">特技1</button>
-        <button id="selectskillbtn2" class="normalbutton" onclick="selectcommand(2)">特技2</button>
-        <button id="selectskillbtn3" class="normalbutton" onclick="selectcommand(3)">特技3</button>
-        <button id="selectskillbtn4" class="normalbutton" onclick="selectcommand(4)">特技4</button>
+      <div id="commandbtns-container">
+        <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
+        <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
+        <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
+        <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
+        <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">戻る</button>
+        <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
+
+        <div id="selectskillbtns">
+          <button id="selectskillbtn0" class="normalbutton" onclick="selectcommand(0)">特技1</button>
+          <button id="selectskillbtn1" class="normalbutton" onclick="selectcommand(1)">特技2</button>
+          <button id="selectskillbtn2" class="normalbutton" onclick="selectcommand(2)">特技3</button>
+          <button id="selectskillbtn3" class="normalbutton" onclick="selectcommand(3)">特技4</button>
+        </div>
+        <div id="designateskilltarget">
+          <button id="designateskilltargetbtnyes">特技選択</button>
+          <button id="designateskilltargetbtnno">やめる</button>
+        </div>
       </div>
-      <div>
-        <button id="backbtn" class="normalbutton" onclick="backbtn()">戻る</button>
-      </div>
+      <!-- finish selectcommand-container -->
     </div>
     <!--finish battlepage-->
 
