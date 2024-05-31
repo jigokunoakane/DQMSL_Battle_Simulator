@@ -293,8 +293,7 @@ hit処理、ダメージ処理、ダメージや死亡に対する処理、バ�
 let selectingmonstericon = "";
 let selectingmonsternum = "";
 let selectingmonsternumminus1 = "";
-const partyIcons = document.querySelectorAll('[id^="partyicon"]');
-//todo:これのせいでpartyicon(gear)を含むidは撲滅の必要、現在はcontainerやwrapperをidではなくclass管理で回避
+const partyIcons = document.querySelectorAll(".partyicon");
 partyIcons.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
@@ -369,7 +368,7 @@ let selectinggear = "";
 let selectinggearnum = "";
 let selectinggearnumminus1 = "";
 
-const partyGear = document.querySelectorAll('[id^="partygear"]');
+const partyGear = document.querySelectorAll(".partygear");
 partyGear.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
