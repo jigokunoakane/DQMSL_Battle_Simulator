@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h2>脱法GPシミュレーター</h2>
+    <h2>GPシミュレーター</h2>
     <div id="adjustpartypage">
       <span id="playerAorB"> プレイヤーA</span>&nbsp;
       <select id="selectparty" onchange="selectparty()">
@@ -436,21 +436,51 @@
         <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
         <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
         <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
-        <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">戻る</button>
+        <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
         <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
 
-        <div id="selectskillbtns">
-          <button id="selectskillbtn0" class="normalbutton" onclick="selectcommand(0)">特技1</button>
-          <button id="selectskillbtn1" class="normalbutton" onclick="selectcommand(1)">特技2</button>
-          <button id="selectskillbtn2" class="normalbutton" onclick="selectcommand(2)">特技3</button>
-          <button id="selectskillbtn3" class="normalbutton" onclick="selectcommand(3)">特技4</button>
-        </div>
-        <div id="designateskilltarget">
-          <button id="designateskilltargetbtnyes">特技選択</button>
-          <button id="designateskilltargetbtnno">やめる</button>
+        <div id="selectcommandpopupwindow">
+          <div id="selectskillbtns">
+            <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
+            <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
+            <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
+            <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
+          </div>
+          <div id="designateskilltarget-all">
+            <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">やめる</button>
+            <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">この特技を選択</button>
+          </div>
+          <div id="designateskilltarget">
+            <div class="selecttargetmonster-wrapper">
+              <img class="selecttargetmonster" id="selecttargetmonster0" />
+            </div>
+            <div class="selecttargetmonster-wrapper">
+              <img class="selecttargetmonster" id="selecttargetmonster1" />
+            </div>
+            <div class="selecttargetmonster-wrapper">
+              <img class="selecttargetmonster" id="selecttargetmonster2" />
+            </div>
+            <div class="selecttargetmonster-wrapper">
+              <img class="selecttargetmonster" id="selecttargetmonster3" />
+            </div>
+            <div class="selecttargetmonster-wrapper">
+              <img class="selecttargetmonster" id="selecttargetmonster4" />
+            </div>
+          </div>
         </div>
       </div>
-      <!-- finish selectcommand-container -->
+      <!-- finish commandbtns-container -->
+
+      <div id="aaselectcommandoverlay">
+        <!-- popup -->
+        <div id="aaselectcommnadbg_gray"></div>
+        <!-- windowの外のグレーの領域 -->
+        <div id="aaaaaaaaselectcommandpopupwindow">
+          <!-- window中身 -->
+        </div>
+        <!-- finish selectcommandpopupwindow -->
+      </div>
+      <!-- finish selectcommandoverlay -->
     </div>
     <!--finish battlepage-->
 

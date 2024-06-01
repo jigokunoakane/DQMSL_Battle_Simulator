@@ -176,10 +176,6 @@ function startbattle() {
   //初期処理不要、updateのみで対応
 
   //戦闘画面の10のimgのsrcを設定
-  function updatebattleicons(elementId, id) {
-    const iconSrc = "images/icons/" + id + ".jpeg";
-    document.getElementById(elementId).src = iconSrc;
-  }
   //partyの中身のidとgearidから、適切な画像を設定
   updatebattleicons("battleiconenemy0", parties[1][0].id);
   updatebattleicons("battleiconenemy1", parties[1][1].id);
@@ -191,13 +187,24 @@ function startbattle() {
   updatebattleicons("battleiconally2", parties[0][2].id);
   updatebattleicons("battleiconally3", parties[0][3].id);
   updatebattleicons("battleiconally4", parties[0][4].id);
+
+  //confirmedcommand格納場所生成
+  parties.forEach((party) => {
+    // 各モンスターについて処理を行う
+    party.forEach((monster) => {
+      monster.confirmedcommand = "";
+      monster.confirmedcommandtarget = "";
+    });
+  });
+  //todo:初期処理の統合
 }
 //finish startbattle 開始時処理終了
 
-//特技選択画面
-document.getElementById("selectskillbtns").style.display = "none";
-//初期処理、divではなくclassでそれぞれ指定も可
-//document.getElementById("openselectskillbtn").addEventListener("click", function () {});
+//戦闘開始時の10のアイコン更新と、targetteamごとに特技target選択画面で起動
+function updatebattleicons(elementId, id) {
+  const iconSrc = "images/icons/" + id + ".jpeg";
+  document.getElementById(elementId).src = iconSrc;
+}
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
 function updateHPMPdisplay(target, damage, oldHP) {
@@ -244,30 +251,94 @@ function applydamage(target, damage) {
 
 let selectingwhichmonsterscommand = 0;
 function startselectingcommand() {
-  //とくぎボタン選択時、skillbtn4つを表示し、skill名4つを表示(popout化？)
+  document.getElementById("designateskilltarget").style.visibility = "hidden";
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  //とくぎボタン選択時、popupによってskillbtn4つを表示し、skill名4つを代入
   //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
   document.getElementById("selectskillbtn0").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[0]).name;
   document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[1]).name;
   document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[2]).name;
   document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[3]).name;
-  document.getElementById("selectskillbtns").style.display = "inline";
-  document.getElementById("openselectskillbtn").style.display = "none";
+  /*document.getElementById("selectcommandoverlay").style.visibility = "visible";
+  document.getElementById("selectcommandpopupwindow").style.opacity = "1";*/
+  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
+  document.getElementById("selectskillbtns").style.visibility = "visible";
+
+  //下のbtnの無効化&他の場所押したらesc&閉じるbtn
   //todo:skill id日本語化
   //todo:inline?block?
 }
 
 function selectcommand(selectedskillnum) {
-  parties[0][selectingwhichmonsterscommand].skill[selectedskillnum];
-  //selectingwhichmonsterscommand番目のコマンドとして、selectedskillnumから選択されたskillを記録 上書きされうる
+  const selectedskillid = parties[0][selectingwhichmonsterscommand].skill[selectedskillnum];
+  parties[0][selectingwhichmonsterscommand].confirmedcommand = selectedskillid;
+  //idを取得してconfirmedcommandに保存
+  document.getElementById("selectskillbtns").style.visibility = "hidden";
+  const skilltargetdetector = skill.find((item) => item.id === selectedskillid).target;
+  const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
+  if (skilltargetdetector === "random" || skilltargetdetector === "single") {
+    document.getElementById("designateskilltarget").style.visibility = "visible";
+    //targetteamが味方の場合は味方画像を、敵画像を代入
+    if (skilltargetteamdetector === "enemy") {
+      updatebattleicons("selecttargetmonster0", parties[1][0].id);
+      updatebattleicons("selecttargetmonster1", parties[1][1].id);
+      updatebattleicons("selecttargetmonster2", parties[1][2].id);
+      updatebattleicons("selecttargetmonster3", parties[1][3].id);
+      updatebattleicons("selecttargetmonster4", parties[1][4].id);
+    } else {
+      updatebattleicons("selecttargetmonster0", parties[0][0].id);
+      updatebattleicons("selecttargetmonster1", parties[0][1].id);
+      updatebattleicons("selecttargetmonster2", parties[0][2].id);
+      updatebattleicons("selecttargetmonster3", parties[0][3].id);
+      updatebattleicons("selecttargetmonster4", parties[0][4].id);
+    }
+  } else {
+    document.getElementById("designateskilltarget-all").style.visibility = "visible";
+    parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
+    //ランダムまたは単体はtarget選択、allはyesno
+    //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された先に撃つ処理
+  }
+}
 
+document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  //yesno画面と全体を閉じる
   selectingwhichmonsterscommand += 1;
-  document.getElementById("selectskillbtns").style.display = "none";
-  document.getElementById("openselectskillbtn").style.display = "inline";
+  //選択終了、次のコマンド選択を待機
+});
+document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("selectskillbtns").style.visibility = "visible";
+  //自分を閉じてスキル画面を再表示、選択済のconfirmedcommandとtarget:allは後に上書き
+});
+
+//skilltarget選択画面
+document.querySelectorAll(".selecttargetmonster").forEach((img) => {
+  img.addEventListener("click", () => {
+    const imgsrc = img.getAttribute("src");
+    const selectedtargetmonsterid = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
+    //target保存
+    //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
+    document.getElementById("designateskilltarget").style.visibility = "hidden";
+    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    //target画面と全体を閉じる
+    selectingwhichmonsterscommand += 1;
+    //選択終了、次のコマンド選択を待機
+  });
+});
+//window内の各画像クリックで、選択処理を起動
+
+//todo:もどるボタン popup内のテキストとバツボタン、選択中モンスターを少し上にあげて表示 target保存システム
+
+//parties[0][selectingwhichmonsterscommand].skill[selectedskillnum]
+//selectingwhichmonsterscommand番目のコマンドとして、selectedskillnumから選択されたskillを記録 上書きされうる
+/*
   if (selectingwhichmonsterscommand > 4) {
     alert("コマンドを終了しますか");
   }
-}
+*/
 
 function backbtn() {
   selectingwhichmonsterscommand -= 1;
@@ -299,6 +370,7 @@ const partyIcons = document.querySelectorAll(".partyicon");
 partyIcons.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
+    //todo:?
     document.getElementById("selectmonsteroverlay").style.visibility = "visible";
     document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
     selectingmonstericon = icon.id;
@@ -680,6 +752,7 @@ const skill = [
     attribute: "", //fire ice thun expl wind light dark
     order: "", //preemptive anchor
     target: "", //single random all
+    targetteam: "enemy",
     numofhit: "",
     ignoreProt: true,
     ignoreReflection: true,
@@ -696,120 +769,160 @@ const skill = [
     id: "ryohu",
     howToCalculate: "fix",
     attribute: "none",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "神楽の術",
     id: "kagura",
     howToCalculate: "int",
     attribute: "none",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "昇天斬り",
     id: "shotenslash",
     howToCalculate: "atk",
     attribute: "none",
+    target: "single",
+    targetteam: "enemy",
   },
   {
     name: "タップダンス",
     id: "tap",
     howToCalculate: "none",
     attribute: "none",
+    target: "all",
+    targetteam: "ally",
   },
   {
     name: "氷華大繚乱",
     id: "ryoran",
     howToCalculate: "atk",
     attribute: "ice",
+    target: "random",
+    targetteam: "enemy",
   },
   {
     name: "フローズンシャワー",
     id: "shawer",
     howToCalculate: "fix",
     attribute: "ice",
+    target: "single",
+    targetteam: "enemy",
   },
   {
     name: "おぞおた",
     id: "ozo",
     howToCalculate: "atk",
     attribute: "none",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "スパークふんしゃ",
     id: "supahun",
     howToCalculate: "fix",
     attribute: "thun",
+    target: "random",
+    targetteam: "enemy",
   },
   {
     name: "天空竜の息吹",
     id: "tenkuryu",
     howToCalculate: "fix",
     attribute: "light",
+    target: "random",
+    targetteam: "enemy",
   },
   {
     name: "エンドブレス",
     id: "endbreath",
     howToCalculate: "fix",
     attribute: "none",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "テンペストブレス",
     id: "tempest",
     howToCalculate: "fix",
     attribute: "wind",
+    target: "single",
+    targetteam: "enemy",
   },
   {
     name: "煉獄火炎",
     id: "rengoku",
     howToCalculate: "fix",
     attribute: "fire",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "むらくもの息吹",
     id: "murakumo",
     howToCalculate: "fix",
     attribute: "none",
+    target: "random",
+    targetteam: "enemy",
   },
   {
     name: "獄炎の息吹",
     id: "gokuen",
     howToCalculate: "fix",
     attribute: "fire",
+    target: "random",
+    targetteam: "enemy",
   },
   {
     name: "ほとばしる暗闇",
     id: "hoto",
     howToCalculate: "fix",
     attribute: "dark",
+    target: "all",
+    targetteam: "enemy",
   },
   {
     name: "防刃の守り",
     id: "boujin",
     howToCalculate: "none",
     attribute: "none",
+    target: "all",
+    targetteam: "ally",
   },
   {
     name: "ラヴァフレア",
     id: "lava",
     howToCalculate: "fix",
     attribute: "fire",
+    target: "single",
+    targetteam: "enemy",
   },
   {
     name: "におうだち",
     id: "niou",
     howToCalculate: "none",
     attribute: "none",
+    target: "all",
+    targetteam: "ally",
   },
   {
     name: "大樹の守り",
     id: "taiju",
     howToCalculate: "none",
     attribute: "none",
+    target: "all",
+    targetteam: "ally",
   },
   {
     name: "みがわり",
     id: "migawari",
     howToCalculate: "fix",
     attribute: "none",
+    target: "single",
+    targetteam: "ally",
   },
   {
     name: "邪道のかくせい",
