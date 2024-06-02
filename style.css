@@ -437,8 +437,11 @@ select {
 
 #selectcommandpopupwindow-text {
   position: absolute;
+  margin-left: 5px;
   width: 100%;
-  /*font-size:1rem;*/
+  color: #eceb1e;
+  font-size: 0.9rem;
+  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
 #selectskillbtns {

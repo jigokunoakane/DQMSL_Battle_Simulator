@@ -267,6 +267,9 @@ function startselectingcommand() {
   document.getElementById("selectcommandpopupwindow").style.opacity = "1";*/
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   document.getElementById("selectskillbtns").style.visibility = "visible";
+  document.getElementById("selectcommandpopupwindow-text").textContent = parties[0][selectingwhichmonsterscommand].name;
+  document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
+  //monster名表示に戻す
 
   //下のbtnの無効化&他の場所押したらesc&閉じるbtn
   //todo:skill id日本語化
@@ -282,6 +285,9 @@ function selectcommand(selectedskillnum) {
   const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
     document.getElementById("designateskilltarget").style.visibility = "visible";
+    document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
+    document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
+    //randomもしくはsingleのときはmonster名表示から指示に変更
     //targetがrandomもしくはsingleのとき、all(yesno)画面を起動
     //targetteamがallyのとき味方画像を、enemyのとき敵画像を代入
     if (skilltargetteamdetector === "enemy") {
@@ -300,6 +306,8 @@ function selectcommand(selectedskillnum) {
   } else {
     document.getElementById("designateskilltarget-all-text").textContent = skill.find((item) => item.id === selectedskillid).name + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
+    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+    //allならmonster名は隠すのみ
     parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
     //ランダムまたは単体はtarget選択画面を起動
     //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
@@ -310,7 +318,7 @@ function selectcommand(selectedskillnum) {
 document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  //yesno画面と全体を閉じる
+  //yesno画面とpopup全体を閉じる
   selectingwhichmonsterscommand += 1;
   adjustmonstericonstickout();
   //選択終了、次のコマンド選択を待機
@@ -318,8 +326,8 @@ document.getElementById("designateskilltargetbtnyes").addEventListener("click", 
 //all-nobtn処理
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("selectskillbtns").style.visibility = "visible";
-  //自分を閉じてスキル画面を再表示、選択済のconfirmedcommandとtarget:allは後に上書き
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後に上書き
 });
 
 //skilltarget選択画面
@@ -331,6 +339,7 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
     document.getElementById("designateskilltarget").style.visibility = "hidden";
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //target画面と全体を閉じる
     selectingwhichmonsterscommand += 1;
     adjustmonstericonstickout();
@@ -356,8 +365,6 @@ function adjustmonstericonstickout() {
     monstericon.classList.remove("stickout");
   });
   targetmonstericonstickout.classList.add("stickout");
-  //ついでにtextもここで操作
-  document.getElementById("selectcommandpopupwindow-text").textContent = parties[0][selectingwhichmonsterscommand].name;
 }
 
 function backbtn() {
@@ -371,6 +378,7 @@ document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("cl
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
   //全閉じ
 });
 
