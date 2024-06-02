@@ -197,6 +197,9 @@ function startbattle() {
     });
   });
   //todo:初期処理の統合
+
+  //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
+  backbtn();
 }
 //finish startbattle 開始時処理終了
 
@@ -279,7 +282,8 @@ function selectcommand(selectedskillnum) {
   const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
     document.getElementById("designateskilltarget").style.visibility = "visible";
-    //targetteamが味方の場合は味方画像を、敵画像を代入
+    //targetがrandomもしくはsingleのとき、all(yesno)画面を起動
+    //targetteamがallyのとき味方画像を、enemyのとき敵画像を代入
     if (skilltargetteamdetector === "enemy") {
       updatebattleicons("selecttargetmonster0", parties[1][0].id);
       updatebattleicons("selecttargetmonster1", parties[1][1].id);
@@ -294,20 +298,24 @@ function selectcommand(selectedskillnum) {
       updatebattleicons("selecttargetmonster4", parties[0][4].id);
     }
   } else {
+    document.getElementById("designateskilltarget-all-text").textContent = skill.find((item) => item.id === selectedskillid).name + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
     parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
-    //ランダムまたは単体はtarget選択、allはyesno
-    //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された先に撃つ処理
+    //ランダムまたは単体はtarget選択画面を起動
+    //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
   }
 }
 
+//all-yesbtnの処理
 document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   //yesno画面と全体を閉じる
   selectingwhichmonsterscommand += 1;
+  adjustmonstericonstickout();
   //選択終了、次のコマンド選択を待機
 });
+//all-nobtn処理
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectskillbtns").style.visibility = "visible";
@@ -319,12 +327,13 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
   img.addEventListener("click", () => {
     const imgsrc = img.getAttribute("src");
     const selectedtargetmonsterid = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
-    //target保存
+    //target保存 srcからはちょっとセンスないか？味方の場合もあるのに注意
     //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
     document.getElementById("designateskilltarget").style.visibility = "hidden";
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
     //target画面と全体を閉じる
     selectingwhichmonsterscommand += 1;
+    adjustmonstericonstickout();
     //選択終了、次のコマンド選択を待機
   });
 });
@@ -339,10 +348,32 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     alert("コマンドを終了しますか");
   }
 */
+function adjustmonstericonstickout() {
+  //一旦全削除後、現在選択中のmonster imgにclass:stickoutを付与
+  const allmonstericonsstickout = document.querySelectorAll(".battlepageallyicon");
+  const targetmonstericonstickout = document.getElementById(`battleiconally${selectingwhichmonsterscommand}`);
+  allmonstericonsstickout.forEach((monstericon) => {
+    monstericon.classList.remove("stickout");
+  });
+  targetmonstericonstickout.classList.add("stickout");
+  //ついでにtextもここで操作
+  document.getElementById("selectcommandpopupwindow-text").textContent = parties[0][selectingwhichmonsterscommand].name;
+}
 
 function backbtn() {
-  selectingwhichmonsterscommand -= 1;
+  //startbattleでも起動
+  selectingwhichmonsterscommand = Math.max(selectingwhichmonsterscommand - 1, 0);
+  adjustmonstericonstickout();
 }
+
+document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("click", function () {
+  document.getElementById("designateskilltarget").style.visibility = "hidden";
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("selectskillbtns").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  //全閉じ
+});
+
 //敵のコマンド処理はどうするか、AIか入力か選択画面を出す
 //parties、allyとenemyで分けずにごちゃ混ぜでもいいのでは
 

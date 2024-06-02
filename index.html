@@ -310,19 +310,19 @@
 
       <div id="enemymonstercontainerbattle" class="monstericons-container">
         <div class="monstericon-wrapper">
-          <img id="battleiconenemy0" class="monstericon" />
+          <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconenemy1" class="monstericon" />
+          <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconenemy2" class="monstericon" />
+          <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconenemy3" class="monstericon" />
+          <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconenemy4" class="monstericon" />
+          <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
         </div>
       </div>
       <!-- finish enemymonstercontainerbattle -->
@@ -361,19 +361,19 @@
 
       <div id="allymonstercontainerbattle" class="monstericons-container">
         <div class="monstericon-wrapper">
-          <img id="battleiconally0" class="monstericon" />
+          <img id="battleiconally0" class="monstericon battlepageallyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconally1" class="monstericon" />
+          <img id="battleiconally1" class="monstericon battlepageallyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconally2" class="monstericon" />
+          <img id="battleiconally2" class="monstericon battlepageallyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconally3" class="monstericon" />
+          <img id="battleiconally3" class="monstericon battlepageallyicon" />
         </div>
         <div class="monstericon-wrapper">
-          <img id="battleiconally4" class="monstericon" />
+          <img id="battleiconally4" class="monstericon battlepageallyicon" />
         </div>
       </div>
       <!-- finish allymonstercontainerbattle -->
@@ -440,47 +440,45 @@
         <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
 
         <div id="selectcommandpopupwindow">
-          <div id="selectskillbtns">
-            <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
-            <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
-            <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
-            <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
+          <div id="selectcommandpopupwindow-contents">
+            <div id="selectcommandpopupwindow-text"></div>
+            <div id="selectskillbtns">
+              <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
+              <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
+              <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
+              <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
+            </div>
+            <div id="designateskilltarget-all">
+              <div id="designateskilltarget-all-text"></div>
+              <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
+              <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
+            </div>
+            <div id="designateskilltarget">
+              <div class="selecttargetmonster-wrapper">
+                <img class="selecttargetmonster" id="selecttargetmonster0" />
+              </div>
+              <div class="selecttargetmonster-wrapper">
+                <img class="selecttargetmonster" id="selecttargetmonster1" />
+              </div>
+              <div class="selecttargetmonster-wrapper">
+                <img class="selecttargetmonster" id="selecttargetmonster2" />
+              </div>
+              <div class="selecttargetmonster-wrapper">
+                <img class="selecttargetmonster" id="selecttargetmonster3" />
+              </div>
+              <div class="selecttargetmonster-wrapper">
+                <img class="selecttargetmonster" id="selecttargetmonster4" />
+              </div>
+            </div>
+            <div id="closeselectcommandpopupwindowbtn-container">
+              <div id="closeselectcommandpopupwindowbtn"></div>
+            </div>
           </div>
-          <div id="designateskilltarget-all">
-            <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">やめる</button>
-            <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">この特技を選択</button>
-          </div>
-          <div id="designateskilltarget">
-            <div class="selecttargetmonster-wrapper">
-              <img class="selecttargetmonster" id="selecttargetmonster0" />
-            </div>
-            <div class="selecttargetmonster-wrapper">
-              <img class="selecttargetmonster" id="selecttargetmonster1" />
-            </div>
-            <div class="selecttargetmonster-wrapper">
-              <img class="selecttargetmonster" id="selecttargetmonster2" />
-            </div>
-            <div class="selecttargetmonster-wrapper">
-              <img class="selecttargetmonster" id="selecttargetmonster3" />
-            </div>
-            <div class="selecttargetmonster-wrapper">
-              <img class="selecttargetmonster" id="selecttargetmonster4" />
-            </div>
-          </div>
+          <!--selectcommandpopupwindow-contents-->
         </div>
+        <!--selectcommandpopupwindow-->
       </div>
       <!-- finish commandbtns-container -->
-
-      <div id="aaselectcommandoverlay">
-        <!-- popup -->
-        <div id="aaselectcommnadbg_gray"></div>
-        <!-- windowの外のグレーの領域 -->
-        <div id="aaaaaaaaselectcommandpopupwindow">
-          <!-- window中身 -->
-        </div>
-        <!-- finish selectcommandpopupwindow -->
-      </div>
-      <!-- finish selectcommandoverlay -->
     </div>
     <!--finish battlepage-->
 

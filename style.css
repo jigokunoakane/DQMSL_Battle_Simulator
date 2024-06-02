@@ -18,8 +18,20 @@ body {
   font-weight: 400;
   font-size: 100%;
   max-width: 360px;
+}
+
+/* 全体の余白とパディングをリセット */
+html,
+body {
   margin: 0;
-  overflow-x: hidden;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* 横スクロールを防ぐ */
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box; /*paddingも含めてwidth指定*/
 }
 
@@ -157,6 +169,10 @@ select {
   width: 75%;
   height: auto;
   margin-bottom: 10px;
+}
+
+.monstericon.stickout {
+  transform: translate(0%, -15%);
 }
 
 #monsterinfo-tabs {
@@ -409,14 +425,28 @@ select {
   z-index: 90;
   /*opacity: 0;*/
   transition: opacity 0.2s linear; /*ここでウィンドウ出現時のラグを指定*/
-  display: flex;
   padding: 3px 3px;
 }
 
-#selectskillbtns {
-  width: 100%;
+#selectcommandpopupwindow-contents {
+  position: relative;
   display: flex;
-  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+#selectcommandpopupwindow-text {
+  position: absolute;
+  width: 100%;
+  /*font-size:1rem;*/
+}
+
+#selectskillbtns {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end; /*下揃え*/
 }
 
 .selectskillbtn {
@@ -435,21 +465,31 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#designateskilltarget-all,
-#designateskilltarget {
+#designateskilltarget-all {
+  position: absolute;
   display: flex;
   width: 100%;
+  height: 100%;
   justify-content: center;
-  align-items: center;
-  position: absolute;
+  align-items: flex-end;
+  flex-wrap: wrap; /*簡略的に2行に*/
+}
+
+#designateskilltarget-all-text {
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
 .designateskilltargetallbtn {
-  transform: translate(0%, 200%);
-  width: 40%;
-  height: 20%;
+  /*transform: translate(0%, 200%);*/
+  width: 30%;
+  height: 1.7rem;
   padding: 0rem;
-  margin: 2px;
+  margin: 3px;
   text-align: center;
   border: 1px solid white;
   box-shadow: 0.5px 0.5px 7px 0.5px #bf5455 inset;
@@ -465,10 +505,13 @@ select {
   background-color: red;
 }
 
-/*再指定*/
 #designateskilltarget {
+  position: absolute;
+  display: flex;
   width: 80%;
   height: 100%;
+  justify-content: center;
+  align-items: center;
 }
 
 .selecttargetmonster-wrapper {
@@ -482,5 +525,39 @@ select {
 .selecttargetmonster {
   width: 80%;
   height: auto;
-  padding: 7px;
+}
+
+#closeselectcommandpopupwindowbtn-container {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+#closeselectcommandpopupwindowbtn {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid white; /* 枠の調整 */
+  border-radius: 0.5rem;
+  background: blue; /* ボタンの背景色 */
+}
+
+#closeselectcommandpopupwindowbtn::before,
+#closeselectcommandpopupwindowbtn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px; /* 棒の幅（太さ） */
+  height: 1rem; /* 棒の高さ */
+  background: white; /* バツ印の色 */
+}
+
+#closeselectcommandpopupwindowbtn::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+#closeselectcommandpopupwindowbtn::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
