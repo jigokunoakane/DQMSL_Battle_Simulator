@@ -285,7 +285,6 @@ function selectcommand(selectedskillnum) {
   const skilltargetdetector = skill.find((item) => item.id === selectedskillid).target;
   const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
-    document.getElementById("designateskilltarget").style.visibility = "visible";
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
     //randomもしくはsingleのときはmonster名表示から指示に変更
@@ -304,6 +303,7 @@ function selectcommand(selectedskillnum) {
       updatebattleicons("selecttargetmonster3", parties[0][3].id);
       updatebattleicons("selecttargetmonster4", parties[0][4].id);
     }
+    document.getElementById("designateskilltarget").style.visibility = "visible";
   } else {
     document.getElementById("designateskilltarget-all-text").textContent = skill.find((item) => item.id === selectedskillid).name + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
