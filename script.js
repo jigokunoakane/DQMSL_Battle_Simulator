@@ -266,6 +266,7 @@ function startselectingcommand() {
   /*document.getElementById("selectcommandoverlay").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow").style.opacity = "1";*/
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
+  disablecommandbtns(true);
   document.getElementById("selectskillbtns").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow-text").textContent = parties[0][selectingwhichmonsterscommand].name;
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
@@ -318,6 +319,7 @@ function selectcommand(selectedskillnum) {
 document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  disablecommandbtns(false);
   //yesno画面とpopup全体を閉じる
   selectingwhichmonsterscommand += 1;
   adjustmonstericonstickout();
@@ -327,6 +329,7 @@ document.getElementById("designateskilltargetbtnyes").addEventListener("click", 
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  disablecommandbtns(false);
   //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後に上書き
 });
 
@@ -339,6 +342,7 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
     document.getElementById("designateskilltarget").style.visibility = "hidden";
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    disablecommandbtns(false);
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //target画面と全体を閉じる
     selectingwhichmonsterscommand += 1;
@@ -346,17 +350,14 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     //選択終了、次のコマンド選択を待機
   });
 });
-//window内の各画像クリックで、選択処理を起動
 
-//todo:もどるボタン popup内のテキストとバツボタン、選択中モンスターを少し上にあげて表示 target保存システム
-
-//parties[0][selectingwhichmonsterscommand].skill[selectedskillnum]
-//selectingwhichmonsterscommand番目のコマンドとして、selectedskillnumから選択されたskillを記録 上書きされうる
+//todo:target保存システム
 /*
   if (selectingwhichmonsterscommand > 4) {
     alert("コマンドを終了しますか");
   }
 */
+
 function adjustmonstericonstickout() {
   //一旦全削除後、現在選択中のmonster imgにclass:stickoutを付与
   const allmonstericonsstickout = document.querySelectorAll(".battlepageallyicon");
@@ -379,8 +380,15 @@ document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("cl
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+  disablecommandbtns(false);
   //全閉じ
 });
+
+function disablecommandbtns(trueorfalse) {
+  document.querySelectorAll(".commandbtn").forEach((button) => {
+    button.disabled = trueorfalse;
+  });
+}
 
 //敵のコマンド処理はどうするか、AIか入力か選択画面を出す
 //parties、allyとenemyで分けずにごちゃ混ぜでもいいのでは
