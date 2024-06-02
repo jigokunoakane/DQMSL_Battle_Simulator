@@ -727,7 +727,7 @@ function switchTab(tabNumber) {
 
 const monsters = [
   {
-    name: "シンリ",
+    name: "宵の華シンリ",
     id: "sinri",
     type: "ドラゴン",
     status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
@@ -738,7 +738,7 @@ const monsters = [
     lstarget: "ドラゴン",
   },
   {
-    name: "ルシア",
+    name: "魔夏姫アンルシア",
     id: "rusia",
     type: "悪魔",
     status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
@@ -749,7 +749,7 @@ const monsters = [
     lstarget: "スライム",
   },
   {
-    name: "おろち",
+    name: "怪竜やまたのおろち",
     id: "orochi",
     type: "ドラゴン",
     status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
@@ -760,7 +760,7 @@ const monsters = [
     lstarget: "スライム",
   },
   {
-    name: "マスドラ",
+    name: "マスタードラゴン",
     id: "masudora",
     type: "ドラゴン",
     status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 700, int: 700 },
@@ -771,7 +771,7 @@ const monsters = [
     lstarget: "ドラゴン",
   },
   {
-    name: "ヴォルカ",
+    name: "ヴォルカドラゴン",
     id: "voruka",
     type: "スライム",
     status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
@@ -860,7 +860,7 @@ const skill = [
     targetteam: "enemy",
   },
   {
-    name: "おぞおた",
+    name: "おぞましいおたけび",
     id: "ozo",
     howToCalculate: "atk",
     attribute: "none",

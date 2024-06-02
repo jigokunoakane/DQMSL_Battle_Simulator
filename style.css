@@ -70,6 +70,7 @@ select {
 }
 
 #adjustpartypage {
+  width: 100%;
   margin: 0px 7px;
 }
 
@@ -342,6 +343,7 @@ select {
 }
 
 #battlepage {
+  width: 100%;
   background-color: #e7d69c;
 }
 
