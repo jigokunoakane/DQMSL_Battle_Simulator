@@ -35,6 +35,16 @@ body {
   box-sizing: border-box; /*paddingも含めてwidth指定*/
 }
 
+#pagecontainer {
+  display: flex;
+  justify-content: center;
+}
+
+#adjustpartypage {
+  width: 96%;
+  /*containerの中心を起点に幅96%で余白を用意*/
+}
+
 /*いつもの*/
 .normalbutton {
   height: 1.6rem;
@@ -67,11 +77,6 @@ select {
   background-color: #e9e9e9;
   color: #0075fb;
   font-size: 1rem;
-}
-
-#adjustpartypage {
-  width: 100%;
-  margin: 0px 7px;
 }
 
 /* ポップアップwindow部分 */

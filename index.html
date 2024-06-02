@@ -8,479 +8,482 @@
   </head>
   <body>
     <h2>GPシミュレーター</h2>
-    <div id="adjustpartypage">
-      <span id="playerAorB"> プレイヤーA</span>&nbsp;
-      <select id="selectparty" onchange="selectparty()">
-        <option value="1">パーティ1</option>
-        <option value="2">パーティ2</option>
-        <option value="3">パーティ3</option>
-        <option value="4">パーティ4</option>
-        <option value="5">パーティ5</option>
-      </select>
-      &nbsp;&nbsp;&nbsp;w150&nbsp;&nbsp;
-      <button id="confirmparty" class="normalbutton" onclick="confirmparty()">パテ決定</button>
-      <div class="partyicons-container">
-        <div class="partyicon-wrapper">
-          <img src="images/icons/unselected.jpeg" id="partyicon1" class="partyicon" />
-        </div>
-        <div class="partyicon-wrapper">
-          <img src="images/icons/unselected.jpeg" id="partyicon2" class="partyicon" />
-        </div>
-        <div class="partyicon-wrapper">
-          <img src="images/icons/unselected.jpeg" id="partyicon3" class="partyicon" />
-        </div>
-        <div class="partyicon-wrapper">
-          <img src="images/icons/unselected.jpeg" id="partyicon4" class="partyicon" />
-        </div>
-        <div class="partyicon-wrapper">
-          <img src="images/icons/unselected.jpeg" id="partyicon5" class="partyicon" />
-        </div>
-      </div>
-      <!--finish partyicons-container-->
-
-      <div class="partygears-container">
-        <div class="partygear-wrapper">
-          <img src="images/gear/ungeared.jpeg" id="partygear1" class="partygear" />
-        </div>
-        <div class="partygear-wrapper">
-          <img src="images/gear/ungeared.jpeg" id="partygear2" class="partygear" />
-        </div>
-        <div class="partygear-wrapper">
-          <img src="images/gear/ungeared.jpeg" id="partygear3" class="partygear" />
-        </div>
-        <div class="partygear-wrapper">
-          <img src="images/gear/ungeared.jpeg" id="partygear4" class="partygear" />
-        </div>
-        <div class="partygear-wrapper">
-          <img src="images/gear/ungeared.jpeg" id="partygear5" class="partygear" />
-        </div>
-      </div>
-      <!--finish partygears-container-->
-
-      <div id="monsterinfo-tabs">
-        <div id="tab1" class="monster-info-tabs" onclick="switchTab(1)">詳細</div>
-        <div id="tab2" class="monster-info-tabs" onclick="switchTab(2)">詳細</div>
-        <div id="tab3" class="monster-info-tabs" onclick="switchTab(3)">詳細</div>
-        <div id="tab4" class="monster-info-tabs" onclick="switchTab(4)">詳細</div>
-        <div id="tab5" class="monster-info-tabs" onclick="switchTab(5)">詳細</div>
-        <span id="tab6" class="monster-info-tabs" style="display: none"></span>
-      </div>
-
-      <!-- ポップアップ部分モンスター選択 -->
-      <div id="selectmonsteroverlay" class="overlay">
-        <div id="selectmonsterbg_gray" class="bg_gray"></div>
-        <!-- ウィンドウの外のグレーの領域 -->
-        <div id="selectmonsterpopupwindow" class="popupwindow">
-          <!-- ウィンドウ部分 -->
-          <div id="windowofmonsterselection">
-            <!-- ウィンドウのコンテンツ -->
-            <h3>モンスターを選択</h3>
-            <div>超系</div>
-            <img class="allmonstericons" src="images/icons/sinri.jpeg" />
-            <img class="allmonstericons" src="images/icons/rusia.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <div>マスドラ</div>
-            <img class="allmonstericons" src="images/icons/masudora.jpeg" />
-            <div>ヴォルカ</div>
-            <img class="allmonstericons" src="images/icons/voruka.jpeg" />
-            <div>悪魔系</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <div>テスト</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <div>テスト</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <div>テスト</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-            <div>テスト</div>
-            <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+    <div id="pagecontainer">
+      <div id="adjustpartypage">
+        <span id="playerAorB"> プレイヤーA</span>&nbsp;
+        <select id="selectparty" onchange="selectparty()">
+          <option value="1">パーティ1</option>
+          <option value="2">パーティ2</option>
+          <option value="3">パーティ3</option>
+          <option value="4">パーティ4</option>
+          <option value="5">パーティ5</option>
+        </select>
+        &nbsp;&nbsp;&nbsp;w150&nbsp;&nbsp;
+        <button id="confirmparty" class="normalbutton" onclick="confirmparty()">パテ決定</button>
+        <div class="partyicons-container">
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon1" class="partyicon" />
+          </div>
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon2" class="partyicon" />
+          </div>
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon3" class="partyicon" />
+          </div>
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon4" class="partyicon" />
+          </div>
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon5" class="partyicon" />
           </div>
         </div>
-      </div>
+        <!--finish partyicons-container-->
 
-      <!-- ポップアップ部分装備選択 -->
-      <div id="selectgearoverlay" class="overlay">
-        <div id="selectgearbg_gray" class="bg_gray"></div>
-        <!-- ウィンドウの外のグレーの領域 -->
-        <div id="selectgearpopupwindow" class="popupwindow">
-          <!-- ウィンドウ部分 -->
-          <div id="windowofgearselection">
-            <!-- ウィンドウのコンテンツ -->
-            <h3>装備を選択</h3>
-            <div>爪</div>
-            <img class="allgear" src="images/gear/metanail.jpeg" />
-            <img class="allgear" src="images/gear/ryujinnail.jpeg" />
-            <div>ヤリ</div>
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/shoten.jpeg" />
-            <div>ヤリやり</div>
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
-            <img class="allgear" src="images/gear/kudaki.jpeg" />
+        <div class="partygears-container">
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear1" class="partygear" />
+          </div>
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear2" class="partygear" />
+          </div>
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear3" class="partygear" />
+          </div>
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear4" class="partygear" />
+          </div>
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear5" class="partygear" />
           </div>
         </div>
-      </div>
+        <!--finish partygears-container-->
 
-      <div class="statusandseed-container">
-        <!-- ステータス名と値 -->
-        <div class="status-info-title">
-          <div>HP</div>
-          <div>MP</div>
-          <div>攻撃</div>
-          <div>防御</div>
-          <div>早さ</div>
-          <div>賢さ</div>
-        </div>
-        <div class="status-info-colon">
-          <div>:</div>
-          <div>:</div>
-          <div>:</div>
-          <div>:</div>
-          <div>:</div>
-          <div>:</div>
-        </div>
-        <div class="status-info-status">
-          <div id="status-info-displayHP" class="status-info-display">0</div>
-          <div id="status-info-displayMP" class="status-info-display">0</div>
-          <div id="status-info-displayatk" class="status-info-display">0</div>
-          <div id="status-info-displaydef" class="status-info-display">0</div>
-          <div id="status-info-displayspd" class="status-info-display">0</div>
-          <div id="status-info-displayint" class="status-info-display">0</div>
-        </div>
-        <div class="status-info-space"></div>
-        <div class="status-info-seedgear">
-          <div id="status-info-seedgear-HP" class="status-info-displayseedgear">(+0)</div>
-          <div id="status-info-seedgear-MP" class="status-info-displayseedgear">(+0)</div>
-          <div id="status-info-seedgear-atk" class="status-info-displayseedgear">(+0)</div>
-          <div id="status-info-seedgear-def" class="status-info-displayseedgear">(+0)</div>
-          <div id="status-info-seedgear-spd" class="status-info-displayseedgear">(+0)</div>
-          <div id="status-info-seedgear-int" class="status-info-displayseedgear">(+0)</div>
+        <div id="monsterinfo-tabs">
+          <div id="tab1" class="monster-info-tabs" onclick="switchTab(1)">詳細</div>
+          <div id="tab2" class="monster-info-tabs" onclick="switchTab(2)">詳細</div>
+          <div id="tab3" class="monster-info-tabs" onclick="switchTab(3)">詳細</div>
+          <div id="tab4" class="monster-info-tabs" onclick="switchTab(4)">詳細</div>
+          <div id="tab5" class="monster-info-tabs" onclick="switchTab(5)">詳細</div>
+          <span id="tab6" class="monster-info-tabs" style="display: none"></span>
         </div>
 
-        <!-- 種振り情報 -->
-        <!--
+        <!-- ポップアップ部分モンスター選択 -->
+        <div id="selectmonsteroverlay" class="overlay">
+          <div id="selectmonsterbg_gray" class="bg_gray"></div>
+          <!-- ウィンドウの外のグレーの領域 -->
+          <div id="selectmonsterpopupwindow" class="popupwindow">
+            <!-- ウィンドウ部分 -->
+            <div id="windowofmonsterselection">
+              <!-- ウィンドウのコンテンツ -->
+              <h3>モンスターを選択</h3>
+              <div>超系</div>
+              <img class="allmonstericons" src="images/icons/sinri.jpeg" />
+              <img class="allmonstericons" src="images/icons/rusia.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <div>マスドラ</div>
+              <img class="allmonstericons" src="images/icons/masudora.jpeg" />
+              <div>ヴォルカ</div>
+              <img class="allmonstericons" src="images/icons/voruka.jpeg" />
+              <div>悪魔系</div>
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <div>テスト</div>
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <div>テスト</div>
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <div>テスト</div>
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <div>テスト</div>
+              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ポップアップ部分装備選択 -->
+        <div id="selectgearoverlay" class="overlay">
+          <div id="selectgearbg_gray" class="bg_gray"></div>
+          <!-- ウィンドウの外のグレーの領域 -->
+          <div id="selectgearpopupwindow" class="popupwindow">
+            <!-- ウィンドウ部分 -->
+            <div id="windowofgearselection">
+              <!-- ウィンドウのコンテンツ -->
+              <h3>装備を選択</h3>
+              <div>爪</div>
+              <img class="allgear" src="images/gear/metanail.jpeg" />
+              <img class="allgear" src="images/gear/ryujinnail.jpeg" />
+              <div>ヤリ</div>
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/shoten.jpeg" />
+              <div>ヤリやり</div>
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+              <img class="allgear" src="images/gear/kudaki.jpeg" />
+            </div>
+          </div>
+        </div>
+
+        <div class="statusandseed-container">
+          <!-- ステータス名と値 -->
+          <div class="status-info-title">
+            <div>HP</div>
+            <div>MP</div>
+            <div>攻撃</div>
+            <div>防御</div>
+            <div>早さ</div>
+            <div>賢さ</div>
+          </div>
+          <div class="status-info-colon">
+            <div>:</div>
+            <div>:</div>
+            <div>:</div>
+            <div>:</div>
+            <div>:</div>
+            <div>:</div>
+          </div>
+          <div class="status-info-status">
+            <div id="status-info-displayHP" class="status-info-display">0</div>
+            <div id="status-info-displayMP" class="status-info-display">0</div>
+            <div id="status-info-displayatk" class="status-info-display">0</div>
+            <div id="status-info-displaydef" class="status-info-display">0</div>
+            <div id="status-info-displayspd" class="status-info-display">0</div>
+            <div id="status-info-displayint" class="status-info-display">0</div>
+          </div>
+          <div class="status-info-space"></div>
+          <div class="status-info-seedgear">
+            <div id="status-info-seedgear-HP" class="status-info-displayseedgear">(+0)</div>
+            <div id="status-info-seedgear-MP" class="status-info-displayseedgear">(+0)</div>
+            <div id="status-info-seedgear-atk" class="status-info-displayseedgear">(+0)</div>
+            <div id="status-info-seedgear-def" class="status-info-displayseedgear">(+0)</div>
+            <div id="status-info-seedgear-spd" class="status-info-displayseedgear">(+0)</div>
+            <div id="status-info-seedgear-int" class="status-info-displayseedgear">(+0)</div>
+          </div>
+
+          <!-- 種振り情報 -->
+          <!--
 <button id = "resetseedbtn" class = "normalbutton" onclick = "resetseed()">種リセット</button>
 -->
-        <div class="status-info-seed-title">
-          <div>攻撃</div>
-          <div>防御</div>
-          <div>早さ</div>
-          <div>賢さ</div>
+          <div class="status-info-seed-title">
+            <div>攻撃</div>
+            <div>防御</div>
+            <div>早さ</div>
+            <div>賢さ</div>
+          </div>
+          <div class="status-info-seed-seed">
+            <div>
+              <select id="selectseed-atk" class="selectseed" onchange="changeseedselect()">
+                <option value="0">0</option>
+                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
+                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                <option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                <option value="25">25&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                <option value="35">35&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                <option value="45">45&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                <option value="55">55&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="65">65&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="75">75&nbsp;&nbsp;&nbsp;攻撃+4</option>
+                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="85">85&nbsp;&nbsp;&nbsp;攻撃+2</option>
+                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
+                <option value="95">95&nbsp;&nbsp;&nbsp;攻撃+2</option>
+                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
+              </select>
+            </div>
+            <div>
+              <select id="selectseed-def" class="selectseed" onchange="changeseedselect()">
+                <option value="0">0</option>
+                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
+                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                <option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
+                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="25">25&nbsp;&nbsp;&nbsp;防御+20</option>
+                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                <option value="35">35&nbsp;&nbsp;&nbsp;防御+20</option>
+                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="45">45&nbsp;&nbsp;&nbsp;防御+12</option>
+                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                <option value="55">55&nbsp;&nbsp;&nbsp;防御+12</option>
+                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="65">65&nbsp;&nbsp;&nbsp;防御+12</option>
+                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                <option value="75">75&nbsp;&nbsp;&nbsp;防御+8</option>
+                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="85">85&nbsp;&nbsp;&nbsp;防御+4</option>
+                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="95">95&nbsp;&nbsp;&nbsp;防御+4</option>
+                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+              </select>
+            </div>
+            <div>
+              <select id="selectseed-spd" class="selectseed" onchange="changeseedselect()">
+                <option value="0">0</option>
+                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
+                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                <option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="25">25&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                <option value="35">35&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="45">45&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                <option value="55">55&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="65">65&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                <option value="75">75&nbsp;&nbsp;&nbsp;素早さ+4</option>
+                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="85">85&nbsp;&nbsp;&nbsp;素早さ+2</option>
+                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                <option value="95">95&nbsp;&nbsp;&nbsp;素早さ+2</option>
+                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+              </select>
+            </div>
+            <div>
+              <select id="selectseed-int" class="selectseed" onchange="changeseedselect()">
+                <option value="0">0</option>
+                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
+                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                <option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                <option value="25">25&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                <option value="35">35&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                <option value="45">45&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                <option value="55">55&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="65">65&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="75">75&nbsp;&nbsp;&nbsp;賢さ+8</option>
+                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                <option value="85">85&nbsp;&nbsp;&nbsp;賢さ+4</option>
+                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+1</option>
+                <option value="95">95&nbsp;&nbsp;&nbsp;賢さ+4</option>
+                <option value="100">100&nbsp;&nbsp;&nbsp;MP+1</option>
+              </select>
+            </div>
+          </div>
+          <!-- seedselect -->
         </div>
-        <div class="status-info-seed-seed">
-          <div>
-            <select id="selectseed-atk" class="selectseed" onchange="changeseedselect()">
-              <option value="0">0</option>
-              <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
-              <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-              <option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
-              <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-              <option value="25">25&nbsp;&nbsp;&nbsp;攻撃+10</option>
-              <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-              <option value="35">35&nbsp;&nbsp;&nbsp;攻撃+10</option>
-              <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-              <option value="45">45&nbsp;&nbsp;&nbsp;攻撃+6</option>
-              <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-              <option value="55">55&nbsp;&nbsp;&nbsp;攻撃+6</option>
-              <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="65">65&nbsp;&nbsp;&nbsp;攻撃+6</option>
-              <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="75">75&nbsp;&nbsp;&nbsp;攻撃+4</option>
-              <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="85">85&nbsp;&nbsp;&nbsp;攻撃+2</option>
-              <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
-              <option value="95">95&nbsp;&nbsp;&nbsp;攻撃+2</option>
-              <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
-            </select>
-          </div>
-          <div>
-            <select id="selectseed-def" class="selectseed" onchange="changeseedselect()">
-              <option value="0">0</option>
-              <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
-              <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-              <option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
-              <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="25">25&nbsp;&nbsp;&nbsp;防御+20</option>
-              <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-              <option value="35">35&nbsp;&nbsp;&nbsp;防御+20</option>
-              <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="45">45&nbsp;&nbsp;&nbsp;防御+12</option>
-              <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-              <option value="55">55&nbsp;&nbsp;&nbsp;防御+12</option>
-              <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="65">65&nbsp;&nbsp;&nbsp;防御+12</option>
-              <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-              <option value="75">75&nbsp;&nbsp;&nbsp;防御+8</option>
-              <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="85">85&nbsp;&nbsp;&nbsp;防御+4</option>
-              <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="95">95&nbsp;&nbsp;&nbsp;防御+4</option>
-              <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-            </select>
-          </div>
-          <div>
-            <select id="selectseed-spd" class="selectseed" onchange="changeseedselect()">
-              <option value="0">0</option>
-              <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
-              <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-              <option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
-              <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="25">25&nbsp;&nbsp;&nbsp;素早さ+10</option>
-              <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-              <option value="35">35&nbsp;&nbsp;&nbsp;素早さ+10</option>
-              <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="45">45&nbsp;&nbsp;&nbsp;素早さ+6</option>
-              <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-              <option value="55">55&nbsp;&nbsp;&nbsp;素早さ+6</option>
-              <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="65">65&nbsp;&nbsp;&nbsp;素早さ+6</option>
-              <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-              <option value="75">75&nbsp;&nbsp;&nbsp;素早さ+4</option>
-              <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="85">85&nbsp;&nbsp;&nbsp;素早さ+2</option>
-              <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              <option value="95">95&nbsp;&nbsp;&nbsp;素早さ+2</option>
-              <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-            </select>
-          </div>
-          <div>
-            <select id="selectseed-int" class="selectseed" onchange="changeseedselect()">
-              <option value="0">0</option>
-              <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
-              <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-              <option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
-              <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-              <option value="25">25&nbsp;&nbsp;&nbsp;賢さ+20</option>
-              <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-              <option value="35">35&nbsp;&nbsp;&nbsp;賢さ+20</option>
-              <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-              <option value="45">45&nbsp;&nbsp;&nbsp;賢さ+12</option>
-              <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-              <option value="55">55&nbsp;&nbsp;&nbsp;賢さ+12</option>
-              <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="65">65&nbsp;&nbsp;&nbsp;賢さ+12</option>
-              <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="75">75&nbsp;&nbsp;&nbsp;賢さ+8</option>
-              <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              <option value="85">85&nbsp;&nbsp;&nbsp;賢さ+4</option>
-              <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+1</option>
-              <option value="95">95&nbsp;&nbsp;&nbsp;賢さ+4</option>
-              <option value="100">100&nbsp;&nbsp;&nbsp;MP+1</option>
-            </select>
-          </div>
-        </div>
-        <!-- seedselect -->
-      </div>
-      <!-- statusandseed-container -->
+        <!-- statusandseed-container -->
 
-      <hr noshade="" />
-      <div class="skill-info-container">
-        <div>特技変更</div>
-        <br />
-        <div class="skill-flex-container">
-          <div>
-            <div>1 <span id="skill1"></span></div>
-            <div>2 <span id="skill2"></span></div>
-            <div>3 <span id="skill3"></span></div>
-            <div>4 <span id="skill4"></span></div>
+        <hr noshade="" />
+        <div class="skill-info-container">
+          <div>特技変更</div>
+          <br />
+          <div class="skill-flex-container">
+            <div>
+              <div>1 <span id="skill1"></span></div>
+              <div>2 <span id="skill2"></span></div>
+              <div>3 <span id="skill3"></span></div>
+              <div>4 <span id="skill4"></span></div>
+            </div>
+            <button id="karidisplaybtn" class="normalbutton" onclick="karitobattlepage()">戦闘画面移行(仮)</button>
+            <br /><br /><br /><br /><br />
           </div>
-          <button id="karidisplaybtn" class="normalbutton" onclick="karitobattlepage()">戦闘画面移行(仮)</button>
-          <br /><br /><br /><br /><br />
+          <!-- skill-flex-container -->
         </div>
-        <!-- skill-flex-container -->
+        <!-- skill-info-container -->
       </div>
-      <!-- skill-info-container -->
+      <!-- adjustpartypage -->
+
+      <div id="battlepage">
+        <!-- 戦闘画面 -->
+        <button id="karibtn" class="normalbutton">パテ画面に戻る(仮)</button>
+        <button id="testbtn" class="normalbutton">console出力</button><br />
+
+        <div id="enemymonstercontainerbattle" class="monstericons-container">
+          <div class="monstericon-wrapper">
+            <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
+          </div>
+        </div>
+        <!-- finish enemymonstercontainerbattle -->
+        <!-- todo:class名の最適化-->
+        <div id="enemybars" class="monster-bar-container">
+          <div class="eachbarcontainer">
+            <div id="hpbarenemy0" class="bar">
+              <div id="hpbarinnerenemy0" class="barinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarenemy1" class="bar">
+              <div id="hpbarinnerenemy1" class="barinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarenemy2" class="bar">
+              <div id="hpbarinnerenemy2" class="barinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarenemy3" class="bar">
+              <div id="hpbarinnerenemy3" class="barinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarenemy4" class="bar">
+              <div id="hpbarinnerenemy4" class="barinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="consolescreen-container">
+          <div id="consolescreen"></div>
+        </div>
+
+        <div id="allymonstercontainerbattle" class="monstericons-container">
+          <div class="monstericon-wrapper">
+            <img id="battleiconally0" class="monstericon battlepageallyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconally1" class="monstericon battlepageallyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconally2" class="monstericon battlepageallyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconally3" class="monstericon battlepageallyicon" />
+          </div>
+          <div class="monstericon-wrapper">
+            <img id="battleiconally4" class="monstericon battlepageallyicon" />
+          </div>
+        </div>
+        <!-- finish allymonstercontainerbattle -->
+        <div id="monster-bar-container-ally" class="monster-bar-container">
+          <div class="eachbarcontainer">
+            <div id="hpbarally0" class="bar">
+              <div id="hpbartextally0" class="bartext">0</div>
+              <div id="hpbarinnerally0" class="barinner"></div>
+            </div>
+            <div id="mpbarally0" class="bar">
+              <div id="mpbartextally0" class="bartext">0</div>
+              <div id="mpbarinnerally0" class="barinner mpbarinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarally1" class="bar">
+              <div id="hpbartextally1" class="bartext">0</div>
+              <div id="hpbarinnerally1" class="barinner"></div>
+            </div>
+            <div id="mpbarally1" class="bar">
+              <div id="mpbartextally1" class="bartext">0</div>
+              <div id="mpbarinnerally1" class="barinner mpbarinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarally2" class="bar">
+              <div id="hpbartextally2" class="bartext">0</div>
+              <div id="hpbarinnerally2" class="barinner"></div>
+            </div>
+            <div id="mpbarally2" class="bar">
+              <div id="mpbartextally2" class="bartext">0</div>
+              <div id="mpbarinnerally2" class="barinner mpbarinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarally3" class="bar">
+              <div id="hpbartextally3" class="bartext">0</div>
+              <div id="hpbarinnerally3" class="barinner"></div>
+            </div>
+            <div id="mpbarally3" class="bar">
+              <div id="mpbartextally3" class="bartext">0</div>
+              <div id="mpbarinnerally3" class="barinner mpbarinner"></div>
+            </div>
+          </div>
+          <div class="eachbarcontainer">
+            <div id="hpbarally4" class="bar">
+              <div id="hpbartextally4" class="bartext">0</div>
+              <div id="hpbarinnerally4" class="barinner"></div>
+            </div>
+            <div id="mpbarally4" class="bar">
+              <div id="mpbartextally4" class="bartext">0</div>
+              <div id="mpbarinnerally4" class="barinner mpbarinner"></div>
+            </div>
+          </div>
+        </div>
+        <!-- finish monster-bar-container -->
+
+        <div id="commandbtns-container">
+          <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
+          <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
+          <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
+          <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
+          <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
+          <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
+
+          <div id="selectcommandpopupwindow">
+            <div id="selectcommandpopupwindow-contents">
+              <div id="selectcommandpopupwindow-text"></div>
+              <div id="selectskillbtns">
+                <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
+                <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
+                <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
+                <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
+              </div>
+              <div id="designateskilltarget-all">
+                <div id="designateskilltarget-all-text"></div>
+                <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
+                <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
+              </div>
+              <div id="designateskilltarget">
+                <div class="selecttargetmonster-wrapper">
+                  <img class="selecttargetmonster" id="selecttargetmonster0" />
+                </div>
+                <div class="selecttargetmonster-wrapper">
+                  <img class="selecttargetmonster" id="selecttargetmonster1" />
+                </div>
+                <div class="selecttargetmonster-wrapper">
+                  <img class="selecttargetmonster" id="selecttargetmonster2" />
+                </div>
+                <div class="selecttargetmonster-wrapper">
+                  <img class="selecttargetmonster" id="selecttargetmonster3" />
+                </div>
+                <div class="selecttargetmonster-wrapper">
+                  <img class="selecttargetmonster" id="selecttargetmonster4" />
+                </div>
+              </div>
+              <div id="closeselectcommandpopupwindowbtn-container">
+                <div id="closeselectcommandpopupwindowbtn"></div>
+              </div>
+            </div>
+            <!--selectcommandpopupwindow-contents-->
+          </div>
+          <!--selectcommandpopupwindow-->
+        </div>
+        <!-- finish commandbtns-container -->
+      </div>
+      <!--finish battlepage-->
     </div>
-    <!-- adjustpartypage -->
-
-    <div id="battlepage">
-      <!-- 戦闘画面 -->
-      <button id="karibtn" class="normalbutton">パテ画面に戻る(仮)</button>
-      <button id="testbtn" class="normalbutton">console出力</button><br />
-
-      <div id="enemymonstercontainerbattle" class="monstericons-container">
-        <div class="monstericon-wrapper">
-          <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
-        </div>
-      </div>
-      <!-- finish enemymonstercontainerbattle -->
-      <!-- todo:class名の最適化-->
-      <div id="enemybars" class="monster-bar-container">
-        <div class="eachbarcontainer">
-          <div id="hpbarenemy0" class="bar">
-            <div id="hpbarinnerenemy0" class="barinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarenemy1" class="bar">
-            <div id="hpbarinnerenemy1" class="barinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarenemy2" class="bar">
-            <div id="hpbarinnerenemy2" class="barinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarenemy3" class="bar">
-            <div id="hpbarinnerenemy3" class="barinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarenemy4" class="bar">
-            <div id="hpbarinnerenemy4" class="barinner"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="consolescreen-container">
-        <div id="consolescreen"></div>
-      </div>
-
-      <div id="allymonstercontainerbattle" class="monstericons-container">
-        <div class="monstericon-wrapper">
-          <img id="battleiconally0" class="monstericon battlepageallyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconally1" class="monstericon battlepageallyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconally2" class="monstericon battlepageallyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconally3" class="monstericon battlepageallyicon" />
-        </div>
-        <div class="monstericon-wrapper">
-          <img id="battleiconally4" class="monstericon battlepageallyicon" />
-        </div>
-      </div>
-      <!-- finish allymonstercontainerbattle -->
-      <div id="monster-bar-container-ally" class="monster-bar-container">
-        <div class="eachbarcontainer">
-          <div id="hpbarally0" class="bar">
-            <div id="hpbartextally0" class="bartext">0</div>
-            <div id="hpbarinnerally0" class="barinner"></div>
-          </div>
-          <div id="mpbarally0" class="bar">
-            <div id="mpbartextally0" class="bartext">0</div>
-            <div id="mpbarinnerally0" class="barinner mpbarinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarally1" class="bar">
-            <div id="hpbartextally1" class="bartext">0</div>
-            <div id="hpbarinnerally1" class="barinner"></div>
-          </div>
-          <div id="mpbarally1" class="bar">
-            <div id="mpbartextally1" class="bartext">0</div>
-            <div id="mpbarinnerally1" class="barinner mpbarinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarally2" class="bar">
-            <div id="hpbartextally2" class="bartext">0</div>
-            <div id="hpbarinnerally2" class="barinner"></div>
-          </div>
-          <div id="mpbarally2" class="bar">
-            <div id="mpbartextally2" class="bartext">0</div>
-            <div id="mpbarinnerally2" class="barinner mpbarinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarally3" class="bar">
-            <div id="hpbartextally3" class="bartext">0</div>
-            <div id="hpbarinnerally3" class="barinner"></div>
-          </div>
-          <div id="mpbarally3" class="bar">
-            <div id="mpbartextally3" class="bartext">0</div>
-            <div id="mpbarinnerally3" class="barinner mpbarinner"></div>
-          </div>
-        </div>
-        <div class="eachbarcontainer">
-          <div id="hpbarally4" class="bar">
-            <div id="hpbartextally4" class="bartext">0</div>
-            <div id="hpbarinnerally4" class="barinner"></div>
-          </div>
-          <div id="mpbarally4" class="bar">
-            <div id="mpbartextally4" class="bartext">0</div>
-            <div id="mpbarinnerally4" class="barinner mpbarinner"></div>
-          </div>
-        </div>
-      </div>
-      <!-- finish monster-bar-container -->
-
-      <div id="commandbtns-container">
-        <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
-        <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
-        <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
-        <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
-        <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
-        <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
-
-        <div id="selectcommandpopupwindow">
-          <div id="selectcommandpopupwindow-contents">
-            <div id="selectcommandpopupwindow-text"></div>
-            <div id="selectskillbtns">
-              <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
-              <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
-              <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
-              <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
-            </div>
-            <div id="designateskilltarget-all">
-              <div id="designateskilltarget-all-text"></div>
-              <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
-              <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
-            </div>
-            <div id="designateskilltarget">
-              <div class="selecttargetmonster-wrapper">
-                <img class="selecttargetmonster" id="selecttargetmonster0" />
-              </div>
-              <div class="selecttargetmonster-wrapper">
-                <img class="selecttargetmonster" id="selecttargetmonster1" />
-              </div>
-              <div class="selecttargetmonster-wrapper">
-                <img class="selecttargetmonster" id="selecttargetmonster2" />
-              </div>
-              <div class="selecttargetmonster-wrapper">
-                <img class="selecttargetmonster" id="selecttargetmonster3" />
-              </div>
-              <div class="selecttargetmonster-wrapper">
-                <img class="selecttargetmonster" id="selecttargetmonster4" />
-              </div>
-            </div>
-            <div id="closeselectcommandpopupwindowbtn-container">
-              <div id="closeselectcommandpopupwindowbtn"></div>
-            </div>
-          </div>
-          <!--selectcommandpopupwindow-contents-->
-        </div>
-        <!--selectcommandpopupwindow-->
-      </div>
-      <!-- finish commandbtns-container -->
-    </div>
-    <!--finish battlepage-->
+    <!--finish pagecontainer-->
 
     <script src="script.js"></script>
   </body>
