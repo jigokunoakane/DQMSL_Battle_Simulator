@@ -5,7 +5,7 @@ const defaultMonster = {
   id: "unselected",
   type: "",
   status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-  skill: ["unselected", "unselected", "unselected", "unselected"],
+  skill: ["なし", "なし", "なし", "なし"],
   attribute: "",
   seed: { atk: 0, def: 0, spd: 0, int: 0 },
   gear: {
@@ -265,31 +265,28 @@ function startselectingcommand() {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-  //とくぎボタン選択時、popupによってskillbtn4つを表示し、skill名4つを代入
-  //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
-  //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  document.getElementById("selectskillbtn0").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[0]).name;
-  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[1]).name;
-  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[2]).name;
-  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[3]).name;
+  //party内該当monsterのskillのn番目要素をそのまま表示
+  document.getElementById("selectskillbtn0").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[0];
+  document.getElementById("selectskillbtn1").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[1];
+  document.getElementById("selectskillbtn2").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[2];
+  document.getElementById("selectskillbtn3").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[3];
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   disablecommandbtns(true);
   document.getElementById("selectskillbtns").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow-text").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name;
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
   //monster名表示に戻す
-
-  //todo:skill id日本語化
   //todo:inline?block?
 }
 
 function selectcommand(selectedskillnum) {
-  const selectedskillid = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
-  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillid;
-  //idを取得してconfirmedcommandに保存
+  const selectedskillname = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
+  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillname;
+  //nameを取得してconfirmedcommandに保存
   document.getElementById("selectskillbtns").style.visibility = "hidden";
-  const skilltargetdetector = skill.find((item) => item.id === selectedskillid).target;
-  const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
+  const skilltargetdetector = skill.find((item) => item.name === selectedskillname).target;
+  const skilltargetteamdetector = skill.find((item) => item.name === selectedskillname).targetteam;
+  //nameからskill配列を検索、targetとtargetteamを引いてくる
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
     //randomもしくはsingleのときはtextをmonster名から指示に変更して表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
@@ -315,7 +312,7 @@ function selectcommand(selectedskillnum) {
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else {
     //targetがrandomでもsingleでもないとき、all(yesno)画面を起動
-    document.getElementById("designateskilltarget-all-text").textContent = skill.find((item) => item.id === selectedskillid).name + "を使用しますか？";
+    document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -634,10 +631,10 @@ function adjuststatusandskilldisplay() {
 
   //特技を取り出す、party[tabm1].skill[0]がryohu
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  document.getElementById("skill1").textContent = skill.find((item) => item.id === party[tabm1].skill[0]).name;
-  document.getElementById("skill2").textContent = skill.find((item) => item.id === party[tabm1].skill[1]).name;
-  document.getElementById("skill3").textContent = skill.find((item) => item.id === party[tabm1].skill[2]).name;
-  document.getElementById("skill4").textContent = skill.find((item) => item.id === party[tabm1].skill[3]).name;
+  document.getElementById("skill1").textContent = party[tabm1].skill[0];
+  document.getElementById("skill2").textContent = party[tabm1].skill[1];
+  document.getElementById("skill3").textContent = party[tabm1].skill[2];
+  document.getElementById("skill4").textContent = party[tabm1].skill[3];
   //特技表示変更
 
   document.getElementById("selectseed-atk").value = party[tabm1].seed.atk;
@@ -815,7 +812,7 @@ const monsters = [
     id: "sinri",
     type: "ドラゴン",
     status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
-    skill: ["ryohu", "kagura", "shotenslash", "tap"],
+    skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     attribute: "",
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1.3, spd: 1.3 },
@@ -826,7 +823,7 @@ const monsters = [
     id: "rusia",
     type: "悪魔",
     status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
-    skill: ["ryoran", "shawer", "supahun", "ozo"],
+    skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     attribute: "",
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
@@ -837,7 +834,7 @@ const monsters = [
     id: "orochi",
     type: "ドラゴン",
     status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
-    skill: ["murakumo", "gokuen", "hoto", "boujin"],
+    skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     attribute: "",
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
@@ -848,7 +845,7 @@ const monsters = [
     id: "masudora",
     type: "ドラゴン",
     status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 700, int: 700 },
-    skill: ["tenkuryu", "endbreath", "tempest", "rengoku"],
+    skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
     ls: { HP: 10, spd: 10 },
@@ -859,7 +856,7 @@ const monsters = [
     id: "voruka",
     type: "スライム",
     status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
-    skill: ["lava", "niou", "taiju", "migawari"],
+    skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
     ls: { HP: 10, MP: 10 },
@@ -870,14 +867,13 @@ const monsters = [
 
 const skill = [
   {
-    name: "",
-    id: "unselected",
+    name: "なし",
     howToCalculate: "",
     attribute: "",
   },
   {
     name: "",
-    id: "temp",
+    id: "number?",
     type: "", //spell slash martial breath ritual
     howToCalculate: "", //atk int fix def spd
     attribute: "", //fire ice thun expl wind light dark
@@ -897,7 +893,6 @@ const skill = [
   },
   {
     name: "涼風一陣",
-    id: "ryohu",
     howToCalculate: "fix",
     attribute: "none",
     target: "all",
@@ -905,7 +900,6 @@ const skill = [
   },
   {
     name: "神楽の術",
-    id: "kagura",
     howToCalculate: "int",
     attribute: "none",
     target: "all",
@@ -913,7 +907,6 @@ const skill = [
   },
   {
     name: "昇天斬り",
-    id: "shotenslash",
     howToCalculate: "atk",
     attribute: "none",
     target: "single",
@@ -921,7 +914,6 @@ const skill = [
   },
   {
     name: "タップダンス",
-    id: "tap",
     howToCalculate: "none",
     attribute: "none",
     target: "all",
@@ -929,7 +921,6 @@ const skill = [
   },
   {
     name: "氷華大繚乱",
-    id: "ryoran",
     howToCalculate: "atk",
     attribute: "ice",
     target: "random",
@@ -937,7 +928,6 @@ const skill = [
   },
   {
     name: "フローズンシャワー",
-    id: "shawer",
     howToCalculate: "fix",
     attribute: "ice",
     target: "single",
@@ -945,7 +935,6 @@ const skill = [
   },
   {
     name: "おぞましいおたけび",
-    id: "ozo",
     howToCalculate: "atk",
     attribute: "none",
     target: "all",
@@ -953,7 +942,6 @@ const skill = [
   },
   {
     name: "スパークふんしゃ",
-    id: "supahun",
     howToCalculate: "fix",
     attribute: "thun",
     target: "random",
@@ -961,7 +949,6 @@ const skill = [
   },
   {
     name: "天空竜の息吹",
-    id: "tenkuryu",
     howToCalculate: "fix",
     attribute: "light",
     target: "random",
@@ -969,7 +956,6 @@ const skill = [
   },
   {
     name: "エンドブレス",
-    id: "endbreath",
     howToCalculate: "fix",
     attribute: "none",
     target: "all",
@@ -977,7 +963,6 @@ const skill = [
   },
   {
     name: "テンペストブレス",
-    id: "tempest",
     howToCalculate: "fix",
     attribute: "wind",
     target: "single",
@@ -985,7 +970,6 @@ const skill = [
   },
   {
     name: "煉獄火炎",
-    id: "rengoku",
     howToCalculate: "fix",
     attribute: "fire",
     target: "all",
@@ -993,7 +977,6 @@ const skill = [
   },
   {
     name: "むらくもの息吹",
-    id: "murakumo",
     howToCalculate: "fix",
     attribute: "none",
     target: "random",
@@ -1001,7 +984,6 @@ const skill = [
   },
   {
     name: "獄炎の息吹",
-    id: "gokuen",
     howToCalculate: "fix",
     attribute: "fire",
     target: "random",
@@ -1009,7 +991,6 @@ const skill = [
   },
   {
     name: "ほとばしる暗闇",
-    id: "hoto",
     howToCalculate: "fix",
     attribute: "dark",
     target: "all",
@@ -1017,7 +998,6 @@ const skill = [
   },
   {
     name: "防刃の守り",
-    id: "boujin",
     howToCalculate: "none",
     attribute: "none",
     target: "all",
@@ -1025,7 +1005,6 @@ const skill = [
   },
   {
     name: "ラヴァフレア",
-    id: "lava",
     howToCalculate: "fix",
     attribute: "fire",
     target: "single",
@@ -1033,7 +1012,6 @@ const skill = [
   },
   {
     name: "におうだち",
-    id: "niou",
     howToCalculate: "none",
     attribute: "none",
     target: "all",
@@ -1041,7 +1019,6 @@ const skill = [
   },
   {
     name: "大樹の守り",
-    id: "taiju",
     howToCalculate: "none",
     attribute: "none",
     target: "all",
@@ -1049,7 +1026,6 @@ const skill = [
   },
   {
     name: "みがわり",
-    id: "migawari",
     howToCalculate: "fix",
     attribute: "none",
     target: "single",
@@ -1057,13 +1033,11 @@ const skill = [
   },
   {
     name: "邪道のかくせい",
-    id: "jado",
     howToCalculate: "none",
     attribute: "none",
   },
   {
     name: "絶氷の嵐",
-    id: "zetsuhyo",
     howToCalculate: "int",
     attribute: "ice",
   },
