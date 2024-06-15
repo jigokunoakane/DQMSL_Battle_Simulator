@@ -476,7 +476,7 @@ select {
 }
 
 #designateskilltarget-all,
-#askfinishselectingallyscommand,
+#askfinishselectingcommand,
 #howtoselectenemyscommand {
   position: absolute;
   display: flex;
@@ -488,7 +488,7 @@ select {
 }
 
 #designateskilltarget-all-text,
-#askfinishselectingallyscommand-text,
+#askfinishselectingcommand-text,
 #howtoselectenemyscommand-text {
   width: 100%;
   text-align: center;
@@ -517,7 +517,7 @@ select {
 }
 
 #designateskilltargetbtnyes,
-#askfinishselectingallyscommandbtnyes {
+#askfinishselectingcommandbtnyes {
   background-color: red;
 }
 

@@ -106,10 +106,10 @@ function confirmparty() {
     //これで戦闘画面から戻った場合はplayer1のparty1が表示
     //6-10を削除
     selectpartymanipu.querySelectorAll('option[value="6"], option[value="7"], option[value="8"], option[value="9"], option[value="10"]').forEach((option) => option.remove());
-    //displayで全体切り替え、startbattleへ
+    //displayで全体切り替え、attle画面へ
     document.getElementById("adjustpartypage").style.display = "none";
     document.getElementById("battlepage").style.display = "block";
-    startbattle();
+    preparebattle();
   }
 }
 
@@ -121,7 +121,7 @@ document.getElementById("testbtn").addEventListener("click", function () {
   console.log(parties);
 });
 
-function startbattle() {
+function preparebattle() {
   //partiesの中身に、displaystatusからlsを反映してdefaultstatusを生成
   parties.forEach((party) => {
     // パーティーのリーダースキルを取得
@@ -201,7 +201,7 @@ function startbattle() {
   //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
   backbtn();
 }
-//finish startbattle 開始時処理終了
+//finish preparebattle 開始時処理終了
 
 //戦闘開始時の10のアイコン更新と、targetteamごとに特技target選択画面で起動
 function updatebattleicons(elementId, id) {
@@ -253,65 +253,67 @@ function applydamage(target, damage) {
 //////////////////////////////////////////////////////////////特技選択フロー
 
 let selectingwhichmonsterscommand = 0;
+let selectingwhichteamscommand = 0;
 function startselectingcommand() {
   document.getElementById("designateskilltarget").style.visibility = "hidden";
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   //とくぎボタン選択時、popupによってskillbtn4つを表示し、skill名4つを代入
   //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  document.getElementById("selectskillbtn0").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[0]).name;
-  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[1]).name;
-  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[2]).name;
-  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[0][selectingwhichmonsterscommand].skill[3]).name;
-  /*document.getElementById("selectcommandoverlay").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow").style.opacity = "1";*/
+  document.getElementById("selectskillbtn0").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[0]).name;
+  document.getElementById("selectskillbtn1").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[1]).name;
+  document.getElementById("selectskillbtn2").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[2]).name;
+  document.getElementById("selectskillbtn3").textContent = skill.find((item) => item.id === parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[3]).name;
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   disablecommandbtns(true);
   document.getElementById("selectskillbtns").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow-text").textContent = parties[0][selectingwhichmonsterscommand].name;
+  document.getElementById("selectcommandpopupwindow-text").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name;
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
   //monster名表示に戻す
 
-  //下のbtnの無効化&他の場所押したらesc&閉じるbtn
   //todo:skill id日本語化
   //todo:inline?block?
 }
 
 function selectcommand(selectedskillnum) {
-  const selectedskillid = parties[0][selectingwhichmonsterscommand].skill[selectedskillnum];
-  parties[0][selectingwhichmonsterscommand].confirmedcommand = selectedskillid;
+  const selectedskillid = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
+  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillid;
   //idを取得してconfirmedcommandに保存
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   const skilltargetdetector = skill.find((item) => item.id === selectedskillid).target;
   const skilltargetteamdetector = skill.find((item) => item.id === selectedskillid).targetteam;
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
+    //randomもしくはsingleのときはtextをmonster名から指示に変更して表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-    //randomもしくはsingleのときはmonster名表示から指示に変更
-    //targetがrandomもしくはsingleのとき、all(yesno)画面を起動
-    //targetteamがallyのとき味方画像を、enemyのとき敵画像を代入
-    if (skilltargetteamdetector === "enemy") {
-      updatebattleicons("selecttargetmonster0", parties[1][0].id);
-      updatebattleicons("selecttargetmonster1", parties[1][1].id);
-      updatebattleicons("selecttargetmonster2", parties[1][2].id);
-      updatebattleicons("selecttargetmonster3", parties[1][3].id);
-      updatebattleicons("selecttargetmonster4", parties[1][4].id);
+    //targetがrandomもしくはsingleのとき、target選択画面を表示
+    //味方選択中かつtargetteamがenemyのとき、または敵選択中かつtargetteamがallyのとき、敵画像を代入
+    //逆に味方選択中かつtargetteamがallyのとき、または敵選択中かつtargetteamがenemyのとき、味方画像を代入
+    if ((selectingwhichteamscommand === 0 && skilltargetteamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetteamdetector === "ally")) {
+      const targetteamnum = 1;
+      //敵画像
+      selectskilltargettoggler(targetteamnum);
     } else {
-      updatebattleicons("selecttargetmonster0", parties[0][0].id);
-      updatebattleicons("selecttargetmonster1", parties[0][1].id);
-      updatebattleicons("selecttargetmonster2", parties[0][2].id);
-      updatebattleicons("selecttargetmonster3", parties[0][3].id);
-      updatebattleicons("selecttargetmonster4", parties[0][4].id);
+      const targetteamnum = 0;
+      selectskilltargettoggler(targetteamnum);
+    }
+    function selectskilltargettoggler(targetteamnum) {
+      updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
+      updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
+      updatebattleicons("selecttargetmonster2", parties[targetteamnum][2].id);
+      updatebattleicons("selecttargetmonster3", parties[targetteamnum][3].id);
+      updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else {
+    //targetがrandomでもsingleでもないとき、all(yesno)画面を起動
     document.getElementById("designateskilltarget-all-text").textContent = skill.find((item) => item.id === selectedskillid).name + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
+    parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
     //ランダムまたは単体はtarget選択画面を起動
     //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
   }
@@ -322,7 +324,7 @@ document.getElementById("designateskilltargetbtnyes").addEventListener("click", 
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   //5体目選択後分岐
   if (selectingwhichmonsterscommand > 3) {
-    askfinishselectingallyscommand();
+    askfinishselectingcommand();
     return;
   }
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
@@ -352,7 +354,7 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     //テキストとtarget選択iconを閉じる
     //5体目選択後分岐
     if (selectingwhichmonsterscommand > 3) {
-      askfinishselectingallyscommand();
+      askfinishselectingcommand();
       return;
     }
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
@@ -365,6 +367,8 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
 });
 //todo:target保存システム
 
+//allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
+//backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
 function adjustmonstericonstickout() {
   //一旦全削除後、現在選択中のmonster imgにclass:stickoutを付与
   const allmonstericonsstickout = document.querySelectorAll(".battlepageallyicon");
@@ -376,7 +380,7 @@ function adjustmonstericonstickout() {
 }
 
 function backbtn() {
-  //startbattleでも起動
+  //preparebattleでも起動
   selectingwhichmonsterscommand = Math.max(selectingwhichmonsterscommand - 1, 0);
   adjustmonstericonstickout();
 }
@@ -388,7 +392,7 @@ document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("cl
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
-  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   disablecommandbtns(false);
   //全閉じ
@@ -400,35 +404,63 @@ function disablecommandbtns(trueorfalse) {
   });
 }
 
-function askfinishselectingallyscommand() {
-  document.getElementById("askfinishselectingallyscommand").style.visibility = "visible";
+//コマンド選択を終了しますか
+function askfinishselectingcommand() {
+  document.getElementById("askfinishselectingcommand").style.visibility = "visible";
 }
 
 //no選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
-document.getElementById("askfinishselectingallyscommandbtnno").addEventListener("click", function () {
-  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+document.getElementById("askfinishselectingcommandbtnno").addEventListener("click", function () {
+  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   disablecommandbtns(false);
   //閉じる処理と同様の処理
 });
 
-//yes選択時、yesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
-document.getElementById("askfinishselectingallyscommandbtnyes").addEventListener("click", function () {
-  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
-  document.getElementById("howtoselectenemyscommand").style.visibility = "visible";
+//yes選択時、かつ味方選択終了後はyesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
+//敵も選択終了後は、startbattle
+document.getElementById("askfinishselectingcommandbtnyes").addEventListener("click", function () {
+  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
+  if (selectingwhichteamscommand == "1") {
+    selectingwhichmonsterscommand = 0;
+    selectingwhichteamscommand = 0;
+    //初期化
+    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    disablecommandbtns(true);
+    //popupを閉じ、commandbtnsを無効化
+    startbattle();
+  } else {
+    document.getElementById("howtoselectenemyscommand").style.visibility = "visible";
+  }
 });
 
 //敵のコマンド選択方法-player
 document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("click", function () {
+  selectingwhichmonsterscommand = 0;
+  selectingwhichteamscommand = 1;
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  disablecommandbtns(false);
 });
 //敵のコマンド選択方法-improvedAI
-document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {});
+document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {
+  selectingwhichmonsterscommand = 0;
+  selectingwhichteamscommand = 1;
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+});
 //敵のコマンド選択方法-takoAI
-document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("click", function () {});
+document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("click", function () {
+  selectingwhichmonsterscommand = 0;
+  selectingwhichteamscommand = 1;
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+});
+//ここは最大ダメージ検知AIなども含めて統合処理
 
-//敵のコマンド処理はどうするか、AIか入力か選択画面を出す
-//parties、allyとenemyで分けずにごちゃ混ぜでもいいのでは
+function startbattle() {
+  console.log("start");
+}
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
 /*
@@ -1062,6 +1094,6 @@ const gear = [
 function karitobattlepage() {
   document.getElementById("adjustpartypage").style.display = "none";
   document.getElementById("battlepage").style.display = "block";
-  startbattle();
+  preparebattle();
   //temporary 戦闘画面移行用
 }
