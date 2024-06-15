@@ -177,16 +177,7 @@ function preparebattle() {
 
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
-  updatebattleicons("battleiconenemy0", parties[1][0].id);
-  updatebattleicons("battleiconenemy1", parties[1][1].id);
-  updatebattleicons("battleiconenemy2", parties[1][2].id);
-  updatebattleicons("battleiconenemy3", parties[1][3].id);
-  updatebattleicons("battleiconenemy4", parties[1][4].id);
-  updatebattleicons("battleiconally0", parties[0][0].id);
-  updatebattleicons("battleiconally1", parties[0][1].id);
-  updatebattleicons("battleiconally2", parties[0][2].id);
-  updatebattleicons("battleiconally3", parties[0][3].id);
-  updatebattleicons("battleiconally4", parties[0][4].id);
+  preparebattlepageicons(1, 0);
 
   //confirmedcommand格納場所生成
   parties.forEach((party) => {
@@ -207,6 +198,21 @@ function preparebattle() {
 function updatebattleicons(elementId, id) {
   const iconSrc = "images/icons/" + id + ".jpeg";
   document.getElementById(elementId).src = iconSrc;
+}
+
+//prepare、コマンド選択時に起動
+function preparebattlepageicons(top, bottom) {
+  //(1,0)が通常、(0,1)が逆
+  updatebattleicons("battleiconenemy0", parties[top][0].id);
+  updatebattleicons("battleiconenemy1", parties[top][1].id);
+  updatebattleicons("battleiconenemy2", parties[top][2].id);
+  updatebattleicons("battleiconenemy3", parties[top][3].id);
+  updatebattleicons("battleiconenemy4", parties[top][4].id);
+  updatebattleicons("battleiconally0", parties[bottom][0].id);
+  updatebattleicons("battleiconally1", parties[bottom][1].id);
+  updatebattleicons("battleiconally2", parties[bottom][2].id);
+  updatebattleicons("battleiconally3", parties[bottom][3].id);
+  updatebattleicons("battleiconally4", parties[bottom][4].id);
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
@@ -345,10 +351,8 @@ document.getElementById("designateskilltargetbtnno").addEventListener("click", f
 //skilltarget選択画面
 document.querySelectorAll(".selecttargetmonster").forEach((img) => {
   img.addEventListener("click", () => {
-    const imgsrc = img.getAttribute("src");
-    const selectedtargetmonsterid = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
-    //target保存 srcからはちょっとセンスないか？味方の場合もあるのに注意、普通にidからとかかね
-    //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
+    const imgId = img.getAttribute("id");
+    parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = imgId.replace("selecttargetmonster", "");
     document.getElementById("designateskilltarget").style.visibility = "hidden";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //テキストとtarget選択iconを閉じる
@@ -365,17 +369,20 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     //選択終了、次のコマンド選択を待機
   });
 });
-//todo:target保存システム
 
 //allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
 //backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
-function adjustmonstericonstickout() {
-  //一旦全削除後、現在選択中のmonster imgにclass:stickoutを付与
+//一旦全削除用function、コマンド選択終了時にも起動
+function removeallstickout() {
   const allmonstericonsstickout = document.querySelectorAll(".battlepageallyicon");
-  const targetmonstericonstickout = document.getElementById(`battleiconally${selectingwhichmonsterscommand}`);
   allmonstericonsstickout.forEach((monstericon) => {
     monstericon.classList.remove("stickout");
   });
+}
+//現在選択中のmonster imgにclass:stickoutを付与
+function adjustmonstericonstickout() {
+  removeallstickout();
+  const targetmonstericonstickout = document.getElementById(`battleiconally${selectingwhichmonsterscommand}`);
   targetmonstericonstickout.classList.add("stickout");
 }
 
@@ -409,7 +416,7 @@ function askfinishselectingcommand() {
   document.getElementById("askfinishselectingcommand").style.visibility = "visible";
 }
 
-//no選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
+//コマンド選択終了画面でno選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
 document.getElementById("askfinishselectingcommandbtnno").addEventListener("click", function () {
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
@@ -417,19 +424,23 @@ document.getElementById("askfinishselectingcommandbtnno").addEventListener("clic
   //閉じる処理と同様の処理
 });
 
-//yes選択時、かつ味方選択終了後はyesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
-//敵も選択終了後は、startbattle
+//コマンド選択終了画面でyes選択時、コマンド選択を終了
 document.getElementById("askfinishselectingcommandbtnyes").addEventListener("click", function () {
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   if (selectingwhichteamscommand == "1") {
+    //敵も選択終了後は、startbattleへ
     selectingwhichmonsterscommand = 0;
     selectingwhichteamscommand = 0;
     //初期化
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
     disablecommandbtns(true);
     //popupを閉じ、commandbtnsを無効化
+    preparebattlepageicons(1, 0);
+    //反転を戻す
+    removeallstickout();
     startbattle();
   } else {
+    //味方選択のみ終了時はyesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
     document.getElementById("howtoselectenemyscommand").style.visibility = "visible";
   }
 });
@@ -440,7 +451,11 @@ document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("
   selectingwhichteamscommand = 1;
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  //以下、手動選択のための処理
   disablecommandbtns(false);
+  //アイコン反転
+  preparebattlepageicons(0, 1);
+  adjustmonstericonstickout();
 });
 //敵のコマンド選択方法-improvedAI
 document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {
@@ -459,7 +474,7 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 //ここは最大ダメージ検知AIなども含めて統合処理
 
 function startbattle() {
-  console.log("start");
+  console.log(parties);
 }
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
