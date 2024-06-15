@@ -250,12 +250,14 @@ function applydamage(target, damage) {
   updateHPMPdisplay(target, damage, oldHP);
 }
 
-//まずは特技選択から
+//////////////////////////////////////////////////////////////特技選択フロー
 
 let selectingwhichmonsterscommand = 0;
 function startselectingcommand() {
   document.getElementById("designateskilltarget").style.visibility = "hidden";
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   //とくぎボタン選択時、popupによってskillbtn4つを表示し、skill名4つを代入
   //old ver document.getElementById("selectskillbtn1").textContent = parties[0][selectingwhichmonsterscommand].skill[0];
   //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
@@ -318,6 +320,11 @@ function selectcommand(selectedskillnum) {
 //all-yesbtnの処理
 document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  //5体目選択後分岐
+  if (selectingwhichmonsterscommand > 3) {
+    askfinishselectingallyscommand();
+    return;
+  }
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   disablecommandbtns(false);
   //yesno画面とpopup全体を閉じる
@@ -338,25 +345,25 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
   img.addEventListener("click", () => {
     const imgsrc = img.getAttribute("src");
     const selectedtargetmonsterid = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
-    //target保存 srcからはちょっとセンスないか？味方の場合もあるのに注意
+    //target保存 srcからはちょっとセンスないか？味方の場合もあるのに注意、普通にidからとかかね
     //parties[0][selectingwhichmonsterscommand].confirmedcommandtarget = ;
     document.getElementById("designateskilltarget").style.visibility = "hidden";
-    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-    disablecommandbtns(false);
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
-    //target画面と全体を閉じる
+    //テキストとtarget選択iconを閉じる
+    //5体目選択後分岐
+    if (selectingwhichmonsterscommand > 3) {
+      askfinishselectingallyscommand();
+      return;
+    }
+    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    //popup全体を閉じる
+    disablecommandbtns(false);
     selectingwhichmonsterscommand += 1;
     adjustmonstericonstickout();
     //選択終了、次のコマンド選択を待機
   });
 });
-
 //todo:target保存システム
-/*
-  if (selectingwhichmonsterscommand > 4) {
-    alert("コマンドを終了しますか");
-  }
-*/
 
 function adjustmonstericonstickout() {
   //一旦全削除後、現在選択中のmonster imgにclass:stickoutを付与
@@ -374,12 +381,15 @@ function backbtn() {
   adjustmonstericonstickout();
 }
 
+//閉じるbtn
 document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("click", function () {
   document.getElementById("designateskilltarget").style.visibility = "hidden";
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   disablecommandbtns(false);
   //全閉じ
 });
@@ -389,6 +399,33 @@ function disablecommandbtns(trueorfalse) {
     button.disabled = trueorfalse;
   });
 }
+
+function askfinishselectingallyscommand() {
+  document.getElementById("askfinishselectingallyscommand").style.visibility = "visible";
+}
+
+//no選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
+document.getElementById("askfinishselectingallyscommandbtnno").addEventListener("click", function () {
+  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  disablecommandbtns(false);
+  //閉じる処理と同様の処理
+});
+
+//yes選択時、yesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
+document.getElementById("askfinishselectingallyscommandbtnyes").addEventListener("click", function () {
+  document.getElementById("askfinishselectingallyscommand").style.visibility = "hidden";
+  document.getElementById("howtoselectenemyscommand").style.visibility = "visible";
+});
+
+//敵のコマンド選択方法-player
+document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("click", function () {
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+});
+//敵のコマンド選択方法-improvedAI
+document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {});
+//敵のコマンド選択方法-takoAI
+document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("click", function () {});
 
 //敵のコマンド処理はどうするか、AIか入力か選択画面を出す
 //parties、allyとenemyで分けずにごちゃ混ぜでもいいのでは

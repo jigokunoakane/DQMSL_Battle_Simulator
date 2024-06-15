@@ -475,7 +475,9 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#designateskilltarget-all {
+#designateskilltarget-all,
+#askfinishselectingallyscommand,
+#howtoselectenemyscommand {
   position: absolute;
   display: flex;
   width: 100%;
@@ -485,7 +487,9 @@ select {
   flex-wrap: wrap; /*簡略的に2行に*/
 }
 
-#designateskilltarget-all-text {
+#designateskilltarget-all-text,
+#askfinishselectingallyscommand-text,
+#howtoselectenemyscommand-text {
   width: 100%;
   text-align: center;
   color: white;
@@ -494,7 +498,8 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-.designateskilltargetallbtn {
+.designateskilltargetallbtn,
+.howtoselectenemyscommandbtn {
   /*transform: translate(0%, 200%);*/
   width: 30%;
   height: 1.7rem;
@@ -511,7 +516,13 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#designateskilltargetbtnyes {
+#designateskilltargetbtnyes,
+#askfinishselectingallyscommandbtnyes {
+  background-color: red;
+}
+
+.howtoselectenemyscommandbtn {
+  width: 25%; /*3選択肢のため幅調整*/
   background-color: red;
 }
 
