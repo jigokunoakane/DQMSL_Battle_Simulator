@@ -122,6 +122,50 @@ document.getElementById("testbtn").addEventListener("click", function () {
 });
 
 function preparebattle() {
+  // パーティごとに処理
+  for (const party of parties) {
+    // リーダースキルの取得 (ループ外に移動)
+    const leaderSkill = party[0].ls;
+    const lstarget = party[0].lstarget;
+
+    // 各モンスターについて処理
+    for (const monster of party) {
+      // defaultstatusを直接定義
+      monster.defaultstatus = {};
+
+      // ループを統合してステータスをコピー&リーダースキルを適用
+      for (const key in monster.displaystatus) {
+        monster.defaultstatus[key] = monster.displaystatus[key];
+        //ls反映済のdefaultstatus生成
+
+        // lstargetがallまたはモンスターのタイプと一致する場合のみリーダースキル適用
+        if (lstarget === "all" || monster.type === lstarget) {
+          if (leaderSkill[key]) {
+            monster.defaultstatus[key] = Math.ceil(monster.defaultstatus[key] * leaderSkill[key]);
+          }
+        }
+      }
+
+      // currentstatusをdefaultstatusのコピーとして生成
+      monster.currentstatus = structuredClone(monster.defaultstatus);
+
+      // 初期生成
+      monster.confirmedcommand = "";
+      monster.confirmedcommandtarget = "";
+      monster.buffs = [];
+    }
+  }
+
+  updateHPMPdisplay();
+  //戦闘画面の10のimgのsrcを設定
+  //partyの中身のidとgearidから、適切な画像を設定
+  preparebattlepageicons(1, 0);
+  //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
+  backbtn();
+}
+
+/*
+function preparebattle() {
   //partiesの中身に、displaystatusからlsを反映してdefaultstatusを生成
   parties.forEach((party) => {
     // パーティーのリーダースキルを取得
@@ -185,6 +229,7 @@ function preparebattle() {
     party.forEach((monster) => {
       monster.confirmedcommand = "";
       monster.confirmedcommandtarget = "";
+      monster.buffs = [];
     });
   });
   //todo:初期処理の統合
@@ -192,6 +237,7 @@ function preparebattle() {
   //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
   backbtn();
 }
+  */
 //finish preparebattle 開始時処理終了
 
 //戦闘開始時の10のアイコン更新と、targetteamごとに特技target選択画面で起動
@@ -474,13 +520,214 @@ function startbattle() {
   console.log(parties);
 }
 
+//バフ管理system
+
+// ターン終了時の処理
+function endTurn() {
+  //各モンスターのバフを更新
+  for (const party of parties) {
+    for (const monster of party) {
+      //バフ削除処理において、ループ中に monster.buffs を直接操作するとインデックスがずれてしまう問題を避けるため浅いcopy
+      const currentBuffs = [...monster.buffs];
+      for (let i = 0; i < currentBuffs.length; i++) {
+        const buff = currentBuffs[i];
+        buff.duration--; //持続時間を1減らす
+        if (buff.duration <= 0) {
+          //持続時間が0以下になったらバフを削除
+          monster.buffs.splice(monster.buffs.indexOf(buff), 1);
+          //indexOf(buff) で、削除対象のバフのindex取得後、splice(index, 1) で、指定indexから1要素を削除
+
+          // バフの効果を打ち消す処理 (別途)
+          // 例: buff.effectType によって処理を分岐
+        }
+      }
+    }
+  }
+  //他の処理
+  // 各モンスターの currentstatus を更新
+  for (const party of parties) {
+    for (const monster of party) {
+      updateCurrentStatus(monster);
+    }
+  }
+}
+
+//バフ追加用関数
+function addBuff(monster, name, canRemove, strength, duration) {
+  monster.buffs.push({
+    name: name,
+    canRemove: canRemove,
+    strength: strength,
+    duration: duration,
+  });
+  updateCurrentStatus(monster); // バフ追加後に該当monsterのcurrentstatusを更新
+}
+
+// currentstatusを更新する関数
+//buff追加時・解除時・持続時間切れ時に起動
+function updateCurrentStatus(monster) {
+  // currentstatus を defaultstatus の値で初期化
+  monster.currentstatus = structuredClone(monster.defaultstatus);
+
+  // バフの効果を適用
+  for (const buff of monster.buffs) {
+    switch (buff.name) {
+      case "攻撃力アップ":
+        monster.currentstatus.atk = Math.ceil(monster.currentstatus.atk * buff.strength);
+        break;
+      case "素早さアップ":
+        monster.currentstatus.spd = Math.ceil(monster.currentstatus.spd * buff.strength);
+        break;
+      // 他のバフ効果もここに追加
+    }
+  }
+}
+
+// 使用例
+/*
+const monsterA = parties[0][0]; 
+addBuff(monsterA, "攻撃力アップ", 1.5, 3); // 攻撃力1.5倍、3ターンのバフを追加
+console.log(monsterA.currentstatus.攻撃力); // バフ適用後の攻撃力
+*/
+
+//行動順決定function startbattleで毎ターン起動
+
+// 行動順を決定する関数
+// 行動順を決定する関数
+function decideTurnOrder(parties, skills) {
+  // 全てのモンスターを1つの配列にまとめる
+  let allMonsters = parties.flat();
+
+  // 各モンスターのSPDに乱数をかけた値を計算し、新しいプロパティとして追加する
+  allMonsters.forEach((monster) => {
+    monster.modifiedSpeed = calculateModifiedSpeed(monster);
+  });
+
+  // 先制技を使うモンスターの配列
+  let preemptiveMonsters = [];
+  // preemptiveActionを持つモンスターの配列
+  let preemptiveActionMonsters = [];
+  // アンカー技を使うモンスターの配列
+  let anchorMonsters = [];
+  // anchorActionを持つモンスターの配列
+  let anchorActionMonsters = [];
+  // 通常の行動順のモンスターの配列
+  let normalMonsters = [];
+
+  // 各モンスターの行動順を分類
+  allMonsters.forEach((monster) => {
+    const confirmedSkilldetector = skills.find((skill) => skill.name === monster.confirmedcommand);
+
+    if (confirmedSkilldetector?.order === "preemptive") {
+      preemptiveMonsters.push(monster);
+    } else if (confirmedSkilldetector?.order === "anchor") {
+      anchorMonsters.push(monster);
+    } else if (monster.preemptiveAction) {
+      preemptiveActionMonsters.push(monster);
+    } else if (monster.anchorAction) {
+      anchorActionMonsters.push(monster);
+    } else {
+      normalMonsters.push(monster);
+    }
+  });
+
+  // アンカー技を使うモンスターを、preemptiveAction, anchorAction, modifiedSpeedの順にソート
+  anchorMonsters.sort((a, b) => {
+    if (a.preemptiveAction && !b.preemptiveAction) {
+      return -1; // aが先に動く
+    } else if (!a.preemptiveAction && b.preemptiveAction) {
+      return 1; // bが先に動く
+    } else if (a.anchorAction && !b.anchorAction) {
+      return 1; // bが先に動く
+    } else if (!a.anchorAction && b.anchorAction) {
+      return -1; // aが先に動く
+    } else {
+      // どちらもpreemptiveActionを持つ、どちらもanchorActionを持つ、もしくはいずれも持たない場合はmodifiedSpeedで比較
+      return b.modifiedSpeed - a.modifiedSpeed;
+    }
+  });
+
+  // 行動順を決定
+  const turnOrder = [];
+
+  // 1. 先制技を使うモンスターをpreemptivegroup、modifiedSpeedの順にソート
+  preemptiveMonsters.sort((a, b) => {
+    const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
+    const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
+    if (skillA.preemptivegroup !== skillB.preemptivegroup) {
+      return skillA.preemptivegroup - skillB.preemptivegroup;
+    } else {
+      return b.modifiedSpeed - a.modifiedSpeed;
+    }
+  });
+  turnOrder.push(...preemptiveMonsters);
+
+  // 2. preemptiveActionを持つモンスターは実数値でソート
+  preemptiveActionMonsters.sort((a, b) => b.currentstatus.spd - a.currentstatus.spd);
+  turnOrder.push(...preemptiveActionMonsters);
+
+  // 3. 通常の行動順のモンスターをmodifiedSpeedの順にソート
+  normalMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed);
+  turnOrder.push(...normalMonsters);
+
+  // 4. anchorActionを持つモンスターをmodifiedSpeedの順にソート
+  anchorActionMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed);
+  turnOrder.push(...anchorActionMonsters);
+
+  // 5. アンカー技を使うモンスターを追加
+  turnOrder.push(...anchorMonsters);
+
+  // リバース状態の場合は行動順を反転
+  if (field.includes("reverse")) {
+    // 1. アンカー技、anchorAction、通常、preemptiveAction の順に並び替える (modifiedSpeedの遅い順)
+    turnOrder.reverse();
+
+    // 2. preemptivegroup 6-7 を preemptiveAction の後へ移動
+    const preemptive67 = turnOrder.filter((monster) => {
+      const skill = skills.find((s) => s.name === monster.confirmedcommand);
+      return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
+    });
+    turnOrder = turnOrder.filter((monster) => {
+      const skill = skills.find((s) => s.name === monster.confirmedcommand);
+      return !skill || skill.preemptivegroup < 6 || skill.preemptivegroup > 7;
+    });
+    turnOrder.splice(turnOrder.indexOf(preemptiveActionMonsters[preemptiveActionMonsters.length - 1]) + 1, 0, ...preemptive67);
+
+    // 3. preemptivegroup 1-5 を配列の先頭に追加 (preemptivegroupの小さい順)
+    const preemptive15 = turnOrder
+      .filter((monster) => {
+        const skill = skills.find((s) => s.name === monster.confirmedcommand);
+        return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
+      })
+      .sort((a, b) => {
+        const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
+        const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
+        return skillA.preemptivegroup - skillB.preemptivegroup;
+      });
+    turnOrder = turnOrder.filter((monster) => {
+      const skill = skills.find((s) => s.name === monster.confirmedcommand);
+      return !skill || skill.preemptivegroup < 1 || skill.preemptivegroup > 5;
+    });
+    turnOrder.unshift(...preemptive15);
+  }
+
+  return turnOrder;
+  console.log(turnOrder);
+}
+
+// SPDに乱数をかけた補正値を計算する関数 蘇生時にも使うかも
+function calculateModifiedSpeed(monster) {
+  const randomMultiplier = 0.975 + Math.random() * 0.05;
+  return monster.currentstatus.spd * randomMultiplier;
+}
+
+// 行動順を出力
+
+//const turnOrder = decideTurnOrder(parties, skills);
+
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
 /*
-バフ管理システムと、currentstatusを作成
-最初の展開と処理
-ステータスとバフの管理
-コマンド入力
-先制アンカーと、行動順処理
+
 順番に特技発動、一発づつ処理
 hit処理、ダメージ処理、ダメージや死亡に対する処理、バトル終了フラグ確認のループ
 すべての行動が終わったら、コマンドに戻る
