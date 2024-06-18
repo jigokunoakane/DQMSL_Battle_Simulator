@@ -156,84 +156,9 @@ function preparebattle() {
   backbtn();
   //field管理用変数の導入はglobalで
 }
+//finish preparebattle 開始時処理終了
 
 const fieldState = [];
-
-/*
-function preparebattle() {
-  //partiesの中身に、displaystatusからlsを反映してdefaultstatusを生成
-  parties.forEach((party) => {
-    // パーティーのリーダースキルを取得
-    const leaderSkill = party[0].ls;
-    const lstarget = party[0].lstarget;
-
-    // 各モンスターについて処理を行う
-    party.forEach((monster) => {
-      const defaultstatus = {};
-      // デフォルトのステータス倍率1倍でdefaultstatusを生成
-      Object.keys(monster.displaystatus).forEach((key) => {
-        defaultstatus[key] = monster.displaystatus[key];
-      });
-
-      // lstargetがallの場合または各モンスターのtypeと一致する場合に処理を行う
-      if (lstarget === "all" || monster.type === lstarget) {
-        // lsで指定されたステータス倍率がある場合はそれに置き換える
-        Object.keys(defaultstatus).forEach((key) => {
-          if (leaderSkill[key]) {
-            defaultstatus[key] = Math.ceil(defaultstatus[key] * leaderSkill[key]);
-          }
-        });
-      }
-      // defaultstatusをモンスターオブジェクトに追加
-      monster.defaultstatus = defaultstatus;
-    });
-  });
-  //ls反映済defaultstatus生成終了
-  //defaultstatusのHPやMPがHPmax、MPmaxを意味する
-
-  //バフ込みのcurrentstatus生成
-  function createcurrentstatus() {
-    parties.forEach((party) => {
-      // 各モンスターについて処理を行う
-      party.forEach((monster) => {
-        const currentstatus = {};
-        // デフォルトのステータス倍率1倍でdefaultstatusを生成
-        Object.keys(monster.defaultstatus).forEach((key) => {
-          currentstatus[key] = monster.defaultstatus[key];
-        });
-
-        // defaultstatusをモンスターオブジェクトに追加
-        monster.currentstatus = currentstatus;
-      });
-    });
-  }
-  createcurrentstatus();
-  //このcurrentのHPMPを動かしていく
-  //todo:バフ保管場所も生成したい
-
-  updateHPMPdisplay();
-  //初期処理不要、updateのみで対応
-
-  //戦闘画面の10のimgのsrcを設定
-  //partyの中身のidとgearidから、適切な画像を設定
-  preparebattlepageicons(1, 0);
-
-  //confirmedcommand格納場所生成
-  parties.forEach((party) => {
-    // 各モンスターについて処理を行う
-    party.forEach((monster) => {
-      monster.confirmedcommand = "";
-      monster.confirmedcommandtarget = "";
-      monster.buffs = [];
-    });
-  });
-  //todo:初期処理の統合
-
-  //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
-  backbtn();
-}
-  */
-//finish preparebattle 開始時処理終了
 
 //戦闘開始時の10のアイコン更新と、targetteamごとに特技target選択画面で起動
 function updatebattleicons(elementId, id) {
@@ -352,12 +277,13 @@ function selectcommand(selectedskillnum) {
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else {
-    //targetがrandomでもsingleでもないとき、all(yesno)画面を起動
+    //targetがrandomでもsingleでもない(all or me)とき、all(yesno)画面を起動
     document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
+    /*parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";*/
+    //allとかmeとか保存してもいいけど、結局skillの中身主導で動かすから不要かも
     //ランダムまたは単体はtarget選択画面を起動
     //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
   }
@@ -1467,7 +1393,7 @@ const skill = [
     name: "斬撃よそく",
     howToCalculate: "none",
     attribute: "none",
-    target: "single",
+    target: "me",
     targetteam: "ally",
   },
   {
@@ -1597,7 +1523,7 @@ const skill = [
     name: "かくせいリバース",
     howToCalculate: "none",
     attribute: "none",
-    target: "single",
+    target: "me",
     targetteam: "ally",
     order: "anchor",
   },
@@ -1627,7 +1553,7 @@ const skill = [
     name: "真・闇の結界",
     howToCalculate: "none",
     attribute: "none",
-    target: "single",
+    target: "me",
     targetteam: "ally",
   },
   {
@@ -1641,7 +1567,7 @@ const skill = [
     name: "帝王のかまえ",
     howToCalculate: "none",
     attribute: "none",
-    target: "single",
+    target: "me",
     targetteam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
@@ -1657,7 +1583,7 @@ const skill = [
     name: "アストロンゼロ",
     howToCalculate: "none",
     attribute: "none",
-    target: "single",
+    target: "me",
     targetteam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
