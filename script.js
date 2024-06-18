@@ -222,6 +222,28 @@ function applydamage(target, damage) {
   updateHPMPdisplay(target, damage, oldHP);
 }
 
+document.getElementById("commandnormalattackbtn").addEventListener("click", function () {
+  //通常攻撃用
+  document.getElementById("designateskilltarget").style.visibility = "hidden";
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
+  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  document.getElementById("selectskillbtns").style.visibility = "hidden";
+  disablecommandbtns(true);
+  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "通常攻撃";
+  document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
+  document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
+  selectskilltargettoggler(selectingwhichteamscommand === 0 ? 1 : 0);
+  document.getElementById("designateskilltarget").style.visibility = "visible";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
+});
+
+document.getElementById("commandguardbtn").addEventListener("click", function () {
+  //ぼうぎょ用
+  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "ぼうぎょ";
+  designateSkillTargetYes();
+});
+
 //////////////////////////////////////////////////////////////特技選択フロー
 
 let selectingwhichmonsterscommand = 0;
@@ -268,13 +290,6 @@ function selectcommand(selectedskillnum) {
       const targetteamnum = 0;
       selectskilltargettoggler(targetteamnum);
     }
-    function selectskilltargettoggler(targetteamnum) {
-      updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
-      updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
-      updatebattleicons("selecttargetmonster2", parties[targetteamnum][2].id);
-      updatebattleicons("selecttargetmonster3", parties[targetteamnum][3].id);
-      updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
-    }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else {
     //targetがrandomでもsingleでもない(all or me)とき、all(yesno)画面を起動
@@ -289,8 +304,17 @@ function selectcommand(selectedskillnum) {
   }
 }
 
+function selectskilltargettoggler(targetteamnum) {
+  //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
+  updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
+  updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
+  updatebattleicons("selecttargetmonster2", parties[targetteamnum][2].id);
+  updatebattleicons("selecttargetmonster3", parties[targetteamnum][3].id);
+  updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
+}
+
 //all-yesbtnの処理
-document.getElementById("designateskilltargetbtnyes").addEventListener("click", function () {
+function designateSkillTargetYes() {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   //5体目選択後分岐
   if (selectingwhichmonsterscommand > 3) {
@@ -303,7 +327,9 @@ document.getElementById("designateskilltargetbtnyes").addEventListener("click", 
   selectingwhichmonsterscommand += 1;
   adjustmonstericonstickout();
   //選択終了、次のコマンド選択を待機
-});
+}
+document.getElementById("designateskilltargetbtnyes").addEventListener("click", designateSkillTargetYes);
+
 //all-nobtn処理
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
@@ -378,6 +404,7 @@ function disablecommandbtns(trueorfalse) {
 //コマンド選択を終了しますか
 function askfinishselectingcommand() {
   document.getElementById("askfinishselectingcommand").style.visibility = "visible";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
 }
 
 //コマンド選択終了画面でno選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
@@ -568,12 +595,12 @@ function decideTurnOrder(parties, skills) {
       }
     };
 
-    // 1. preemptivegroup 1-5 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 1. preemptivegroup 1-6 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
           const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
+          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
     );
@@ -595,12 +622,12 @@ function decideTurnOrder(parties, skills) {
     // 5. preemptiveActionを持つモンスターを追加 (currentstatus.spdの遅い順)
     turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)));
 
-    // 6. preemptivegroup 6-7 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 6. preemptivegroup 7-8 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
           const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
+          return skill && skill.preemptivegroup >= 7 && skill.preemptivegroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
     );
@@ -622,17 +649,17 @@ function decideTurnOrder(parties, skills) {
       ...allMonsters
         .filter((monster) => {
           const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
+          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
     );
 
-    // 2. preemptivegroup 6-7 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 2. preemptivegroup 7-8 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
           const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
+          return skill && skill.preemptivegroup >= 7 && skill.preemptivegroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
     );
@@ -1200,7 +1227,7 @@ const skill = [
     howToCalculate: "", //atk int fix def spd
     attribute: "", //fire ice thun io wind light dark
     order: "", //preemptive anchor
-    preemptivegroup: "num",
+    preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     target: "", //single random all
     targetteam: "enemy",
     numofhit: "",
@@ -1213,6 +1240,22 @@ const skill = [
     //ignoreDazzle: true, penetrateIronize: true,
     //文字列・数値格納可能 真偽値？？
     folowingskill: "ryohuzentai",
+  },
+  {
+    name: "通常攻撃",
+    howToCalculate: "atk",
+    attribute: "none",
+    target: "single",
+    targetteam: "enemy",
+  },
+  {
+    name: "ぼうぎょ",
+    howToCalculate: "none",
+    attribute: "none",
+    target: "me",
+    targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 6,
   },
   {
     name: "涼風一陣",
@@ -1380,7 +1423,7 @@ const skill = [
     target: "random",
     targetteam: "enemy",
     order: "preemptive",
-    preemptivegroup: 7,
+    preemptivegroup: 8,
   },
   {
     name: "神獣の封印",
@@ -1417,7 +1460,7 @@ const skill = [
     target: "single",
     targetteam: "enemy",
     order: "preemptive",
-    preemptivegroup: 7,
+    preemptivegroup: 8,
   },
   {
     name: "終の流星",
@@ -1471,7 +1514,7 @@ const skill = [
     target: "single",
     targetteam: "enemy",
     order: "preemptive",
-    preemptivegroup: 7,
+    preemptivegroup: 8,
   },
   {
     name: "プリズムヴェール",
@@ -1508,7 +1551,7 @@ const skill = [
     target: "all",
     targetteam: "enemy",
     order: "preemptive",
-    preemptivegroup: 6,
+    preemptivegroup: 7,
   },
   {
     name: "クロノストーム",
@@ -1517,7 +1560,7 @@ const skill = [
     target: "random",
     targetteam: "enemy",
     order: "preemptive",
-    preemptivegroup: 7,
+    preemptivegroup: 8,
   },
   {
     name: "かくせいリバース",
@@ -1555,6 +1598,8 @@ const skill = [
     attribute: "none",
     target: "me",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 5,
   },
   {
     name: "必殺の双撃",
