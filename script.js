@@ -113,14 +113,6 @@ function confirmparty() {
   }
 }
 
-document.getElementById("karibtn").addEventListener("click", function () {
-  document.getElementById("adjustpartypage").style.display = "block";
-  document.getElementById("battlepage").style.display = "none";
-});
-document.getElementById("testbtn").addEventListener("click", function () {
-  console.log(parties);
-});
-
 function preparebattle() {
   // パーティごとに処理
   for (const party of parties) {
@@ -162,7 +154,10 @@ function preparebattle() {
   preparebattlepageicons(1, 0);
   //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
   backbtn();
+  //field管理用変数の導入はglobalで
 }
+
+const fieldState = [];
 
 /*
 function preparebattle() {
@@ -516,8 +511,13 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 });
 //ここは最大ダメージ検知AIなども含めて統合処理
 
+//毎ラウンドコマンド選択後処理
 function startbattle() {
   console.log(parties);
+  decideTurnOrder(parties, skill);
+  //1round目なら戦闘開始時flagを持つ特性等を発動
+  //ラウンド開始時flagを持つ特性を発動
+  //特技の発動
 }
 
 //バフ管理system
@@ -593,7 +593,6 @@ console.log(monsterA.currentstatus.攻撃力); // バフ適用後の攻撃力
 //行動順決定function startbattleで毎ターン起動
 
 // 行動順を決定する関数
-// 行動順を決定する関数
 function decideTurnOrder(parties, skills) {
   // 全てのモンスターを1つの配列にまとめる
   let allMonsters = parties.flat();
@@ -603,18 +602,14 @@ function decideTurnOrder(parties, skills) {
     monster.modifiedSpeed = calculateModifiedSpeed(monster);
   });
 
-  // 先制技を使うモンスターの配列
+  // 各行動順のモンスターを格納する配列を定義
   let preemptiveMonsters = [];
-  // preemptiveActionを持つモンスターの配列
   let preemptiveActionMonsters = [];
-  // アンカー技を使うモンスターの配列
   let anchorMonsters = [];
-  // anchorActionを持つモンスターの配列
   let anchorActionMonsters = [];
-  // 通常の行動順のモンスターの配列
   let normalMonsters = [];
 
-  // 各モンスターの行動順を分類
+  // 各モンスターの行動順を分類 (skillのorderと特性の複数所持時はskillのorder優先で分類)
   allMonsters.forEach((monster) => {
     const confirmedSkilldetector = skills.find((skill) => skill.name === monster.confirmedcommand);
 
@@ -631,88 +626,110 @@ function decideTurnOrder(parties, skills) {
     }
   });
 
-  // アンカー技を使うモンスターを、preemptiveAction, anchorAction, modifiedSpeedの順にソート
-  anchorMonsters.sort((a, b) => {
-    if (a.preemptiveAction && !b.preemptiveAction) {
-      return -1; // aが先に動く
-    } else if (!a.preemptiveAction && b.preemptiveAction) {
-      return 1; // bが先に動く
-    } else if (a.anchorAction && !b.anchorAction) {
-      return 1; // bが先に動く
-    } else if (!a.anchorAction && b.anchorAction) {
-      return -1; // aが先に動く
-    } else {
-      // どちらもpreemptiveActionを持つ、どちらもanchorActionを持つ、もしくはいずれも持たない場合はmodifiedSpeedで比較
-      return b.modifiedSpeed - a.modifiedSpeed;
-    }
-  });
-
   // 行動順を決定
-  const turnOrder = [];
+  let turnOrder = [];
 
-  // 1. 先制技を使うモンスターをpreemptivegroup、modifiedSpeedの順にソート
-  preemptiveMonsters.sort((a, b) => {
-    const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
-    const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
-    if (skillA.preemptivegroup !== skillB.preemptivegroup) {
-      return skillA.preemptivegroup - skillB.preemptivegroup;
-    } else {
-      return b.modifiedSpeed - a.modifiedSpeed;
-    }
-  });
-  turnOrder.push(...preemptiveMonsters);
+  if ("isReverse" in fieldState && fieldState.isReverse === true) {
+    // --- リバース状態の処理 ---
+    // 各グループのソート処理を関数化
+    const sortByPreemptiveGroupAndSpeed = (a, b) => {
+      const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
+      const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
+      if (skillA?.preemptivegroup !== skillB?.preemptivegroup) {
+        return skillA?.preemptivegroup - skillB?.preemptivegroup;
+      } else {
+        return a.modifiedSpeed - b.modifiedSpeed;
+      }
+    };
 
-  // 2. preemptiveActionを持つモンスターは実数値でソート
-  preemptiveActionMonsters.sort((a, b) => b.currentstatus.spd - a.currentstatus.spd);
-  turnOrder.push(...preemptiveActionMonsters);
+    // 1. preemptivegroup 1-5 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    turnOrder.push(
+      ...allMonsters
+        .filter((monster) => {
+          const skill = skills.find((s) => s.name === monster.confirmedcommand);
+          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
+        })
+        .sort(sortByPreemptiveGroupAndSpeed)
+    );
 
-  // 3. 通常の行動順のモンスターをmodifiedSpeedの順にソート
-  normalMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed);
-  turnOrder.push(...normalMonsters);
+    // 2. アンカー技を使うモンスターを追加 (anchorAction所持, 特性未所持, preemptiveAction所持の順、
+    //    各グループ内ではmodifiedSpeedの遅い順)
+    turnOrder.push(
+      ...anchorMonsters.filter((monster) => monster.anchorAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => !monster.anchorAction && !monster.preemptiveAction).sort((a, b) => a.modifiedSpeed - b.modifiedSpeed),
+      ...anchorMonsters.filter((monster) => monster.preemptiveAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0))
+    );
 
-  // 4. anchorActionを持つモンスターをmodifiedSpeedの順にソート
-  anchorActionMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed);
-  turnOrder.push(...anchorActionMonsters);
+    // 3. anchorActionを持つモンスターを追加 (currentstatus.spdの遅い順)
+    turnOrder.push(...anchorActionMonsters.sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)));
 
-  // 5. アンカー技を使うモンスターを追加
-  turnOrder.push(...anchorMonsters);
+    // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
+    turnOrder.push(...normalMonsters.sort((a, b) => a.modifiedSpeed - b.modifiedSpeed));
 
-  // リバース状態の場合は行動順を反転
-  if (field.includes("reverse")) {
-    // 1. アンカー技、anchorAction、通常、preemptiveAction の順に並び替える (modifiedSpeedの遅い順)
-    turnOrder.reverse();
+    // 5. preemptiveActionを持つモンスターを追加 (currentstatus.spdの遅い順)
+    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)));
 
-    // 2. preemptivegroup 6-7 を preemptiveAction の後へ移動
-    const preemptive67 = turnOrder.filter((monster) => {
-      const skill = skills.find((s) => s.name === monster.confirmedcommand);
-      return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
-    });
-    turnOrder = turnOrder.filter((monster) => {
-      const skill = skills.find((s) => s.name === monster.confirmedcommand);
-      return !skill || skill.preemptivegroup < 6 || skill.preemptivegroup > 7;
-    });
-    turnOrder.splice(turnOrder.indexOf(preemptiveActionMonsters[preemptiveActionMonsters.length - 1]) + 1, 0, ...preemptive67);
+    // 6. preemptivegroup 6-7 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    turnOrder.push(
+      ...allMonsters
+        .filter((monster) => {
+          const skill = skills.find((s) => s.name === monster.confirmedcommand);
+          return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
+        })
+        .sort(sortByPreemptiveGroupAndSpeed)
+    );
+  } else {
+    // --- 通常状態の処理 ---
+    // 各グループのソート処理を関数化
+    const sortByPreemptiveGroupAndReverseSpeed = (a, b) => {
+      const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
+      const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
+      if (skillA?.preemptivegroup !== skillB?.preemptivegroup) {
+        return skillA?.preemptivegroup - skillB?.preemptivegroup;
+      } else {
+        return b.modifiedSpeed - a.modifiedSpeed;
+      }
+    };
 
-    // 3. preemptivegroup 1-5 を配列の先頭に追加 (preemptivegroupの小さい順)
-    const preemptive15 = turnOrder
-      .filter((monster) => {
-        const skill = skills.find((s) => s.name === monster.confirmedcommand);
-        return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
-      })
-      .sort((a, b) => {
-        const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
-        const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
-        return skillA.preemptivegroup - skillB.preemptivegroup;
-      });
-    turnOrder = turnOrder.filter((monster) => {
-      const skill = skills.find((s) => s.name === monster.confirmedcommand);
-      return !skill || skill.preemptivegroup < 1 || skill.preemptivegroup > 5;
-    });
-    turnOrder.unshift(...preemptive15);
+    // 1. preemptivegroup 1-5 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    turnOrder.push(
+      ...allMonsters
+        .filter((monster) => {
+          const skill = skills.find((s) => s.name === monster.confirmedcommand);
+          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 5;
+        })
+        .sort(sortByPreemptiveGroupAndReverseSpeed)
+    );
+
+    // 2. preemptivegroup 6-7 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    turnOrder.push(
+      ...allMonsters
+        .filter((monster) => {
+          const skill = skills.find((s) => s.name === monster.confirmedcommand);
+          return skill && skill.preemptivegroup >= 6 && skill.preemptivegroup <= 7;
+        })
+        .sort(sortByPreemptiveGroupAndReverseSpeed)
+    );
+
+    // 3. preemptiveActionを持つモンスターを追加 (currentstatus.spdの遅い順)
+    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)));
+
+    // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
+    turnOrder.push(...normalMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed));
+
+    // 5. anchorActionを持つモンスターを追加 (currentstatus.spdの遅い順)
+    turnOrder.push(...anchorActionMonsters.sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)));
+
+    // 6. アンカー技を使うモンスターを追加 (preemptiveAction持ち-> 通常行動 -> anchorAction持ち)
+    turnOrder.push(
+      ...anchorMonsters.filter((monster) => monster.preemptiveAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => !monster.anchorAction && !monster.preemptiveAction).sort((a, b) => b.modifiedSpeed - a.modifiedSpeed),
+      ...anchorMonsters.filter((monster) => monster.anchorAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0))
+    );
   }
 
-  return turnOrder;
   console.log(turnOrder);
+  return turnOrder;
 }
 
 // SPDに乱数をかけた補正値を計算する関数 蘇生時にも使うかも
@@ -720,7 +737,6 @@ function calculateModifiedSpeed(monster) {
   const randomMultiplier = 0.975 + Math.random() * 0.05;
   return monster.currentstatus.spd * randomMultiplier;
 }
-
 // 行動順を出力
 
 //const turnOrder = decideTurnOrder(parties, skills);
@@ -1055,24 +1071,35 @@ function switchTab(tabNumber) {
 
 const monsters = [
   {
+    name: "マスタードラゴン",
+    id: "masudora",
+    type: "ドラゴン",
+    status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 530, int: 700 },
+    skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
+    attribute: "",
+    seed: { atk: 0, def: 0, spd: 0, int: 0 },
+    ls: { HP: 1.3, spd: 1.3 },
+    lstarget: "ドラゴン",
+  },
+  {
     name: "宵の華シンリ",
     id: "sinri",
     type: "ドラゴン",
-    status: { HP: 100, MP: 100, atk: 100, def: 100, spd: 100, int: 100 },
+    status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
     skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     attribute: "",
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
-    ls: { HP: 1.3, spd: 1.3 },
+    ls: { HP: 1, spd: 1 },
     lstarget: "ドラゴン",
   },
   {
     name: "魔夏姫アンルシア",
     id: "rusia",
-    type: "悪魔",
-    status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 1000, int: 1000 },
+    type: "ドラゴン",
+    status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 555, int: 1000 },
     skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     attribute: "",
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
     lstarget: "スライム",
   },
@@ -1080,7 +1107,7 @@ const monsters = [
     name: "怪竜やまたのおろち",
     id: "orochi",
     type: "ドラゴン",
-    status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 500, int: 500 },
+    status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 380, int: 500 },
     skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     attribute: "",
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -1088,21 +1115,10 @@ const monsters = [
     lstarget: "スライム",
   },
   {
-    name: "マスタードラゴン",
-    id: "masudora",
-    type: "ドラゴン",
-    status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 700, int: 700 },
-    skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
-    attribute: "",
-    seed: { atk: 0, def: 0, spd: 0, int: 0 },
-    ls: { HP: 10, spd: 10 },
-    lstarget: "ドラゴン",
-  },
-  {
     name: "ヴォルカドラゴン",
     id: "voruka",
-    type: "スライム",
-    status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
+    type: "ドラゴン",
+    status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 100, int: 1300 },
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
@@ -1125,6 +1141,7 @@ const skill = [
     howToCalculate: "", //atk int fix def spd
     attribute: "", //fire ice thun expl wind light dark
     order: "", //preemptive anchor
+    preemptivegroup: "num",
     target: "", //single random all
     targetteam: "enemy",
     numofhit: "",
@@ -1165,6 +1182,8 @@ const skill = [
     attribute: "none",
     target: "all",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 2,
   },
   {
     name: "氷華大繚乱",
@@ -1179,6 +1198,7 @@ const skill = [
     attribute: "ice",
     target: "single",
     targetteam: "enemy",
+    order: "anchor",
   },
   {
     name: "おぞましいおたけび",
@@ -1249,6 +1269,8 @@ const skill = [
     attribute: "none",
     target: "all",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 2,
   },
   {
     name: "ラヴァフレア",
@@ -1256,6 +1278,7 @@ const skill = [
     attribute: "fire",
     target: "single",
     targetteam: "enemy",
+    order: "anchor",
   },
   {
     name: "におうだち",
@@ -1263,6 +1286,8 @@ const skill = [
     attribute: "none",
     target: "all",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 3,
   },
   {
     name: "大樹の守り",
@@ -1270,6 +1295,8 @@ const skill = [
     attribute: "none",
     target: "all",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 2,
   },
   {
     name: "みがわり",
@@ -1277,6 +1304,8 @@ const skill = [
     attribute: "none",
     target: "single",
     targetteam: "ally",
+    order: "preemptive",
+    preemptivegroup: 4,
   },
   {
     name: "邪道のかくせい",
@@ -1333,3 +1362,40 @@ function karitobattlepage() {
   preparebattle();
   //temporary 戦闘画面移行用
 }
+
+document.getElementById("preActionbtn").addEventListener("click", function () {
+  const preActiondetector = document.getElementById("preActionbtn").textContent;
+  if (preActiondetector === "全員行動早い付与") {
+    document.getElementById("preActionbtn").textContent = "4体目のみ付与";
+    //全員に付与;
+    for (const party of parties) {
+      // 各party内のmonsterに対して処理を行う
+      for (const monster of party) {
+        // preemptiveActionプロパティを追加
+        monster.preemptiveAction = 100;
+      }
+    }
+  } else {
+    document.getElementById("preActionbtn").textContent = "全員行動早い付与";
+    for (const party of parties) {
+      for (const monster of party) {
+        delete monster.preemptiveAction;
+      }
+    }
+    if (parties[0] && parties[0][3]) {
+      parties[0][3].preemptiveAction = 100;
+    }
+  }
+  decideTurnOrder(parties, skill);
+});
+document.getElementById("Reversebtn").addEventListener("click", function () {
+  const reversedetector = document.getElementById("Reversebtn").textContent;
+  if (reversedetector === "リバース化") {
+    document.getElementById("Reversebtn").textContent = "リバース解除";
+    fieldState.isReverse = true;
+  } else {
+    document.getElementById("Reversebtn").textContent = "リバース化";
+    fieldState.isReverse = false;
+  }
+  decideTurnOrder(parties, skill);
+});
