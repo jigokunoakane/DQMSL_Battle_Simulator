@@ -155,6 +155,7 @@ function preparebattle() {
   //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
   backbtn();
   //field管理用変数の導入はglobalで
+  startTurn(1);
 }
 //finish preparebattle 開始時処理終了
 
@@ -168,7 +169,7 @@ function updatebattleicons(elementId, id) {
 
 //prepare、コマンド選択時に起動
 function preparebattlepageicons(top, bottom) {
-  //(1,0)が通常、(0,1)が逆
+  //(1,0)が通常、(0,1)が逆、敵コマンド入力時に一時的に反転
   updatebattleicons("battleiconenemy0", parties[top][0].id);
   updatebattleicons("battleiconenemy1", parties[top][1].id);
   updatebattleicons("battleiconenemy2", parties[top][2].id);
@@ -211,6 +212,7 @@ function updateHPMPdisplay(target, damage, oldHP) {
   //allyのHPMP
 */
 }
+
 function applydamage(target, damage) {
   const oldHP = target.currentstatus.HP;
   //退避して送る
@@ -464,6 +466,16 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 });
 //ここは最大ダメージ検知AIなども含めて統合処理
 
+//ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
+function startTurn(turnNum) {
+  //modifiedSpeed生成 ラウンド開始時に毎ターン起動
+  for (const party of parties) {
+    for (const monster of party) {
+      monster.modifiedSpeed = calculateModifiedSpeed(monster);
+    }
+  }
+}
+
 //毎ラウンドコマンド選択後処理
 function startbattle() {
   console.log(parties);
@@ -507,13 +519,37 @@ function endTurn() {
 
 //バフ追加用関数
 function addBuff(monster, name, canRemove, strength, duration) {
-  monster.buffs.push({
-    name: name,
+  // バフが既に存在し、strengthが現在のバフより小さい場合は何もしない
+  if (monster.buffs[name] && monster.buffs[name].strength >= strength) {
+    return;
+  }
+
+  // バフが存在しない、またはstrengthが現在のバフより大きい場合は上書き
+  monster.buffs[name] = {
     canRemove: canRemove,
     strength: strength,
     duration: duration,
-  });
+  };
+
   updateCurrentStatus(monster); // バフ追加後に該当monsterのcurrentstatusを更新
+}
+
+// 各モンスターの全バフと状態異常のdurationを1減らす関数 turnが進んだら起動
+function decreaseBuffDurations(monster) {
+  monster.buffs.forEach((buff) => {
+    buff.duration--;
+  });
+  monster.abnormality.forEach((eachabnormality) => {
+    eachabnormality.duration--;
+  });
+}
+//これ上に持っていくけど、その前に更新
+
+// durationが0になったバフを消去する関数 skill使用前に起動
+function removeExpiredBuffs(monster) {
+  monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
+  monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
+  updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
 }
 
 // currentstatusを更新する関数
@@ -543,17 +579,11 @@ addBuff(monsterA, "攻撃力アップ", 1.5, 3); // 攻撃力1.5倍、3ターン
 console.log(monsterA.currentstatus.攻撃力); // バフ適用後の攻撃力
 */
 
-//行動順決定function startbattleで毎ターン起動
-
-// 行動順を決定する関数
+// 行動順を決定する関数 コマンド決定後にstartbattleで起動
+let turnOrder = [];
 function decideTurnOrder(parties, skills) {
   // 全てのモンスターを1つの配列にまとめる
   let allMonsters = parties.flat();
-
-  // 各モンスターのSPDに乱数をかけた値を計算し、新しいプロパティとして追加する
-  allMonsters.forEach((monster) => {
-    monster.modifiedSpeed = calculateModifiedSpeed(monster);
-  });
 
   // 各行動順のモンスターを格納する配列を定義
   let preemptiveMonsters = [];
@@ -580,7 +610,8 @@ function decideTurnOrder(parties, skills) {
   });
 
   // 行動順を決定
-  let turnOrder = [];
+  turnOrder = [];
+  //初期化
 
   if ("isReverse" in fieldState && fieldState.isReverse === true) {
     // --- リバース状態の処理 ---
@@ -1218,14 +1249,14 @@ const skill = [
   {
     name: "なし",
     howToCalculate: "",
-    attribute: "",
+    element: "",
   },
   {
     name: "",
     id: "number?",
-    type: "", //spell slash martial breath ritual
+    type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd
-    attribute: "", //fire ice thun io wind light dark
+    element: "", //fire ice thun io wind light dark
     order: "", //preemptive anchor
     preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     target: "", //single random all
@@ -1239,19 +1270,19 @@ const skill = [
     MP: 76,
     //ignoreDazzle: true, penetrateIronize: true,
     //文字列・数値格納可能 真偽値？？
-    folowingskill: "ryohuzentai",
+    folowingSkill: "ryohuzentai",
   },
   {
     name: "通常攻撃",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "ぼうぎょ",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
     order: "preemptive",
@@ -1260,28 +1291,28 @@ const skill = [
   {
     name: "涼風一陣",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "神楽の術",
     howToCalculate: "int",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "昇天斬り",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "タップダンス",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     order: "preemptive",
@@ -1290,14 +1321,14 @@ const skill = [
   {
     name: "氷華大繚乱",
     howToCalculate: "atk",
-    attribute: "ice",
+    element: "ice",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "フローズンシャワー",
     howToCalculate: "fix",
-    attribute: "ice",
+    element: "ice",
     target: "single",
     targetteam: "enemy",
     order: "anchor",
@@ -1305,70 +1336,70 @@ const skill = [
   {
     name: "おぞましいおたけび",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "スパークふんしゃ",
     howToCalculate: "fix",
-    attribute: "thun",
+    element: "thun",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "天空竜の息吹",
     howToCalculate: "fix",
-    attribute: "light",
+    element: "light",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "エンドブレス",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "テンペストブレス",
     howToCalculate: "fix",
-    attribute: "wind",
+    element: "wind",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "煉獄火炎",
     howToCalculate: "fix",
-    attribute: "fire",
+    element: "fire",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "むらくもの息吹",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "獄炎の息吹",
     howToCalculate: "fix",
-    attribute: "fire",
+    element: "fire",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "ほとばしる暗闇",
     howToCalculate: "fix",
-    attribute: "dark",
+    element: "dark",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "防刃の守り",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     order: "preemptive",
@@ -1377,7 +1408,7 @@ const skill = [
   {
     name: "ラヴァフレア",
     howToCalculate: "fix",
-    attribute: "fire",
+    element: "fire",
     target: "single",
     targetteam: "enemy",
     order: "anchor",
@@ -1385,7 +1416,7 @@ const skill = [
   {
     name: "におうだち",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     order: "preemptive",
@@ -1394,7 +1425,7 @@ const skill = [
   {
     name: "大樹の守り",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     order: "preemptive",
@@ -1403,7 +1434,7 @@ const skill = [
   {
     name: "みがわり",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "ally",
     order: "preemptive",
@@ -1412,14 +1443,14 @@ const skill = [
   {
     name: "超魔滅光",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "真・ゆうきの斬舞",
     howToCalculate: "atk",
-    attribute: "light",
+    element: "light",
     target: "random",
     targetteam: "enemy",
     order: "preemptive",
@@ -1428,35 +1459,35 @@ const skill = [
   {
     name: "神獣の封印",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "斬撃よそく",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
   },
   {
     name: "ソウルハーベスト",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "黄泉の封印",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "暗黒閃",
     howToCalculate: "atk",
-    attribute: "dark",
+    element: "dark",
     target: "single",
     targetteam: "enemy",
     order: "preemptive",
@@ -1465,7 +1496,7 @@ const skill = [
   {
     name: "終の流星",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
     order: "anchor",
@@ -1473,21 +1504,21 @@ const skill = [
   {
     name: "失望の光舞",
     howToCalculate: "fix",
-    attribute: "light",
+    element: "light",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "パニッシュスパーク",
     howToCalculate: "fix",
-    attribute: "thun",
+    element: "thun",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "堕天使の理",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     order: "preemptive",
@@ -1496,21 +1527,21 @@ const skill = [
   {
     name: "ヘルバーナー",
     howToCalculate: "fix",
-    attribute: "fire",
+    element: "fire",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "氷魔のダイヤモンド",
     howToCalculate: "fix",
-    attribute: "ice",
+    element: "ice",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "炎獣の爪",
     howToCalculate: "atk",
-    attribute: "fire",
+    element: "fire",
     target: "single",
     targetteam: "enemy",
     order: "preemptive",
@@ -1519,35 +1550,35 @@ const skill = [
   {
     name: "プリズムヴェール",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
   },
   {
     name: "ルカナン",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "ザオリク",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "ally",
   },
   {
     name: "タイムストーム",
     howToCalculate: "int",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "零時の儀式",
     howToCalculate: "int",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
     order: "preemptive",
@@ -1556,7 +1587,7 @@ const skill = [
   {
     name: "クロノストーム",
     howToCalculate: "int",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
     order: "preemptive",
@@ -1565,7 +1596,7 @@ const skill = [
   {
     name: "かくせいリバース",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
     order: "anchor",
@@ -1573,21 +1604,21 @@ const skill = [
   {
     name: "呪いの儀式",
     howToCalculate: "int",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
   },
   {
     name: "はめつの流星",
     howToCalculate: "int",
-    attribute: "io",
+    element: "io",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "暗黒神の連撃",
     howToCalculate: "fix",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
     order: "anchor",
@@ -1595,7 +1626,7 @@ const skill = [
   {
     name: "真・闇の結界",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
     order: "preemptive",
@@ -1604,14 +1635,14 @@ const skill = [
   {
     name: "必殺の双撃",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "enemy",
   },
   {
     name: "帝王のかまえ",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
     order: "preemptive",
@@ -1620,14 +1651,14 @@ const skill = [
   {
     name: "体砕きの斬舞",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "random",
     targetteam: "enemy",
   },
   {
     name: "アストロンゼロ",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "me",
     targetteam: "ally",
     order: "preemptive",
@@ -1636,7 +1667,7 @@ const skill = [
   {
     name: "衝撃波",
     howToCalculate: "atk",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "enemy",
     order: "anchor",
@@ -1644,7 +1675,7 @@ const skill = [
   {
     name: "おおいかくす",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "single",
     targetteam: "ally",
     order: "preemptive",
@@ -1653,7 +1684,7 @@ const skill = [
   {
     name: "闇の紋章",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
     target: "all",
     targetteam: "ally",
     following: "", //敵にも付与
@@ -1661,12 +1692,12 @@ const skill = [
   {
     name: "邪道のかくせい",
     howToCalculate: "none",
-    attribute: "none",
+    element: "none",
   },
   {
     name: "絶氷の嵐",
     howToCalculate: "int",
-    attribute: "ice",
+    element: "ice",
   },
 
   {},
