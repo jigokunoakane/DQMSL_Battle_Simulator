@@ -113,8 +113,18 @@ function confirmparty() {
   }
 }
 
+//パテ設定画面の確定で起動
 function preparebattle() {
-  // パーティごとに処理
+  //敵味方識別子を追加
+  parties.forEach((party, index) => {
+    party.forEach((member) => {
+      member.teamID = index;
+      // 敵チームIDを付与
+      member.enemyTeamID = index === 0 ? 1 : 0;
+    });
+  });
+
+  // 以下はパーティごとに処理
   for (const party of parties) {
     // リーダースキルの取得 (ループ外に移動)
     const leaderSkill = party[0].ls;
