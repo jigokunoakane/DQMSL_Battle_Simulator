@@ -234,13 +234,13 @@ function applydamage(target, damage) {
   updateHPMPdisplay(target, damage, oldHP);
 }
 
+//////////////////////////////////////////////////////////////コマンド選択フロー
+
+let selectingwhichmonsterscommand = 0;
+let selectingwhichteamscommand = 0;
+
+//////////////通常攻撃
 document.getElementById("commandnormalattackbtn").addEventListener("click", function () {
-  //通常攻撃用
-  document.getElementById("designateskilltarget").style.visibility = "hidden";
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-  document.getElementById("selectskillbtns").style.visibility = "hidden";
   disablecommandbtns(true);
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "通常攻撃";
   document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
@@ -250,69 +250,59 @@ document.getElementById("commandnormalattackbtn").addEventListener("click", func
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
 });
 
+/////////////ぼうぎょ
 document.getElementById("commandguardbtn").addEventListener("click", function () {
-  //ぼうぎょ用
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "ぼうぎょ";
-  designateSkillTargetYes();
+  finishSelectingEachMonstersCommand();
 });
 
-//////////////////////////////////////////////////////////////特技選択フロー
-
-let selectingwhichmonsterscommand = 0;
-let selectingwhichteamscommand = 0;
 function startselectingcommand() {
-  document.getElementById("designateskilltarget").style.visibility = "hidden";
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  disablecommandbtns(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
   document.getElementById("selectskillbtn0").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[0];
   document.getElementById("selectskillbtn1").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[1];
   document.getElementById("selectskillbtn2").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[2];
   document.getElementById("selectskillbtn3").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[3];
-  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
-  disablecommandbtns(true);
   document.getElementById("selectskillbtns").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow-text").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name;
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
+  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   //monster名表示に戻す
   //todo:inline?block?
 }
 
 function selectcommand(selectedskillnum) {
+  document.getElementById("selectskillbtns").style.visibility = "hidden";
   const selectedskillname = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillname;
   //nameを取得してconfirmedcommandに保存
-  document.getElementById("selectskillbtns").style.visibility = "hidden";
   const skilltargetdetector = skill.find((item) => item.name === selectedskillname).target;
   const skilltargetteamdetector = skill.find((item) => item.name === selectedskillname).targetteam;
   //nameからskill配列を検索、targetとtargetteamを引いてくる
   if (skilltargetdetector === "random" || skilltargetdetector === "single") {
-    //randomもしくはsingleのときはtextをmonster名から指示に変更して表示
+    //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
-    document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-    //targetがrandomもしくはsingleのとき、target選択画面を表示
-    //味方選択中かつtargetteamがenemyのとき、または敵選択中かつtargetteamがallyのとき、敵画像を代入
+    //味方選択中かつskillのtargetteamがenemyのとき、または敵選択中かつskillのtargetteamがallyのとき、敵画像を代入
     //逆に味方選択中かつtargetteamがallyのとき、または敵選択中かつtargetteamがenemyのとき、味方画像を代入
     if ((selectingwhichteamscommand === 0 && skilltargetteamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetteamdetector === "ally")) {
-      const targetteamnum = 1;
-      //敵画像
-      selectskilltargettoggler(targetteamnum);
+      selectskilltargettoggler(1); //敵画像
     } else {
-      const targetteamnum = 0;
-      selectskilltargettoggler(targetteamnum);
+      selectskilltargettoggler(0); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
-  } else {
-    //targetがrandomでもsingleでもない(all or me)とき、all(yesno)画面を起動
-    document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
-    document.getElementById("designateskilltarget-all").style.visibility = "visible";
+  } else if (skilltargetdetector === "all") {
+    //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
+    document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
+    document.getElementById("designateskilltarget-all").style.visibility = "visible";
     /*parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";*/
     //allとかmeとか保存してもいいけど、結局skillの中身主導で動かすから不要かも
-    //ランダムまたは単体はtarget選択画面を起動
     //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
+  } else {
+    //targetがmeのとき、そのまま終了
+    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+    finishSelectingEachMonstersCommand();
   }
 }
 
@@ -325,29 +315,15 @@ function selectskilltargettoggler(targetteamnum) {
   updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
 }
 
-//all-yesbtnの処理
-function designateSkillTargetYes() {
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  //5体目選択後分岐
-  if (selectingwhichmonsterscommand > 3) {
-    askfinishselectingcommand();
-    return;
-  }
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  disablecommandbtns(false);
-  //yesno画面とpopup全体を閉じる
-  selectingwhichmonsterscommand += 1;
-  adjustmonstericonstickout();
-  //選択終了、次のコマンド選択を待機
-}
+//all-yesbtnの場合、そのmonsterのコマンド選択終了
+document.getElementById("designateskilltargetbtnyes").addEventListener("click", finishSelectingEachMonstersCommand);
 
-document.getElementById("designateskilltargetbtnyes").addEventListener("click", designateSkillTargetYes);
 //all-nobtn処理
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   disablecommandbtns(false);
-  //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後に上書き
+  //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後で新規選択されたら上書き
 });
 
 //skilltarget選択画面
@@ -358,19 +334,27 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
     document.getElementById("designateskilltarget").style.visibility = "hidden";
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //テキストとtarget選択iconを閉じる
-    //5体目選択後分岐
-    if (selectingwhichmonsterscommand > 3) {
-      askfinishselectingcommand();
-      return;
-    }
-    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-    //popup全体を閉じる
-    disablecommandbtns(false);
-    selectingwhichmonsterscommand += 1;
-    adjustmonstericonstickout();
-    //選択終了、次のコマンド選択を待機
+    finishSelectingEachMonstersCommand();
   });
 });
+
+//allでyes選択時、skilltarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmosnterのskill選択に移行する
+function finishSelectingEachMonstersCommand() {
+  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  //allから来た場合に閉じる
+  //5体目のmonsterのコマンド終了時の場合分岐
+  if (selectingwhichmonsterscommand > 3) {
+    askfinishselectingcommand();
+    return;
+  }
+  //1-4体目のmonsterのコマンド終了時は普通に続行
+  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+  disablecommandbtns(false);
+  //yesno画面とpopup全体を閉じる
+  selectingwhichmonsterscommand += 1;
+  adjustmonstericonstickout();
+  //選択終了、次のコマンド選択を待機
+}
 
 //allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
 //backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
@@ -394,8 +378,8 @@ function backbtn() {
   adjustmonstericonstickout();
 }
 
-//閉じるbtn
-document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("click", function () {
+//全て閉じてcommandbtnを有効化する関数
+function closeSelectCommandPopupWindowContents() {
   document.getElementById("designateskilltarget").style.visibility = "hidden";
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectskillbtns").style.visibility = "hidden";
@@ -404,8 +388,10 @@ document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("cl
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   disablecommandbtns(false);
-  //全閉じ
-});
+}
+
+// 閉じるボタンにイベントリスナー追加
+document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("click", closeSelectCommandPopupWindowContents);
 
 function disablecommandbtns(trueorfalse) {
   document.querySelectorAll(".commandbtn").forEach((button) => {
@@ -478,12 +464,14 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
 function startTurn(turnNum) {
-  //modifiedSpeed生成 ラウンド開始時に毎ターン起動
+  //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
   for (const party of parties) {
     for (const monster of party) {
       monster.modifiedSpeed = calculateModifiedSpeed(monster);
     }
   }
+  //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
+  closeSelectCommandPopupWindowContents();
 }
 
 //毎ラウンドコマンド選択後処理
@@ -1607,7 +1595,7 @@ const skill = [
     name: "かくせいリバース",
     howToCalculate: "none",
     element: "none",
-    target: "me",
+    target: "all",
     targetteam: "ally",
     order: "anchor",
   },
