@@ -340,8 +340,8 @@ function designateSkillTargetYes() {
   adjustmonstericonstickout();
   //選択終了、次のコマンド選択を待機
 }
-document.getElementById("designateskilltargetbtnyes").addEventListener("click", designateSkillTargetYes);
 
+document.getElementById("designateskilltargetbtnyes").addEventListener("click", designateSkillTargetYes);
 //all-nobtn処理
 document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
