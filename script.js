@@ -277,9 +277,11 @@ function selectcommand(selectedskillnum) {
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   const selectedskillname = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillname;
+  //confirmedcommandに格納
+  const selectedskill = findSkillByName(selectedskillname);
   //nameを取得してconfirmedcommandに保存
-  const skilltargetdetector = skill.find((item) => item.name === selectedskillname).target;
-  const skilltargetteamdetector = skill.find((item) => item.name === selectedskillname).targetteam;
+  const skilltargetdetector = selectedskill.target;
+  const skilltargetteamdetector = selectedskill.targetteam;
   //nameからskill配列を検索、targetとtargetteamを引いてくる
   if (skilltargetdetector === "random" || skilltargetdetector === "single" || skilltargetdetector === "dead") {
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
@@ -291,11 +293,11 @@ function selectcommand(selectedskillnum) {
     }
     //味方選択中かつskillのtargetteamがenemyのとき、または敵選択中かつskillのtargetteamがallyのとき、敵画像を代入
     //逆に味方選択中かつtargetteamがallyのとき、または敵選択中かつtargetteamがenemyのとき、味方画像を代入
-    const excludeTarget = skill.find((item) => item.name === selectedskillname)?.excludeTarget;
+
     if ((selectingwhichteamscommand === 0 && skilltargetteamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetteamdetector === "ally")) {
-      selectskilltargettoggler(1, skilltargetdetector, skilltargetteamdetector, excludeTarget); //敵画像
+      selectskilltargettoggler(1, skilltargetdetector, skilltargetteamdetector, selectedskill); //敵画像
     } else {
-      selectskilltargettoggler(0, skilltargetdetector, skilltargetteamdetector, excludeTarget); //味方画像
+      selectskilltargettoggler(0, skilltargetdetector, skilltargetteamdetector, selectedskill); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetdetector === "all") {
@@ -314,7 +316,7 @@ function selectcommand(selectedskillnum) {
   }
 }
 
-function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltargetteamdetector, excludeTarget) {
+function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltargetteamdetector, selectedskill) {
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
   updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
   updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
@@ -323,6 +325,7 @@ function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltarge
   updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
 
   // target選択用iconに対して、順番に非表示や暗転&無効化
+  const excludeTarget = selectedskill.excludeTarget || null;
   for (let i = 0; i < 5; i++) {
     const targetMonsterElement = document.getElementById(`selecttargetmonster${i}`);
     const targetMonster = parties[targetteamnum][i];
@@ -354,6 +357,10 @@ function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltarge
 
     // スキルが自分を対象外にする場合、自分の画像を暗転&無効化
     if (excludeTarget && excludeTarget === "me" && selectingwhichmonsterscommand === i) {
+      toggleDarkenAndClick(targetMonsterElement, true);
+    }
+    //みがわりの場合、覆う中の対象を暗転&無効化
+    if (selectedskill.name === "みがわり" && (targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -1844,4 +1851,9 @@ function toggleDarkenAndClick(imgElement, enable) {
     // ポインターイベントを有効化
     imgElement.style.pointerEvents = "auto";
   }
+}
+
+function findSkillByName(skillName) {
+  // グローバル変数 skill を参照して、一致するスキルを検索
+  return skill.find((skill) => skill.name === skillName);
 }
