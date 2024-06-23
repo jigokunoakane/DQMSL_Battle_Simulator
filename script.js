@@ -247,7 +247,7 @@ document.getElementById("commandnormalattackbtn").addEventListener("click", func
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "通常攻撃";
   document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-  selectskilltargettoggler(selectingwhichteamscommand === 0 ? 1 : 0);
+  selectskilltargettoggler(selectingwhichteamscommand === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
   document.getElementById("designateskilltarget").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
 });
