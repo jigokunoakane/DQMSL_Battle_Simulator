@@ -432,7 +432,7 @@ select {
   z-index: 90;
   /*opacity: 0;*/
   transition: opacity 0.2s linear; /*ここでウィンドウ出現時のラグを指定*/
-  padding: 3px 3px;
+  padding: 4px 4px;
 }
 
 #selectcommandpopupwindow-contents {
@@ -531,7 +531,7 @@ select {
   display: flex;
   width: 80%;
   height: 100%;
-  justify-content: center;
+  justify-content: flex-start; /* 左揃え */
   align-items: center;
 }
 

@@ -155,6 +155,8 @@ function preparebattle() {
       monster.confirmedcommand = "";
       monster.confirmedcommandtarget = "";
       monster.buffs = [];
+      monster.abnormalities = [];
+      monster.flags = [];
     }
   }
 
@@ -279,15 +281,21 @@ function selectcommand(selectedskillnum) {
   const skilltargetdetector = skill.find((item) => item.name === selectedskillname).target;
   const skilltargetteamdetector = skill.find((item) => item.name === selectedskillname).targetteam;
   //nameからskill配列を検索、targetとtargetteamを引いてくる
-  if (skilltargetdetector === "random" || skilltargetdetector === "single") {
+  if (skilltargetdetector === "random" || skilltargetdetector === "single" || skilltargetdetector === "dead") {
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
+    if (skilltargetteamdetector === "ally") {
+      document.getElementById("selectcommandpopupwindow-text").textContent = "モンスターをタッチしてください。";
+    } else if (skilltargetdetector === "dead") {
+      document.getElementById("selectcommandpopupwindow-text").textContent = "回復するモンスターをタッチしてください。";
+    }
     //味方選択中かつskillのtargetteamがenemyのとき、または敵選択中かつskillのtargetteamがallyのとき、敵画像を代入
     //逆に味方選択中かつtargetteamがallyのとき、または敵選択中かつtargetteamがenemyのとき、味方画像を代入
+    const excludeTarget = skill.find((item) => item.name === selectedskillname)?.excludeTarget;
     if ((selectingwhichteamscommand === 0 && skilltargetteamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetteamdetector === "ally")) {
-      selectskilltargettoggler(1); //敵画像
+      selectskilltargettoggler(1, skilltargetdetector, skilltargetteamdetector, excludeTarget); //敵画像
     } else {
-      selectskilltargettoggler(0); //味方画像
+      selectskilltargettoggler(0, skilltargetdetector, skilltargetteamdetector, excludeTarget); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetdetector === "all") {
@@ -306,13 +314,49 @@ function selectcommand(selectedskillnum) {
   }
 }
 
-function selectskilltargettoggler(targetteamnum) {
+function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltargetteamdetector, excludeTarget) {
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
   updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
   updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
   updatebattleicons("selecttargetmonster2", parties[targetteamnum][2].id);
   updatebattleicons("selecttargetmonster3", parties[targetteamnum][3].id);
   updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
+
+  // target選択用iconに対して、順番に非表示や暗転&無効化
+  for (let i = 0; i < 5; i++) {
+    const targetMonsterElement = document.getElementById(`selecttargetmonster${i}`);
+    const targetMonster = parties[targetteamnum][i];
+    const targetMonsterWrapper = targetMonsterElement.parentNode; // wrapper要素を取得
+    //初期化で暗転&無効化解除
+    toggleDarkenAndClick(targetMonsterElement, false);
+    //初期化表示
+    targetMonsterElement.style.display = "inline";
+    targetMonsterWrapper.style.display = "flex";
+
+    if (skilltargetdetector === "dead") {
+      // 蘇生などdead対象のskillの場合、死亡モンスターは初期化で表示のまま、生きているモンスターは非表示
+      if (!(targetMonster.flags && targetMonster.flags.isDead)) {
+        targetMonsterElement.style.display = "none";
+        targetMonsterWrapper.style.display = "none";
+      }
+    } else {
+      // dead以外の通常スキルで、skilltargetteamdetectorがenemyの場合、死亡している敵は非表示
+      //skilltargetteamdetectorがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
+      if (targetMonster.flags && targetMonster.flags.isDead) {
+        if (skilltargetteamdetector === "enemy") {
+          targetMonsterElement.style.display = "none";
+          targetMonsterWrapper.style.display = "none";
+        } else if (skilltargetteamdetector === "ally") {
+          toggleDarkenAndClick(targetMonsterElement, true);
+        }
+      }
+    }
+
+    // スキルが自分を対象外にする場合、自分の画像を暗転&無効化
+    if (excludeTarget && excludeTarget === "me" && selectingwhichmonsterscommand === i) {
+      toggleDarkenAndClick(targetMonsterElement, true);
+    }
+  }
 }
 
 //all-yesbtnの場合、そのmonsterのコマンド選択終了
@@ -537,7 +581,7 @@ function decreaseBuffDurations(monster) {
   monster.buffs.forEach((buff) => {
     buff.duration--;
   });
-  monster.abnormality.forEach((eachabnormality) => {
+  monster.abnormalities.forEach((eachabnormality) => {
     eachabnormality.duration--;
   });
 }
@@ -546,7 +590,7 @@ function decreaseBuffDurations(monster) {
 // durationが0になったバフを消去する関数 skill使用前に起動
 function removeExpiredBuffs(monster) {
   monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
-  monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
+  monster.abnormalities = monster.abnormalities.filter((eachabnormality) => eachabnormality.duration > 0);
   updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
 }
 
@@ -1435,6 +1479,7 @@ const skill = [
     element: "none",
     target: "single",
     targetteam: "ally",
+    excludeTarget: "me",
     order: "preemptive",
     preemptivegroup: 4,
   },
@@ -1563,7 +1608,7 @@ const skill = [
     name: "ザオリク",
     howToCalculate: "none",
     element: "none",
-    target: "single",
+    target: "dead",
     targetteam: "ally",
   },
   {
@@ -1785,3 +1830,18 @@ document.getElementById("Reversebtn").addEventListener("click", function () {
   }
   decideTurnOrder(parties, skill);
 });
+
+//画像の暗転と無効化 trueで暗転
+function toggleDarkenAndClick(imgElement, enable) {
+  if (enable) {
+    // 画像を暗くする
+    imgElement.style.filter = "brightness(40%)";
+    // ポインターイベントを無効化
+    imgElement.style.pointerEvents = "none";
+  } else {
+    // 元の明るさに戻す
+    imgElement.style.filter = "brightness(100%)";
+    // ポインターイベントを有効化
+    imgElement.style.pointerEvents = "auto";
+  }
+}
