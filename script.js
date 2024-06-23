@@ -392,19 +392,42 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
 //allでyes選択時、skilltarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmosnterのskill選択に移行する
 function finishSelectingEachMonstersCommand() {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  //allから来た場合に閉じる
-  //5体目のmonsterのコマンド終了時の場合分岐
-  if (selectingwhichmonsterscommand > 3) {
-    askfinishselectingcommand();
-    return;
-  }
-  //1-4体目のmonsterのコマンド終了時は普通に続行
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  disablecommandbtns(false);
-  //yesno画面とpopup全体を閉じる
+
+  // 一時的にselectingwhichmonsterscommandを保持
+  let tempSelectingMonsterIndex = selectingwhichmonsterscommand;
+
+  // 次のモンスターの選択処理に移動
   selectingwhichmonsterscommand += 1;
-  adjustmonstericonstickout();
-  //選択終了、次のコマンド選択を待機
+
+  // 次の行動可能なモンスターが見つかるまでループ
+  while (
+    selectingwhichmonsterscommand < parties[selectingwhichteamscommand].length &&
+    (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]) || hasAbnormality(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]))
+  ) {
+    // 行動不能なモンスターのconfirmedcommandを設定
+    if (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand])) {
+      parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "skipThisTurn";
+    } else {
+      parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "normalAICommand";
+    }
+
+    selectingwhichmonsterscommand += 1;
+  }
+
+  // すべてのモンスターの選択が終了したか、行動可能なモンスターが見つかった場合
+  if (selectingwhichmonsterscommand >= parties[selectingwhichteamscommand].length) {
+    // すべてのモンスターの選択が終了した場合
+    // selectingwhichmonsterscommand を最後に選択されたモンスターに戻す
+    selectingwhichmonsterscommand = tempSelectingMonsterIndex;
+    askfinishselectingcommand();
+  } else {
+    // 行動可能なモンスターが見つかった場合
+    adjustmonstericonstickout();
+    // スキル選択ポップアップを閉じる
+    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    // コマンドボタンを有効化
+    disablecommandbtns(false);
+  }
 }
 
 //allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
@@ -425,8 +448,17 @@ function adjustmonstericonstickout() {
 
 function backbtn() {
   //preparebattleでも起動
-  selectingwhichmonsterscommand = Math.max(selectingwhichmonsterscommand - 1, 0);
-  adjustmonstericonstickout();
+  // 現在選択中のモンスターより前に行動可能なモンスターがいるか確認
+  let previousActionableMonsterIndex = selectingwhichmonsterscommand - 1;
+  while (previousActionableMonsterIndex >= 0) {
+    if (!isDead(parties[selectingwhichteamscommand][previousActionableMonsterIndex]) && !hasAbnormality(parties[selectingwhichteamscommand][previousActionableMonsterIndex])) {
+      // 行動可能なモンスターが見つかった場合、そのモンスターを選択
+      selectingwhichmonsterscommand = previousActionableMonsterIndex;
+      adjustmonstericonstickout();
+      return;
+    }
+    previousActionableMonsterIndex--;
+  }
 }
 
 //全て閉じてcommandbtnを有効化する関数
@@ -461,7 +493,18 @@ document.getElementById("askfinishselectingcommandbtnno").addEventListener("clic
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   disablecommandbtns(false);
-  //閉じる処理と同様の処理
+
+  // 最後尾の行動可能なモンスターのインデックスを取得
+  selectingwhichmonsterscommand = parties[selectingwhichteamscommand].length - 1;
+  while (
+    selectingwhichmonsterscommand >= 0 &&
+    (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]) || hasAbnormality(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]))
+  ) {
+    selectingwhichmonsterscommand--;
+  }
+
+  // 選択中のモンスターを強調表示
+  adjustmonstericonstickout();
 });
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
@@ -487,16 +530,28 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
 
 //敵のコマンド選択方法-player
 document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("click", function () {
-  selectingwhichmonsterscommand = 0;
-  selectingwhichteamscommand = 1;
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  //以下、手動選択のための処理
-  disablecommandbtns(false);
-  //アイコン反転
-  preparebattlepageicons(0, 1);
-  adjustmonstericonstickout();
+  // 敵モンスターの状態を確認
+  if (isPartyIncapacitated(1)) {
+    // 敵モンスターが全員行動不能の場合
+    skipAllMonsterCommandSelection(1);
+    askfinishselectingcommand();
+    disablecommandbtns(true);
+    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
+    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
+  } else {
+    // そうでない場合、通常の処理を続行
+    selectingwhichmonsterscommand = 0;
+    selectingwhichteamscommand = 1;
+    document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    //以下、手動選択のための処理
+    disablecommandbtns(false);
+    //アイコン反転
+    preparebattlepageicons(0, 1);
+    adjustmonstericonstickout();
+  }
 });
+
 //敵のコマンド選択方法-improvedAI
 document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {
   selectingwhichmonsterscommand = 0;
@@ -513,6 +568,22 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 });
 //ここは最大ダメージ検知AIなども含めて統合処理
 
+// 指定されたパーティーのモンスターが全員行動不能かどうか判定する関数
+function isPartyIncapacitated(partyIndex) {
+  return parties[partyIndex].every((monster) => isDead(monster) || hasAbnormality(monster));
+}
+
+// 指定されたパーティーのすべてのモンスターの行動をスキップする関数
+function skipAllMonsterCommandSelection(partyIndex) {
+  parties[partyIndex].forEach((monster) => {
+    if (isDead(monster)) {
+      monster.confirmedcommand = "skipThisTurn";
+    } else if (hasAbnormality(monster)) {
+      monster.confirmedcommand = "normalAICommand";
+    }
+  });
+}
+
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
 function startTurn(turnNum) {
   //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
@@ -523,6 +594,15 @@ function startTurn(turnNum) {
   }
   //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
   closeSelectCommandPopupWindowContents();
+
+  if (isPartyIncapacitated(0)) {
+    // 味方モンスターが全員行動不能の場合
+    skipAllMonsterCommandSelection(0);
+    askfinishselectingcommand();
+    disablecommandbtns(true);
+    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
+    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
+  }
 }
 
 //毎ラウンドコマンド選択後処理
@@ -1856,4 +1936,20 @@ function toggleDarkenAndClick(imgElement, enable) {
 function findSkillByName(skillName) {
   // グローバル変数 skill を参照して、一致するスキルを検索
   return skill.find((skill) => skill.name === skillName);
+}
+
+// 死亡判定を行う関数
+function isDead(monster) {
+  return monster.flags.isDead === true;
+}
+
+// 状態異常判定を行う関数
+function hasAbnormality(monster) {
+  const abnormalityKeys = ["fear", "confused", "paralyzed", "asleep", "stoned", "sealed"];
+  for (const key of abnormalityKeys) {
+    if (monster.abnormalities[key]) {
+      return true;
+    }
+  }
+  return false;
 }
