@@ -173,7 +173,7 @@ function preparebattle() {
 
 const fieldState = [];
 
-//戦闘開始時の10のアイコン更新と、targetteamごとに特技target選択画面で起動
+//戦闘開始時の10のアイコン更新と、targetTeamごとに特技target選択画面で起動
 function updatebattleicons(elementId, id) {
   const iconSrc = "images/icons/" + id + ".jpeg";
   document.getElementById(elementId).src = iconSrc;
@@ -280,27 +280,27 @@ function selectcommand(selectedskillnum) {
   //confirmedcommandに格納
   const selectedskill = findSkillByName(selectedskillname);
   //nameを取得してconfirmedcommandに保存
-  const skilltargetdetector = selectedskill.target;
-  const skilltargetteamdetector = selectedskill.targetteam;
-  //nameからskill配列を検索、targetとtargetteamを引いてくる
-  if (skilltargetdetector === "random" || skilltargetdetector === "single" || skilltargetdetector === "dead") {
+  const skilltargetTypedetector = selectedskill.targetType;
+  const skilltargetTeamdetector = selectedskill.targetTeam;
+  //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
+  if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
-    if (skilltargetteamdetector === "ally") {
+    if (skilltargetTeamdetector === "ally") {
       document.getElementById("selectcommandpopupwindow-text").textContent = "モンスターをタッチしてください。";
-    } else if (skilltargetdetector === "dead") {
+    } else if (skilltargetTypedetector === "dead") {
       document.getElementById("selectcommandpopupwindow-text").textContent = "回復するモンスターをタッチしてください。";
     }
-    //味方選択中かつskillのtargetteamがenemyのとき、または敵選択中かつskillのtargetteamがallyのとき、敵画像を代入
-    //逆に味方選択中かつtargetteamがallyのとき、または敵選択中かつtargetteamがenemyのとき、味方画像を代入
+    //味方選択中かつskillのtargetTeamがenemyのとき、または敵選択中かつskillのtargetTeamがallyのとき、敵画像を代入
+    //逆に味方選択中かつtargetTeamがallyのとき、または敵選択中かつtargetTeamがenemyのとき、味方画像を代入
 
-    if ((selectingwhichteamscommand === 0 && skilltargetteamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetteamdetector === "ally")) {
-      selectskilltargettoggler(1, skilltargetdetector, skilltargetteamdetector, selectedskill); //敵画像
+    if ((selectingwhichteamscommand === 0 && skilltargetTeamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetTeamdetector === "ally")) {
+      selectskilltargettoggler(1, skilltargetTypedetector, skilltargetTeamdetector, selectedskill); //敵画像
     } else {
-      selectskilltargettoggler(0, skilltargetdetector, skilltargetteamdetector, selectedskill); //味方画像
+      selectskilltargettoggler(0, skilltargetTypedetector, skilltargetTeamdetector, selectedskill); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
-  } else if (skilltargetdetector === "all") {
+  } else if (skilltargetTypedetector === "all") {
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -316,19 +316,19 @@ function selectcommand(selectedskillnum) {
   }
 }
 
-function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltargetteamdetector, selectedskill) {
+function selectskilltargettoggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedskill) {
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
-  updatebattleicons("selecttargetmonster0", parties[targetteamnum][0].id);
-  updatebattleicons("selecttargetmonster1", parties[targetteamnum][1].id);
-  updatebattleicons("selecttargetmonster2", parties[targetteamnum][2].id);
-  updatebattleicons("selecttargetmonster3", parties[targetteamnum][3].id);
-  updatebattleicons("selecttargetmonster4", parties[targetteamnum][4].id);
+  updatebattleicons("selecttargetmonster0", parties[targetTeamnum][0].id);
+  updatebattleicons("selecttargetmonster1", parties[targetTeamnum][1].id);
+  updatebattleicons("selecttargetmonster2", parties[targetTeamnum][2].id);
+  updatebattleicons("selecttargetmonster3", parties[targetTeamnum][3].id);
+  updatebattleicons("selecttargetmonster4", parties[targetTeamnum][4].id);
 
   // target選択用iconに対して、順番に非表示や暗転&無効化
   const excludeTarget = selectedskill.excludeTarget || null;
   for (let i = 0; i < 5; i++) {
     const targetMonsterElement = document.getElementById(`selecttargetmonster${i}`);
-    const targetMonster = parties[targetteamnum][i];
+    const targetMonster = parties[targetTeamnum][i];
     const targetMonsterWrapper = targetMonsterElement.parentNode; // wrapper要素を取得
     //初期化で暗転&無効化解除
     toggleDarkenAndClick(targetMonsterElement, false);
@@ -343,13 +343,13 @@ function selectskilltargettoggler(targetteamnum, skilltargetdetector, skilltarge
         targetMonsterWrapper.style.display = "none";
       }
     } else {
-      // dead以外の通常スキルで、skilltargetteamdetectorがenemyの場合、死亡している敵は非表示
-      //skilltargetteamdetectorがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
+      // dead以外の通常スキルで、skilltargetTeamdetectorがenemyの場合、死亡している敵は非表示
+      //skilltargetTeamdetectorがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
       if (targetMonster.flags && targetMonster.flags.isDead) {
-        if (skilltargetteamdetector === "enemy") {
+        if (skilltargetTeamdetector === "enemy") {
           targetMonsterElement.style.display = "none";
           targetMonsterWrapper.style.display = "none";
-        } else if (skilltargetteamdetector === "ally") {
+        } else if (skilltargetTeamdetector === "ally") {
           toggleDarkenAndClick(targetMonsterElement, true);
         }
       }
@@ -1388,8 +1388,8 @@ const skill = [
     element: "", //fire ice thun io wind light dark
     order: "", //preemptive anchor
     preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
-    target: "", //single random all
-    targetteam: "enemy",
+    targetType: "", //single random all
+    targetTeam: "enemy",
     numofhit: "",
     ignoreProt: true,
     ignoreReflection: true,
@@ -1405,15 +1405,15 @@ const skill = [
     name: "通常攻撃",
     howToCalculate: "atk",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "ぼうぎょ",
     howToCalculate: "none",
     element: "none",
-    target: "me",
-    targetteam: "ally",
+    targetType: "me",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 6,
   },
@@ -1421,29 +1421,29 @@ const skill = [
     name: "涼風一陣",
     howToCalculate: "fix",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "神楽の術",
     howToCalculate: "int",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "昇天斬り",
     howToCalculate: "atk",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "タップダンス",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
   },
@@ -1451,86 +1451,86 @@ const skill = [
     name: "氷華大繚乱",
     howToCalculate: "atk",
     element: "ice",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "フローズンシャワー",
     howToCalculate: "fix",
     element: "ice",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
     order: "anchor",
   },
   {
     name: "おぞましいおたけび",
     howToCalculate: "atk",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "スパークふんしゃ",
     howToCalculate: "fix",
     element: "thun",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "天空竜の息吹",
     howToCalculate: "fix",
     element: "light",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "エンドブレス",
     howToCalculate: "fix",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "テンペストブレス",
     howToCalculate: "fix",
     element: "wind",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "煉獄火炎",
     howToCalculate: "fix",
     element: "fire",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "むらくもの息吹",
     howToCalculate: "fix",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "獄炎の息吹",
     howToCalculate: "fix",
     element: "fire",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "ほとばしる暗闇",
     howToCalculate: "fix",
     element: "dark",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "防刃の守り",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
   },
@@ -1538,16 +1538,16 @@ const skill = [
     name: "ラヴァフレア",
     howToCalculate: "fix",
     element: "fire",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
     order: "anchor",
   },
   {
     name: "におうだち",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 3,
   },
@@ -1555,8 +1555,8 @@ const skill = [
     name: "大樹の守り",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
   },
@@ -1564,9 +1564,9 @@ const skill = [
     name: "みがわり",
     howToCalculate: "fix",
     element: "none",
-    target: "single",
-    targetteam: "ally",
-    excludeTarget: "me",
+    targetType: "single",
+    targetTeam: "ally",
+    excludetargetType: "me",
     order: "preemptive",
     preemptivegroup: 4,
   },
@@ -1574,15 +1574,15 @@ const skill = [
     name: "超魔滅光",
     howToCalculate: "fix",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "真・ゆうきの斬舞",
     howToCalculate: "atk",
     element: "light",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
   },
@@ -1590,36 +1590,36 @@ const skill = [
     name: "神獣の封印",
     howToCalculate: "none",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "斬撃よそく",
     howToCalculate: "none",
     element: "none",
-    target: "me",
-    targetteam: "ally",
+    targetType: "me",
+    targetTeam: "ally",
   },
   {
     name: "ソウルハーベスト",
     howToCalculate: "atk",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "黄泉の封印",
     howToCalculate: "none",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "暗黒閃",
     howToCalculate: "atk",
     element: "dark",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
   },
@@ -1627,30 +1627,30 @@ const skill = [
     name: "終の流星",
     howToCalculate: "fix",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
     order: "anchor",
   },
   {
     name: "失望の光舞",
     howToCalculate: "fix",
     element: "light",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "パニッシュスパーク",
     howToCalculate: "fix",
     element: "thun",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "堕天使の理",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
   },
@@ -1658,22 +1658,22 @@ const skill = [
     name: "ヘルバーナー",
     howToCalculate: "fix",
     element: "fire",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "氷魔のダイヤモンド",
     howToCalculate: "fix",
     element: "ice",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "炎獣の爪",
     howToCalculate: "atk",
     element: "fire",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
   },
@@ -1681,36 +1681,36 @@ const skill = [
     name: "プリズムヴェール",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
   },
   {
     name: "ルカナン",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "ザオリク",
     howToCalculate: "none",
     element: "none",
-    target: "dead",
-    targetteam: "ally",
+    targetType: "dead",
+    targetTeam: "ally",
   },
   {
     name: "タイムストーム",
     howToCalculate: "int",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "零時の儀式",
     howToCalculate: "int",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 7,
   },
@@ -1718,8 +1718,8 @@ const skill = [
     name: "クロノストーム",
     howToCalculate: "int",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
   },
@@ -1727,38 +1727,38 @@ const skill = [
     name: "かくせいリバース",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     order: "anchor",
   },
   {
     name: "呪いの儀式",
     howToCalculate: "int",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
   },
   {
     name: "はめつの流星",
     howToCalculate: "int",
     element: "io",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "暗黒神の連撃",
     howToCalculate: "fix",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
     order: "anchor",
   },
   {
     name: "真・闇の結界",
     howToCalculate: "none",
     element: "none",
-    target: "me",
-    targetteam: "ally",
+    targetType: "me",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
   },
@@ -1766,15 +1766,15 @@ const skill = [
     name: "必殺の双撃",
     howToCalculate: "atk",
     element: "none",
-    target: "single",
-    targetteam: "enemy",
+    targetType: "single",
+    targetTeam: "enemy",
   },
   {
     name: "帝王のかまえ",
     howToCalculate: "none",
     element: "none",
-    target: "me",
-    targetteam: "ally",
+    targetType: "me",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
   },
@@ -1782,15 +1782,15 @@ const skill = [
     name: "体砕きの斬舞",
     howToCalculate: "atk",
     element: "none",
-    target: "random",
-    targetteam: "enemy",
+    targetType: "random",
+    targetTeam: "enemy",
   },
   {
     name: "アストロンゼロ",
     howToCalculate: "none",
     element: "none",
-    target: "me",
-    targetteam: "ally",
+    targetType: "me",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
   },
@@ -1798,16 +1798,16 @@ const skill = [
     name: "衝撃波",
     howToCalculate: "atk",
     element: "none",
-    target: "all",
-    targetteam: "enemy",
+    targetType: "all",
+    targetTeam: "enemy",
     order: "anchor",
   },
   {
     name: "おおいかくす",
     howToCalculate: "none",
     element: "none",
-    target: "single",
-    targetteam: "ally",
+    targetType: "single",
+    targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 3,
   },
@@ -1815,8 +1815,8 @@ const skill = [
     name: "闇の紋章",
     howToCalculate: "none",
     element: "none",
-    target: "all",
-    targetteam: "ally",
+    targetType: "all",
+    targetTeam: "ally",
     following: "", //敵にも付与
   },
   {
