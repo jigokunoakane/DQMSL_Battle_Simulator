@@ -1973,3 +1973,111 @@ function hasAbnormality(monster) {
   }
   return false;
 }
+
+function displayDamage(monster, damage, resistance) {
+  const monsterIcon = document.getElementById(monster.iconElementId);
+  if (damage === 0) {
+    // ダメージが0の場合はmissを表示
+    const missImage = document.createElement("img");
+    missImage.src = "images/systems/miss.png";
+    missImage.style.position = "absolute";
+    missImage.style.width = monsterIcon.offsetWidth + "px";
+    missImage.style.height = "auto";
+    missImage.style.top = "50%"; // 中央に配置
+    missImage.style.left = "50%"; // 中央に配置
+    missImage.style.transform = "translate(-50%, -50%)"; // 中央に配置
+    monsterIcon.parentElement.appendChild(missImage);
+
+    // missImageのアニメーション
+    setTimeout(() => {
+      missImage.style.transition = "transform 0.04s ease-in-out";
+
+      // 現在のtransformを取得
+      const currentTransform = missImage.style.transform;
+
+      // translateY(-15%)を追加
+      missImage.style.transform = `${currentTransform} translateY(-15%)`;
+
+      setTimeout(() => {
+        missImage.style.transform = currentTransform; // 元の位置に戻す
+        setTimeout(() => {
+          missImage.remove();
+        }, 200);
+      }, 40);
+    }, 60);
+  } else {
+    // ダメージが0以外の場合は、ダメージ画像と数値を表示
+    const damageContainer = document.createElement("div");
+    damageContainer.style.position = "absolute";
+    damageContainer.style.display = "flex"; // 数字を横に並べるために flexbox を使用
+    damageContainer.style.top = "50%";
+    damageContainer.style.left = "50%";
+    damageContainer.style.transform = "translate(-50%, -50%)";
+    damageContainer.style.justifyContent = "center";
+
+    // ギザギザの画像を設定
+    let damageImagePath = monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
+
+    // 耐性によって画像を変更
+    if (resistance === "Weakness") {
+      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
+    } else if (resistance === "superWeakness") {
+      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
+    } else if (resistance === "ultraWeakness") {
+      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
+    }
+
+    const damageImage = document.createElement("img");
+    damageImage.src = damageImagePath;
+    damageImage.style.position = "absolute";
+    damageImage.style.width = monsterIcon.offsetWidth + "px";
+    damageImage.style.height = monsterIcon.offsetHeight + "px";
+    damageImage.style.top = monsterIcon.offsetTop + "px";
+    damageImage.style.left = monsterIcon.offsetLeft + "px";
+
+    monsterIcon.parentElement.appendChild(damageImage);
+    monsterIcon.parentElement.appendChild(damageContainer);
+
+    // ダメージの数値画像を生成
+    const digits = damage.toString().split("");
+    for (let i = 0; i < digits.length; i++) {
+      const digitImage = document.createElement("img");
+      digitImage.src = `images/systems/${digits[i]}.png`;
+      digitImage.style.maxWidth = "50%"; // 親要素の幅に合わせて縮小
+      digitImage.style.height = "auto"; // 高さを自動調整
+      digitImage.style.marginLeft = "-2px"; // 左マージンを-2pxに設定
+      digitImage.style.marginRight = "-2px"; // 右マージンを-2pxに設定 近づける
+      damageContainer.appendChild(digitImage);
+
+      // 各数字のアニメーションを設定
+      const delay = i * 30; // 左の桁から順番に遅延させる
+      setTimeout(() => {
+        digitImage.style.transition = "transform 0.03s ease-in-out"; // 滑らかに動くように transition を設定
+        digitImage.style.transform = "translateY(-15%)";
+        setTimeout(() => {
+          digitImage.style.transform = "translateY(-50%)";
+          setTimeout(() => {
+            digitImage.style.transform = "translateY(-15%)";
+            setTimeout(() => {
+              digitImage.style.transform = "translateY(0)";
+            }, 30);
+          }, 30);
+        }, 30);
+      }, delay);
+    }
+
+    // ダメージ表示を消去
+    setTimeout(() => {
+      damageImage.remove();
+      damageContainer.remove();
+    }, digits.length * 30 + 90 + 140); // 最後の桁のアニメーション後 + 0.14秒後に消去
+  }
+}
+
+document.getElementById("testbtn").addEventListener("click", function () {
+  displayDamage(parties[0][0], 1003, "normal");
+  displayDamage(parties[0][1], 2334, "normal");
+  displayDamage(parties[0][2], 234, "normal");
+  displayDamage(parties[0][3], 33, "normal");
+  displayDamage(parties[0][4], 3, "normal");
+});
