@@ -356,7 +356,7 @@ function selectskilltargettoggler(targetTeamnum, skilltargetTypedetector, skillt
     targetMonsterElement.style.display = "inline";
     targetMonsterWrapper.style.display = "flex";
 
-    if (skilltargetdetector === "dead") {
+    if (skilltargetTypedetector === "dead") {
       // 蘇生などdead対象のskillの場合、死亡モンスターは初期化で表示のまま、生きているモンスターは非表示
       if (!(targetMonster.flags && targetMonster.flags.isDead)) {
         targetMonsterElement.style.display = "none";
