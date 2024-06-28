@@ -159,6 +159,26 @@ function preparebattle() {
       monster.flags = [];
     }
   }
+  //iconとbarのelement idを格納
+  for (let i = 0; i < parties.length; i++) {
+    const party = parties[i];
+    for (let j = 0; j < party.length; j++) {
+      const monster = party[j];
+
+      // 接頭辞を設定 (ally または enemy)
+      const prefix = i === 0 ? "ally" : "enemy";
+
+      // 各要素のIDを作成
+      const iconId = `battleicon${prefix}${j}`;
+      const hpBarId = `hpbar${prefix}${j}`;
+      const mpBarId = `mpbar${prefix}${j}`;
+
+      // オブジェクトにIDを追加
+      monster.iconElementId = iconId;
+      monster.hpBarElementId = hpBarId;
+      monster.mpBarElementId = mpBarId;
+    }
+  }
 
   updateHPMPdisplay();
   //戦闘画面の10のimgのsrcを設定

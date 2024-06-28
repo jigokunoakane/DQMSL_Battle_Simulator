@@ -316,191 +316,213 @@
 
       <div id="battlepage">
         <!-- 戦闘画面 -->
-        <button id="preActionbtn" class="normalbutton">味方全員行動早い付与</button>
-        <button id="Reversebtn" class="normalbutton">リバース化</button><br />
+        <div id="battlepage-above">
+          <button id="preActionbtn" class="normalbutton">味方全員行動早い付与</button>
+          <button id="Reversebtn" class="normalbutton">リバース化</button>
+          <button id="testbtn" class="normalbutton">dameテスト</button>
+          <br />
 
-        <div id="enemymonstercontainerbattle" class="monstericons-container">
-          <div class="monstericon-wrapper">
-            <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
+          <div id="enemymonstercontainerbattle" class="monstericons-container">
+            <div class="monstericon-wrapper">
+              <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
+            </div>
           </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
+          <!-- finish enemymonstercontainerbattle -->
+          <!-- todo:class名の最適化-->
+          <div id="enemybars" class="monster-bar-container">
+            <div class="eachbarcontainer">
+              <div id="hpbarenemy0" class="bar">
+                <div id="hpbarinnerenemy0" class="barinner"></div>
+              </div>
+              <div id="mpbarenemy0" class="bar" style="display: none">
+                <div id="mpbarinnerenemy0" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarenemy1" class="bar">
+                <div id="hpbarinnerenemy1" class="barinner"></div>
+              </div>
+              <div id="mpbarenemy1" class="bar" style="display: none">
+                <div id="mpbarinnerenemy1" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarenemy2" class="bar">
+                <div id="hpbarinnerenemy2" class="barinner"></div>
+              </div>
+              <div id="mpbarenemy2" class="bar" style="display: none">
+                <div id="mpbarinnerenemy2" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarenemy3" class="bar">
+                <div id="hpbarinnerenemy3" class="barinner"></div>
+              </div>
+              <div id="mpbarenemy3" class="bar" style="display: none">
+                <div id="mpbarinnerenemy3" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarenemy4" class="bar">
+                <div id="hpbarinnerenemy4" class="barinner"></div>
+              </div>
+              <div id="mpbarenemy4" class="bar" style="display: none">
+                <div id="mpbarinnerenemy4" class="barinner mpbarinner"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- finish enemymonstercontainerbattle -->
-        <!-- todo:class名の最適化-->
-        <div id="enemybars" class="monster-bar-container">
-          <div class="eachbarcontainer">
-            <div id="hpbarenemy0" class="bar">
-              <div id="hpbarinnerenemy0" class="barinner"></div>
-            </div>
+        <!-- finish battlepage-above -->
+        <div id="battlepage-below">
+          <div id="consolescreen-container">
+            <div id="consolescreen"></div>
           </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarenemy1" class="bar">
-              <div id="hpbarinnerenemy1" class="barinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarenemy2" class="bar">
-              <div id="hpbarinnerenemy2" class="barinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarenemy3" class="bar">
-              <div id="hpbarinnerenemy3" class="barinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarenemy4" class="bar">
-              <div id="hpbarinnerenemy4" class="barinner"></div>
-            </div>
-          </div>
-        </div>
 
-        <div id="consolescreen-container">
-          <div id="consolescreen"></div>
-        </div>
+          <div id="allymonstercontainerbattle" class="monstericons-container">
+            <div class="monstericon-wrapper">
+              <img id="battleiconally0" class="monstericon battlepageallyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconally1" class="monstericon battlepageallyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconally2" class="monstericon battlepageallyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconally3" class="monstericon battlepageallyicon" />
+            </div>
+            <div class="monstericon-wrapper">
+              <img id="battleiconally4" class="monstericon battlepageallyicon" />
+            </div>
+          </div>
+          <!-- finish allymonstercontainerbattle -->
+          <div id="monster-bar-container-ally" class="monster-bar-container">
+            <div class="eachbarcontainer">
+              <div id="hpbarally0" class="bar">
+                <div id="hpbartextally0" class="bartext">0</div>
+                <div id="hpbarinnerally0" class="barinner"></div>
+              </div>
+              <div id="mpbarally0" class="bar">
+                <div id="mpbartextally0" class="bartext">0</div>
+                <div id="mpbarinnerally0" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarally1" class="bar">
+                <div id="hpbartextally1" class="bartext">0</div>
+                <div id="hpbarinnerally1" class="barinner"></div>
+              </div>
+              <div id="mpbarally1" class="bar">
+                <div id="mpbartextally1" class="bartext">0</div>
+                <div id="mpbarinnerally1" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarally2" class="bar">
+                <div id="hpbartextally2" class="bartext">0</div>
+                <div id="hpbarinnerally2" class="barinner"></div>
+              </div>
+              <div id="mpbarally2" class="bar">
+                <div id="mpbartextally2" class="bartext">0</div>
+                <div id="mpbarinnerally2" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarally3" class="bar">
+                <div id="hpbartextally3" class="bartext">0</div>
+                <div id="hpbarinnerally3" class="barinner"></div>
+              </div>
+              <div id="mpbarally3" class="bar">
+                <div id="mpbartextally3" class="bartext">0</div>
+                <div id="mpbarinnerally3" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+            <div class="eachbarcontainer">
+              <div id="hpbarally4" class="bar">
+                <div id="hpbartextally4" class="bartext">0</div>
+                <div id="hpbarinnerally4" class="barinner"></div>
+              </div>
+              <div id="mpbarally4" class="bar">
+                <div id="mpbartextally4" class="bartext">0</div>
+                <div id="mpbarinnerally4" class="barinner mpbarinner"></div>
+              </div>
+            </div>
+          </div>
+          <!-- finish monster-bar-container -->
 
-        <div id="allymonstercontainerbattle" class="monstericons-container">
-          <div class="monstericon-wrapper">
-            <img id="battleiconally0" class="monstericon battlepageallyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconally1" class="monstericon battlepageallyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconally2" class="monstericon battlepageallyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconally3" class="monstericon battlepageallyicon" />
-          </div>
-          <div class="monstericon-wrapper">
-            <img id="battleiconally4" class="monstericon battlepageallyicon" />
-          </div>
-        </div>
-        <!-- finish allymonstercontainerbattle -->
-        <div id="monster-bar-container-ally" class="monster-bar-container">
-          <div class="eachbarcontainer">
-            <div id="hpbarally0" class="bar">
-              <div id="hpbartextally0" class="bartext">0</div>
-              <div id="hpbarinnerally0" class="barinner"></div>
-            </div>
-            <div id="mpbarally0" class="bar">
-              <div id="mpbartextally0" class="bartext">0</div>
-              <div id="mpbarinnerally0" class="barinner mpbarinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarally1" class="bar">
-              <div id="hpbartextally1" class="bartext">0</div>
-              <div id="hpbarinnerally1" class="barinner"></div>
-            </div>
-            <div id="mpbarally1" class="bar">
-              <div id="mpbartextally1" class="bartext">0</div>
-              <div id="mpbarinnerally1" class="barinner mpbarinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarally2" class="bar">
-              <div id="hpbartextally2" class="bartext">0</div>
-              <div id="hpbarinnerally2" class="barinner"></div>
-            </div>
-            <div id="mpbarally2" class="bar">
-              <div id="mpbartextally2" class="bartext">0</div>
-              <div id="mpbarinnerally2" class="barinner mpbarinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarally3" class="bar">
-              <div id="hpbartextally3" class="bartext">0</div>
-              <div id="hpbarinnerally3" class="barinner"></div>
-            </div>
-            <div id="mpbarally3" class="bar">
-              <div id="mpbartextally3" class="bartext">0</div>
-              <div id="mpbarinnerally3" class="barinner mpbarinner"></div>
-            </div>
-          </div>
-          <div class="eachbarcontainer">
-            <div id="hpbarally4" class="bar">
-              <div id="hpbartextally4" class="bartext">0</div>
-              <div id="hpbarinnerally4" class="barinner"></div>
-            </div>
-            <div id="mpbarally4" class="bar">
-              <div id="mpbartextally4" class="bartext">0</div>
-              <div id="mpbarinnerally4" class="barinner mpbarinner"></div>
-            </div>
-          </div>
-        </div>
-        <!-- finish monster-bar-container -->
+          <div id="commandbtns-container">
+            <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
+            <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
+            <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
+            <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
+            <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
+            <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
 
-        <div id="commandbtns-container">
-          <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
-          <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
-          <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
-          <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
-          <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
-          <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
-
-          <div id="selectcommandpopupwindow">
-            <div id="selectcommandpopupwindow-contents">
-              <div id="selectcommandpopupwindow-text"></div>
-              <div id="selectskillbtns">
-                <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
-                <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
-                <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
-                <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
-              </div>
-              <div id="designateskilltarget-all">
-                <div id="designateskilltarget-all-text"></div>
-                <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
-                <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
-              </div>
-              <div id="askfinishselectingcommand">
-                <div id="askfinishselectingcommand-text">コマンド選択を終了しますか？</div>
-                <button id="askfinishselectingcommandbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
-                <button id="askfinishselectingcommandbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
-              </div>
-              <div id="designateskilltarget">
-                <div class="selecttargetmonster-wrapper">
-                  <img class="selecttargetmonster" id="selecttargetmonster0" />
+            <div id="selectcommandpopupwindow">
+              <div id="selectcommandpopupwindow-contents">
+                <div id="selectcommandpopupwindow-text"></div>
+                <div id="selectskillbtns">
+                  <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
+                  <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
+                  <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
+                  <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
                 </div>
-                <div class="selecttargetmonster-wrapper">
-                  <img class="selecttargetmonster" id="selecttargetmonster1" />
+                <div id="designateskilltarget-all">
+                  <div id="designateskilltarget-all-text"></div>
+                  <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
+                  <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
                 </div>
-                <div class="selecttargetmonster-wrapper">
-                  <img class="selecttargetmonster" id="selecttargetmonster2" />
+                <div id="askfinishselectingcommand">
+                  <div id="askfinishselectingcommand-text">コマンド選択を終了しますか？</div>
+                  <button id="askfinishselectingcommandbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
+                  <button id="askfinishselectingcommandbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
                 </div>
-                <div class="selecttargetmonster-wrapper">
-                  <img class="selecttargetmonster" id="selecttargetmonster3" />
+                <div id="designateskilltarget">
+                  <div class="selecttargetmonster-wrapper">
+                    <img class="selecttargetmonster" id="selecttargetmonster0" />
+                  </div>
+                  <div class="selecttargetmonster-wrapper">
+                    <img class="selecttargetmonster" id="selecttargetmonster1" />
+                  </div>
+                  <div class="selecttargetmonster-wrapper">
+                    <img class="selecttargetmonster" id="selecttargetmonster2" />
+                  </div>
+                  <div class="selecttargetmonster-wrapper">
+                    <img class="selecttargetmonster" id="selecttargetmonster3" />
+                  </div>
+                  <div class="selecttargetmonster-wrapper">
+                    <img class="selecttargetmonster" id="selecttargetmonster4" />
+                  </div>
                 </div>
-                <div class="selecttargetmonster-wrapper">
-                  <img class="selecttargetmonster" id="selecttargetmonster4" />
+                <div id="howtoselectenemyscommand">
+                  <div id="howtoselectenemyscommand-text">敵のコマンド選択方法</div>
+                  <button id="howtoselectenemyscommandbtn-player" class="normalbutton howtoselectenemyscommandbtn">選択する</button>
+                  <button disabled id="howtoselectenemyscommandbtn-improvedAI" class="normalbutton howtoselectenemyscommandbtn">強いAI</button>
+                  <button disabled id="howtoselectenemyscommandbtn-takoAI" class="normalbutton howtoselectenemyscommandbtn">たこAI</button>
+                </div>
+                <div id="closeselectcommandpopupwindowbtn-container">
+                  <div id="closeselectcommandpopupwindowbtn"></div>
                 </div>
               </div>
-              <div id="howtoselectenemyscommand">
-                <div id="howtoselectenemyscommand-text">敵のコマンド選択方法</div>
-                <button id="howtoselectenemyscommandbtn-player" class="normalbutton howtoselectenemyscommandbtn">選択する</button>
-                <button disabled id="howtoselectenemyscommandbtn-improvedAI" class="normalbutton howtoselectenemyscommandbtn">強いAI</button>
-                <button disabled id="howtoselectenemyscommandbtn-takoAI" class="normalbutton howtoselectenemyscommandbtn">たこAI</button>
-              </div>
-              <div id="closeselectcommandpopupwindowbtn-container">
-                <div id="closeselectcommandpopupwindowbtn"></div>
-              </div>
+              <!--selectcommandpopupwindow-contents-->
             </div>
-            <!--selectcommandpopupwindow-contents-->
+            <!--selectcommandpopupwindow-->
           </div>
-          <!--selectcommandpopupwindow-->
+          <!-- finish commandbtns-container -->
         </div>
-        <!-- finish commandbtns-container -->
+        <!-- finish battlepage-below -->
       </div>
       <!--finish battlepage-->
     </div>
