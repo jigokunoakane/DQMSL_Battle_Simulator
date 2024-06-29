@@ -2054,12 +2054,16 @@ function displayDamage(monster, damage, resistance, MP) {
     }
   } else {
     // ダメージが0以外の場合は、ダメージ画像と数値を表示
+    // ダメージ効果画像と数値画像をまとめるコンテナを作成
+    const damageEffectContainer = document.createElement("div");
+    damageEffectContainer.style.position = "absolute";
+    damageEffectContainer.style.top = "50%";
+    damageEffectContainer.style.left = "50%";
+    damageEffectContainer.style.transform = "translate(-50%, -50%)";
+
     const damageContainer = document.createElement("div");
-    damageContainer.style.position = "absolute";
+    damageContainer.style.position = "relative";
     damageContainer.style.display = "flex";
-    damageContainer.style.top = "50%";
-    damageContainer.style.left = "50%";
-    damageContainer.style.transform = "translate(-50%, -50%)";
     damageContainer.style.justifyContent = "center";
 
     // ダメージ/回復効果画像を設定
@@ -2088,11 +2092,25 @@ function displayDamage(monster, damage, resistance, MP) {
     effectImage.style.position = "absolute";
     effectImage.style.width = monsterIcon.offsetWidth + "px";
     effectImage.style.height = monsterIcon.offsetHeight + "px";
-    effectImage.style.top = monsterIcon.offsetTop + "px";
-    effectImage.style.left = monsterIcon.offsetLeft + "px";
+    // effectImage を damageEffectContainer の中心に配置
+    effectImage.style.top = "50%";
+    effectImage.style.left = "50%";
+    effectImage.style.transform = "translate(-50%, -50%)";
 
-    monsterIcon.parentElement.appendChild(effectImage);
-    monsterIcon.parentElement.appendChild(damageContainer);
+    // 既に表示されているダメージエフェクトの数を取得
+    const existingDamageEffects = monsterIcon.parentElement.querySelectorAll('div[style*="translate(-50%, -50%)"], img[src*="Damaged"], img[src*="MPDamaged"]').length;
+
+    // ダメージエフェクトが既に存在する場合はランダムな位置にずらす
+    if (resistance !== -1 && existingDamageEffects > 1) {
+      const randomOffsetX = Math.floor(Math.random() * 21) - 10; // -10px から 10px までのランダムな値
+      const randomOffsetY = Math.floor(Math.random() * 21) - 10;
+      damageEffectContainer.style.transform = `translate(-50%, -50%) translate(${randomOffsetX}px, ${randomOffsetY}px)`; // コンテナごとずらす
+    }
+
+    // 子要素を追加
+    damageEffectContainer.appendChild(effectImage);
+    damageEffectContainer.appendChild(damageContainer);
+    monsterIcon.parentElement.appendChild(damageEffectContainer);
 
     // ダメージ/回復量の数値画像を生成
     const digits = Math.abs(damage).toString().split("");
@@ -2131,8 +2149,7 @@ function displayDamage(monster, damage, resistance, MP) {
 
     // ダメージ/回復表示を消去
     setTimeout(() => {
-      effectImage.remove();
-      damageContainer.remove();
+      damageEffectContainer.remove(); // コンテナごと削除
     }, digits.length * 30 + 90 + 140);
   }
 }
