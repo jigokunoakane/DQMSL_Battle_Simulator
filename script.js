@@ -1974,42 +1974,89 @@ function hasAbnormality(monster) {
   return false;
 }
 
-function displayDamage(monster, damage, resistance) {
+function displayDamage(monster, damage, resistance, MP) {
   const monsterIcon = document.getElementById(monster.iconElementId);
+
   if (damage === 0) {
-    // ダメージが0の場合はmissを表示
-    const missImage = document.createElement("img");
-    missImage.src = "images/systems/miss.png";
-    missImage.style.position = "absolute";
-    missImage.style.width = monsterIcon.offsetWidth + "px";
-    missImage.style.height = "auto";
-    missImage.style.top = "50%"; // 中央に配置
-    missImage.style.left = "50%"; // 中央に配置
-    missImage.style.transform = "translate(-50%, -50%)"; // 中央に配置
-    monsterIcon.parentElement.appendChild(missImage);
+    if (resistance === -1) {
+      // 回復でダメージが0の場合は、回復効果画像と数字0を表示
+      const damageContainer = document.createElement("div");
+      damageContainer.style.position = "absolute";
+      damageContainer.style.display = "flex";
+      damageContainer.style.top = "50%";
+      damageContainer.style.left = "50%";
+      damageContainer.style.transform = "translate(-50%, -50%)";
+      damageContainer.style.justifyContent = "center";
 
-    // missImageのアニメーション
-    setTimeout(() => {
-      missImage.style.transition = "transform 0.04s ease-in-out";
+      const effectImagePath = MP ? "images/systems/MPRecovery.png" : "images/systems/HPRecovery.png"; // MP回復かHP回復か
 
-      // 現在のtransformを取得
-      const currentTransform = missImage.style.transform;
+      const effectImage = document.createElement("img");
+      effectImage.src = effectImagePath;
+      effectImage.style.position = "absolute";
+      effectImage.style.width = monsterIcon.offsetWidth + "px";
+      effectImage.style.height = monsterIcon.offsetHeight + "px";
+      effectImage.style.top = monsterIcon.offsetTop + "px";
+      effectImage.style.left = monsterIcon.offsetLeft + "px";
 
-      // translateY(-15%)を追加
-      missImage.style.transform = `${currentTransform} translateY(-15%)`;
+      monsterIcon.parentElement.appendChild(effectImage);
+      monsterIcon.parentElement.appendChild(damageContainer);
 
+      const digitImage = document.createElement("img");
+      digitImage.src = MP ? "images/systems/MPRecoveryNumbers/0.png" : "images/systems/HPRecoveryNumbers/0.png"; // 数字0の画像
+      digitImage.style.maxWidth = "50%";
+      digitImage.style.height = "auto";
+      damageContainer.appendChild(digitImage);
+
+      // 各数字のアニメーションを設定
       setTimeout(() => {
-        missImage.style.transform = currentTransform; // 元の位置に戻す
+        digitImage.style.transition = "transform 0.03s ease-in-out";
+        digitImage.style.transform = "translateY(-15%)";
         setTimeout(() => {
-          missImage.remove();
-        }, 200);
-      }, 40);
-    }, 60);
+          digitImage.style.transform = "translateY(-50%)";
+          setTimeout(() => {
+            digitImage.style.transform = "translateY(-15%)";
+            setTimeout(() => {
+              digitImage.style.transform = "translateY(0)";
+            }, 30);
+          }, 30);
+        }, 30);
+      }, 0);
+
+      // 表示を消去
+      setTimeout(() => {
+        effectImage.remove();
+        damageContainer.remove();
+      }, 0 + 90 + 140);
+    } else {
+      // ダメージでダメージが0の場合はmissを表示
+      const missImage = document.createElement("img");
+      missImage.src = "images/systems/miss.png";
+      missImage.style.position = "absolute";
+      missImage.style.width = monsterIcon.offsetWidth + "px";
+      missImage.style.height = "auto";
+      missImage.style.top = "50%";
+      missImage.style.left = "50%";
+      missImage.style.transform = "translate(-50%, -50%)";
+      monsterIcon.parentElement.appendChild(missImage);
+
+      // missImageのアニメーション
+      setTimeout(() => {
+        missImage.style.transition = "transform 0.04s ease-in-out";
+        const currentTransform = missImage.style.transform;
+        missImage.style.transform = `${currentTransform} translateY(-15%)`;
+        setTimeout(() => {
+          missImage.style.transform = currentTransform;
+          setTimeout(() => {
+            missImage.remove();
+          }, 200);
+        }, 40);
+      }, 60);
+    }
   } else {
     // ダメージが0以外の場合は、ダメージ画像と数値を表示
     const damageContainer = document.createElement("div");
     damageContainer.style.position = "absolute";
-    damageContainer.style.display = "flex"; // 数字を横に並べるために flexbox を使用
+    damageContainer.style.display = "flex";
     damageContainer.style.top = "50%";
     damageContainer.style.left = "50%";
     damageContainer.style.transform = "translate(-50%, -50%)";
@@ -2017,21 +2064,23 @@ function displayDamage(monster, damage, resistance) {
 
     // ダメージ/回復効果画像を設定
     let effectImagePath = "";
-    if (damage > 0) {
-      // ダメージを与える場合
-      effectImagePath = monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
-
-      // 耐性によって画像を変更
-      if (resistance === "Weakness") {
-        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
-      } else if (resistance === "superWeakness") {
-        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
-      } else if (resistance === "ultraWeakness") {
-        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
-      }
+    if (resistance === -1) {
+      // 回復の場合
+      effectImagePath = MP ? "images/systems/MPRecovery.png" : "images/systems/HPRecovery.png";
     } else {
-      // 回復する場合
-      effectImagePath = "images/systems/HPRecovery.png";
+      // ダメージの場合
+      effectImagePath = MP ? "images/systems/MPDamaged.png" : monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
+
+      // 耐性によって画像を変更 (HPダメージの場合のみ)
+      if (!MP) {
+        if (resistance === "Weakness") {
+          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
+        } else if (resistance === "superWeakness") {
+          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
+        } else if (resistance === "ultraWeakness") {
+          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
+        }
+      }
     }
 
     const effectImage = document.createElement("img");
@@ -2046,20 +2095,27 @@ function displayDamage(monster, damage, resistance) {
     monsterIcon.parentElement.appendChild(damageContainer);
 
     // ダメージ/回復量の数値画像を生成
-    const digits = Math.abs(damage).toString().split(""); // 絶対値を使用
+    const digits = Math.abs(damage).toString().split("");
     for (let i = 0; i < digits.length; i++) {
       const digitImage = document.createElement("img");
-      digitImage.src = `images/systems/${digits[i]}.png`;
-      digitImage.style.maxWidth = "50%"; // 親要素の幅に合わせて縮小
-      digitImage.style.height = "auto"; // 高さを自動調整
-      digitImage.style.marginLeft = "-2px"; // 左マージンを-2pxに設定
-      digitImage.style.marginRight = "-2px"; // 右マージンを-2pxに設定 近づける
+      digitImage.src =
+        resistance === -1
+          ? MP
+            ? `images/systems/MPRecoveryNumbers/${digits[i]}.png`
+            : `images/systems/HPRecoveryNumbers/${digits[i]}.png`
+          : MP
+          ? `images/systems/MPDamageNumbers/${digits[i]}.png`
+          : `images/systems/HPDamageNumbers/${digits[i]}.png`;
+      digitImage.style.maxWidth = "50%";
+      digitImage.style.height = "auto";
+      digitImage.style.marginLeft = "-2px";
+      digitImage.style.marginRight = "-2px";
       damageContainer.appendChild(digitImage);
 
       // 各数字のアニメーションを設定
-      const delay = i * 30; // 左の桁から順番に遅延させる
+      const delay = i * 30;
       setTimeout(() => {
-        digitImage.style.transition = "transform 0.03s ease-in-out"; // 滑らかに動くように transition を設定
+        digitImage.style.transition = "transform 0.03s ease-in-out";
         digitImage.style.transform = "translateY(-15%)";
         setTimeout(() => {
           digitImage.style.transform = "translateY(-50%)";
