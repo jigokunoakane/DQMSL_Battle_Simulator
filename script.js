@@ -2015,31 +2015,38 @@ function displayDamage(monster, damage, resistance) {
     damageContainer.style.transform = "translate(-50%, -50%)";
     damageContainer.style.justifyContent = "center";
 
-    // ギザギザの画像を設定
-    let damageImagePath = monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
+    // ダメージ/回復効果画像を設定
+    let effectImagePath = "";
+    if (damage > 0) {
+      // ダメージを与える場合
+      effectImagePath = monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
 
-    // 耐性によって画像を変更
-    if (resistance === "Weakness") {
-      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
-    } else if (resistance === "superWeakness") {
-      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
-    } else if (resistance === "ultraWeakness") {
-      damageImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
+      // 耐性によって画像を変更
+      if (resistance === "Weakness") {
+        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
+      } else if (resistance === "superWeakness") {
+        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
+      } else if (resistance === "ultraWeakness") {
+        effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
+      }
+    } else {
+      // 回復する場合
+      effectImagePath = "images/systems/HPRecovery.png";
     }
 
-    const damageImage = document.createElement("img");
-    damageImage.src = damageImagePath;
-    damageImage.style.position = "absolute";
-    damageImage.style.width = monsterIcon.offsetWidth + "px";
-    damageImage.style.height = monsterIcon.offsetHeight + "px";
-    damageImage.style.top = monsterIcon.offsetTop + "px";
-    damageImage.style.left = monsterIcon.offsetLeft + "px";
+    const effectImage = document.createElement("img");
+    effectImage.src = effectImagePath;
+    effectImage.style.position = "absolute";
+    effectImage.style.width = monsterIcon.offsetWidth + "px";
+    effectImage.style.height = monsterIcon.offsetHeight + "px";
+    effectImage.style.top = monsterIcon.offsetTop + "px";
+    effectImage.style.left = monsterIcon.offsetLeft + "px";
 
-    monsterIcon.parentElement.appendChild(damageImage);
+    monsterIcon.parentElement.appendChild(effectImage);
     monsterIcon.parentElement.appendChild(damageContainer);
 
-    // ダメージの数値画像を生成
-    const digits = damage.toString().split("");
+    // ダメージ/回復量の数値画像を生成
+    const digits = Math.abs(damage).toString().split(""); // 絶対値を使用
     for (let i = 0; i < digits.length; i++) {
       const digitImage = document.createElement("img");
       digitImage.src = `images/systems/${digits[i]}.png`;
@@ -2066,11 +2073,11 @@ function displayDamage(monster, damage, resistance) {
       }, delay);
     }
 
-    // ダメージ表示を消去
+    // ダメージ/回復表示を消去
     setTimeout(() => {
-      damageImage.remove();
+      effectImage.remove();
       damageContainer.remove();
-    }, digits.length * 30 + 90 + 140); // 最後の桁のアニメーション後 + 0.14秒後に消去
+    }, digits.length * 30 + 90 + 140);
   }
 }
 
