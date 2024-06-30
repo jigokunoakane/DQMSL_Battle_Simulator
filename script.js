@@ -155,7 +155,7 @@ function preparebattle() {
       monster.confirmedcommand = "";
       monster.confirmedcommandtarget = "";
       monster.buffs = [];
-      monster.abnormalities = [];
+      monster.abnormality = [];
       monster.flags = [];
     }
   }
@@ -172,15 +172,24 @@ function preparebattle() {
       const iconId = `battleicon${prefix}${j}`;
       const hpBarId = `hpbar${prefix}${j}`;
       const mpBarId = `mpbar${prefix}${j}`;
+      const hpBarTextId = `hpbartext${prefix}${j}`;
+      const mpBarTextId = `mpbartext${prefix}${j}`;
 
       // オブジェクトにIDを追加
       monster.iconElementId = iconId;
       monster.hpBarElementId = hpBarId;
       monster.mpBarElementId = mpBarId;
+      monster.hpBarTextElementId = hpBarTextId;
+      monster.mpBarTextElementId = mpBarTextId;
     }
   }
 
-  updateHPMPdisplay();
+  // parties内の全ての要素に対してupdateHPMPdisplayを実行
+  for (let i = 0; i < parties.length; i++) {
+    for (let j = 0; j < parties[i].length; j++) {
+      updateHPMPdisplay(parties[i][j]);
+    }
+  }
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons(1, 0);
@@ -215,19 +224,13 @@ function preparebattlepageicons(top, bottom) {
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
-function updateHPMPdisplay(target, damage, oldHP) {
-  document.getElementById("hpbartextally0").textContent = parties[0][0].currentstatus.HP;
-  document.getElementById("hpbartextally1").textContent = parties[0][1].currentstatus.HP;
-  document.getElementById("hpbartextally2").textContent = parties[0][2].currentstatus.HP;
-  document.getElementById("hpbartextally3").textContent = parties[0][3].currentstatus.HP;
-  document.getElementById("hpbartextally4").textContent = parties[0][4].currentstatus.HP;
-  document.getElementById("mpbartextally0").textContent = parties[0][0].currentstatus.MP;
-  document.getElementById("mpbartextally1").textContent = parties[0][1].currentstatus.MP;
-  document.getElementById("mpbartextally2").textContent = parties[0][2].currentstatus.MP;
-  document.getElementById("mpbartextally3").textContent = parties[0][3].currentstatus.MP;
-  document.getElementById("mpbartextally4").textContent = parties[0][4].currentstatus.MP;
-  //textの調整
-  /*
+function updateHPMPdisplay(target) {
+  document.getElementById(target.hpBarTextElementId).textContent = target.currentstatusHP;
+  document.getElementById(target.mpBarTextElementId).textContent = target.currentstatusMP;
+}
+
+//textの調整
+/*
   const hpPercent = (target.currentHP / target.defaultHP) * 100;
   target - 
   const targetbar = hpbarinnerenemy + targetbarnum;
@@ -243,7 +246,6 @@ function updateHPMPdisplay(target, damage, oldHP) {
   
   //allyのHPMP
 */
-}
 
 function applydamage(target, damage) {
   const oldHP = target.currentstatus.HP;
@@ -631,7 +633,10 @@ function startbattle() {
   decideTurnOrder(parties, skill);
   //1round目なら戦闘開始時flagを持つ特性等を発動
   //ラウンド開始時flagを持つ特性を発動
-  //特技の発動
+  //monsterの行動を順次実行
+  for (const monster of turnOrder) {
+    processMonsterAction(monster, monster.confirmedSkill);
+  }
 }
 
 //バフ管理system
@@ -688,7 +693,7 @@ function decreaseBuffDurations(monster) {
   monster.buffs.forEach((buff) => {
     buff.duration--;
   });
-  monster.abnormalities.forEach((eachabnormality) => {
+  monster.abnormality.forEach((eachabnormality) => {
     eachabnormality.duration--;
   });
 }
@@ -697,7 +702,7 @@ function decreaseBuffDurations(monster) {
 // durationが0になったバフを消去する関数 skill使用前に起動
 function removeExpiredBuffs(monster) {
   monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
-  monster.abnormalities = monster.abnormalities.filter((eachabnormality) => eachabnormality.duration > 0);
+  monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
   updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
 }
 
@@ -871,8 +876,152 @@ function calculateModifiedSpeed(monster) {
   return monster.currentstatus.spd * randomMultiplier;
 }
 // 行動順を出力
-
 //const turnOrder = decideTurnOrder(parties, skills);
+
+//monsterの行動の実行
+
+// スキルを実行する関数
+function processMonsterAction(skillUser, executingSkillName, executedSkill1 = null, executedSkill2 = null, executedSkill3 = null) {
+  // 0. 事前準備
+  let executingSkill = skillUser.skills.find((skill) => skill.name === executingSkillName);
+
+  // 1. 死亡確認
+  if (!(executingSkill.skipDeathCheck ?? false) && isDead(skillUser)) {
+    return; // 死んでいる場合は処理をスキップ
+  }
+
+  // 2. バフ状態異常継続時間確認
+  removeExpiredBuffs(skillUser);
+
+  // 3. 状態異常確認
+  if (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser)) {
+    // 状態異常の場合は7. 行動後処理にスキップ
+    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    return;
+  }
+
+  // 4. 特技封じ確認
+  if (!(executingSkill.skipSkillSealCheck ?? false) && skillUser.abnormality[executingSkill.type + "seal"]) {
+    // 特技封じされている場合は7. 行動後処理にスキップ
+    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    return;
+  }
+
+  // 5. 消費MP確認
+  if (executingSkill.MPcost === "all") {
+    skillUser.currentstatus.MP = 0;
+  } else if (skillUser.currentstatus.MP >= executingSkill.MPcost) {
+    skillUser.currentstatus.MP -= executingSkill.MPcost;
+    updateHPMPdisplay(skillUser);
+  } else {
+    console.log("しかし、MPが足りなかった！");
+    // MP不足の場合は7. 行動後処理にスキップ
+    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    return;
+  }
+
+  // 6. スキル実行処理
+  // ... スキルを実行する処理を実装
+  console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
+
+  // 7. 行動後処理
+  postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+}
+//processMonsterAction終了
+
+// 行動後処理
+function postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3) {
+  // 7-1. followingSkill判定処理
+  if (!isDead(skillUser) && executingSkill.followingSkill) {
+    if (!executedSkill1) {
+      processMonsterAction(skillUser, executingSkill.followingSkill, executingSkill);
+    } else if (!executedSkill2) {
+      processMonsterAction(skillUser, executingSkill.followingSkill, executedSkill1, executingSkill);
+    } else {
+      processMonsterAction(skillUser, executingSkill.followingSkill, executedSkill1, executedSkill2, executingSkill);
+    }
+    return; // followingSkillを実行した場合は以降の処理はスキップ
+  }
+
+  // 7-2. flag付与
+  skillUser.flags.hasActedThisTurn = true;
+  if (executingSkill.type !== "notskill") {
+    skillUser.flags.hasUsedSkillThisTurn = true;
+  }
+
+  // 7-3. AI追撃処理
+  if (!isDead(skillUser) && !hasAbnormality(skillUser) && skillUser.abilities.AINormalAttack && !(executingSkill.noAINormalAttack ?? false) && !(executedSkill1 && executedSkill1.noAINormalAttack)) {
+    const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
+    for (let i = 0; i < attackTimes; i++) {
+      console.log(`${skillUser.name}は通常攻撃で追撃！`);
+      // 通常攻撃を実行
+      executeSkill(skillUser, "AInormalAttack");
+    }
+  }
+
+  // 7-4. 行動後発動特性の処理
+  for (const ability of Object.values(skillUser.abilities)) {
+    if (ability.trigger === "afterAction" && typeof ability.act === "function") {
+      ability.act(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    }
+  }
+
+  // 7-5. 属性断罪の刻印処理
+  if (skillUser.abnormality.elementalRetributionMark && [executingSkill, executedSkill1, executedSkill2, executedSkill3].some((skill) => skill && skill.element !== "none")) {
+    const damage = Math.floor(skillUser.defaultstatus.HP * 0.7);
+    console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
+    applyDamage(skillUser, damage);
+  }
+
+  // 7-6. 毒・継続ダメージ処理
+  if (skillUser.abnormality.poisoned) {
+    const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
+    const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.poisoned.strength * poisonDepth);
+    console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
+    applyDamage(skillUser, damage);
+  }
+  if (skillUser.abnormality.dotDamage) {
+    const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.dotDamage.strength);
+    console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
+    applyDamage(skillUser, damage);
+  }
+
+  // 7-7. 被ダメージ時発動skill処理
+  for (const enemy of parties[skillUser.enemyTeamID]) {
+    if (enemy.flags.isRecentlyDamaged && !enemy.flags.isDead) {
+      for (const ability of Object.values(enemy.abilities)) {
+        if (ability.trigger === "damageTaken" && typeof ability.act === "function") {
+          ability.act(enemy);
+        }
+      }
+    }
+  }
+  // 全てのモンスターの isRecentlyDamaged フラグを削除
+  for (const monster of turnOrder) {
+    delete monster.flags.isRecentlyDamaged;
+  }
+}
+
+// 死亡判定を行う関数
+function isDead(monster) {
+  return monster.flags.isDead === true;
+}
+
+// 状態異常判定を行う関数
+function hasAbnormality(monster) {
+  const abnormalityKeys = ["fear", "confused", "paralyzed", "asleep", "stoned", "sealed"];
+  for (const key of abnormalityKeys) {
+    if (monster.abnormality[key]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ダメージを適用する関数
+function applyDamage(target, damage) {
+  // ... ダメージを適用する処理を実装
+}
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
 /*
@@ -1427,6 +1576,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    damage: "10",
   },
   {
     name: "ぼうぎょ",
@@ -1956,22 +2106,6 @@ function toggleDarkenAndClick(imgElement, enable) {
 function findSkillByName(skillName) {
   // グローバル変数 skill を参照して、一致するスキルを検索
   return skill.find((skill) => skill.name === skillName);
-}
-
-// 死亡判定を行う関数
-function isDead(monster) {
-  return monster.flags.isDead === true;
-}
-
-// 状態異常判定を行う関数
-function hasAbnormality(monster) {
-  const abnormalityKeys = ["fear", "confused", "paralyzed", "asleep", "stoned", "sealed"];
-  for (const key of abnormalityKeys) {
-    if (monster.abnormalities[key]) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function displayDamage(monster, damage, resistance, MP) {
