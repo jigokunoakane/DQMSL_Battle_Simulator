@@ -2155,9 +2155,9 @@ function displayDamage(monster, damage, resistance, MP) {
 }
 
 document.getElementById("testbtn").addEventListener("click", function () {
-  displayDamage(parties[0][0], 1003, "normal");
-  displayDamage(parties[0][1], 2334, "normal");
-  displayDamage(parties[0][2], 234, "normal");
-  displayDamage(parties[0][3], 33, "normal");
-  displayDamage(parties[0][4], 3, "normal");
+  displayDamage(parties[0][0], Math.floor(Math.random() * 1200), 1);
+  displayDamage(parties[0][1], Math.floor(Math.random() * 1200), "normal");
+  displayDamage(parties[0][2], Math.floor(Math.random() * 99), "normal");
+  displayDamage(parties[0][3], Math.floor(Math.random() * 9), "normal");
+  displayDamage(parties[0][4], 0, "normal");
 });
