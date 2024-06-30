@@ -333,7 +333,7 @@ select {
   box-shadow: 0 0 0 1.7px white;
 }
 .barinner {
-  width: 40%; /* 現在のHP割合に応じて調整 */
+  width: 100%; /* 現在のHP割合に応じて調整 */
   height: 100%;
   background-color: #14fe02;
   border-radius: 0.25rem 0 0 0.25rem;

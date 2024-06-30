@@ -184,10 +184,10 @@ function preparebattle() {
     }
   }
 
-  // parties内の全ての要素に対してupdateHPMPdisplayを実行
+  // parties内の全ての要素に対してupdateMonsterBarを実行
   for (let i = 0; i < parties.length; i++) {
     for (let j = 0; j < parties[i].length; j++) {
-      updateHPMPdisplay(parties[i][j]);
+      updateMonsterBar(parties[i][j]);
     }
   }
   //戦闘画面の10のimgのsrcを設定
@@ -224,9 +224,20 @@ function preparebattlepageicons(top, bottom) {
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
-function updateHPMPdisplay(target) {
-  document.getElementById(target.hpBarTextElementId).textContent = target.currentstatusHP;
-  document.getElementById(target.mpBarTextElementId).textContent = target.currentstatusMP;
+function updateMonsterBar(monster) {
+  // HPバーの更新
+  const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
+  const hpBarInner = document.getElementById(`hpbarinner${monster.hpBarElementId.slice(6)}`); // "hpbarinner" 以降のIDを取得
+  hpBarInner.style.width = `${hpPercentage}%`;
+
+  // MPバーの更新
+  const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
+  const mpBarInner = document.getElementById(`mpbarinner${monster.mpBarElementId.slice(6)}`); // "mpbarinner" 以降のIDを取得
+  mpBarInner.style.width = `${mpPercentage}%`;
+
+  // テキストの更新
+  document.getElementById(monster.hpBarTextElementId).textContent = monster.currentstatus.HP;
+  document.getElementById(monster.mpBarTextElementId).textContent = monster.currentstatus.MP;
 }
 
 //textの調整
@@ -912,7 +923,7 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
     skillUser.currentstatus.MP = 0;
   } else if (skillUser.currentstatus.MP >= executingSkill.MPcost) {
     skillUser.currentstatus.MP -= executingSkill.MPcost;
-    updateHPMPdisplay(skillUser);
+    updateMonsterBar(skillUser);
   } else {
     console.log("しかし、MPが足りなかった！");
     // MP不足の場合は7. 行動後処理にスキップ
