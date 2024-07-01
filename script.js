@@ -233,23 +233,34 @@ function updateMonsterBar(monster, isReversed = false) {
   const hpBarTextElementId = `hpbartext${prefix}${monster.hpBarTextElementId.slice(monster.hpBarTextElementId.length - 1)}`;
   const mpBarTextElementId = `mpbartext${prefix}${monster.mpBarTextElementId.slice(monster.mpBarTextElementId.length - 1)}`;
 
-  // HPバーの更新
-  const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
+  // 表示対象の要素を取得
+  const hpBarElement = document.getElementById(hpBarInnerId.replace("hpbarinner", "hpbar"));
   const hpBarInner = document.getElementById(hpBarInnerId);
-  hpBarInner.style.width = `${hpPercentage}%`;
-
-  // MPバーの更新
-  const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
-  const mpBarInner = document.getElementById(mpBarInnerId);
-  mpBarInner.style.width = `${mpPercentage}%`;
-
-  // テキストの更新 敵monsterはtext存在しないのでnullcheck
   const hpBarTextElement = document.getElementById(hpBarTextElementId);
-  if (hpBarTextElement) {
-    hpBarTextElement.textContent = monster.currentstatus.HP;
+  const mpBarInner = document.getElementById(mpBarInnerId);
+  const mpBarTextElement = document.getElementById(mpBarTextElementId);
+
+  // HPバーの表示/非表示制御
+  if (prefix === "enemy" && (monster.flags.isDead || monster.flags.isZombie)) {
+    // prefixがenemy enemy側表示かつ、isDeadまたはisZombieの場合は非表示
+    hpBarElement.style.display = "none";
+  } else {
+    // それ以外の場合は表示
+    hpBarElement.style.display = "block"; // blockまたは元々のdisplayスタイルに戻す
+
+    // HPバーの更新
+    const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
+    hpBarInner.style.width = `${hpPercentage}%`;
+
+    // テキストの更新 敵monsterはtext存在しないのでnullcheck
+    if (hpBarTextElement) {
+      hpBarTextElement.textContent = monster.currentstatus.HP;
+    }
   }
 
-  const mpBarTextElement = document.getElementById(mpBarTextElementId);
+  // MPバーの更新 (常に表示)
+  const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
+  mpBarInner.style.width = `${mpPercentage}%`;
   if (mpBarTextElement) {
     mpBarTextElement.textContent = monster.currentstatus.MP;
   }
