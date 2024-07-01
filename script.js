@@ -181,15 +181,11 @@ function preparebattle() {
       monster.mpBarElementId = mpBarId;
       monster.hpBarTextElementId = hpBarTextId;
       monster.mpBarTextElementId = mpBarTextId;
+
+      updateMonsterBar(monster);
     }
   }
 
-  // parties内の全ての要素に対してupdateMonsterBarを実行
-  for (let i = 0; i < parties.length; i++) {
-    for (let j = 0; j < parties[i].length; j++) {
-      updateMonsterBar(parties[i][j]);
-    }
-  }
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons(1, 0);
@@ -224,22 +220,57 @@ function preparebattlepageicons(top, bottom) {
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
-function updateMonsterBar(monster) {
+function updateMonsterBar(monster, isReversed = false) {
+  // IDのプレフィックスを切り替える
+  let prefix = monster.hpBarElementId.startsWith("hpbarally") ? "ally" : "enemy";
+  if (isReversed) {
+    prefix = prefix === "ally" ? "enemy" : "ally"; // 逆転フラグがtrueならプレフィックスを反転
+  }
+
+  // IDを生成
+  const hpBarInnerId = `hpbarinner${prefix}${monster.hpBarElementId.slice(monster.hpBarElementId.length - 1)}`;
+  const mpBarInnerId = `mpbarinner${prefix}${monster.mpBarElementId.slice(monster.mpBarElementId.length - 1)}`;
+  const hpBarTextElementId = `hpbartext${prefix}${monster.hpBarTextElementId.slice(monster.hpBarTextElementId.length - 1)}`;
+  const mpBarTextElementId = `mpbartext${prefix}${monster.mpBarTextElementId.slice(monster.mpBarTextElementId.length - 1)}`;
+
   // HPバーの更新
   const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
-  const hpBarInner = document.getElementById(`hpbarinner${monster.hpBarElementId.slice(6)}`); // "hpbarinner" 以降のIDを取得
+  const hpBarInner = document.getElementById(hpBarInnerId);
   hpBarInner.style.width = `${hpPercentage}%`;
 
   // MPバーの更新
   const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
-  const mpBarInner = document.getElementById(`mpbarinner${monster.mpBarElementId.slice(6)}`); // "mpbarinner" 以降のIDを取得
+  const mpBarInner = document.getElementById(mpBarInnerId);
   mpBarInner.style.width = `${mpPercentage}%`;
 
-  // テキストの更新
-  document.getElementById(monster.hpBarTextElementId).textContent = monster.currentstatus.HP;
-  document.getElementById(monster.mpBarTextElementId).textContent = monster.currentstatus.MP;
+  // テキストの更新 敵monsterはtext存在しないのでnullcheck
+  const hpBarTextElement = document.getElementById(hpBarTextElementId);
+  if (hpBarTextElement) {
+    hpBarTextElement.textContent = monster.currentstatus.HP;
+  }
+
+  const mpBarTextElement = document.getElementById(mpBarTextElementId);
+  if (mpBarTextElement) {
+    mpBarTextElement.textContent = monster.currentstatus.MP;
+  }
 }
 
+//敵skill選択時に起動
+function reverseMonsterBarDisplay() {
+  for (let i = 0; i < parties.length; i++) {
+    for (let j = 0; j < parties[i].length; j++) {
+      updateMonsterBar(parties[i][j], true); // 逆転フラグをtrueで渡す
+    }
+  }
+}
+//全部元にもどして通常表示
+function restoreMonsterBarDisplay() {
+  for (let i = 0; i < parties.length; i++) {
+    for (let j = 0; j < parties[i].length; j++) {
+      updateMonsterBar(parties[i][j]);
+    }
+  }
+}
 //textの調整
 /*
   const hpPercent = (target.currentHP / target.defaultHP) * 100;
@@ -553,6 +584,7 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
     //popupを閉じ、commandbtnsを無効化
     preparebattlepageicons(1, 0);
     //反転を戻す
+    restoreMonsterBarDisplay();
     removeallstickout();
     startbattle();
   } else {
@@ -582,6 +614,8 @@ document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("
     //アイコン反転
     preparebattlepageicons(0, 1);
     adjustmonstericonstickout();
+    //bar反転
+    reverseMonsterBarDisplay();
   }
 });
 
@@ -894,7 +928,7 @@ function calculateModifiedSpeed(monster) {
 // スキルを実行する関数
 function processMonsterAction(skillUser, executingSkillName, executedSkill1 = null, executedSkill2 = null, executedSkill3 = null) {
   // 0. 事前準備
-  let executingSkill = skillUser.skills.find((skill) => skill.name === executingSkillName);
+  let executingSkill = skillUser.skill.find((skill) => skill.name === executingSkillName);
 
   // 1. 死亡確認
   if (!(executingSkill.skipDeathCheck ?? false) && isDead(skillUser)) {
