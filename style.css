@@ -331,16 +331,20 @@ select {
   border: 0.5px solid;
   border-color: black;
   box-shadow: 0 0 0 1.7px white;
+  z-index: 1; /* bar を damageDisplay よりも手前に表示 */
 }
 .barinner {
+  position: absolute;
   width: 100%; /* 現在のHP割合に応じて調整 */
   height: 100%;
   background-color: #14fe02;
   border-radius: 0.25rem 0 0 0.25rem;
-  transition: width 0.5s ease-in-out;
+  /*transition: width 0.5s ease-in-out;*/
+  z-index: 2; /* 重なり順を上げる */
 }
 .bartext {
   position: absolute;
+  z-index: 3; /* 重なり順を上げる */
   transform: translate(0%, -60%);
   width: 100%;
   text-align: center;
@@ -354,8 +358,15 @@ select {
     black -0.3px -0.3px 0.7px;
 }
 
-.bardamaged {
+.damagedisplay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
   background-color: #e52d0e;
+  border-radius: 0.25rem 0 0 0.25rem;
+  transition: width 0.2s ease-in-out; /* アニメーションの時間と easing を設定 */
+  z-index: 1; /* 重なり順を下げる */
 }
 
 .mpbarinner {

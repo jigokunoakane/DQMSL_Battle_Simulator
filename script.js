@@ -219,8 +219,9 @@ function preparebattlepageicons(top, bottom) {
   updatebattleicons("battleiconally4", parties[bottom][4].id);
 }
 
-//HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後、applydamage内で起動
-function updateMonsterBar(monster, isReversed = false) {
+//HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後applydamage内で起動
+//HPかつdamageがある場合はdamageに代入することで赤いバー表示、isReversedはskill選択時
+function updateMonsterBar(monster, isReversed = false, damage = 0) {
   // IDのプレフィックスを切り替える
   let prefix = monster.hpBarElementId.startsWith("hpbarally") ? "ally" : "enemy";
   if (isReversed) {
@@ -249,8 +250,31 @@ function updateMonsterBar(monster, isReversed = false) {
     hpBarElement.style.display = "block"; // blockまたは元々のdisplayスタイルに戻す
 
     // HPバーの更新
+    const currentHpPercentage = parseFloat(hpBarInner.style.width); // 現在の幅を取得
     const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
-    hpBarInner.style.width = `${hpPercentage}%`;
+    hpBarInner.style.width = `${hpPercentage}%`; // 即座に幅を更新
+
+    // ダメージ表示
+    const damageDisplayId = `damagedisplay${hpBarInnerId.slice(10)}`;
+    const damageDisplay = document.getElementById(damageDisplayId);
+
+    if (damage > 0 && damageDisplay) {
+      // ダメージがある場合
+      damageDisplay.style.width = `${currentHpPercentage}%`; // 赤いバーを現在のHPの長さに設定
+      damageDisplay.style.transition = "none"; // 一旦トランジションを無効化
+      damageDisplay.offsetWidth; // ブラウザにスタイルの適用を強制
+      damageDisplay.style.transition = "width 0.2s ease-in-out"; // トランジションを有効化
+      damageDisplay.style.width = `${hpPercentage}%`; // 0.2秒かけて新しいHPの長さまで縮める
+
+      // 0.2秒後に赤いバーを非表示にする
+      setTimeout(() => {
+        damageDisplay.style.width = "0%";
+      }, 200);
+    } else {
+      // ダメージがない場合
+      damageDisplay.style.width = "0%"; // 赤いバーを非表示にする
+      damageDisplay.style.transition = "none"; // トランジションを無効化
+    }
 
     // テキストの更新 敵monsterはtext存在しないのでnullcheck
     if (hpBarTextElement) {
@@ -282,32 +306,8 @@ function restoreMonsterBarDisplay() {
     }
   }
 }
-//textの調整
-/*
-  const hpPercent = (target.currentHP / target.defaultHP) * 100;
-  target - 
-  const targetbar = hpbarinnerenemy + targetbarnum;
-
-  
-  //enemyのHP
-  const hpPercent = (targetbar.currentHP / targetbar.defaultHP) * 100;
-  const mpPercent = (monster.currentMP / monster.defaultMP) * 100;
-
-  const targetbar = hpbarinnerenemy + targetbarnum;
-  hpBar.style.width = hpPercent + '%';
-  mpBar.style.width = mpPercent + '%';
-  
-  //allyのHPMP
-*/
 
 function applydamage(target, damage) {
-  const oldHP = target.currentstatus.HP;
-  //退避して送る
-  //くじけぬ処理
-  //targetのcurrentからdamageを引く
-  //死亡確認、死んでたらdeathflagを付与して死亡時処理も
-  //currentHPを更新
-  //表示更新
   updateHPMPdisplay(target, damage, oldHP);
 }
 
