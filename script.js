@@ -176,6 +176,8 @@ function preparebattle() {
       const mpBarTextId = `mpbartext${prefix}${j}`;
 
       // オブジェクトにIDを追加
+      monster.index = j;
+      monster.monsterId = `parties[${i}][${j}]`;
       monster.iconElementId = iconId;
       monster.hpBarElementId = hpBarId;
       monster.mpBarElementId = mpBarId;
@@ -212,25 +214,30 @@ function updatebattleicons(monster, reverse = false) {
   const iconElement = document.getElementById(elementId);
   iconElement.src = "images/icons/" + monster.id + ".jpeg";
 
-  if (monster.flags?.isDead) {
+  iconElement.style.display = "flex";
+  //sideが1かつ死亡は非表示、0かつ死亡は暗転、亡者は全て中間
+  if (side === 1 && monster.flags?.isDead) {
     iconElement.style.display = "none";
   } else {
-    iconElement.style.display = "block";
-    iconElement.style.filter = monster.flags?.isZombie ? "brightness(30%)" : monster.flags?.isDead ? "brightness(10%)" : "brightness(100%)";
+    if (monster.flags?.isZombie) {
+      iconElement.style.filter = "brightness(80%)"; //todo:不要か？
+    } else if (!monster.flags?.isZombie && side !== 1 && monster.flags?.isDead) {
+      iconElement.style.filter = "brightness(25%)";
+    } else {
+      iconElement.style.filter = "brightness(100%)";
+    }
   }
 }
 
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
 function preparebattlepageicons(reverse = false) {
-  const topIndex = reverse ? 1 : 0;
-  const bottomIndex = 1 - topIndex;
-
-  for (let i = 0; i < 5; i++) {
-    parties[topIndex][i].index = i; // monsterオブジェクトにindexを追加
-    parties[bottomIndex][i].index = i; // monsterオブジェクトにindexを追加
-
-    updatebattleicons(parties[topIndex][i], reverse);
-    updatebattleicons(parties[bottomIndex][i], reverse);
+  for (let i = 0; i < 2; i++) {
+    for (let j = 0; j < 5; j++) {
+      // parties[i][j] が存在する場合のみ updatebattleicons を実行
+      if (parties[i][j]) {
+        updatebattleicons(parties[i][j], reverse);
+      }
+    }
   }
 }
 
@@ -320,10 +327,6 @@ function restoreMonsterBarDisplay() {
       updateMonsterBar(parties[i][j]);
     }
   }
-}
-
-function applydamage(target, damage) {
-  updateHPMPdisplay(target, damage, oldHP);
 }
 
 //////////////////////////////////////////////////////////////コマンド選択フロー
@@ -1090,8 +1093,149 @@ function hasAbnormality(monster) {
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage) {
-  // ... ダメージを適用する処理を実装
+function applyDamage(target, damage, resistance, MP) {
+  if (resistance === -1) {
+    // 回復処理
+    let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
+    if (target.buffs.healBlock) {
+      healAmount = 0;
+    } else {
+      healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
+    }
+
+    if (MP) {
+      // MP回復
+      healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
+      target.currentstatus.MP += healAmount;
+      console.log(`${target.name}のMPが${healAmount}回復！`);
+      displayDamage(target, -healAmount, -1, MP); // MP回復は負の数で表示
+    } else {
+      // HP回復
+      target.currentstatus.HP += healAmount;
+      console.log(`${target.name}のHPが${healAmount}回復！`);
+      displayDamage(target, -healAmount, -1); // HP回復は負の数で表示
+    }
+
+    updateMonsterBar(target);
+    return;
+  } else {
+    // ダメージ処理
+    if (MP) {
+      // MPダメージ
+      let mpDamage = Math.min(target.currentstatus.MP, Math.floor(damage));
+      target.currentstatus.MP -= mpDamage;
+      console.log(`${target.name}はMPダメージを受けている！`);
+      displayDamage(target, mpDamage, resistance, MP);
+      updateMonsterBar(target);
+      return;
+    } else {
+      // HPダメージ
+      const Hpdamage = Math.floor(damage); // 小数点以下切り捨て
+      target.currentstatus.HP -= Hpdamage;
+      console.log(`${target.name}に${Hpdamage}のダメージ！`);
+      displayDamage(target, Hpdamage, resistance);
+      //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
+
+      if (target.currentstatus.HP <= 0) {
+        // くじけぬ処理
+        if (target.buffs.isUnbreakable) {
+          if (target.buffs.isUnbreakable.type === "toukon") {
+            target.buffs.isUnbreakable.left--;
+            if (Math.random() < 0.75) {
+              handleUnbreakable(target);
+            } else {
+              handleDeath(target);
+            }
+            if (target.buffs.isUnbreakable.left <= 0) {
+              delete target.buffs.isUnbreakable;
+            }
+          } else {
+            if (target.buffs.isUnbreakable.left > 0) {
+              if (target.buffs.Revive) {
+                if (Math.random() < 0.75) {
+                  handleUnbreakable(target);
+                } else {
+                  handleDeath(target);
+                }
+              } else {
+                target.buffs.isUnbreakable.left--;
+                handleUnbreakable(target);
+              }
+            } else {
+              if (Math.random() < 0.75) {
+                handleUnbreakable(target);
+              } else {
+                handleDeath(target);
+              }
+            }
+          }
+        } else {
+          // 死亡処理
+          handleDeath(target);
+        }
+      } else {
+        updateMonsterBar(target, 1);
+        return;
+      }
+    }
+  }
+}
+
+function handleUnbreakable(target) {
+  target.currentstatus.HP = 1;
+  updateMonsterBar(target, 1);
+  console.log(`${target.name}の特性、${target.buffs.isUnbreakable.name}が発動！`);
+  if (target.buffs.isUnbreakable.left > 0) {
+    console.log(`残り${target.buffs.isUnbreakable.left}回`);
+  }
+}
+
+function handleDeath(target) {
+  target.currentstatus.HP = 0;
+  target.flags.isDead = true;
+  target.flags.recentlyKilled = true;
+
+  // keepOnDeathを持たないバフと異常を削除
+  for (const buffKey in target.buffs) {
+    if (!target.buffs[buffKey].keepOnDeath) {
+      delete target.buffs[buffKey];
+    }
+  }
+  for (const abnormalityKey in target.abnormality) {
+    if (!target.abnormality[abnormalityKey].keepOnDeath) {
+      delete target.abnormality[abnormalityKey];
+    }
+  }
+
+  // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
+  if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
+    target.confirmedcommand = "skipThisTurn";
+  }
+  updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
+  updatebattleicons(target);
+  console.log(`${target.name}はちからつきた！`);
+
+  // 復活処理
+  if (target.buffs.Revive || target.buffs.tagTransformation) {
+    let reviveSource = target.buffs.tagTransformation || target.buffs.Revive;
+
+    target.flags.isDead = false;
+    target.currentstatus.HP = Math.ceil(target.defaultstatus.HP * reviveSource.strength);
+    updateMonsterBar(target);
+    updatebattleicons(target);
+    console.log(`なんと${target.name}が生き返った！`);
+    if (reviveSource.act) {
+      reviveSource.act();
+    }
+    delete target.buffs[reviveSource === target.buffs.Revive ? "Revive" : "tagTransformation"];
+  }
+
+  // 亡者化処理
+  if (!target.flags.isDead && target.flags.canBeZombie) {
+    target.flags.isDead = false;
+    target.flags.isZombie = true;
+    updatebattleicons(target);
+  }
 }
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
@@ -2360,9 +2504,9 @@ function displayDamage(monster, damage, resistance, MP) {
 }
 
 document.getElementById("testbtn").addEventListener("click", function () {
-  displayDamage(parties[0][0], Math.floor(Math.random() * 1200), 1);
-  displayDamage(parties[0][1], Math.floor(Math.random() * 1200), "normal");
-  displayDamage(parties[0][2], Math.floor(Math.random() * 99), "normal");
-  displayDamage(parties[0][3], Math.floor(Math.random() * 9), "normal");
-  displayDamage(parties[0][4], 0, "normal");
+  applyDamage(parties[0][0], Math.floor(Math.random() * 200), 1);
+  applyDamage(parties[0][1], Math.floor(Math.random() * 200), 1);
+  applyDamage(parties[0][2], Math.floor(Math.random() * 100), 1);
+  applyDamage(parties[0][3], Math.floor(Math.random() * 50), 1);
+  applyDamage(parties[0][4], 0, 1);
 });
