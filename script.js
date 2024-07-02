@@ -188,7 +188,7 @@ function preparebattle() {
 
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
-  preparebattlepageicons(1, 0);
+  preparebattlepageicons();
   //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
   backbtn();
   //field管理用変数の導入はglobalで
@@ -198,30 +198,45 @@ function preparebattle() {
 
 const fieldState = [];
 
-//戦闘開始時の10のアイコン更新と、targetTeamごとに特技target選択画面で起動
-function updatebattleicons(elementId, id) {
+//targetTeamごとに特技target選択画面で起動
+function setElementIcon(elementId, id) {
   const iconSrc = "images/icons/" + id + ".jpeg";
   document.getElementById(elementId).src = iconSrc;
 }
 
-//prepare、コマンド選択時に起動
-function preparebattlepageicons(top, bottom) {
-  //(1,0)が通常、(0,1)が逆、敵コマンド入力時に一時的に反転
-  updatebattleicons("battleiconenemy0", parties[top][0].id);
-  updatebattleicons("battleiconenemy1", parties[top][1].id);
-  updatebattleicons("battleiconenemy2", parties[top][2].id);
-  updatebattleicons("battleiconenemy3", parties[top][3].id);
-  updatebattleicons("battleiconenemy4", parties[top][4].id);
-  updatebattleicons("battleiconally0", parties[bottom][0].id);
-  updatebattleicons("battleiconally1", parties[bottom][1].id);
-  updatebattleicons("battleiconally2", parties[bottom][2].id);
-  updatebattleicons("battleiconally3", parties[bottom][3].id);
-  updatebattleicons("battleiconally4", parties[bottom][4].id);
+//死亡処理で起動、死亡時や亡者化のicon変化処理、preparebattlepageiconsでも起動して敵skill選択時の反転にそれを反映する
+//状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
+function updatebattleicons(monster, reverse = false) {
+  const side = reverse ? 1 - monster.teamID : monster.teamID;
+  const elementId = `battleicon${side === 0 ? "ally" : "enemy"}${monster.index}`;
+  const iconElement = document.getElementById(elementId);
+  iconElement.src = "images/icons/" + monster.id + ".jpeg";
+
+  if (monster.flags?.isDead) {
+    iconElement.style.display = "none";
+  } else {
+    iconElement.style.display = "block";
+    iconElement.style.filter = monster.flags?.isZombie ? "brightness(30%)" : monster.flags?.isDead ? "brightness(10%)" : "brightness(100%)";
+  }
+}
+
+//敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
+function preparebattlepageicons(reverse = false) {
+  const topIndex = reverse ? 1 : 0;
+  const bottomIndex = 1 - topIndex;
+
+  for (let i = 0; i < 5; i++) {
+    parties[topIndex][i].index = i; // monsterオブジェクトにindexを追加
+    parties[bottomIndex][i].index = i; // monsterオブジェクトにindexを追加
+
+    updatebattleicons(parties[topIndex][i], reverse);
+    updatebattleicons(parties[bottomIndex][i], reverse);
+  }
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後applydamage内で起動
 //HPかつdamageがある場合はdamageに代入することで赤いバー表示、isReversedはskill選択時
-function updateMonsterBar(monster, isReversed = false, damage = 0) {
+function updateMonsterBar(monster, damage = 0, isReversed = false) {
   // IDのプレフィックスを切り替える
   let prefix = monster.hpBarElementId.startsWith("hpbarally") ? "ally" : "enemy";
   if (isReversed) {
@@ -294,7 +309,7 @@ function updateMonsterBar(monster, isReversed = false, damage = 0) {
 function reverseMonsterBarDisplay() {
   for (let i = 0; i < parties.length; i++) {
     for (let j = 0; j < parties[i].length; j++) {
-      updateMonsterBar(parties[i][j], true); // 逆転フラグをtrueで渡す
+      updateMonsterBar(parties[i][j], "", true); // 逆転フラグをtrueで渡す
     }
   }
 }
@@ -393,11 +408,11 @@ function selectcommand(selectedskillnum) {
 
 function selectskilltargettoggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedskill) {
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
-  updatebattleicons("selecttargetmonster0", parties[targetTeamnum][0].id);
-  updatebattleicons("selecttargetmonster1", parties[targetTeamnum][1].id);
-  updatebattleicons("selecttargetmonster2", parties[targetTeamnum][2].id);
-  updatebattleicons("selecttargetmonster3", parties[targetTeamnum][3].id);
-  updatebattleicons("selecttargetmonster4", parties[targetTeamnum][4].id);
+  setElementIcon("selecttargetmonster0", parties[targetTeamnum][0].id);
+  setElementIcon("selecttargetmonster1", parties[targetTeamnum][1].id);
+  setElementIcon("selecttargetmonster2", parties[targetTeamnum][2].id);
+  setElementIcon("selecttargetmonster3", parties[targetTeamnum][3].id);
+  setElementIcon("selecttargetmonster4", parties[targetTeamnum][4].id);
 
   // target選択用iconに対して、順番に非表示や暗転&無効化
   const excludeTarget = selectedskill.excludeTarget || null;
@@ -593,7 +608,7 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
     disablecommandbtns(true);
     //popupを閉じ、commandbtnsを無効化
-    preparebattlepageicons(1, 0);
+    preparebattlepageicons();
     //反転を戻す
     restoreMonsterBarDisplay();
     removeallstickout();
@@ -623,7 +638,7 @@ document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("
     //以下、手動選択のための処理
     disablecommandbtns(false);
     //アイコン反転
-    preparebattlepageicons(0, 1);
+    preparebattlepageicons(true);
     adjustmonstericonstickout();
     //bar反転
     reverseMonsterBarDisplay();
