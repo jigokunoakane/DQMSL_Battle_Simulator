@@ -408,16 +408,27 @@ select {
 }
 
 #consolescreen {
+  position: relative; /* 文字を絶対配置するため */
   transform: translate(0%, -50%);
-  width: 94%;
-  height: 3rem;
+  width: 96%;
+  height: 3.7rem;
   background-color: black;
   border: 2px solid white;
   border-radius: 10px;
-  /*padding: 10px 10px;*/
+  padding: 6px 10px;
   color: white;
-  font-weight: bold;
-  font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+  font-family: "Hiragino Maru Gothic ProN", "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+  overflow: hidden; /* はみ出た文字を非表示 */
+  display: flex; /* Flexbox を適用 */
+  flex-direction: column; /* 縦方向に配置 */
+  justify-content: space-between; /* 要素間を均等に配置 */
+}
+
+#message-line1,
+#message-line2 {
+  width: auto;
+  margin: 0;
+  font-size: 0.9rem; /* 文字サイズを調整 */
 }
 
 #commandbtns-container {

@@ -990,6 +990,7 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
     updateMonsterBar(skillUser);
   } else {
     console.log("しかし、MPが足りなかった！");
+    displayMessage("しかし、MPが足りなかった！");
     // MP不足の場合は7. 行動後処理にスキップ
     postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
     return;
@@ -1029,6 +1030,7 @@ function postActionProcess(skillUser, executingSkill, executedSkill1, executedSk
     const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
     for (let i = 0; i < attackTimes; i++) {
       console.log(`${skillUser.name}は通常攻撃で追撃！`);
+      displayMessage(`${skillUser.name}の攻撃！`);
       // 通常攻撃を実行
       executeSkill(skillUser, "AInormalAttack");
     }
@@ -1109,11 +1111,13 @@ function applyDamage(target, damage, resistance, MP) {
       healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
       target.currentstatus.MP += healAmount;
       console.log(`${target.name}のMPが${healAmount}回復！`);
+      displayMessage(`${target.name}の`, `MPが　${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1, MP); // MP回復は負の数で表示
     } else {
       // HP回復
       target.currentstatus.HP += healAmount;
       console.log(`${target.name}のHPが${healAmount}回復！`);
+      displayMessage(`${target.name}の`, `HPが　${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1); // HP回復は負の数で表示
     }
 
@@ -1126,6 +1130,7 @@ function applyDamage(target, damage, resistance, MP) {
       let mpDamage = Math.min(target.currentstatus.MP, Math.floor(damage));
       target.currentstatus.MP -= mpDamage;
       console.log(`${target.name}はMPダメージを受けている！`);
+      displayDamage(`${target.name}は　MPダメージを受けている！`);
       displayDamage(target, mpDamage, resistance, MP);
       updateMonsterBar(target);
       return;
@@ -1134,6 +1139,11 @@ function applyDamage(target, damage, resistance, MP) {
       const Hpdamage = Math.floor(damage); // 小数点以下切り捨て
       target.currentstatus.HP -= Hpdamage;
       console.log(`${target.name}に${Hpdamage}のダメージ！`);
+      if (Hpdamage === 0) {
+        displayMessage(`ミス！ダメージをあたえられない！`);
+      } else {
+        displayMessage(`${target.name}に`, `${Hpdamage}のダメージ！！`);
+      }
       displayDamage(target, Hpdamage, resistance);
       //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
 
@@ -1186,8 +1196,10 @@ function handleUnbreakable(target) {
   target.currentstatus.HP = 1;
   updateMonsterBar(target, 1);
   console.log(`${target.name}の特性、${target.buffs.isUnbreakable.name}が発動！`);
+  displayMessage(`${target.name}の特性　${target.buffs.isUnbreakable.name}が発動！`);
   if (target.buffs.isUnbreakable.left > 0) {
     console.log(`残り${target.buffs.isUnbreakable.left}回`);
+    displayMessage(`残り${target.buffs.isUnbreakable.left}回`);
   }
 }
 
@@ -1215,7 +1227,13 @@ function handleDeath(target) {
   }
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
-  console.log(`${target.name}はちからつきた！`);
+  if (target.teamID === 0) {
+    console.log(`${target.name}はちからつきた！`);
+    displayMessage(`${target.name}は　ちからつきた！`);
+  } else {
+    console.log(`${target.name}をたおした！`);
+    displayMessage(`${target.name}を　たおした！`);
+  }
 
   // 復活処理
   if (target.buffs.Revive || target.buffs.tagTransformation) {
@@ -1226,6 +1244,7 @@ function handleDeath(target) {
     updateMonsterBar(target);
     updatebattleicons(target);
     console.log(`なんと${target.name}が生き返った！`);
+    displayMessage(`なんと${target.name}が生き返った！`);
     if (reviveSource.act) {
       reviveSource.act();
     }
@@ -2705,3 +2724,11 @@ document.getElementById("revivebtn").addEventListener("click", function () {
     }
   }
 });
+
+const messageLine1 = document.getElementById("message-line1");
+const messageLine2 = document.getElementById("message-line2");
+
+function displayMessage(line1Text, line2Text = "") {
+  messageLine1.textContent = line1Text;
+  messageLine2.textContent = line2Text;
+}
