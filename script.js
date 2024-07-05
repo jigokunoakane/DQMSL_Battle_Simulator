@@ -154,9 +154,10 @@ function preparebattle() {
       // 初期生成
       monster.confirmedcommand = "";
       monster.confirmedcommandtarget = "";
-      monster.buffs = [];
-      monster.abnormality = [];
-      monster.flags = [];
+      monster.buffs = {};
+      monster.abnormality = {};
+      monster.flags = {};
+      monster.abilities = {};
     }
   }
   //iconとbarのelement idを格納
@@ -1194,6 +1195,7 @@ function handleDeath(target) {
   target.currentstatus.HP = 0;
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
+  target.flags.beforeDeathActionCheck = true;
 
   // keepOnDeathを持たないバフと異常を削除
   for (const buffKey in target.buffs) {
@@ -1236,6 +1238,166 @@ function handleDeath(target) {
     target.flags.isZombie = true;
     updatebattleicons(target);
   }
+}
+
+// スキルを実行する関数
+async function executeSkill(skillUser, executingSkill, target = null) {
+  // 6. スキル実行処理
+  for (const monster of turnOrder) {
+    delete monster.flags.recentlyKilled;
+  }
+
+  // 6-1 スキルターゲット決定
+  let skillTargetTeamMonsters =
+    executingSkill.targetTeam === "ally" ? parties[skillUser.teamID].filter((monster) => !monster.flags.isDead) : parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+
+  let skillTarget;
+  let currentHit = 0;
+
+  // 非同期処理で各ヒットを順番に実行する関数
+  const processHitAsync = async (target) => {
+    if (checkFlag(skillUser, "recentlyKilled") || hasAbnormality(skillUser)) {
+      return;
+    }
+
+    await processHit(skillUser, executingSkill, target);
+    await sleep(70);
+  };
+
+  // 次のヒットを処理する関数
+  const processNextHit = async () => {
+    switch (executingSkill.targetType) {
+      case "all":
+        // 全てのターゲットに対して連続で処理を実行
+        for (const target of skillTargetTeamMonsters) {
+          await processHit(skillUser, executingSkill, target);
+          // 間隔を空けずに連続で処理
+        }
+        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        break;
+      case "single":
+        // 単体特技
+        if (currentHit === 0) {
+          // 最初のヒット時のみターゲットを決定
+          if (target && !target.flags.isDead) {
+            // target が指定されていて、生きている場合はそのまま使用
+            skillTarget = target;
+          } else if (skillUser.confimredskilltarget !== undefined) {
+            // target が指定されていないか、死亡している場合は confirmedskilltarget を使用
+            skillTarget = skillTargetTeamMonsters.find((monster) => monster.index === skillUser.confimredskilltarget);
+          }
+          // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
+          if (!skillTarget || skillTarget.flags.isDead) {
+            skillTarget = skillTargetTeamMonsters[Math.floor(Math.random() * skillTargetTeamMonsters.length)];
+          }
+        }
+
+        // ターゲットが死亡していた場合は処理をスキップ (全滅?)
+        if (skillTarget && !skillTarget.flags.isDead) {
+          await processHitAsync(skillTarget);
+        }
+        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        break;
+
+      case "random":
+        // ランダム特技
+        if (currentHit === 0) {
+          if (target && !target.flags.isDead) {
+            // target が指定されていて、生きている場合はそのまま使用
+            skillTarget = target;
+          } else if (skillUser.confimredskilltarget !== undefined) {
+            // target が指定されていないか、死亡している場合は confirmedskilltarget を使用
+            skillTarget = skillTargetTeamMonsters.find((monster) => monster.index === skillUser.confimredskilltarget);
+          }
+          // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
+          if (!skillTarget || skillTarget.flags.isDead) {
+            skillTarget = skillTargetTeamMonsters[Math.floor(Math.random() * skillTargetTeamMonsters.length)];
+          }
+        } else {
+          // 2発目以降は、既に攻撃済みの対象を除いてランダムにターゲットを選択
+          const validTargets = skillTargetTeamMonsters.filter((monster) => !monster.flags.recentlyKilled);
+          if (validTargets.length > 0) {
+            const randomIndex = Math.floor(Math.random() * validTargets.length);
+            skillTarget = validTargets[randomIndex];
+          }
+        }
+        if (skillTarget) {
+          await processHitAsync(skillTarget);
+        }
+        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        break;
+      case "me":
+        // 自分自身をターゲット
+        skillTarget = skillUser;
+        await processHitAsync(skillTarget);
+        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        break;
+      case "Dead":
+        // 蘇生特技
+        skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
+        await processHitAsync(skillTarget);
+        break;
+      default:
+        console.error("無効なターゲットタイプ:", executingSkill.targetType);
+    }
+
+    currentHit++;
+    if (currentHit < (executingSkill.hitNum ?? 1)) {
+      processNextHit();
+    }
+  };
+
+  await processNextHit(); // 最初のヒットを処理
+}
+
+// それぞれのヒット内の処理
+async function processHit(skillUser, executingSkill, skillTarget) {
+  if (checkFlag(skillTarget, "recentlyKilled")) {
+    return;
+  }
+
+  // みがわり処理
+  if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
+    skillTarget = monsters.find((monster) => monster.name === skillTarget.flags.hasSubstitute); // 名前からモンスターを検索
+  }
+
+  // ダメージ処理
+  const damage = Math.floor(Math.random() * 11) + 95; // 95から105までのランダムなダメージ
+  applyDamage(skillTarget, damage, "");
+}
+
+// 死亡時発動能力の処理
+async function processDeathAction(skillUser) {
+  for (const monster of parties[skillUser.enemyTeamID]) {
+    if (monster.flags.recentlyKilled && monster.flags.beforeDeathActionCheck) {
+      delete monster.flags.beforeDeathActionCheck;
+      for (const ability of Object.values(monster.abilities)) {
+        if (ability.trigger === "death" && typeof ability.act === "function") {
+          await ability.act(monster);
+        }
+      }
+    }
+  }
+
+  // 反射などでskillUserが死亡した場合の処理
+  if (skillUser.flags.recentlyKilled && skillUser.flags.beforeDeathActionCheck) {
+    delete skillUser.flags.beforeDeathActionCheck;
+    for (const ability of Object.values(skillUser.abilities)) {
+      if (ability.trigger === "death" && typeof ability.act === "function") {
+        await ability.act(skillUser);
+      }
+    }
+  }
+}
+
+// 指定 milliseconds だけ処理を一時停止する関数
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+// フラグをチェックする関数
+function checkFlag(target, flagName) {
+  return target.flags[flagName] === true;
 }
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
@@ -1838,6 +2000,7 @@ const skill = [
     element: "ice",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 6,
   },
   {
     name: "フローズンシャワー",
@@ -1846,6 +2009,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     order: "anchor",
+    hitNum: 7,
   },
   {
     name: "おぞましいおたけび",
@@ -1860,6 +2024,7 @@ const skill = [
     element: "thun",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 5,
   },
   {
     name: "天空竜の息吹",
@@ -1867,6 +2032,7 @@ const skill = [
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 5,
   },
   {
     name: "エンドブレス",
@@ -1881,6 +2047,7 @@ const skill = [
     element: "wind",
     targetType: "single",
     targetTeam: "enemy",
+    hitNum: 3,
   },
   {
     name: "煉獄火炎",
@@ -1895,6 +2062,7 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 5,
   },
   {
     name: "獄炎の息吹",
@@ -1902,6 +2070,7 @@ const skill = [
     element: "fire",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 5,
   },
   {
     name: "ほとばしる暗闇",
@@ -1926,6 +2095,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     order: "anchor",
+    hitNum: 3,
   },
   {
     name: "におうだち",
@@ -1951,7 +2121,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludetargetType: "me",
+    excludeTarget: "me",
     order: "preemptive",
     preemptivegroup: 4,
   },
@@ -1970,6 +2140,7 @@ const skill = [
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
+    hitNum: 6,
   },
   {
     name: "神獣の封印",
@@ -1991,6 +2162,7 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 9,
   },
   {
     name: "黄泉の封印",
@@ -2015,6 +2187,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     order: "anchor",
+    hitNum: 6,
   },
   {
     name: "失望の光舞",
@@ -2022,6 +2195,7 @@ const skill = [
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 5,
   },
   {
     name: "パニッシュスパーク",
@@ -2089,6 +2263,7 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 65,
   },
   {
     name: "零時の儀式",
@@ -2105,6 +2280,7 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 6,
     order: "preemptive",
     preemptivegroup: 8,
   },
@@ -2129,6 +2305,7 @@ const skill = [
     element: "io",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 6,
   },
   {
     name: "暗黒神の連撃",
@@ -2137,6 +2314,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     order: "anchor",
+    hitNum: 3,
   },
   {
     name: "真・闇の結界",
@@ -2153,6 +2331,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    hitNum: 2,
   },
   {
     name: "帝王のかまえ",
@@ -2169,6 +2348,7 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
+    hitNum: 6,
   },
   {
     name: "アストロンゼロ",
@@ -2509,4 +2689,19 @@ document.getElementById("testbtn").addEventListener("click", function () {
   applyDamage(parties[0][2], Math.floor(Math.random() * 100), 1);
   applyDamage(parties[0][3], Math.floor(Math.random() * 50), 1);
   applyDamage(parties[0][4], 0, 1);
+});
+
+document.getElementById("revivebtn").addEventListener("click", function () {
+  for (const party of parties) {
+    for (const monster of party) {
+      monster.currentstatus.HP = 200;
+      delete monster.flags.recentlyKilled;
+      delete monster.flags.beforeDeathActionCheck;
+      delete monster.flags.isDead;
+      delete monster.flags.isZombie;
+      delete monster.flags.isRecentlyDamaged;
+      applyDamage(monster, -1500, -1);
+      updatebattleicons(monster);
+    }
+  }
 });
