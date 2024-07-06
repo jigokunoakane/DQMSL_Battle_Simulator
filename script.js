@@ -950,10 +950,6 @@ function calculateModifiedSpeed(monster) {
   const randomMultiplier = 0.975 + Math.random() * 0.05;
   return monster.currentstatus.spd * randomMultiplier;
 }
-// 行動順を出力
-//const turnOrder = decideTurnOrder(parties, skills);
-
-//monsterの行動の実行
 
 // スキルを実行する関数
 function processMonsterAction(skillUser, executingSkillName, executedSkill1 = null, executedSkill2 = null, executedSkill3 = null) {
@@ -965,12 +961,16 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
     return; // 死んでいる場合は処理をスキップ
   }
 
+  removeallstickout();
+  document.getElementById(skillUser.elementId).classList.add("stickout");
+
   // 2. バフ状態異常継続時間確認
   removeExpiredBuffs(skillUser);
 
   // 3. 状態異常確認
   if (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
+    console.log(`${skillUser}は状態異常`);
     postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
     return;
   }
@@ -978,6 +978,7 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
   // 4. 特技封じ確認
   if (!(executingSkill.skipSkillSealCheck ?? false) && skillUser.abnormality[executingSkill.type + "seal"]) {
     // 特技封じされている場合は7. 行動後処理にスキップ
+    console.log(`${skillUser}はとくぎを封じられている！`);
     postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
     return;
   }
@@ -1074,8 +1075,10 @@ function postActionProcess(skillUser, executingSkill, executedSkill1, executedSk
     }
   }
   // 全てのモンスターの isRecentlyDamaged フラグを削除
-  for (const monster of turnOrder) {
-    delete monster.flags.isRecentlyDamaged;
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.isRecentlyDamaged;
+    }
   }
 }
 
@@ -1262,9 +1265,12 @@ function handleDeath(target) {
 // スキルを実行する関数
 async function executeSkill(skillUser, executingSkill, target = null) {
   // 6. スキル実行処理
-  for (const monster of turnOrder) {
-    delete monster.flags.recentlyKilled;
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.recentlyKilled;
+    }
   }
+  /*await sleep(300); // スキル実行前に間隔を置く*/
 
   // 6-1 スキルターゲット決定
   let skillTargetTeamMonsters =
@@ -1275,12 +1281,21 @@ async function executeSkill(skillUser, executingSkill, target = null) {
 
   // 非同期処理で各ヒットを順番に実行する関数
   const processHitAsync = async (target) => {
-    if (checkFlag(skillUser, "recentlyKilled") || hasAbnormality(skillUser)) {
+    // スキル使用者に死亡時発動能力の処理待ちフラグを追加
+    skillUser.flags.waitingForDeathAction = true;
+    // 死亡時発動処理が全て終わるまで待機
+    await processDeathAction(skillUser);
+
+    if ((!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillUser, "recentlyKilled")) || (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser))) {
+      // スキル使用者に死亡時発動能力の処理待ちフラグを削除
+      delete skillUser.flags.waitingForDeathAction;
       return;
     }
 
     await processHit(skillUser, executingSkill, target);
     await sleep(70);
+    // スキル使用者に死亡時発動能力の処理待ちフラグを削除
+    delete skillUser.flags.waitingForDeathAction;
   };
 
   // 次のヒットを処理する関数
@@ -1371,7 +1386,7 @@ async function executeSkill(skillUser, executingSkill, target = null) {
 
 // それぞれのヒット内の処理
 async function processHit(skillUser, executingSkill, skillTarget) {
-  if (checkFlag(skillTarget, "recentlyKilled")) {
+  if (!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillTarget, "recentlyKilled")) {
     return;
   }
 
@@ -1385,25 +1400,38 @@ async function processHit(skillUser, executingSkill, skillTarget) {
   applyDamage(skillTarget, damage, "");
 }
 
+// 死亡時発動能力のキュー
+let deathActionQueue = [];
+
 // 死亡時発動能力の処理
 async function processDeathAction(skillUser) {
-  for (const monster of parties[skillUser.enemyTeamID]) {
-    if (monster.flags.recentlyKilled && monster.flags.beforeDeathActionCheck) {
-      delete monster.flags.beforeDeathActionCheck;
-      for (const ability of Object.values(monster.abilities)) {
-        if (ability.trigger === "death" && typeof ability.act === "function") {
-          await ability.act(monster);
-        }
-      }
+  // キューに死亡時発動能力を持つモンスターを追加する関数
+  function enqueueDeathAction(monster) {
+    if (monster.flags.recentlyKilled && monster.flags.beforeDeathActionCheck && !deathActionQueue.includes(monster)) {
+      deathActionQueue.unshift(monster);
     }
   }
 
-  // 反射などでskillUserが死亡した場合の処理
-  if (skillUser.flags.recentlyKilled && skillUser.flags.beforeDeathActionCheck) {
-    delete skillUser.flags.beforeDeathActionCheck;
-    for (const ability of Object.values(skillUser.abilities)) {
+  // スキル使用者の味方パーティを逆順に処理
+  [...parties[skillUser.teamID]].reverse().forEach(enqueueDeathAction);
+  // スキル使用者の敵パーティを逆順に処理
+  [...parties[skillUser.enemyTeamID]].reverse().forEach(enqueueDeathAction);
+
+  // キューが空になるまで処理を繰り返す
+  while (deathActionQueue.length > 0) {
+    const monster = deathActionQueue.shift(); // キューの先頭からモンスターを取得
+    delete monster.flags.beforeDeathActionCheck;
+
+    for (const ability of Object.values(monster.abilities)) {
       if (ability.trigger === "death" && typeof ability.act === "function") {
-        await ability.act(skillUser);
+        await sleep(700); // 死亡時発動能力実行前に間隔を置く
+        await ability.act(monster);
+
+        // 新たに死亡したモンスターをキューに追加
+        // スキル使用者の味方パーティを処理
+        parties[monster.teamID].forEach(enqueueDeathAction);
+        // スキル使用者の敵パーティを逆順に処理
+        [...parties[monster.enemyTeamID]].reverse().forEach(enqueueDeathAction);
       }
     }
   }
@@ -2404,6 +2432,15 @@ const skill = [
     following: "", //敵にも付与
   },
   {
+    name: "物質の爆発",
+    howToCalculate: "fix",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    skipDeathCheck: true,
+    skipAbnormalityCheck: true,
+  },
+  {
     name: "邪道のかくせい",
     howToCalculate: "none",
     element: "none",
@@ -2721,8 +2758,44 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       delete monster.flags.isRecentlyDamaged;
       applyDamage(monster, -1500, -1);
       updatebattleicons(monster);
+      displayMessage("ザオリーマをとなえた");
     }
   }
+});
+
+document.getElementById("hametsubtn").addEventListener("click", function () {
+  for (const party of parties) {
+    for (const monster of party) {
+      monster.currentstatus.HP = 100;
+      applyDamage(monster, 5, 1);
+      updatebattleicons(monster);
+      monster.buffs.isUnbreakable = { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" };
+    }
+  }
+  parties[0][0].buffs.isUnbreakable = { keepOnDeath: true, left: 3, name: "ラストスタンド" };
+  displayMessage("とうこんを付与したよ");
+});
+
+document.getElementById("flobtn").addEventListener("click", function () {
+  executeSkill(parties[0][0], findSkillByName("フローズンシャワー"), parties[1][0]);
+});
+
+document.getElementById("materialbtn").addEventListener("click", function () {
+  for (const party of parties) {
+    for (const monster of party) {
+      monster.abilities.explode = {
+        trigger: "death",
+        // act 関数を async function として定義
+        act: async function (monster) {
+          console.log(`${monster.name}は爆発した`);
+          displayMessage(`${monster.name}は爆発した！`);
+          await executeSkill(monster, findSkillByName("物質の爆発")); // await を使って executeSkill の完了を待つ
+        },
+      };
+      monster.abilities.explode.act = monster.abilities.explode.act.bind(monster);
+    }
+  }
+  displayMessage("爆発するよ");
 });
 
 const messageLine1 = document.getElementById("message-line1");
