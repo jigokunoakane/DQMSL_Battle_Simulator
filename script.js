@@ -1386,7 +1386,7 @@ async function executeSkill(skillUser, executingSkill, target = null) {
   };
 
   await processNextHit(); // 最初のヒットを処理
-  await sleep(350); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
+  await sleep(400); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
 }
 
 // それぞれのヒット内の処理
@@ -1449,12 +1449,13 @@ async function processDeathAction(skillUser) {
 
     // 死亡時発動能力を実行
     for (const ability of abilitiesToExecute) {
-      await sleep(700);
+      await sleep(500);
       await ability.act(monster);
     }
 
     // 復活処理
     if (monster.buffs.Revive || monster.buffs.tagTransformation) {
+      await sleep(600);
       let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
 
       monster.flags.isDead = false;
@@ -1467,20 +1468,16 @@ async function processDeathAction(skillUser) {
         reviveSource.act();
       }
       delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+      await sleep(400);
     }
 
     // 亡者化処理
-    if (!monster.flags.isDead && monster.flags.canBeZombie) {
-      if (monster.flags.canBeZombie.probability && Math.random() >= monster.flags.canBeZombie.probability) {
-        // 亡者化失敗
-      } else {
-        // 亡者化処理
-        if (!monster.flags.isDead && monster.flags.canBeZombie) {
-          monster.flags.isDead = false;
-          monster.flags.isZombie = true;
-          updatebattleicons(monster);
-        }
-      }
+    if (!monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
+      await sleep(600);
+      monster.flags.isDead = false;
+      monster.flags.isZombie = true;
+      updatebattleicons(monster);
+      await sleep(400);
     }
   }
 }
