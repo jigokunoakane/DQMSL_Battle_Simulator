@@ -1240,203 +1240,154 @@ function handleDeath(target) {
 }
 
 // スキルを実行する関数
-async function executeSkill(skillUser, executingSkill, target = null) {
+async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
   // 6. スキル実行処理
-  const killedThisSkill = new Set(
-    parties.flat().filter((monster) => monster.flags.isDead) // 死亡しているモンスターを初期値として追加
-  );
-  /*await sleep(300); // スキル実行前に間隔を置く*/
-
-  // 6-1 スキルターゲット決定
-  let skillTargetTeamMonsters =
-    executingSkill.targetTeam === "ally" ? parties[skillUser.teamID].filter((monster) => !monster.flags.isDead) : parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
-
-  let skillTarget;
-  let currentHit = 0;
-
-  // 非同期処理で各ヒットを順番に実行する関数
-  const processHitAsync = async (target) => {
-    // スキル使用者に死亡時発動能力の処理待ちフラグを追加
-    skillUser.flags.waitingForDeathAction = true;
-    // 死亡時発動処理が全て終わるまで待機
-    await processDeathAction(skillUser, killedThisSkill);
-
-    if ((!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillUser, "recentlyKilled")) || (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser))) {
-      // スキル使用者に死亡時発動能力の処理待ちフラグを削除
-      delete skillUser.flags.waitingForDeathAction;
-      return false;
+  const killedThisSkill = new Set(); // スキル実行中に死亡したモンスターを追跡
+  // スキル開始時に死亡しているモンスターを記録
+  for (const monster of parties.flat()) {
+    if (monster.flags.isDead) {
+      killedThisSkill.add(monster);
     }
-
-    await processHit(skillUser, executingSkill, target);
-    // processHitの後で、killedThisSkillにターゲットを追加する
-    /*let targetKilled = false; // ターゲットが死亡したかどうかを示すフラグを追加*/
-    if (target.flags.recentlyKilled) {
-      if (!killedThisSkill.has(target)) {
-        killedThisSkill.add(target);
-      }
-      // 蘇生効果がある場合は、processDeathAction()の後にcurrentHitを更新
-      if (target.buffs.Revive || target.buffs.tagTransformation) {
-        await processDeathAction(skillUser, killedThisSkill);
-        if (executingSkill.targetType === "single") {
-          currentHit = executingSkill.hitNum;
-          return true;
-        }
-      } else {
-        // 蘇生効果がない場合は、ここでcurrentHitを更新
-        if (executingSkill.targetType === "single") {
-          currentHit = executingSkill.hitNum;
-          return true;
-        }
-      }
-      return true;
-    }
-    await sleep(70);
-    // スキル使用者に死亡時発動能力の処理待ちフラグを削除
-    delete skillUser.flags.waitingForDeathAction;
-    return false;
-  };
-
-  // 次のヒットを処理する関数processNextHit
-  const handleHit = async (killedThisSkill) => {
-    // skillTargetTeamMonsters を更新する際に、killedThisSkill を考慮
-    skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead && !killedThisSkill.has(monster));
-    switch (executingSkill.targetType) {
-      case "all":
-        // forループの前に、skillTargetTeamMonstersからkilledThisSkillに含まれる要素を除外
-        const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
-        // 全てのターゲットに対して連続で処理を実行
-        for (const target of skillTargetTeamMonsters) {
-          await processHit(skillUser, executingSkill, target);
-          // 間隔を空けずに連続で処理
-        }
-        await processDeathAction(skillUser, killedThisSkill); // 敵とskillUserの死亡時処理
-        break;
-      case "single":
-        // 単体特技
-        if (currentHit === 0) {
-          // 最初のヒット時のみターゲットを決定
-
-          // 有効なターゲットのリストを取得
-          const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
-
-          if (target && !target.flags.isDead && !killedThisSkill.has(target)) {
-            // target が指定されていて、生きていて、killedThisSkill に含まれていない場合はそのまま使用
-            skillTarget = target;
-          } else if (skillUser.confimredskilltarget !== undefined) {
-            // target が指定されていないか、死亡しているか、killedThisSkill に含まれている場合は confirmedskilltarget を使用
-            skillTarget = validTargets.find((monster) => monster.index === skillUser.confimredskilltarget);
-          }
-
-          // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
-          if (!skillTarget || skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
-            skillTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
-          }
-        }
-
-        // ターゲットが死亡していた場合は処理をスキップ (全滅?)
-        // ターゲットが死亡していた場合は処理をスキップ
-        if (skillTarget && !skillTarget.flags.isDead && !killedThisSkill.has(skillTarget)) {
-          const isTargetKilled = await processHitAsync(skillTarget);
-          if (isTargetKilled) {
-            // ターゲットが死亡した場合は、残りのヒット処理をスキップ
-            currentHit = executingSkill.hitNum;
-          }
-        } else {
-          // ターゲットが死亡している場合は、残りのヒット処理をスキップ
-          currentHit = executingSkill.hitNum;
-        }
-        await processDeathAction(skillUser, killedThisSkill);
-        break;
-
-      case "random":
-        // ランダム特技
-        if (currentHit === 0) {
-          // 最初のヒット時
-          // 有効なターゲットのリストを取得
-          const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
-
-          if (target && !target.flags.isDead && !killedThisSkill.has(target)) {
-            // target が指定されていて、生きていて、killedThisSkill に含まれていない場合はそのまま使用
-            skillTarget = target;
-          } else if (skillUser.confimredskilltarget !== undefined) {
-            // target が指定されていないか、死亡しているか、killedThisSkill に含まれている場合は confirmedskilltarget を使用
-            skillTarget = validTargets.find((monster) => monster.index === skillUser.confimredskilltarget);
-          }
-
-          // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
-          if (!skillTarget || skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
-            skillTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
-          }
-        } else {
-          // 2発目以降は、既に攻撃済みの対象を除いてランダムにターゲットを選択
-          const validTargets = skillTargetTeamMonsters.filter((monster) => !monster.flags.recentlyKilled && !killedThisSkill.has(monster));
-          if (validTargets.length > 0) {
-            const randomIndex = Math.floor(Math.random() * validTargets.length);
-            skillTarget = validTargets[randomIndex];
-          } else {
-            // validTargets が空の場合は、残りのヒット処理をスキップ
-            currentHit = executingSkill.hitNum; // ループを抜けるために currentHit を hitNum に設定
-            break; // switch 文を抜ける
-          }
-        }
-        if (skillTarget) {
-          await processHitAsync(skillTarget);
-        }
-        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
-        /*await sleep(430);*/
-
-        break;
-      case "me":
-        // 自分自身をターゲット
-        skillTarget = skillUser;
-        await processHitAsync(skillTarget);
-        await processDeathAction(skillUser, killedThisSkill); // 敵とskillUserの死亡時処理
-        break;
-      case "Dead":
-        // 蘇生特技
-        skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
-        await processHitAsync(skillTarget);
-        break;
-      default:
-        console.error("無効なターゲットタイプ:", executingSkill.targetType);
-    }
-  };
-  // 次のヒットを処理する関数
-  const processNextHit = async (killedThisSkill) => {
-    // skillTargetTeamMonsters を更新する際に、killedThisSkill を考慮
-    // skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead && !killedThisSkill.has(monster)); // 修正
-    if (currentHit < (executingSkill.hitNum ?? 1)) {
-      await handleHit(killedThisSkill);
-      await processDeathAction(skillUser, killedThisSkill); // handleHitの後にも死亡時処理
-      currentHit++;
-      await sleep(400); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
-      await processNextHit(killedThisSkill);
-    }
-    for (const party of parties) {
-      for (const monster of party) {
-        delete monster.flags.recentlyKilled;
-      }
-    }
-  };
-
-  await processNextHit(killedThisSkill); // 最初のヒットを処理
-}
-
-// それぞれのヒット内の処理
-async function processHit(skillUser, executingSkill, skillTarget) {
-  if (!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillTarget, "recentlyKilled")) {
-    return;
   }
 
+  // ヒット処理の実行
+  await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, 0);
+
+  // recentlyKilled フラグをリセット
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.recentlyKilled;
+    }
+  }
+}
+
+// ヒットシーケンスを処理する関数
+async function processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, singleSkillTarget = null) {
+  if (currentHit >= (executingSkill.hitNum ?? 1)) {
+    return; // ヒット数が上限に達したら終了
+  }
+  //毎回deathactionはしているので、停止時はreturnかけてOK
+  //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
+
+  // 反射や死亡時でskillUserが一度でも死亡したら止める
+  //if (!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillTarget, "recentlyKilled")) {
+  // return false;
+  //} まだskillTargetないのかもしれないんだったね
+  //反射や死亡時によって止まったら停止 recentlyよりthisに入れるか、processdeathcheack前に検知してreturn
+
+  let skillTarget;
+
+  // ターゲットタイプに応じたターゲット決定処理
+  switch (executingSkill.targetType) {
+    case "all":
+      // 全体攻撃
+      // 生きているモンスターかつkilledThisSkill対象外をtargetとする
+      const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter(
+        (monster) => !monster.flags.isDead && !killedThisSkill.has(monster)
+      );
+      if (aliveMonsters.length === 0) {
+        return;
+      }
+      for (const target of aliveMonsters) {
+        await processHit(skillUser, executingSkill, target, killedThisSkill);
+      }
+      break;
+    case "single":
+      // 単体攻撃
+      if (currentHit === 0) {
+        // 最初のヒット時のみターゲットを決定
+        skillTarget = determineSingleTarget(assignedTarget, skillUser, killedThisSkill);
+        // ターゲットが存在しない場合は処理を中断
+        if (!skillTarget) {
+          return;
+        }
+      } else {
+        // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
+        skillTarget = singleSkillTarget;
+        // ターゲットが死亡しているかリザオ等した場合に処理を中断
+        if (skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
+          return;
+        }
+      }
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      break;
+    case "random":
+      // ランダム攻撃
+      skillTarget = determineRandomTarget(assignedTarget, skillUser, killedThisSkill, currentHit);
+      if (skillTarget) {
+        await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      } else {
+        return;
+      }
+      break;
+    case "me":
+      // 自分自身をターゲット
+      skillTarget = skillUser;
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      break;
+    case "Dead":
+      // 蘇生特技
+      skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      break;
+    default:
+      console.error("無効なターゲットタイプ:", executingSkill.targetType);
+  }
+
+  // 死亡時発動能力の処理
+  await processDeathAction(skillUser, killedThisSkill);
+
+  // 次のヒット処理
+  currentHit++;
+  await sleep(70);
+  await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget);
+}
+
+// 単体攻撃のターゲットを決定する関数
+function determineSingleTarget(target, skillUser, killedThisSkill) {
+  const aliveMonsters = (skillUser.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+  if (target && !killedThisSkill.has(target) && aliveMonsters.includes(target)) {
+    // 指定されたターゲットが生きていて、killedThisSkillに含まれていない場合は、そのターゲットを返す
+    return target;
+  } else {
+    const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
+    return validTargets[Math.floor(Math.random() * validTargets.length)];
+  }
+}
+
+function determineRandomTarget(target, skillUser, killedThisSkill, currentHit) {
+  if (currentHit === 0) {
+    return determineSingleTarget(target, skillUser, killedThisSkill);
+  } else {
+    const aliveMonsters = (skillUser.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+    const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
+    if (validTargets.length > 0) {
+      return validTargets[Math.floor(Math.random() * validTargets.length)];
+    } else {
+      return null;
+    }
+  }
+}
+
+// ヒット処理を実行する関数
+async function processHit(skillUser, executingSkill, skillTarget, killedThisSkill) {
   // みがわり処理
   if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
-    skillTarget = monsters.find((monster) => monster.name === skillTarget.flags.hasSubstitute); // 名前からモンスターを検索
+    skillTarget = monsters.find((monster) => monster.name === skillTarget.flags.hasSubstitute);
   }
 
   // ダメージ処理
-  const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975; // 0.975から1.025の間のランダムな値を生成
-  const damage = executingSkill.damage * randomMultiplier; // ダメージにランダムな値をかける
+  const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+  const damage = executingSkill.damage * randomMultiplier;
   applyDamage(skillTarget, damage, "");
+
+  if (skillTarget.flags.recentlyKilled) {
+    if (!killedThisSkill.has(skillTarget)) {
+      killedThisSkill.add(skillTarget);
+    }
+    delete skillTarget.flags.recentlyKilled;
+    //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
+  }
 }
 
 // 死亡時発動能力のキュー
@@ -1452,69 +1403,91 @@ async function processDeathAction(skillUser, killedThisSkill) {
   }
 
   // スキル使用者の味方パーティを逆順に処理
-  [...parties[skillUser.teamID]].reverse().forEach(enqueueDeathAction);
+  //[...parties[skillUser.teamID]].reverse().forEach(enqueueDeathAction);
   // スキル使用者の敵パーティを逆順に処理
-  [...parties[skillUser.enemyTeamID]].reverse().forEach(enqueueDeathAction);
+  //[...parties[skillUser.enemyTeamID]].reverse().forEach(enqueueDeathAction);
+  // 死亡したモンスターをキューに追加
+  for (const monster of killedThisSkill) {
+    enqueueDeathAction(monster);
+  }
 
-  // キューが空になるまで処理を繰り返す
   while (deathActionQueue.length > 0) {
-    const monster = deathActionQueue.shift(); // キューの先頭からモンスターを取得
+    const monster = deathActionQueue.shift();
     delete monster.flags.beforeDeathActionCheck;
 
-    const abilitiesToExecute = []; // 実行するabilityを格納する配列
-
-    // 復活とタグ変化が予定されているか判定
-    let isReviving = monster.buffs.Revive || monster.buffs.tagTransformation;
-
-    for (const ability of Object.values(monster.abilities)) {
-      if (ability.left === undefined || ability.left > 0) {
-        // triggerDeathType: exceptReviveが指定されていて、かつ復活が予定されている場合はスキップ
-        if (ability.triggerDeathType === "exceptRevive" && isReviving) {
-          continue;
-        }
-        abilitiesToExecute.push(ability);
-        if (ability.left !== undefined) {
-          // left が定義されている場合のみデクリメント
-          ability.left--; // 発動回数を減らす
-        }
-      }
-    }
-
-    // 死亡時発動能力を実行
-    for (const ability of abilitiesToExecute) {
-      await sleep(500);
-      await ability.act(monster);
-    }
+    // 死亡時発動能力の実行
+    await executeDeathAbilities(monster);
 
     // 復活処理
     if (monster.buffs.Revive || monster.buffs.tagTransformation) {
-      await sleep(600);
-      let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
-
-      monster.flags.isDead = false;
-      monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
-      updateMonsterBar(monster);
-      updatebattleicons(monster);
-      console.log(`なんと${monster.name}が生き返った！`);
-      displayMessage(`なんと${monster.name}が生き返った！`);
-      if (reviveSource.act) {
-        reviveSource.act();
-      }
-      delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+      await reviveMonster(monster);
       killedThisSkill.add(monster);
-      monster.flags.recentlyKilled = false;
-      await sleep(400);
+      delete monster.flags.recentlyKilled; // 蘇生後にrecentlyKilledフラグをリセット
     }
 
     // 亡者化処理
-    if (!monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
-      await sleep(600);
-      monster.flags.isDead = false;
-      monster.flags.isZombie = true;
-      updatebattleicons(monster);
-      await sleep(400);
+    if (await zombifyMonster(monster)) {
+      // 亡者化に成功した場合
+      killedThisSkill.add(monster);
+      delete monster.flags.recentlyKilled;
     }
   }
+}
+
+// 死亡時発動能力を実行する関数
+async function executeDeathAbilities(monster) {
+  const abilitiesToExecute = [];
+
+  // 復活とタグ変化が予定されているか判定
+  let isReviving = monster.buffs.Revive || monster.buffs.tagTransformation;
+
+  for (const ability of Object.values(monster.abilities)) {
+    if (ability.left === undefined || ability.left > 0) {
+      if (ability.triggerDeathType === "exceptRevive" && isReviving) {
+        continue;
+      }
+      abilitiesToExecute.push(ability);
+      if (ability.left !== undefined) {
+        ability.left--;
+      }
+    }
+  }
+
+  for (const ability of abilitiesToExecute) {
+    await sleep(500);
+    await ability.act(monster);
+  }
+}
+
+// モンスターを蘇生させる関数
+async function reviveMonster(monster) {
+  await sleep(600);
+  let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
+
+  monster.flags.isDead = false;
+  monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
+  updateMonsterBar(monster);
+  updatebattleicons(monster);
+  console.log(`なんと${monster.name}が生き返った！`);
+  displayMessage(`なんと${monster.name}が生き返った！`);
+  if (reviveSource.act) {
+    reviveSource.act();
+  }
+  delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+  await sleep(400);
+}
+
+// モンスターを亡者化させる関数
+async function zombifyMonster(monster) {
+  if (!monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
+    await sleep(600);
+    monster.flags.isDead = false;
+    monster.flags.isZombie = true;
+    updatebattleicons(monster);
+    await sleep(400);
+    return true;
+  }
+  return false;
 }
 
 // 指定 milliseconds だけ処理を一時停止する関数
