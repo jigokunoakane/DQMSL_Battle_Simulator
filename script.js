@@ -1237,39 +1237,14 @@ function handleDeath(target) {
     console.log(`${target.name}をたおした！`);
     displayMessage(`${target.name}を　たおした！`);
   }
-
-  // 復活処理
-  if (target.buffs.Revive || target.buffs.tagTransformation) {
-    let reviveSource = target.buffs.tagTransformation || target.buffs.Revive;
-
-    target.flags.isDead = false;
-    target.currentstatus.HP = Math.ceil(target.defaultstatus.HP * reviveSource.strength);
-    updateMonsterBar(target);
-    updatebattleicons(target);
-    console.log(`なんと${target.name}が生き返った！`);
-    displayMessage(`なんと${target.name}が生き返った！`);
-    if (reviveSource.act) {
-      reviveSource.act();
-    }
-    delete target.buffs[reviveSource === target.buffs.Revive ? "Revive" : "tagTransformation"];
-  }
-
-  // 亡者化処理
-  if (!target.flags.isDead && target.flags.canBeZombie) {
-    target.flags.isDead = false;
-    target.flags.isZombie = true;
-    updatebattleicons(target);
-  }
 }
 
 // スキルを実行する関数
 async function executeSkill(skillUser, executingSkill, target = null) {
   // 6. スキル実行処理
-  for (const party of parties) {
-    for (const monster of party) {
-      delete monster.flags.recentlyKilled;
-    }
-  }
+  const killedThisSkill = new Set(
+    parties.flat().filter((monster) => monster.flags.isDead) // 死亡しているモンスターを初期値として追加
+  );
   /*await sleep(300); // スキル実行前に間隔を置く*/
 
   // 6-1 スキルターゲット決定
@@ -1293,6 +1268,10 @@ async function executeSkill(skillUser, executingSkill, target = null) {
     }
 
     await processHit(skillUser, executingSkill, target);
+    // processHitの後で、killedThisSkillにターゲットを追加する
+    if (target.flags.recentlyKilled) {
+      killedThisSkill.add(target);
+    }
     await sleep(70);
     // スキル使用者に死亡時発動能力の処理待ちフラグを削除
     delete skillUser.flags.waitingForDeathAction;
@@ -1300,8 +1279,11 @@ async function executeSkill(skillUser, executingSkill, target = null) {
 
   // 次のヒットを処理する関数
   const processNextHit = async () => {
+    skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead);
     switch (executingSkill.targetType) {
       case "all":
+        // forループの前に、skillTargetTeamMonstersからkilledThisSkillに含まれる要素を除外
+        const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
         // 全てのターゲットに対して連続で処理を実行
         for (const target of skillTargetTeamMonsters) {
           await processHit(skillUser, executingSkill, target);
@@ -1313,16 +1295,21 @@ async function executeSkill(skillUser, executingSkill, target = null) {
         // 単体特技
         if (currentHit === 0) {
           // 最初のヒット時のみターゲットを決定
-          if (target && !target.flags.isDead) {
-            // target が指定されていて、生きている場合はそのまま使用
+
+          // 有効なターゲットのリストを取得
+          const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
+
+          if (target && !target.flags.isDead && !killedThisSkill.has(target)) {
+            // target が指定されていて、生きていて、killedThisSkill に含まれていない場合はそのまま使用
             skillTarget = target;
           } else if (skillUser.confimredskilltarget !== undefined) {
-            // target が指定されていないか、死亡している場合は confirmedskilltarget を使用
-            skillTarget = skillTargetTeamMonsters.find((monster) => monster.index === skillUser.confimredskilltarget);
+            // target が指定されていないか、死亡しているか、killedThisSkill に含まれている場合は confirmedskilltarget を使用
+            skillTarget = validTargets.find((monster) => monster.index === skillUser.confimredskilltarget);
           }
+
           // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
-          if (!skillTarget || skillTarget.flags.isDead) {
-            skillTarget = skillTargetTeamMonsters[Math.floor(Math.random() * skillTargetTeamMonsters.length)];
+          if (!skillTarget || skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
+            skillTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
           }
         }
 
@@ -1336,29 +1323,40 @@ async function executeSkill(skillUser, executingSkill, target = null) {
       case "random":
         // ランダム特技
         if (currentHit === 0) {
-          if (target && !target.flags.isDead) {
-            // target が指定されていて、生きている場合はそのまま使用
+          // 最初のヒット時
+          // 有効なターゲットのリストを取得
+          const validTargets = skillTargetTeamMonsters.filter((monster) => !killedThisSkill.has(monster));
+
+          if (target && !target.flags.isDead && !killedThisSkill.has(target)) {
+            // target が指定されていて、生きていて、killedThisSkill に含まれていない場合はそのまま使用
             skillTarget = target;
           } else if (skillUser.confimredskilltarget !== undefined) {
-            // target が指定されていないか、死亡している場合は confirmedskilltarget を使用
-            skillTarget = skillTargetTeamMonsters.find((monster) => monster.index === skillUser.confimredskilltarget);
+            // target が指定されていないか、死亡しているか、killedThisSkill に含まれている場合は confirmedskilltarget を使用
+            skillTarget = validTargets.find((monster) => monster.index === skillUser.confimredskilltarget);
           }
+
           // 指定されたターゲットが死んでいるか、ターゲットが指定されていない場合はランダムに選択
-          if (!skillTarget || skillTarget.flags.isDead) {
-            skillTarget = skillTargetTeamMonsters[Math.floor(Math.random() * skillTargetTeamMonsters.length)];
+          if (!skillTarget || skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
+            skillTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
           }
         } else {
           // 2発目以降は、既に攻撃済みの対象を除いてランダムにターゲットを選択
-          const validTargets = skillTargetTeamMonsters.filter((monster) => !monster.flags.recentlyKilled);
+          const validTargets = skillTargetTeamMonsters.filter((monster) => !monster.flags.recentlyKilled && !killedThisSkill.has(monster));
           if (validTargets.length > 0) {
             const randomIndex = Math.floor(Math.random() * validTargets.length);
             skillTarget = validTargets[randomIndex];
+          } else {
+            // validTargets が空の場合は、残りのヒット処理をスキップ
+            currentHit = executingSkill.hitNum; // ループを抜けるために currentHit を hitNum に設定
+            break; // switch 文を抜ける
           }
         }
         if (skillTarget) {
           await processHitAsync(skillTarget);
         }
         await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        /*await sleep(430);*/
+
         break;
       case "me":
         // 自分自身をターゲット
@@ -1377,11 +1375,18 @@ async function executeSkill(skillUser, executingSkill, target = null) {
 
     currentHit++;
     if (currentHit < (executingSkill.hitNum ?? 1)) {
+      await processDeathAction(skillUser);
       processNextHit();
+    }
+    for (const party of parties) {
+      for (const monster of party) {
+        delete monster.flags.recentlyKilled;
+      }
     }
   };
 
   await processNextHit(); // 最初のヒットを処理
+  await sleep(350); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
 }
 
 // それぞれのヒット内の処理
@@ -1396,7 +1401,8 @@ async function processHit(skillUser, executingSkill, skillTarget) {
   }
 
   // ダメージ処理
-  const damage = Math.floor(Math.random() * 11) + 95; // 95から105までのランダムなダメージ
+  const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975; // 0.975から1.025の間のランダムな値を生成
+  const damage = executingSkill.damage * randomMultiplier; // ダメージにランダムな値をかける
   applyDamage(skillTarget, damage, "");
 }
 
@@ -1422,16 +1428,58 @@ async function processDeathAction(skillUser) {
     const monster = deathActionQueue.shift(); // キューの先頭からモンスターを取得
     delete monster.flags.beforeDeathActionCheck;
 
-    for (const ability of Object.values(monster.abilities)) {
-      if (ability.trigger === "death" && typeof ability.act === "function") {
-        await sleep(700); // 死亡時発動能力実行前に間隔を置く
-        await ability.act(monster);
+    const abilitiesToExecute = []; // 実行するabilityを格納する配列
 
-        // 新たに死亡したモンスターをキューに追加
-        // スキル使用者の味方パーティを処理
-        parties[monster.teamID].forEach(enqueueDeathAction);
-        // スキル使用者の敵パーティを逆順に処理
-        [...parties[monster.enemyTeamID]].reverse().forEach(enqueueDeathAction);
+    // 復活とタグ変化が予定されているか判定
+    let isReviving = monster.buffs.Revive || monster.buffs.tagTransformation;
+
+    for (const ability of Object.values(monster.abilities)) {
+      if (ability.left === undefined || ability.left > 0) {
+        // triggerDeathType: exceptReviveが指定されていて、かつ復活が予定されている場合はスキップ
+        if (ability.triggerDeathType === "exceptRevive" && isReviving) {
+          continue;
+        }
+        abilitiesToExecute.push(ability);
+        if (ability.left !== undefined) {
+          // left が定義されている場合のみデクリメント
+          ability.left--; // 発動回数を減らす
+        }
+      }
+    }
+
+    // 死亡時発動能力を実行
+    for (const ability of abilitiesToExecute) {
+      await sleep(700);
+      await ability.act(monster);
+    }
+
+    // 復活処理
+    if (monster.buffs.Revive || monster.buffs.tagTransformation) {
+      let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
+
+      monster.flags.isDead = false;
+      monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
+      updateMonsterBar(monster);
+      updatebattleicons(monster);
+      console.log(`なんと${monster.name}が生き返った！`);
+      displayMessage(`なんと${monster.name}が生き返った！`);
+      if (reviveSource.act) {
+        reviveSource.act();
+      }
+      delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+    }
+
+    // 亡者化処理
+    if (!monster.flags.isDead && monster.flags.canBeZombie) {
+      if (monster.flags.canBeZombie.probability && Math.random() >= monster.flags.canBeZombie.probability) {
+        // 亡者化失敗
+      } else {
+        // 亡者化処理
+        if (!monster.flags.isDead && monster.flags.canBeZombie) {
+          monster.flags.isDead = false;
+          monster.flags.isZombie = true;
+          updatebattleicons(monster);
+        }
       }
     }
   }
@@ -2000,7 +2048,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    damage: "10",
+    damage: 200,
   },
   {
     name: "ぼうぎょ",
@@ -2014,9 +2062,19 @@ const skill = [
   {
     name: "涼風一陣",
     howToCalculate: "fix",
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    damage: 142,
+    folowingSkill: "涼風一陣後半",
+  },
+  {
+    name: "涼風一陣後半",
+    howToCalculate: "fix",
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    damage: 420,
   },
   {
     name: "神楽の術",
@@ -2057,6 +2115,7 @@ const skill = [
     targetTeam: "enemy",
     order: "anchor",
     hitNum: 7,
+    damage: 380,
   },
   {
     name: "おぞましいおたけび",
@@ -2080,6 +2139,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    damage: 457,
   },
   {
     name: "エンドブレス",
@@ -2087,6 +2147,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    damage: 2000,
   },
   {
     name: "テンペストブレス",
@@ -2095,6 +2156,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     hitNum: 3,
+    damage: 611,
   },
   {
     name: "煉獄火炎",
@@ -2210,6 +2272,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 9,
+    damage: 240,
   },
   {
     name: "黄泉の封印",
@@ -2226,6 +2289,7 @@ const skill = [
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
+    damage: 1400,
   },
   {
     name: "終の流星",
@@ -2439,6 +2503,7 @@ const skill = [
     targetTeam: "enemy",
     skipDeathCheck: true,
     skipAbnormalityCheck: true,
+    damage: 100,
   },
   {
     name: "邪道のかくせい",
