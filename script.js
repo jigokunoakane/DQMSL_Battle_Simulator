@@ -1259,27 +1259,47 @@ async function executeSkill(skillUser, executingSkill, target = null) {
     // スキル使用者に死亡時発動能力の処理待ちフラグを追加
     skillUser.flags.waitingForDeathAction = true;
     // 死亡時発動処理が全て終わるまで待機
-    await processDeathAction(skillUser);
+    await processDeathAction(skillUser, killedThisSkill);
 
     if ((!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillUser, "recentlyKilled")) || (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser))) {
       // スキル使用者に死亡時発動能力の処理待ちフラグを削除
       delete skillUser.flags.waitingForDeathAction;
-      return;
+      return false;
     }
 
     await processHit(skillUser, executingSkill, target);
     // processHitの後で、killedThisSkillにターゲットを追加する
+    /*let targetKilled = false; // ターゲットが死亡したかどうかを示すフラグを追加*/
     if (target.flags.recentlyKilled) {
-      killedThisSkill.add(target);
+      if (!killedThisSkill.has(target)) {
+        killedThisSkill.add(target);
+      }
+      // 蘇生効果がある場合は、processDeathAction()の後にcurrentHitを更新
+      if (target.buffs.Revive || target.buffs.tagTransformation) {
+        await processDeathAction(skillUser, killedThisSkill);
+        if (executingSkill.targetType === "single") {
+          currentHit = executingSkill.hitNum;
+          return true;
+        }
+      } else {
+        // 蘇生効果がない場合は、ここでcurrentHitを更新
+        if (executingSkill.targetType === "single") {
+          currentHit = executingSkill.hitNum;
+          return true;
+        }
+      }
+      return true;
     }
     await sleep(70);
     // スキル使用者に死亡時発動能力の処理待ちフラグを削除
     delete skillUser.flags.waitingForDeathAction;
+    return false;
   };
 
-  // 次のヒットを処理する関数
-  const processNextHit = async () => {
-    skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead);
+  // 次のヒットを処理する関数processNextHit
+  const handleHit = async (killedThisSkill) => {
+    // skillTargetTeamMonsters を更新する際に、killedThisSkill を考慮
+    skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead && !killedThisSkill.has(monster));
     switch (executingSkill.targetType) {
       case "all":
         // forループの前に、skillTargetTeamMonstersからkilledThisSkillに含まれる要素を除外
@@ -1289,7 +1309,7 @@ async function executeSkill(skillUser, executingSkill, target = null) {
           await processHit(skillUser, executingSkill, target);
           // 間隔を空けずに連続で処理
         }
-        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        await processDeathAction(skillUser, killedThisSkill); // 敵とskillUserの死亡時処理
         break;
       case "single":
         // 単体特技
@@ -1314,10 +1334,18 @@ async function executeSkill(skillUser, executingSkill, target = null) {
         }
 
         // ターゲットが死亡していた場合は処理をスキップ (全滅?)
-        if (skillTarget && !skillTarget.flags.isDead) {
-          await processHitAsync(skillTarget);
+        // ターゲットが死亡していた場合は処理をスキップ
+        if (skillTarget && !skillTarget.flags.isDead && !killedThisSkill.has(skillTarget)) {
+          const isTargetKilled = await processHitAsync(skillTarget);
+          if (isTargetKilled) {
+            // ターゲットが死亡した場合は、残りのヒット処理をスキップ
+            currentHit = executingSkill.hitNum;
+          }
+        } else {
+          // ターゲットが死亡している場合は、残りのヒット処理をスキップ
+          currentHit = executingSkill.hitNum;
         }
-        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        await processDeathAction(skillUser, killedThisSkill);
         break;
 
       case "random":
@@ -1362,7 +1390,7 @@ async function executeSkill(skillUser, executingSkill, target = null) {
         // 自分自身をターゲット
         skillTarget = skillUser;
         await processHitAsync(skillTarget);
-        await processDeathAction(skillUser); // 敵とskillUserの死亡時処理
+        await processDeathAction(skillUser, killedThisSkill); // 敵とskillUserの死亡時処理
         break;
       case "Dead":
         // 蘇生特技
@@ -1372,11 +1400,17 @@ async function executeSkill(skillUser, executingSkill, target = null) {
       default:
         console.error("無効なターゲットタイプ:", executingSkill.targetType);
     }
-
-    currentHit++;
+  };
+  // 次のヒットを処理する関数
+  const processNextHit = async (killedThisSkill) => {
+    // skillTargetTeamMonsters を更新する際に、killedThisSkill を考慮
+    // skillTargetTeamMonsters = skillTargetTeamMonsters.filter((monster) => !monster.flags.isDead && !killedThisSkill.has(monster)); // 修正
     if (currentHit < (executingSkill.hitNum ?? 1)) {
-      await processDeathAction(skillUser);
-      processNextHit();
+      await handleHit(killedThisSkill);
+      await processDeathAction(skillUser, killedThisSkill); // handleHitの後にも死亡時処理
+      currentHit++;
+      await sleep(400); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
+      await processNextHit(killedThisSkill);
     }
     for (const party of parties) {
       for (const monster of party) {
@@ -1385,8 +1419,7 @@ async function executeSkill(skillUser, executingSkill, target = null) {
     }
   };
 
-  await processNextHit(); // 最初のヒットを処理
-  await sleep(400); // スキル実行終了後に間隔を置く 死亡時処理後にも間隔を空けてからhitNum再開
+  await processNextHit(killedThisSkill); // 最初のヒットを処理
 }
 
 // それぞれのヒット内の処理
@@ -1410,7 +1443,7 @@ async function processHit(skillUser, executingSkill, skillTarget) {
 let deathActionQueue = [];
 
 // 死亡時発動能力の処理
-async function processDeathAction(skillUser) {
+async function processDeathAction(skillUser, killedThisSkill) {
   // キューに死亡時発動能力を持つモンスターを追加する関数
   function enqueueDeathAction(monster) {
     if (monster.flags.recentlyKilled && monster.flags.beforeDeathActionCheck && !deathActionQueue.includes(monster)) {
@@ -1468,6 +1501,8 @@ async function processDeathAction(skillUser) {
         reviveSource.act();
       }
       delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+      killedThisSkill.add(monster);
+      monster.flags.recentlyKilled = false;
       await sleep(400);
     }
 
