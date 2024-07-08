@@ -1455,8 +1455,9 @@ async function executeDeathAbilities(monster) {
   }
 
   for (const ability of abilitiesToExecute) {
-    await sleep(500);
+    await sleep(400);
     await ability.act(monster);
+    await sleep(400);
   }
 }
 
