@@ -1252,13 +1252,6 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
 
   // ヒット処理の実行
   await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, 0);
-
-  // recentlyKilled フラグをリセット
-  for (const party of parties) {
-    for (const monster of party) {
-      delete monster.flags.recentlyKilled;
-    }
-  }
 }
 
 // ヒットシーケンスを処理する関数
@@ -1268,12 +1261,6 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   }
   //毎回deathactionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
-
-  // 反射や死亡時でskillUserが一度でも死亡したら止める
-  //if (!(executingSkill.skipDeathCheck ?? false) && checkFlag(skillTarget, "recentlyKilled")) {
-  // return false;
-  //} まだskillTargetないのかもしれないんだったね
-  //反射や死亡時によって止まったら停止 recentlyよりthisに入れるか、processdeathcheack前に検知してreturn
 
   let skillTarget;
 
@@ -1337,10 +1324,16 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   // 死亡時発動能力の処理
   await processDeathAction(skillUser, killedThisSkill);
 
-  // 次のヒット処理
-  currentHit++;
-  await sleep(70);
-  await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget);
+  // もしkilledThisSkillにskillUserが含まれていたら、反射死と判定して次のヒットを実行せず終了
+  // skillTargetの死亡等は逐次判定してDeathActionも行わずにreturn
+  if (killedThisSkill.has(skillUser)) {
+    return;
+  } else {
+    // 次のヒット処理
+    currentHit++;
+    await sleep(70);
+    await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget);
+  }
 }
 
 // 単体攻撃のターゲットを決定する関数
@@ -1351,7 +1344,12 @@ function determineSingleTarget(target, skillUser, killedThisSkill) {
     return target;
   } else {
     const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
-    return validTargets[Math.floor(Math.random() * validTargets.length)];
+    // validTargets が空の場合の処理を追加
+    if (validTargets.length > 0) {
+      return validTargets[Math.floor(Math.random() * validTargets.length)];
+    } else {
+      return null; // ターゲットが存在しない場合は null を返す
+    }
   }
 }
 
@@ -1373,7 +1371,7 @@ function determineRandomTarget(target, skillUser, killedThisSkill, currentHit) {
 async function processHit(skillUser, executingSkill, skillTarget, killedThisSkill) {
   // みがわり処理
   if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
-    skillTarget = monsters.find((monster) => monster.name === skillTarget.flags.hasSubstitute);
+    skillTarget = parties.flat().find((monster) => monster.name === skillTarget.flags.hasSubstitute);
   }
 
   // ダメージ処理
@@ -1381,12 +1379,22 @@ async function processHit(skillUser, executingSkill, skillTarget, killedThisSkil
   const damage = executingSkill.damage * randomMultiplier;
   applyDamage(skillTarget, damage, "");
 
+  //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
   if (skillTarget.flags.recentlyKilled) {
     if (!killedThisSkill.has(skillTarget)) {
       killedThisSkill.add(skillTarget);
     }
     delete skillTarget.flags.recentlyKilled;
-    //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
+  }
+  // スキル使用者(skillUser)が死亡したら true を返す
+  if (skillUser.flags.recentlyKilled) {
+    if (!killedThisSkill.has(skillUser)) {
+      killedThisSkill.add(skillTarget);
+    }
+    delete skillUser.flags.recentlyKilled;
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -1397,7 +1405,7 @@ let deathActionQueue = [];
 async function processDeathAction(skillUser, killedThisSkill) {
   // キューに死亡時発動能力を持つモンスターを追加する関数
   function enqueueDeathAction(monster) {
-    if (monster.flags.recentlyKilled && monster.flags.beforeDeathActionCheck && !deathActionQueue.includes(monster)) {
+    if (monster.flags.beforeDeathActionCheck && !deathActionQueue.includes(monster)) {
       deathActionQueue.unshift(monster);
     }
   }
@@ -1421,15 +1429,8 @@ async function processDeathAction(skillUser, killedThisSkill) {
     // 復活処理
     if (monster.buffs.Revive || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
-      killedThisSkill.add(monster);
-      delete monster.flags.recentlyKilled; // 蘇生後にrecentlyKilledフラグをリセット
-    }
-
-    // 亡者化処理
-    if (await zombifyMonster(monster)) {
-      // 亡者化に成功した場合
-      killedThisSkill.add(monster);
-      delete monster.flags.recentlyKilled;
+    } else {
+      await zombifyMonster(monster);
     }
   }
 }
@@ -1464,7 +1465,7 @@ async function reviveMonster(monster) {
   await sleep(600);
   let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
 
-  monster.flags.isDead = false;
+  delete monster.flags.isDead;
   monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
   updateMonsterBar(monster);
   updatebattleicons(monster);
@@ -1479,9 +1480,9 @@ async function reviveMonster(monster) {
 
 // モンスターを亡者化させる関数
 async function zombifyMonster(monster) {
-  if (!monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
+  if (monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
     await sleep(600);
-    monster.flags.isDead = false;
+    delete monster.flags.isDead;
     monster.flags.isZombie = true;
     updatebattleicons(monster);
     await sleep(400);
