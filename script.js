@@ -1431,14 +1431,17 @@ async function processDeathAction(skillUser, killedThisSkill) {
       deathActionQueue.unshift(monster);
     }
   }
-
-  // スキル使用者の味方パーティを逆順に処理
-  //[...parties[skillUser.teamID]].reverse().forEach(enqueueDeathAction);
-  // スキル使用者の敵パーティを逆順に処理
-  //[...parties[skillUser.enemyTeamID]].reverse().forEach(enqueueDeathAction);
-  // 死亡したモンスターをキューに追加
-  for (const monster of killedThisSkill) {
-    enqueueDeathAction(monster);
+  // 敵逆順処理
+  for (const monster of [...parties[skillUser.enemyTeamID]].reverse()) {
+    if (killedThisSkill.has(monster)) {
+      enqueueDeathAction(monster);
+    }
+  }
+  // 味方逆順処理
+  for (const monster of [...parties[skillUser.teamID]].reverse()) {
+    if (killedThisSkill.has(monster)) {
+      enqueueDeathAction(monster);
+    }
   }
 
   while (deathActionQueue.length > 0) {
