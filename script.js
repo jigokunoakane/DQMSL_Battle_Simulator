@@ -1212,6 +1212,28 @@ function handleDeath(target) {
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
 
+  if (target.flags.isSubstituting) {
+    //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
+    for (const monster of parties.flat()) {
+      if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
+        delete monster.flags.hasSubstitute;
+      }
+    }
+    delete target.flags.isSubstituting;
+  } else if (target.flags.hasSubstitute) {
+    //みがわられ中 hasSubstituteのtargetのisSubstitutingをupdate
+    const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
+    if (substitutingMonster) {
+      // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.mosterIdと等しい文字列を削除する。
+      substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
+      //空になったら削除
+      if (substitutingMonster.flags.isSubstituting.targetMonsterId.length === 0) {
+        delete substitutingMonster.flags.isSubstituting;
+      }
+    }
+    delete target.flags.hasSubstitute;
+  }
+
   // keepOnDeathを持たないバフと異常を削除
   for (const buffKey in target.buffs) {
     if (!target.buffs[buffKey].keepOnDeath) {
@@ -1371,7 +1393,7 @@ function determineRandomTarget(target, skillUser, killedThisSkill, currentHit) {
 async function processHit(skillUser, executingSkill, skillTarget, killedThisSkill) {
   // みがわり処理
   if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
-    skillTarget = parties.flat().find((monster) => monster.name === skillTarget.flags.hasSubstitute);
+    skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
   }
 
   // ダメージ処理
