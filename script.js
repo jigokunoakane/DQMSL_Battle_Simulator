@@ -2315,7 +2315,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 9,
-    damage: 240,
+    damage: 280,
   },
   {
     name: "黄泉の封印",
@@ -2847,14 +2847,6 @@ function displayDamage(monster, damage, resistance, MP) {
   }
 }
 
-document.getElementById("testbtn").addEventListener("click", function () {
-  applyDamage(parties[0][0], Math.floor(Math.random() * 200), 1);
-  applyDamage(parties[0][1], Math.floor(Math.random() * 200), 1);
-  applyDamage(parties[0][2], Math.floor(Math.random() * 100), 1);
-  applyDamage(parties[0][3], Math.floor(Math.random() * 50), 1);
-  applyDamage(parties[0][4], 0, 1);
-});
-
 document.getElementById("revivebtn").addEventListener("click", function () {
   for (const party of parties) {
     for (const monster of party) {
@@ -2904,6 +2896,19 @@ document.getElementById("materialbtn").addEventListener("click", function () {
     }
   }
   displayMessage("爆発するよ");
+});
+
+document.getElementById("rezaobtn").addEventListener("click", function () {
+  for (const monster of parties[1]) {
+    monster.buffs.Revive = { keepOnDeath: true, strength: 0.5 };
+  }
+  displayMessage("リザオ付与");
+});
+document.getElementById("harvestbtn").addEventListener("click", function () {
+  executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
+});
+document.getElementById("endbtn").addEventListener("click", function () {
+  executeSkill(parties[0][1], findSkillByName("エンドブレス"), parties[1][0]);
 });
 
 const messageLine1 = document.getElementById("message-line1");
