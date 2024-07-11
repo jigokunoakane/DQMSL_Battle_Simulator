@@ -1423,6 +1423,9 @@ async function processHit(skillUser, executingSkill, skillTarget, killedThisSkil
 // 死亡時発動能力のキュー
 let deathActionQueue = [];
 
+// processDeathActionの実行中かどうかを示すフラグ
+let isProcessingDeathAction = false;
+
 // 死亡時発動能力の処理
 async function processDeathAction(skillUser, killedThisSkill) {
   // キューに死亡時発動能力を持つモンスターを追加する関数
@@ -1444,6 +1447,13 @@ async function processDeathAction(skillUser, killedThisSkill) {
     }
   }
 
+  if (isProcessingDeathAction) {
+    // すでに processDeathAction が実行中の場合は、キューに追加するだけで処理を終了
+    return;
+  }
+  // processDeathAction の実行開始フラグを立てる
+  isProcessingDeathAction = true;
+
   while (deathActionQueue.length > 0) {
     const monster = deathActionQueue.shift();
     delete monster.flags.beforeDeathActionCheck;
@@ -1458,6 +1468,7 @@ async function processDeathAction(skillUser, killedThisSkill) {
       await zombifyMonster(monster);
     }
   }
+  isProcessingDeathAction = false;
 }
 
 // 死亡時発動能力を実行する関数
