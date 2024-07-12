@@ -1249,6 +1249,7 @@ function handleDeath(target) {
   // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
   if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
     target.confirmedcommand = "skipThisTurn";
+    target.flags.hasDiedThisAction = true;
   }
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
@@ -1272,6 +1273,13 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
     }
   }
 
+  //コマンドによるskill実行時にまず全てのskillUser死亡検知フラグをリセット
+  if (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) {
+    for (const monster of parties.flat()) {
+      delete monster.flags.hasDiedThisAction;
+    }
+  }
+
   // ヒット処理の実行
   await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, 0);
 }
@@ -1283,6 +1291,10 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   }
   //毎回deathactionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
+  //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
+  if (skillUser.flags.hasDiedThisAction && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken"))) {
+    return;
+  }
 
   let skillTarget;
 
@@ -1491,9 +1503,9 @@ async function executeDeathAbilities(monster) {
   }
 
   for (const ability of abilitiesToExecute) {
-    await sleep(400);
+    await sleep(350);
     await ability.act(monster);
-    await sleep(400);
+    await sleep(350);
   }
 }
 
@@ -2547,6 +2559,7 @@ const skill = [
     skipDeathCheck: true,
     skipAbnormalityCheck: true,
     damage: 100,
+    trigger: "death",
   },
   {
     name: "邪道のかくせい",
@@ -2853,6 +2866,7 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       monster.currentstatus.HP = 200;
       delete monster.flags.recentlyKilled;
       delete monster.flags.beforeDeathActionCheck;
+      delete monster.flags.hasDiedThisAction;
       delete monster.flags.isDead;
       delete monster.flags.isZombie;
       delete monster.flags.isRecentlyDamaged;
