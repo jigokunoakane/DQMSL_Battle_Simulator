@@ -951,14 +951,20 @@ function calculateModifiedSpeed(monster) {
   return monster.currentstatus.spd * randomMultiplier;
 }
 
-// スキルを実行する関数
-function processMonsterAction(skillUser, executingSkillName, executedSkill1 = null, executedSkill2 = null, executedSkill3 = null) {
+// 各monsterの行動を実行する関数
+async function processMonsterAction(skillUser, executingSkill, executedSkills = []) {
   // 0. 事前準備
-  let executingSkill = skillUser.skill.find((skill) => skill.name === executingSkillName);
+  //let executingSkill = skillUser.skill.find((skill) => skill.name === executingSkillName);
+  // 全てのモンスターの isRecentlyDamaged フラグを削除
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.isRecentlyDamaged;
+    }
+  }
 
   // 1. 死亡確認
-  if (!(executingSkill.skipDeathCheck ?? false) && isDead(skillUser)) {
-    return; // 死んでいる場合は処理をスキップ
+  if (skillUser.confirmedcommand === "skipThisTurn") {
+    return; // 行動前に一回でも死んでいたら処理をスキップ
   }
 
   removeallstickout();
@@ -970,16 +976,16 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
   // 3. 状態異常確認
   if (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
-    console.log(`${skillUser}は状態異常`);
-    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    console.log(`${skillUser.name}は状態異常`);
+    await postActionProcess(skillUser, executingSkill, executedSkills);
     return;
   }
 
   // 4. 特技封じ確認
   if (!(executingSkill.skipSkillSealCheck ?? false) && skillUser.abnormality[executingSkill.type + "seal"]) {
     // 特技封じされている場合は7. 行動後処理にスキップ
-    console.log(`${skillUser}はとくぎを封じられている！`);
-    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    console.log(`${skillUser.name}はとくぎを封じられている！`);
+    await postActionProcess(skillUser, executingSkill, executedSkills);
     return;
   }
 
@@ -993,30 +999,28 @@ function processMonsterAction(skillUser, executingSkillName, executedSkill1 = nu
     console.log("しかし、MPが足りなかった！");
     displayMessage("しかし、MPが足りなかった！");
     // MP不足の場合は7. 行動後処理にスキップ
-    postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+    await postActionProcess(skillUser, executingSkill, executedSkills);
     return;
   }
 
   // 6. スキル実行処理
-  // ... スキルを実行する処理を実装
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
+  displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  await sleep(40); // スキル実行前に待機時間を設ける
+  await executeSkill(skillUser, executingSkill);
 
   // 7. 行動後処理
-  postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+  // 実行済みスキルを配列末尾に追加
+  executedSkills.push(executingSkill);
+  await postActionProcess(skillUser, executingSkill, executedSkills);
 }
-//processMonsterAction終了
 
 // 行動後処理
-function postActionProcess(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3) {
+async function postActionProcess(skillUser, executingSkill, executedSkills) {
   // 7-1. followingSkill判定処理
-  if (!isDead(skillUser) && executingSkill.followingSkill) {
-    if (!executedSkill1) {
-      processMonsterAction(skillUser, executingSkill.followingSkill, executingSkill);
-    } else if (!executedSkill2) {
-      processMonsterAction(skillUser, executingSkill.followingSkill, executedSkill1, executingSkill);
-    } else {
-      processMonsterAction(skillUser, executingSkill.followingSkill, executedSkill1, executedSkill2, executingSkill);
-    }
+  if (executingSkill.followingSkill && !(skillUser.confirmedcommand === "skipThisTurn" && !executingSkill.skipDeathCheck)) {
+    // "skipThisTurn" ではない または skipDeathCheck が存在するときに実行
+    await processMonsterAction(skillUser, findSkillByName(executingSkill.followingSkill), [...executedSkills]); // スキル実行履歴を引き継ぐ
     return; // followingSkillを実行した場合は以降の処理はスキップ
   }
 
@@ -1027,57 +1031,77 @@ function postActionProcess(skillUser, executingSkill, executedSkill1, executedSk
   }
 
   // 7-3. AI追撃処理
-  if (!isDead(skillUser) && !hasAbnormality(skillUser) && skillUser.abilities.AINormalAttack && !(executingSkill.noAINormalAttack ?? false) && !(executedSkill1 && executedSkill1.noAINormalAttack)) {
-    const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
-    for (let i = 0; i < attackTimes; i++) {
-      console.log(`${skillUser.name}は通常攻撃で追撃！`);
-      displayMessage(`${skillUser.name}の攻撃！`);
-      // 通常攻撃を実行
-      executeSkill(skillUser, "AInormalAttack");
+  if (!skillUser.flags.hasDiedThisAction) {
+    const AItargetSkill = executedSkills.length > 0 ? executedSkills[0] : executingSkill;
+    if (
+      !isDead(skillUser) &&
+      !hasAbnormality(skillUser) &&
+      skillUser.abilities.AINormalAttack &&
+      !executedSkills.some((skill) => skill.noAINormalAttack) &&
+      !(AItargetSkill.noAINormalAttack ?? false) &&
+      (AItargetSkill.order === "preemptive" || (AItargetSkill.order === "anchor" && AItargetSkill.howToCalculate === "none"))
+    ) {
+      const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
+      for (let i = 0; i < attackTimes; i++) {
+        console.log(`${skillUser.name}は通常攻撃で追撃！`);
+        displayMessage(`${skillUser.name}の攻撃！`);
+        // 通常攻撃を実行
+        await executeSkill(skillUser, "AInormalAttack");
+        await sleep(230); // 追撃ごとに待機時間を設ける 300
+      }
     }
   }
 
   // 7-4. 行動後発動特性の処理
-  for (const ability of Object.values(skillUser.abilities)) {
-    if (ability.trigger === "afterAction" && typeof ability.act === "function") {
-      ability.act(skillUser, executingSkill, executedSkill1, executedSkill2, executedSkill3);
+  if (!skillUser.flags.hasDiedThisAction) {
+    for (const ability of Object.values(skillUser.abilities)) {
+      if (ability.trigger === "afterAction" && typeof ability.act === "function") {
+        await ability.act(skillUser, executingSkill, executedSkills);
+        await sleep(400); // 特性発動ごとに待機時間を設ける
+      }
     }
   }
 
   // 7-5. 属性断罪の刻印処理
-  if (skillUser.abnormality.elementalRetributionMark && [executingSkill, executedSkill1, executedSkill2, executedSkill3].some((skill) => skill && skill.element !== "none")) {
-    const damage = Math.floor(skillUser.defaultstatus.HP * 0.7);
-    console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
-    applyDamage(skillUser, damage);
+  if (!skillUser.flags.hasDiedThisAction) {
+    if (skillUser.abnormality.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
+      const damage = Math.floor(skillUser.defaultstatus.HP * 0.7);
+      console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
+      applyDamage(skillUser, damage);
+      await sleep(400); // 属性断罪の刻印処理後に待機時間を設ける
+    }
   }
 
   // 7-6. 毒・継続ダメージ処理
-  if (skillUser.abnormality.poisoned) {
-    const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-    const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.poisoned.strength * poisonDepth);
-    console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
-    applyDamage(skillUser, damage);
-  }
-  if (skillUser.abnormality.dotDamage) {
-    const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.dotDamage.strength);
-    console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
-    applyDamage(skillUser, damage);
-  }
-
-  // 7-7. 被ダメージ時発動skill処理
-  for (const enemy of parties[skillUser.enemyTeamID]) {
-    if (enemy.flags.isRecentlyDamaged && !enemy.flags.isDead) {
-      for (const ability of Object.values(enemy.abilities)) {
-        if (ability.trigger === "damageTaken" && typeof ability.act === "function") {
-          ability.act(enemy);
-        }
-      }
+  if (!skillUser.flags.hasDiedThisAction) {
+    if (skillUser.abnormality.poisoned) {
+      const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
+      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.poisoned.strength * poisonDepth);
+      console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
+      applyDamage(skillUser, damage);
+      await sleep(400); // 毒ダメージ処理後に待機時間を設ける
     }
   }
-  // 全てのモンスターの isRecentlyDamaged フラグを削除
-  for (const party of parties) {
-    for (const monster of party) {
-      delete monster.flags.isRecentlyDamaged;
+  if (!skillUser.flags.hasDiedThisAction) {
+    if (skillUser.abnormality.dotDamage) {
+      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.dotDamage.strength);
+      console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
+      applyDamage(skillUser, damage);
+      await sleep(400); // 継続ダメージ処理後に待機時間を設ける
+    }
+  }
+
+  // 7-7. 被ダメージ時発動skill処理 反撃のみisDead判定
+  if (!skillUser.flags.isDead) {
+    for (const enemy of parties[skillUser.enemyTeamID]) {
+      if (enemy.flags.isRecentlyDamaged && !enemy.flags.isDead) {
+        for (const ability of Object.values(enemy.abilities)) {
+          if (ability.trigger === "damageTaken" && typeof ability.act === "function") {
+            await ability.act(enemy);
+            await sleep(700); // 被ダメージ時発動skill処理ごとに待機時間を設ける
+          }
+        }
+      }
     }
   }
 }
@@ -1250,6 +1274,7 @@ function handleDeath(target) {
   if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
     target.confirmedcommand = "skipThisTurn";
     target.flags.hasDiedThisAction = true;
+    //次のhitSequenceも実行しない
   }
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
