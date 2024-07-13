@@ -703,14 +703,15 @@ function startTurn(turnNum) {
 }
 
 //毎ラウンドコマンド選択後処理
-function startbattle() {
+async function startbattle() {
   console.log(parties);
   decideTurnOrder(parties, skill);
   //1round目なら戦闘開始時flagを持つ特性等を発動
   //ラウンド開始時flagを持つ特性を発動
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
-    processMonsterAction(monster, monster.confirmedSkill);
+    await processMonsterAction(monster, findSkillByName(monster.confirmedcommand));
+    await sleep(750);
   }
 }
 
@@ -765,19 +766,30 @@ function addBuff(monster, name, canRemove, strength, duration) {
 
 // 各モンスターの全バフと状態異常のdurationを1減らす関数 turnが進んだら起動
 function decreaseBuffDurations(monster) {
-  monster.buffs.forEach((buff) => {
-    buff.duration--;
-  });
-  monster.abnormality.forEach((eachabnormality) => {
-    eachabnormality.duration--;
-  });
+  // buffs要素が1つ以上ある場合のみforEachを実行
+  if (monster.buffs.length > 0) {
+    monster.buffs.forEach((buff) => {
+      buff.duration--;
+    });
+  }
+  // abnormality要素が1つ以上ある場合のみforEachを実行
+  if (monster.abnormality.length > 0) {
+    monster.abnormality.forEach((eachabnormality) => {
+      eachabnormality.duration--;
+    });
+  }
 }
-//これ上に持っていくけど、その前に更新
 
 // durationが0になったバフを消去する関数 skill使用前に起動
 function removeExpiredBuffs(monster) {
-  monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
-  monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
+  // buffs要素が1つ以上ある場合のみfilterを実行
+  if (monster.buffs.length > 0) {
+    monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
+  }
+  // abnormality要素が1つ以上ある場合のみfilterを実行
+  if (monster.abnormality.length > 0) {
+    monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
+  }
   updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
 }
 
@@ -786,6 +798,11 @@ function removeExpiredBuffs(monster) {
 function updateCurrentStatus(monster) {
   // currentstatus を defaultstatus の値で初期化
   monster.currentstatus = structuredClone(monster.defaultstatus);
+
+  //仮
+  if (Object.keys(monster.buffs).length === 0) {
+    return;
+  }
 
   // バフの効果を適用
   for (const buff of monster.buffs) {
@@ -968,13 +985,13 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   removeallstickout();
-  document.getElementById(skillUser.elementId).classList.add("stickout");
+  document.getElementById(skillUser.iconElementId).classList.add("stickout");
 
   // 2. バフ状態異常継続時間確認
   removeExpiredBuffs(skillUser);
 
   // 3. 状態異常確認
-  if (!(executingSkill.skipAbnormalityCheck ?? false) && hasAbnormality(skillUser)) {
+  if (hasAbnormality(skillUser) && !executingSkill.skipAbnormalityCheck) {
     // 状態異常の場合は7. 行動後処理にスキップ
     console.log(`${skillUser.name}は状態異常`);
     await postActionProcess(skillUser, executingSkill, executedSkills);
@@ -982,7 +999,7 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 4. 特技封じ確認
-  if (!(executingSkill.skipSkillSealCheck ?? false) && skillUser.abnormality[executingSkill.type + "seal"]) {
+  if (skillUser.abnormality[executingSkill.type + "seal"] && !executingSkill.skipSkillSealCheck) {
     // 特技封じされている場合は7. 行動後処理にスキップ
     console.log(`${skillUser.name}はとくぎを封じられている！`);
     await postActionProcess(skillUser, executingSkill, executedSkills);
@@ -996,6 +1013,8 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
     skillUser.currentstatus.MP -= executingSkill.MPcost;
     updateMonsterBar(skillUser);
   } else {
+    console.log(skillUser.currentstatus.MP);
+    console.log(executingSkill.MPcost);
     console.log("しかし、MPが足りなかった！");
     displayMessage("しかし、MPが足りなかった！");
     // MP不足の場合は7. 行動後処理にスキップ
@@ -2129,6 +2148,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     damage: 200,
+    MPcost: 0,
   },
   {
     name: "ぼうぎょ",
@@ -2138,6 +2158,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 6,
+    MPcost: 0,
   },
   {
     name: "涼風一陣",
@@ -2147,6 +2168,7 @@ const skill = [
     targetTeam: "enemy",
     damage: 142,
     folowingSkill: "涼風一陣後半",
+    MPcost: 96,
   },
   {
     name: "涼風一陣後半",
@@ -2155,6 +2177,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     damage: 420,
+    MPcost: 0,
   },
   {
     name: "神楽の術",
@@ -2162,6 +2185,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 65,
   },
   {
     name: "昇天斬り",
@@ -2169,6 +2193,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 35,
   },
   {
     name: "タップダンス",
@@ -2178,6 +2203,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
+    MPcost: 30,
   },
   {
     name: "氷華大繚乱",
@@ -2186,6 +2212,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
+    MPcost: 65,
   },
   {
     name: "フローズンシャワー",
@@ -2196,6 +2223,7 @@ const skill = [
     order: "anchor",
     hitNum: 7,
     damage: 380,
+    MPcost: 70,
   },
   {
     name: "おぞましいおたけび",
@@ -2203,6 +2231,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 65,
   },
   {
     name: "スパークふんしゃ",
@@ -2211,6 +2240,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    MPcost: 58,
   },
   {
     name: "天空竜の息吹",
@@ -2220,6 +2250,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     damage: 457,
+    MPcost: 24,
   },
   {
     name: "エンドブレス",
@@ -2228,6 +2259,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     damage: 2000,
+    MPcost: 250,
   },
   {
     name: "テンペストブレス",
@@ -2237,6 +2269,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     damage: 611,
+    MPcost: 23,
   },
   {
     name: "煉獄火炎",
@@ -2244,6 +2277,7 @@ const skill = [
     element: "fire",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 68,
   },
   {
     name: "むらくもの息吹",
@@ -2252,6 +2286,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    MPcost: 35,
   },
   {
     name: "獄炎の息吹",
@@ -2260,6 +2295,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    MPcost: 30,
   },
   {
     name: "ほとばしる暗闇",
@@ -2267,6 +2303,7 @@ const skill = [
     element: "dark",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 82,
   },
   {
     name: "防刃の守り",
@@ -2276,6 +2313,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
+    MPcost: 54,
   },
   {
     name: "ラヴァフレア",
@@ -2285,6 +2323,7 @@ const skill = [
     targetTeam: "enemy",
     order: "anchor",
     hitNum: 3,
+    MPcost: 76,
   },
   {
     name: "におうだち",
@@ -2294,6 +2333,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 3,
+    MPcost: 14,
   },
   {
     name: "大樹の守り",
@@ -2303,6 +2343,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
+    MPcost: 79,
   },
   {
     name: "みがわり",
@@ -2313,6 +2354,7 @@ const skill = [
     excludeTarget: "me",
     order: "preemptive",
     preemptivegroup: 4,
+    MPcost: 5,
   },
   {
     name: "超魔滅光",
@@ -2353,6 +2395,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 9,
     damage: 280,
+    MPcost: 58,
   },
   {
     name: "黄泉の封印",
@@ -2370,6 +2413,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 8,
     damage: 1400,
+    MPcost: 43,
   },
   {
     name: "終の流星",
@@ -2585,6 +2629,7 @@ const skill = [
     skipAbnormalityCheck: true,
     damage: 100,
     trigger: "death",
+    MPcost: 0,
   },
   {
     name: "邪道のかくせい",
