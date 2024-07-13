@@ -528,7 +528,7 @@ function finishSelectingEachMonstersCommand() {
 //backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
 //一旦全削除用function、コマンド選択終了時にも起動
 function removeallstickout() {
-  const allmonstericonsstickout = document.querySelectorAll(".battlepageallyicon");
+  const allmonstericonsstickout = document.querySelectorAll(".monstericon");
   allmonstericonsstickout.forEach((monstericon) => {
     monstericon.classList.remove("stickout");
   });

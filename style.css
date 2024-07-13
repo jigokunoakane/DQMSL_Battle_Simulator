@@ -186,12 +186,12 @@ select {
   height: auto;
 }
 
-.monstericon.stickout {
+.battlepageallyicon.stickout {
   transform: translate(0%, -15%);
 }
 
-.stickout {
-  transform: translate(0%, -15%);
+.battlepageenemyicon.stickout {
+  transform: translate(0%, 15%);
 }
 
 #monsterinfo-tabs {
