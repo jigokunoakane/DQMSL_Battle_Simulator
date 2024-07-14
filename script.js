@@ -192,8 +192,6 @@ function preparebattle() {
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons();
-  //コマンド選択段階判定変数の初期化と、最初のモンスターをstickout、他からclass削除
-  backbtn();
   //field管理用変数の導入はglobalで
   startTurn(1);
 }
@@ -523,6 +521,51 @@ function finishSelectingEachMonstersCommand() {
   }
 }
 
+// コマンド選択開始関数
+function startSelectingCommandForFirstMonster(teamNum) {
+  //行動不能monsterのコマンドを入れる
+  parties[teamNum].forEach((monster) => {
+    monster.confirmedcommand = "";
+    monster.confirmedcommandtarget = "";
+    if (isDead(monster)) {
+      monster.confirmedcommand = "skipThisTurn";
+    } else if (hasAbnormality(monster)) {
+      monster.confirmedcommand = "normalAICommand";
+    }
+  });
+
+  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustmonstericonstickoutにdisplaymassage
+
+  // parties[teamNum]の先頭から、行動可能なモンスターを探す
+  selectingwhichteamscommand = teamNum;
+  selectingwhichmonsterscommand = 0;
+  while (selectingwhichmonsterscommand < parties[teamNum].length && (isDead(parties[teamNum][selectingwhichmonsterscommand]) || hasAbnormality(parties[teamNum][selectingwhichmonsterscommand]))) {
+    selectingwhichmonsterscommand++;
+  }
+
+  // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
+  if (selectingwhichmonsterscommand < parties[0].length) {
+    adjustmonstericonstickout();
+    disablecommandbtns(false);
+    if (teamNum === 1) {
+      //敵コマンド選択でplayerを選んだ場合用
+      document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+      document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+      //アイコン反転
+      preparebattlepageicons(true);
+      adjustmonstericonstickout();
+      //bar反転
+      reverseMonsterBarDisplay();
+    }
+  } else {
+    // パーティーが全員行動不能の場合の処理
+    askfinishselectingcommand();
+    disablecommandbtns(true);
+    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
+    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
+  }
+}
+
 //allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
 //backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
 //一旦全削除用function、コマンド選択終了時にも起動
@@ -572,6 +615,11 @@ document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("cl
 function disablecommandbtns(trueorfalse) {
   document.querySelectorAll(".commandbtn").forEach((button) => {
     button.disabled = trueorfalse;
+    if (trueorfalse) {
+      button.style.opacity = "0.2";
+    } else {
+      button.style.opacity = "";
+    }
   });
 }
 
@@ -602,6 +650,9 @@ document.getElementById("askfinishselectingcommandbtnno").addEventListener("clic
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
 document.getElementById("askfinishselectingcommandbtnyes").addEventListener("click", function () {
+  document.getElementById("askfinishselectingcommandbtnno").disabled = false;
+  document.getElementById("closeselectcommandpopupwindowbtn").disabled = false;
+  //全員選択不能の場合のdisable化解除
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   if (selectingwhichteamscommand == "1") {
     //敵も選択終了後は、startbattleへ
@@ -624,28 +675,7 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
 
 //敵のコマンド選択方法-player
 document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("click", function () {
-  // 敵モンスターの状態を確認
-  if (isPartyIncapacitated(1)) {
-    // 敵モンスターが全員行動不能の場合
-    skipAllMonsterCommandSelection(1);
-    askfinishselectingcommand();
-    disablecommandbtns(true);
-    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
-    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
-  } else {
-    // そうでない場合、通常の処理を続行
-    selectingwhichmonsterscommand = 0;
-    selectingwhichteamscommand = 1;
-    document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-    //以下、手動選択のための処理
-    disablecommandbtns(false);
-    //アイコン反転
-    preparebattlepageicons(true);
-    adjustmonstericonstickout();
-    //bar反転
-    reverseMonsterBarDisplay();
-  }
+  startSelectingCommandForFirstMonster(1);
 });
 
 //敵のコマンド選択方法-improvedAI
@@ -664,22 +694,6 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 });
 //ここは最大ダメージ検知AIなども含めて統合処理
 
-// 指定されたパーティーのモンスターが全員行動不能かどうか判定する関数
-function isPartyIncapacitated(partyIndex) {
-  return parties[partyIndex].every((monster) => isDead(monster) || hasAbnormality(monster));
-}
-
-// 指定されたパーティーのすべてのモンスターの行動をスキップする関数
-function skipAllMonsterCommandSelection(partyIndex) {
-  parties[partyIndex].forEach((monster) => {
-    if (isDead(monster)) {
-      monster.confirmedcommand = "skipThisTurn";
-    } else if (hasAbnormality(monster)) {
-      monster.confirmedcommand = "normalAICommand";
-    }
-  });
-}
-
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
 function startTurn(turnNum) {
   //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
@@ -691,27 +705,20 @@ function startTurn(turnNum) {
   //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
   closeSelectCommandPopupWindowContents();
 
-  if (isPartyIncapacitated(0)) {
-    // 味方モンスターが全員行動不能の場合
-    skipAllMonsterCommandSelection(0);
-    askfinishselectingcommand();
-    disablecommandbtns(true);
-    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
-    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
-  }
+  startSelectingCommandForFirstMonster(0);
 }
 
 //毎ラウンドコマンド選択後処理
 async function startbattle() {
-  console.log(parties);
-  decideTurnOrder(parties, skill);
   //1round目なら戦闘開始時flagを持つ特性等を発動
-  //ラウンド開始時flagを持つ特性を発動
+  //ラウンド開始時flagを持つ特性を発動 多分awaitする
+  decideTurnOrder(parties, skill);
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
     await processMonsterAction(monster, findSkillByName(monster.confirmedcommand));
     await sleep(750);
   }
+  startSelectingCommandForFirstMonster(0);
 }
 
 //バフ管理system
@@ -795,6 +802,8 @@ function removeExpiredBuffs(monster) {
 // currentstatusを更新する関数
 //buff追加時・解除時・持続時間切れ時に起動
 function updateCurrentStatus(monster) {
+  //全回復してしまうので仮で無効化
+  return;
   // currentstatus を defaultstatus の値で初期化
   monster.currentstatus = structuredClone(monster.defaultstatus);
 
