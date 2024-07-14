@@ -373,7 +373,6 @@ function selectcommand(selectedskillnum) {
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillname;
   //confirmedcommandに格納
   const selectedskill = findSkillByName(selectedskillname);
-  //nameを取得してconfirmedcommandに保存
   const skilltargetTypedetector = selectedskill.targetType;
   const skilltargetTeamdetector = selectedskill.targetTeam;
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
@@ -1025,8 +1024,13 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
   displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
-  await executeSkill(skillUser, executingSkill);
+  if (skillUser.confirmedcommandtarget === "") {
+    await executeSkill(skillUser, executingSkill);
+  } else {
+    await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)]);
+  }
 
   // 7. 行動後処理
   // 実行済みスキルを配列末尾に追加
@@ -1050,22 +1054,22 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
   }
 
   // 7-3. AI追撃処理
-  if (!skillUser.flags.hasDiedThisAction) {
+  if (!skillUser.flags.hasDiedThisAction && skillUser.abilities.AINormalAttack) {
     const AItargetSkill = executedSkills.length > 0 ? executedSkills[0] : executingSkill;
     if (
       !isDead(skillUser) &&
       !hasAbnormality(skillUser) &&
       skillUser.abilities.AINormalAttack &&
-      !executedSkills.some((skill) => skill.noAINormalAttack) &&
-      !(AItargetSkill.noAINormalAttack ?? false) &&
-      (AItargetSkill.order === "preemptive" || (AItargetSkill.order === "anchor" && AItargetSkill.howToCalculate === "none"))
+      !executedSkills.some((skill) => skill.noAINormalAttack) //&&
+      //!AItargetSkill.noAINormalAttack &&
+      //(AItargetSkill.order === "preemptive" || (AItargetSkill.order === "anchor" && AItargetSkill.howToCalculate === "none"))
     ) {
       const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
       for (let i = 0; i < attackTimes; i++) {
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
         // 通常攻撃を実行
-        await executeSkill(skillUser, "AInormalAttack");
+        await executeSkill(skillUser, findSkillByName("通常攻撃"), decideNormalAttackTarget(skillUser));
         await sleep(230); // 追撃ごとに待機時間を設ける 300
       }
     }
@@ -1361,7 +1365,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       // 単体攻撃
       if (currentHit === 0) {
         // 最初のヒット時のみターゲットを決定
-        skillTarget = determineSingleTarget(assignedTarget, skillUser, killedThisSkill);
+        skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, killedThisSkill);
         // ターゲットが存在しない場合は処理を中断
         if (!skillTarget) {
           return;
@@ -1378,7 +1382,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       break;
     case "random":
       // ランダム攻撃
-      skillTarget = determineRandomTarget(assignedTarget, skillUser, killedThisSkill, currentHit);
+      skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, killedThisSkill, currentHit);
       if (skillTarget) {
         await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
       } else {
@@ -1415,8 +1419,8 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
 }
 
 // 単体攻撃のターゲットを決定する関数
-function determineSingleTarget(target, skillUser, killedThisSkill) {
-  const aliveMonsters = (skillUser.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+function determineSingleTarget(target, skillUser, executingSkill, killedThisSkill) {
+  const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
   if (target && !killedThisSkill.has(target) && aliveMonsters.includes(target)) {
     // 指定されたターゲットが生きていて、killedThisSkillに含まれていない場合は、そのターゲットを返す
     return target;
@@ -1431,11 +1435,11 @@ function determineSingleTarget(target, skillUser, killedThisSkill) {
   }
 }
 
-function determineRandomTarget(target, skillUser, killedThisSkill, currentHit) {
+function determineRandomTarget(target, skillUser, executingSkill, killedThisSkill, currentHit) {
   if (currentHit === 0) {
-    return determineSingleTarget(target, skillUser, killedThisSkill);
+    return determineSingleTarget(target, skillUser, executingSkill, killedThisSkill);
   } else {
-    const aliveMonsters = (skillUser.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+    const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
     const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
     if (validTargets.length > 0) {
       return validTargets[Math.floor(Math.random() * validTargets.length)];
@@ -1592,6 +1596,68 @@ function sleep(milliseconds) {
 // フラグをチェックする関数
 function checkFlag(target, flagName) {
   return target.flags[flagName] === true;
+}
+
+//AI追撃targetを返す
+function decideNormalAttackTarget(skillUser) {
+  const enemyParty = parties[skillUser.enemyTeamID];
+  let target = null;
+  let minHPRatio = Infinity;
+  let minIndex = Infinity;
+
+  // 敵パーティ内の各モンスターに対して
+  for (let i = 0; i < enemyParty.length; i++) {
+    const monster = enemyParty[i];
+    // isDeadのフラグを持っている場合はスキップ
+    if (monster.flags.isDead) {
+      continue;
+    }
+    // 有効な攻撃対象の判定
+    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !monster.buffs.atakan;
+    // 有効な攻撃対象でない場合はスキップ
+    if (!isValidTarget) {
+      continue;
+    }
+    // 残存HP割合を計算
+    const hpRatio = monster.currentstatus.HP / monster.defaultstatus.HP;
+    // 残存HP割合が今までの最小値より小さいか、同じ場合はindexが小さい場合
+    if (hpRatio < minHPRatio || (hpRatio === minHPRatio && i < minIndex)) {
+      target = monster;
+      minHPRatio = hpRatio;
+      minIndex = i;
+    }
+  }
+  // 有効な攻撃対象が見つからなかった場合、条件を緩和(atakan可)して再検索
+  if (target === null) {
+    for (let i = 0; i < enemyParty.length; i++) {
+      const monster = enemyParty[i];
+      // isDeadのフラグを持っている場合はスキップ
+      if (monster.flags.isDead) {
+        continue;
+      }
+      // 残存HP割合を計算
+      const hpRatio = monster.currentstatus.HP / monster.defaultstatus.HP;
+      // 残存HP割合が今までの最小値より小さいか、同じ場合はindexが小さい場合
+      if (hpRatio < minHPRatio || (hpRatio === minHPRatio && i < minIndex)) {
+        target = monster;
+        minHPRatio = hpRatio;
+        minIndex = i;
+      }
+    }
+  }
+
+  return target;
+}
+
+function hasAbnormalityofAINormalAttack(monster) {
+  const abnormalityKeys = ["confused", "paralyzed", "asleep"];
+  //Todo: 麻痺どうだっけ
+  for (const key of abnormalityKeys) {
+    if (monster.abnormality[key]) {
+      return true;
+    }
+  }
+  return false;
 }
 
 //todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
