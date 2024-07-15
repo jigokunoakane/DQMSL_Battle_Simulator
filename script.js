@@ -1459,16 +1459,33 @@ function determineRandomTarget(target, skillUser, executingSkill, killedThisSkil
 }
 
 // ヒット処理を実行する関数
-async function processHit(skillUser, executingSkill, skillTarget, killedThisSkill) {
+async function processHit(skillUser, executingSkill, assignedSkillTarget, killedThisSkill) {
+  let skillTarget = assignedSkillTarget;
   // みがわり処理
-  if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
-    skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+  if (assignedSkillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
+    skillTarget = parties.flat().find((monster) => monster.monsterId === assignedSkillTarget.flags.hasSubstitute.targetMonsterId);
   }
+
+  if (executingSkill.howToCalculate === "none") {
+    return;
+  }
+
+  // みかわし・マヌーサ処理
+  if (["atk", "def", "spd"].includes(executingSkill.howToCalculate)) {
+    const isMissed = checkEvasionAndDazzle(skillUser, executingSkill, skillTarget);
+    if (isMissed === "miss") {
+      applyDamage(skillTarget, 0, "");
+      return;
+    }
+  }
+
+  //耐性処理
+  const resistance = calculateResistance(skillUser, executingSkill, skillTarget, fieldState.isDistorted);
 
   // ダメージ処理
   const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-  const damage = executingSkill.damage * randomMultiplier;
-  applyDamage(skillTarget, damage, "");
+  const damage = executingSkill.damage * randomMultiplier * resistance;
+  applyDamage(skillTarget, damage, resistance);
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
   if (skillTarget.flags.recentlyKilled) {
@@ -1486,6 +1503,139 @@ async function processHit(skillUser, executingSkill, skillTarget, killedThisSkil
     return true;
   } else {
     return false;
+  }
+}
+
+function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
+  // マヌーサ処理
+  if (skillUser.abnormality.dazzle && !executingSkill.ignoreDazzle) {
+    if (Math.random() < 0.36) {
+      console.log(`${skillTarget.name}は目を回して攻撃を外した！`);
+      return "miss";
+    }
+  }
+  // みかわし処理
+  if (!executingSkill.ignoreEvasion) {
+    // みかわしバフ
+    if (skillTarget.buffs.dodgeBuff) {
+      if (Math.random() < skillTarget.buffs.dodgeBuff.strength) {
+        console.log(`${skillTarget.name}は攻撃をかわした！`);
+        return "miss";
+      }
+    }
+    // 素早さによる回避
+    else {
+      const speedRatio = skillTarget.currentstatus.spd / skillUser.currentstatus.spd;
+      let evasionRate = 0;
+      if (speedRatio >= 1 && speedRatio < 1.5) {
+        evasionRate = 0.02;
+      } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
+        evasionRate = 0.15;
+      } else if (speedRatio >= 1.75 && speedRatio < 2) {
+        evasionRate = 0.25;
+      } else if (speedRatio >= 2 && speedRatio < 2.5) {
+        evasionRate = 0.3;
+      } else if (speedRatio >= 2.5 && speedRatio < 3) {
+        evasionRate = 0.4;
+      } else if (speedRatio >= 3) {
+        evasionRate = 0.5;
+      }
+
+      if (Math.random() < evasionRate) {
+        console.log(`${skillTarget.name}は攻撃をかわした！`);
+        return "miss";
+      }
+    }
+  }
+  // みかわし・マヌーサ処理が適用されなかった場合
+  return "hit";
+}
+
+function calculateResistance(skillUser, executingSkill, skillTarget, distorted = null) {
+  const element = executingSkill.element;
+  const baseResistance = skillTarget.resistance[element] ?? 1;
+  const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
+  const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
+
+  // --- 無属性の処理 ---
+  if (executingSkill.type === "notskill") {
+    return 1;
+  }
+  if (executingSkill.element === "none") {
+    let noneResistance = 1; //初期値
+    if (skillTarget.buffs.nonElementalResistance) {
+      noneResistance = 0;
+    }
+    if (!distorted && skillTarget.name === "ダグジャガルマ") {
+      noneResistance = -1; //非歪曲
+    } else if (skillTarget.name === "ダグジャガルマ") {
+      noneResistance = 1.5; //歪曲
+    }
+    return noneResistance;
+  }
+
+  // --- 通常時の処理 ---
+  if (!distorted) {
+    let normalResistanceIndex = resistanceValues.indexOf(baseResistance);
+
+    //もともと無効や吸収のときは処理せずにそのまま格納 それ以外の場合はバフ等があれば反映した後、最大でも無効止まりにする
+    if (normalResistanceIndex !== 0 && normalResistanceIndex !== 1) {
+      // 装備効果
+      if (skillTarget.abilities[element + "gearResistance"]) {
+        normalResistanceIndex -= skillTarget.abilities[element + "gearResistance"].strength;
+      }
+      // 属性耐性バフ効果
+      if (skillTarget.buffs[element + "Resistance"]) {
+        normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
+      }
+      // インデックスの範囲を制限 最大でも無効
+      normalResistanceIndex = Math.max(1, Math.min(normalResistanceIndex, 6));
+    }
+    //ここまでの処理の結果を格納
+    let normalResistance = resistanceValues[normalResistanceIndex];
+
+    // 使い手効果
+    if (skillUser.buffs[element + "Break"]) {
+      normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
+      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+      normalResistance = resistanceValues[normalResistanceIndex];
+    }
+    return normalResistance;
+  } else {
+    // --- 属性歪曲時の処理 ---
+    let distortedResistanceIndex = resistanceValues.indexOf(baseResistance);
+
+    // 装備効果・属性耐性バフ効果 反転後に無効吸収になる弱点普通は変化させない
+    if (distortedResistanceIndex !== 5 && distortedResistanceIndex !== 6) {
+      // 装備効果
+      if (skillTarget.abilities[element + "gearResistance"]) {
+        distortedResistanceIndex += skillTarget.abilities[element + "gearResistance"].strength;
+      }
+      // 属性耐性バフ効果
+      if (skillTarget.buffs[element + "Resistance"]) {
+        distortedResistanceIndex += skillTarget.buffs[element + "Resistance"].strength;
+      }
+    }
+    // インデックスの範囲を制限
+    distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
+    //ここまでの処理の結果を変換後に格納
+    let distortedResistance = distortedResistanceValues[distortedResistanceIndex];
+
+    // 使い手効果 (反転)
+    if (skillUser.buffs[element + "Break"]) {
+      // 変換後の耐性値からresistanceValuesのインデックスを取得 変換後の耐性値を本来の耐性表のindexに変えてから操作
+      distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
+
+      // インデックスに対する操作
+      distortedResistanceIndex -= skillUser.buffs[element + "Break"].strength;
+
+      // インデックスの範囲を制限
+      distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
+
+      // distortedResistanceを更新
+      distortedResistance = resistanceValues[distortedResistanceIndex];
+    }
+    return distortedResistance;
   }
 }
 
@@ -2008,6 +2158,7 @@ const monsters = [
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
     ls: { HP: 1.3, spd: 1.3 },
     lstarget: "ドラゴン",
+    resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1 },
   },
   {
     name: "宵の華シンリ",
@@ -2019,6 +2170,7 @@ const monsters = [
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, spd: 1 },
     lstarget: "ドラゴン",
+    resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1 },
   },
   {
     name: "魔夏姫アンルシア",
@@ -2030,6 +2182,7 @@ const monsters = [
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
     lstarget: "スライム",
+    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5 },
   },
   {
     name: "怪竜やまたのおろち",
@@ -2041,6 +2194,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
     lstarget: "スライム",
+    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5 },
   },
   {
     name: "ヴォルカドラゴン",
@@ -2052,6 +2206,7 @@ const monsters = [
     seed: { atk: 0, def: 0, spd: 0, int: 0 },
     ls: { HP: 10, MP: 10 },
     lstarget: "all",
+    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1 },
   },
   {
     name: "WORLD",
@@ -2064,6 +2219,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1.13, spd: 1.13, atk: 1.05 },
     lstarget: "all",
+    resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1 },
   },
   {
     name: "超ネルゲル",
@@ -2076,6 +2232,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0 },
   },
   {
     name: "超エルギ",
@@ -2088,6 +2245,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0 },
   },
   {
     name: "イフシバ",
@@ -2100,6 +2258,7 @@ const monsters = [
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5 },
   },
   {
     name: "スカルナイト",
@@ -2112,6 +2271,7 @@ const monsters = [
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0 },
   },
   {
     name: "超オムド",
@@ -2124,6 +2284,7 @@ const monsters = [
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
     lstarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0 },
   },
   {
     name: "超ラプ",
@@ -2136,6 +2297,7 @@ const monsters = [
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0 },
   },
   {
     name: "エスターク",
@@ -2148,6 +2310,7 @@ const monsters = [
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5 },
   },
   {
     name: "ミステリドール",
@@ -2161,6 +2324,7 @@ const monsters = [
     ls: { HP: 1.15 },
     lstarget: "all",
     anchorAction: 100,
+    resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1 },
   },
   {
     name: "ティトス",
@@ -2173,6 +2337,7 @@ const monsters = [
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0 },
   },
   {
     name: "sample",
@@ -2185,6 +2350,7 @@ const monsters = [
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1 },
   },
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
@@ -2200,7 +2366,7 @@ const skill = [
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd
-    element: "", //fire ice thun io wind light dark
+    element: "", //fire ice thunder io wind light dark
     order: "", //preemptive anchor
     preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     targetType: "", //single random all
@@ -2288,6 +2454,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 65,
+    damage: 420,
   },
   {
     name: "フローズンシャワー",
@@ -2311,7 +2478,7 @@ const skill = [
   {
     name: "スパークふんしゃ",
     howToCalculate: "fix",
-    element: "thun",
+    element: "thunder",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
@@ -2510,7 +2677,7 @@ const skill = [
   {
     name: "パニッシュスパーク",
     howToCalculate: "fix",
-    element: "thun",
+    element: "thunder",
     targetType: "all",
     targetTeam: "enemy",
   },
@@ -2764,24 +2931,15 @@ function karitobattlepage() {
 
 document.getElementById("preActionbtn").addEventListener("click", function () {
   const preActiondetector = document.getElementById("preActionbtn").textContent;
-  if (preActiondetector === "味方全員行動早い付与") {
-    document.getElementById("preActionbtn").textContent = "4体目のみ付与";
-    //全員に付与;
-    /*
-    for (const party of parties) {
-      // 各party内のmonsterに対して処理を行う
-      for (const monster of party) {
-        // preemptiveActionプロパティを追加
-        monster.preemptiveAction = 100;
-      }
-    }*/
+  if (preActiondetector === "味方神速") {
+    document.getElementById("preActionbtn").textContent = "4のみ";
     parties[0][0].preemptiveAction = 100;
     parties[0][1].preemptiveAction = 100;
     parties[0][2].preemptiveAction = 100;
     parties[0][3].preemptiveAction = 100;
     parties[0][4].preemptiveAction = 100;
   } else {
-    document.getElementById("preActionbtn").textContent = "味方全員行動早い付与";
+    document.getElementById("preActionbtn").textContent = "味方神速";
     for (const party of parties) {
       for (const monster of party) {
         delete monster.preemptiveAction;
@@ -2793,6 +2951,18 @@ document.getElementById("preActionbtn").addEventListener("click", function () {
   }
   decideTurnOrder(parties, skill);
 });
+
+document.getElementById("elementErrorbtn").addEventListener("click", function () {
+  const elementErrortext = document.getElementById("elementErrorbtn").textContent;
+  if (elementErrortext === "エレエラ") {
+    document.getElementById("elementErrorbtn").textContent = "エラ解除";
+    fieldState.isDistorted = true;
+  } else {
+    document.getElementById("elementErrorbtn").textContent = "エレエラ";
+    delete fieldState.isDistorted;
+  }
+});
+
 document.getElementById("Reversebtn").addEventListener("click", function () {
   const reversedetector = document.getElementById("Reversebtn").textContent;
   if (reversedetector === "リバース化") {
@@ -3036,7 +3206,7 @@ document.getElementById("hametsubtn").addEventListener("click", function () {
 });
 
 document.getElementById("flobtn").addEventListener("click", function () {
-  executeSkill(parties[0][0], findSkillByName("フローズンシャワー"), parties[1][0]);
+  executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
 });
 
 document.getElementById("materialbtn").addEventListener("click", function () {
