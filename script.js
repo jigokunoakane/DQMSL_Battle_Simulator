@@ -575,6 +575,13 @@ function removeallstickout() {
     monstericon.classList.remove("stickout");
   });
 }
+//防御の引っ込みを消す ターン終了時に起動 死亡時は個別に削除
+function removeallrecede() {
+  const allmonstericonsrecede = document.querySelectorAll(".monstericon");
+  allmonstericonsrecede.forEach((monstericon) => {
+    monstericon.classList.remove("recede");
+  });
+}
 //現在選択中のmonster imgにclass:stickoutを付与
 function adjustmonstericonstickout() {
   removeallstickout();
@@ -702,6 +709,9 @@ function startTurn(turnNum) {
       monster.modifiedSpeed = calculateModifiedSpeed(monster);
     }
   }
+  // ぼうぎょタグを削除
+  removeallrecede();
+
   //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
   closeSelectCommandPopupWindowContents();
 
@@ -718,7 +728,7 @@ async function startbattle() {
     await processMonsterAction(monster, findSkillByName(monster.confirmedcommand));
     await sleep(750);
   }
-  startSelectingCommandForFirstMonster(0);
+  startTurn();
 }
 
 //バフ管理system
@@ -993,7 +1003,11 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   removeallstickout();
-  document.getElementById(skillUser.iconElementId).classList.add("stickout");
+  if (executingSkill.name === "ぼうぎょ") {
+    document.getElementById(skillUser.iconElementId).classList.add("recede");
+  } else {
+    document.getElementById(skillUser.iconElementId).classList.add("stickout");
+  }
 
   // 2. バフ状態異常継続時間確認
   removeExpiredBuffs(skillUser);
@@ -1310,6 +1324,8 @@ function handleDeath(target) {
   }
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
+  document.getElementById(target.iconElementId).classList.remove("stickout");
+  document.getElementById(target.iconElementId).classList.remove("recede");
   if (target.teamID === 0) {
     console.log(`${target.name}はちからつきた！`);
     displayMessage(`${target.name}は　ちからつきた！`);
@@ -1599,6 +1615,16 @@ function calculateResistance(skillUser, executingSkill, skillTarget, distorted =
       normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
       normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
       normalResistance = resistanceValues[normalResistanceIndex];
+    } else if (skillUser.buffs.allElementalBreak) {
+      normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
+      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+      normalResistance = resistanceValues[normalResistanceIndex];
+    }
+    // 大弱点・超弱点処理
+    if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
+      normalResistance = 2;
+    } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
+      normalResistance = 2.5;
     }
     return normalResistance;
   } else {
@@ -1625,14 +1651,16 @@ function calculateResistance(skillUser, executingSkill, skillTarget, distorted =
     if (skillUser.buffs[element + "Break"]) {
       // 変換後の耐性値からresistanceValuesのインデックスを取得 変換後の耐性値を本来の耐性表のindexに変えてから操作
       distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
-
       // インデックスに対する操作
       distortedResistanceIndex -= skillUser.buffs[element + "Break"].strength;
-
       // インデックスの範囲を制限
       distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
-
       // distortedResistanceを更新
+      distortedResistance = resistanceValues[distortedResistanceIndex];
+    } else if (skillUser.buffs.allElementalBreak) {
+      distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
+      distortedResistanceIndex -= skillUser.buffs.allElementalBreak.strength;
+      distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
       distortedResistance = resistanceValues[distortedResistanceIndex];
     }
     return distortedResistance;

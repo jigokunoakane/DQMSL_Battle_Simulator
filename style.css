@@ -191,7 +191,11 @@ select {
 }
 
 .battlepageenemyicon.stickout {
-  transform: translate(0%, 15%);
+  transform: translate(0%, 10%);
+}
+
+.battlepageallyicon.recede {
+  transform: translate(0%, 10%);
 }
 
 #monsterinfo-tabs {
