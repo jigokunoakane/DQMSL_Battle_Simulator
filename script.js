@@ -1475,8 +1475,9 @@ function determineRandomTarget(target, skillUser, executingSkill, killedThisSkil
 }
 
 // ヒット処理を実行する関数
-async function processHit(skillUser, executingSkill, assignedSkillTarget, killedThisSkill) {
+async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, killedThisSkill) {
   let skillTarget = assignedSkillTarget;
+  let skillUser = assignedSkillUser;
   // みがわり処理
   if (assignedSkillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
     skillTarget = parties.flat().find((monster) => monster.monsterId === assignedSkillTarget.flags.hasSubstitute.targetMonsterId);
@@ -1488,7 +1489,7 @@ async function processHit(skillUser, executingSkill, assignedSkillTarget, killed
 
   // みかわし・マヌーサ処理
   if (["atk", "def", "spd"].includes(executingSkill.howToCalculate)) {
-    const isMissed = checkEvasionAndDazzle(skillUser, executingSkill, skillTarget);
+    const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
       applyDamage(skillTarget, 0, "");
       return;
@@ -1496,7 +1497,42 @@ async function processHit(skillUser, executingSkill, assignedSkillTarget, killed
   }
 
   //耐性処理
-  const resistance = calculateResistance(skillUser, executingSkill, skillTarget, fieldState.isDistorted);
+  const resistance = calculateResistance(assignedSkillUser, executingSkill, skillTarget, fieldState.isDistorted);
+  let resistanceValue = resistance;
+
+  // 吸収以外の場合に、種別無効処理と反射処理
+  let isReflection = false;
+  if (resistance !== -1) {
+    //種別無効かつ無効貫通でないならばreturn
+    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"]) {
+      applyDamage(skillTarget, 0, "");
+      return;
+    }
+    //反射持ちかつ反射無視でないならば反射化し、耐性も変更
+    if (
+      !executingSkill.ignoreReflection &&
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.atakan && (executingSkill.type === "slash" || executingSkill.type === "notskill")))
+    ) {
+      isReflection = true;
+      resistanceValue = 1;
+      //反射化、skillTargetをskillUserに変更
+      skillTarget = assignedSkillUser;
+      //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
+      if (skillTarget.buffs[executingSkill.type + "Reflection"].type === "kanta") {
+        skillUser = skillTarget;
+      }
+      //strengthの分を乗算要素に追加
+    }
+  }
+
+  //反射以外の場合にメタル処理
+  if (!isReflection) {
+  }
+
+  //弱点1.8倍処理
+  if (resistanceValue === 1.5 && executingSkill.weakness18) {
+    resistanceValue = 1.8;
+  }
 
   // ダメージ処理
   const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
@@ -1510,12 +1546,12 @@ async function processHit(skillUser, executingSkill, assignedSkillTarget, killed
     }
     delete skillTarget.flags.recentlyKilled;
   }
-  // スキル使用者(skillUser)が死亡したら true を返す
-  if (skillUser.flags.recentlyKilled) {
-    if (!killedThisSkill.has(skillUser)) {
+  // 大元のスキル使用者(assignedSkillUser)が死亡したら true を返す
+  if (assignedSkillUser.flags.recentlyKilled) {
+    if (!killedThisSkill.has(assignedSkillUser)) {
       killedThisSkill.add(skillTarget);
     }
-    delete skillUser.flags.recentlyKilled;
+    delete assignedSkillUser.flags.recentlyKilled;
     return true;
   } else {
     return false;
@@ -3275,3 +3311,69 @@ function displayMessage(line1Text, line2Text = "") {
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
 }
+
+/*
+function addMirrorEffect(targetImageId) {
+  // 対象となる画像要素を取得
+  const targetImage = document.getElementById(targetImageId);
+
+  // 鏡要素を作成
+  const mirror = document.createElement("div");
+  mirror.style.position = "absolute";
+  mirror.style.top = "0";
+  mirror.style.left = "0";
+  mirror.style.width = "100%";
+  mirror.style.height = "100%";
+  mirror.style.borderRadius = "50%";
+  mirror.style.backgroundImage = "radial-gradient(#fffcfb, #fffcfb 30%, #9347d1 30%)"; // 縁と内側を明確に分ける
+  mirror.style.backgroundSize = "cover"; // 背景画像を要素全体にフィットさせる
+
+  // 対象となる画像要素の親要素に鏡要素を追加
+  targetImage.parentNode.appendChild(mirror);
+}
+*/
+// 例：IDが "battleiconally0" の画像に鏡効果を追加
+
+function addMirrorEffect(targetImageId) {
+  // 対象の画像要素を取得
+  const targetImage = document.getElementById(targetImageId);
+
+  // ミラー要素を作成
+  const mirror = document.createElement("div");
+  mirror.style.position = "absolute";
+  mirror.style.top = "0";
+  mirror.style.left = "0";
+  mirror.style.width = "100%";
+  mirror.style.height = "100%";
+  mirror.style.borderRadius = "50%";
+  mirror.style.overflow = "hidden";
+
+  // 縁の要素を作成
+  const border = document.createElement("div");
+  border.style.position = "absolute";
+  border.style.top = "0";
+  border.style.left = "0";
+  border.style.width = "calc(100% - 8px)";
+  border.style.height = "calc(100% - 8px)";
+  border.style.borderRadius = "50%";
+  border.style.border = "4px solid #fffcfb";
+  border.style.boxSizing = "border-box";
+  mirror.appendChild(border);
+
+  // 内側の要素を作成
+  const inner = document.createElement("div");
+  inner.style.position = "absolute";
+  inner.style.top = "0";
+  inner.style.left = "0";
+  inner.style.width = "100%";
+  inner.style.height = "100%";
+  inner.style.backgroundColor = "#9347d1";
+  inner.style.opacity = "0.5";
+  inner.style.mixBlendMode = "screen"; // 透過しながら光らせる効果
+  mirror.appendChild(inner);
+
+  // ミラー要素を画像要素の親に追加
+  targetImage.parentNode.appendChild(mirror);
+}
+
+// 使用例：IDが "battleiconally0" の画像にミラー効果を追加
