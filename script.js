@@ -1526,19 +1526,80 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       //strengthの分を乗算要素に追加
     }
   }
-
-  //反射以外の場合にメタル処理
-  if (!isReflection) {
-  }
-
   //弱点1.8倍処理
   if (resistanceValue === 1.5 && executingSkill.weakness18) {
     resistanceValue = 1.8;
   }
 
+  // ダメージ計算
+  let damage = 0;
+  let baseDamage = 0;
+  if (executingSkill.howToCalculate === "fix") {
+    baseDamage = executingSkill.damage;
+  } else if (executingSkill.ratio) {
+    const status = {
+      atk: skillUser.currentstatus.atk,
+      def: skillUser.currentstatus.def,
+      spd: skillUser.currentstatus.spd,
+      int: skillUser.currentstatus.int,
+    }[executingSkill.howToCalculate];
+    baseDamage = Math.floor(status / 2 - skillTarget.currentstatus.def / 4) * executingSkill.ratio;
+  } else if (executingSkill.howToCalculate === "int") {
+    const { minInt, maxInt, minIntDamage, maxIntDamage } = executingSkill;
+    const int = skillUser.currentstatus.int;
+    if (int <= minInt) {
+      baseDamage = minIntDamage;
+    } else if (int >= maxInt) {
+      baseDamage = maxIntDamage;
+    } else {
+      baseDamage = Math.floor(((int - minInt) * (maxIntDamage - minIntDamage)) / (maxInt - minInt)) + Number(minIntDamage);
+    }
+    // 特技プラスと賢さ差ボーナスを乗算
+    const intDiff = skillUser.currentstatus.int - skillTarget.currentstatus.int;
+    const intBonus =
+      intDiff >= 150
+        ? 1.25
+        : intDiff >= 140
+        ? 1.24
+        : intDiff >= 130
+        ? 1.23
+        : intDiff >= 120
+        ? 1.22
+        : intDiff >= 110
+        ? 1.21
+        : intDiff >= 100
+        ? 1.2
+        : intDiff >= 90
+        ? 1.19
+        : intDiff >= 80
+        ? 1.18
+        : intDiff >= 70
+        ? 1.17
+        : intDiff >= 60
+        ? 1.16
+        : intDiff >= 50
+        ? 1.15
+        : intDiff >= 40
+        ? 1.14
+        : intDiff >= 30
+        ? 1.13
+        : intDiff >= 20
+        ? 1.12
+        : intDiff >= 10
+        ? 1.11
+        : intDiff >= 1
+        ? 1.1
+        : 1;
+    baseDamage *= executingSkill.skillPlus * intBonus;
+  }
+
+  //反射以外の場合にメタル処理
+  if (!isReflection && skillTarget.buffs.metal) {
+  }
+
   // ダメージ処理
   const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-  const damage = executingSkill.damage * randomMultiplier * resistanceValue;
+  damage = baseDamage * randomMultiplier * resistanceValue;
   applyDamage(skillTarget, damage, resistance);
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
