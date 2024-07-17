@@ -1515,12 +1515,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     ) {
       isReflection = true;
       resistanceValue = 1;
-      //反射化、skillTargetをskillUserに変更
-      skillTarget = assignedSkillUser;
+      //反射演出
+      addMirrorEffect(skillTarget.iconElementId);
       //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
       if (skillTarget.buffs[executingSkill.type + "Reflection"].type === "kanta") {
         skillUser = skillTarget;
       }
+      //反射化、skillTargetをskillUserに変更
+      skillTarget = assignedSkillUser;
       //strengthの分を乗算要素に追加
     }
   }
@@ -1536,7 +1538,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージ処理
   const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-  const damage = executingSkill.damage * randomMultiplier * resistance;
+  const damage = executingSkill.damage * randomMultiplier * resistanceValue;
   applyDamage(skillTarget, damage, resistance);
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
@@ -2448,6 +2450,7 @@ const skill = [
   },
   {
     name: "通常攻撃",
+    type: "notskill",
     howToCalculate: "atk",
     element: "none",
     targetType: "single",
@@ -2457,6 +2460,7 @@ const skill = [
   },
   {
     name: "ぼうぎょ",
+    type: "notskill",
     howToCalculate: "none",
     element: "none",
     targetType: "me",
@@ -2467,6 +2471,7 @@ const skill = [
   },
   {
     name: "涼風一陣",
+    type: "martial",
     howToCalculate: "fix",
     element: "ice",
     targetType: "all",
@@ -2477,6 +2482,7 @@ const skill = [
   },
   {
     name: "涼風一陣後半",
+    type: "breath",
     howToCalculate: "fix",
     element: "none",
     targetType: "all",
@@ -2486,6 +2492,7 @@ const skill = [
   },
   {
     name: "神楽の術",
+    type: "spell",
     howToCalculate: "int",
     element: "none",
     targetType: "all",
@@ -2494,6 +2501,7 @@ const skill = [
   },
   {
     name: "昇天斬り",
+    type: "slash",
     howToCalculate: "atk",
     element: "none",
     targetType: "single",
@@ -2502,6 +2510,7 @@ const skill = [
   },
   {
     name: "タップダンス",
+    type: "dance",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2512,6 +2521,7 @@ const skill = [
   },
   {
     name: "氷華大繚乱",
+    type: "slash",
     howToCalculate: "atk",
     element: "ice",
     targetType: "random",
@@ -2522,6 +2532,7 @@ const skill = [
   },
   {
     name: "フローズンシャワー",
+    type: "martial",
     howToCalculate: "fix",
     element: "ice",
     targetType: "single",
@@ -2533,6 +2544,7 @@ const skill = [
   },
   {
     name: "おぞましいおたけび",
+    type: "martial",
     howToCalculate: "atk",
     element: "none",
     targetType: "all",
@@ -2541,6 +2553,7 @@ const skill = [
   },
   {
     name: "スパークふんしゃ",
+    type: "breath",
     howToCalculate: "fix",
     element: "thunder",
     targetType: "random",
@@ -2550,6 +2563,7 @@ const skill = [
   },
   {
     name: "天空竜の息吹",
+    type: "breath",
     howToCalculate: "fix",
     element: "light",
     targetType: "random",
@@ -2560,6 +2574,7 @@ const skill = [
   },
   {
     name: "エンドブレス",
+    type: "breath",
     howToCalculate: "fix",
     element: "none",
     targetType: "all",
@@ -2569,6 +2584,7 @@ const skill = [
   },
   {
     name: "テンペストブレス",
+    type: "breath",
     howToCalculate: "fix",
     element: "wind",
     targetType: "single",
@@ -2579,6 +2595,7 @@ const skill = [
   },
   {
     name: "煉獄火炎",
+    type: "breath",
     howToCalculate: "fix",
     element: "fire",
     targetType: "all",
@@ -2587,6 +2604,7 @@ const skill = [
   },
   {
     name: "むらくもの息吹",
+    type: "breath",
     howToCalculate: "fix",
     element: "none",
     targetType: "random",
@@ -2596,6 +2614,7 @@ const skill = [
   },
   {
     name: "獄炎の息吹",
+    type: "breath",
     howToCalculate: "fix",
     element: "fire",
     targetType: "random",
@@ -2605,6 +2624,7 @@ const skill = [
   },
   {
     name: "ほとばしる暗闇",
+    type: "martial",
     howToCalculate: "fix",
     element: "dark",
     targetType: "all",
@@ -2613,6 +2633,7 @@ const skill = [
   },
   {
     name: "防刃の守り",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2623,6 +2644,7 @@ const skill = [
   },
   {
     name: "ラヴァフレア",
+    type: "breath",
     howToCalculate: "fix",
     element: "fire",
     targetType: "single",
@@ -2633,6 +2655,7 @@ const skill = [
   },
   {
     name: "におうだち",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2643,6 +2666,7 @@ const skill = [
   },
   {
     name: "大樹の守り",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2653,6 +2677,7 @@ const skill = [
   },
   {
     name: "みがわり",
+    type: "martial",
     howToCalculate: "fix",
     element: "none",
     targetType: "single",
@@ -2664,6 +2689,7 @@ const skill = [
   },
   {
     name: "超魔滅光",
+    type: "martial",
     howToCalculate: "fix",
     element: "none",
     targetType: "single",
@@ -2671,6 +2697,7 @@ const skill = [
   },
   {
     name: "真・ゆうきの斬舞",
+    type: "dance",
     howToCalculate: "atk",
     element: "light",
     targetType: "random",
@@ -2681,6 +2708,7 @@ const skill = [
   },
   {
     name: "神獣の封印",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "single",
@@ -2688,6 +2716,7 @@ const skill = [
   },
   {
     name: "斬撃よそく",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "me",
@@ -2695,6 +2724,7 @@ const skill = [
   },
   {
     name: "ソウルハーベスト",
+    type: "slash",
     howToCalculate: "atk",
     element: "none",
     targetType: "random",
@@ -2705,6 +2735,7 @@ const skill = [
   },
   {
     name: "黄泉の封印",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "single",
@@ -2712,6 +2743,7 @@ const skill = [
   },
   {
     name: "暗黒閃",
+    type: "slash",
     howToCalculate: "atk",
     element: "dark",
     targetType: "single",
@@ -2723,6 +2755,7 @@ const skill = [
   },
   {
     name: "終の流星",
+    type: "martial",
     howToCalculate: "fix",
     element: "none",
     targetType: "random",
@@ -2732,6 +2765,7 @@ const skill = [
   },
   {
     name: "失望の光舞",
+    type: "dance",
     howToCalculate: "fix",
     element: "light",
     targetType: "random",
@@ -2740,6 +2774,7 @@ const skill = [
   },
   {
     name: "パニッシュスパーク",
+    type: "martial",
     howToCalculate: "fix",
     element: "thunder",
     targetType: "all",
@@ -2747,6 +2782,7 @@ const skill = [
   },
   {
     name: "堕天使の理",
+    type: "dance",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2756,6 +2792,7 @@ const skill = [
   },
   {
     name: "ヘルバーナー",
+    type: "martial",
     howToCalculate: "fix",
     element: "fire",
     targetType: "single",
@@ -2763,6 +2800,7 @@ const skill = [
   },
   {
     name: "氷魔のダイヤモンド",
+    type: "breath",
     howToCalculate: "fix",
     element: "ice",
     targetType: "single",
@@ -2770,6 +2808,7 @@ const skill = [
   },
   {
     name: "炎獣の爪",
+    type: "slash",
     howToCalculate: "atk",
     element: "fire",
     targetType: "single",
@@ -2779,6 +2818,7 @@ const skill = [
   },
   {
     name: "プリズムヴェール",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2786,6 +2826,7 @@ const skill = [
   },
   {
     name: "ルカナン",
+    type: "spell",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2793,6 +2834,7 @@ const skill = [
   },
   {
     name: "ザオリク",
+    type: "spell",
     howToCalculate: "none",
     element: "none",
     targetType: "dead",
@@ -2800,6 +2842,7 @@ const skill = [
   },
   {
     name: "タイムストーム",
+    type: "spell",
     howToCalculate: "int",
     element: "none",
     targetType: "random",
@@ -2808,6 +2851,7 @@ const skill = [
   },
   {
     name: "零時の儀式",
+    type: "ritual",
     howToCalculate: "int",
     element: "none",
     targetType: "all",
@@ -2817,6 +2861,7 @@ const skill = [
   },
   {
     name: "クロノストーム",
+    type: "spell",
     howToCalculate: "int",
     element: "none",
     targetType: "random",
@@ -2827,6 +2872,7 @@ const skill = [
   },
   {
     name: "かくせいリバース",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2835,6 +2881,7 @@ const skill = [
   },
   {
     name: "呪いの儀式",
+    type: "ritual",
     howToCalculate: "int",
     element: "none",
     targetType: "all",
@@ -2842,6 +2889,7 @@ const skill = [
   },
   {
     name: "はめつの流星",
+    type: "spell",
     howToCalculate: "int",
     element: "io",
     targetType: "random",
@@ -2850,6 +2898,7 @@ const skill = [
   },
   {
     name: "暗黒神の連撃",
+    type: "martial",
     howToCalculate: "fix",
     element: "none",
     targetType: "single",
@@ -2859,6 +2908,7 @@ const skill = [
   },
   {
     name: "真・闇の結界",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "me",
@@ -2868,6 +2918,7 @@ const skill = [
   },
   {
     name: "必殺の双撃",
+    type: "slash",
     howToCalculate: "atk",
     element: "none",
     targetType: "single",
@@ -2876,6 +2927,7 @@ const skill = [
   },
   {
     name: "帝王のかまえ",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "me",
@@ -2885,6 +2937,7 @@ const skill = [
   },
   {
     name: "体砕きの斬舞",
+    type: "dance",
     howToCalculate: "atk",
     element: "none",
     targetType: "random",
@@ -2893,6 +2946,7 @@ const skill = [
   },
   {
     name: "アストロンゼロ",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "me",
@@ -2902,6 +2956,7 @@ const skill = [
   },
   {
     name: "衝撃波",
+    type: "martial",
     howToCalculate: "atk",
     element: "none",
     targetType: "all",
@@ -2910,6 +2965,7 @@ const skill = [
   },
   {
     name: "おおいかくす",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "single",
@@ -2919,6 +2975,7 @@ const skill = [
   },
   {
     name: "闇の紋章",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "all",
@@ -2927,6 +2984,7 @@ const skill = [
   },
   {
     name: "物質の爆発",
+    type: "martial",
     howToCalculate: "fix",
     element: "none",
     targetType: "all",
@@ -3341,10 +3399,9 @@ function addMirrorEffect(targetImageId) {
   // ミラー要素を作成
   const mirror = document.createElement("div");
   mirror.style.position = "absolute";
-  mirror.style.top = "0";
-  mirror.style.left = "0";
-  mirror.style.width = "100%";
-  mirror.style.height = "100%";
+  mirror.style.top = "-15%";
+  mirror.style.width = "130%";
+  mirror.style.height = "130%";
   mirror.style.borderRadius = "50%";
   mirror.style.overflow = "hidden";
 
@@ -3353,10 +3410,10 @@ function addMirrorEffect(targetImageId) {
   border.style.position = "absolute";
   border.style.top = "0";
   border.style.left = "0";
-  border.style.width = "calc(100% - 8px)";
-  border.style.height = "calc(100% - 8px)";
+  border.style.width = "100%";
+  border.style.height = "100%";
   border.style.borderRadius = "50%";
-  border.style.border = "4px solid #fffcfb";
+  border.style.border = "3px solid #fffcfb";
   border.style.boxSizing = "border-box";
   mirror.appendChild(border);
 
@@ -3368,12 +3425,23 @@ function addMirrorEffect(targetImageId) {
   inner.style.width = "100%";
   inner.style.height = "100%";
   inner.style.backgroundColor = "#9347d1";
-  inner.style.opacity = "0.5";
+  inner.style.opacity = "0.8";
   inner.style.mixBlendMode = "screen"; // 透過しながら光らせる効果
   mirror.appendChild(inner);
 
   // ミラー要素を画像要素の親に追加
   targetImage.parentNode.appendChild(mirror);
-}
+  // 300msかけてフェードアウト
+  setTimeout(() => {
+    inner.style.transition = "opacity 0.5s ease-in-out";
+    inner.style.opacity = "0";
+    // 縁を狭めるアニメーション
+    border.style.transition = "border-width 0.5s ease-in-out"; // border-width をアニメーション
+    border.style.borderWidth = "2px"; // 縁の幅を 0px に
+  }, 0);
 
-// 使用例：IDが "battleiconally0" の画像にミラー効果を追加
+  // 完全に消えたら要素を削除
+  setTimeout(() => {
+    mirror.remove();
+  }, 300);
+}
