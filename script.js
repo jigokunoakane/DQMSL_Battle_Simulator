@@ -1174,9 +1174,13 @@ function applyDamage(target, damage, resistance, MP) {
     // 回復処理
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
     if (target.buffs.healBlock) {
-      healAmount = 0;
-    } else {
-      healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
+      //回復封じ処理
+      if (MP) {
+        displayDamage(target, 0, -1, MP); // MP回復封じ
+      } else {
+        displayDamage(target, 0, -1); // HP回復封じ
+      }
+      return;
     }
 
     if (MP) {
@@ -1188,6 +1192,7 @@ function applyDamage(target, damage, resistance, MP) {
       displayDamage(target, -healAmount, -1, MP); // MP回復は負の数で表示
     } else {
       // HP回復
+      healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
       target.currentstatus.HP += healAmount;
       console.log(`${target.name}のHPが${healAmount}回復！`);
       displayMessage(`${target.name}の`, `HPが　${healAmount}回復した！`);
@@ -1526,16 +1531,18 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       //strengthの分を乗算要素に追加
     }
   }
-  //弱点1.8倍処理
-  if (resistanceValue === 1.5 && executingSkill.weakness18) {
-    resistanceValue = 1.8;
-  }
 
   // ダメージ計算
-  let damage = 0;
   let baseDamage = 0;
+  let isCriticalHit = false;
   if (executingSkill.howToCalculate === "fix") {
-    baseDamage = executingSkill.damage;
+    if (executingSkill.damageByLevel) {
+      const randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
+      baseDamage = Math.floor(executingSkill.damage * randomMultiplier);
+    } else {
+      const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+      baseDamage = Math.floor(executingSkill.damage * randomMultiplier);
+    }
   } else if (executingSkill.ratio) {
     const status = {
       atk: skillUser.currentstatus.atk,
@@ -1543,7 +1550,43 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       spd: skillUser.currentstatus.spd,
       int: skillUser.currentstatus.int,
     }[executingSkill.howToCalculate];
-    baseDamage = Math.floor(status / 2 - skillTarget.currentstatus.def / 4) * executingSkill.ratio;
+
+    // 会心の一撃判定
+    let criticalHitProbability = executingSkill.criticalHitProbability;
+    if (criticalHitProbability !== undefined) {
+      // criticalHitProbabilityが存在する場合
+      isCriticalHit = Math.random() < criticalHitProbability;
+    } else if (executingSkill.howToCalculate !== "int") {
+      // criticalHitProbabilityが存在せず、howToCalculateがintではない場合
+      isCriticalHit = Math.random() < 0.009;
+    }
+
+    if (isCriticalHit) {
+      // 会心の一撃成功時
+      const criticalHitMultiplier = 0.95 + 0.01 * Math.floor(Math.random() * 11);
+      baseDamage = Math.floor((status / 2) * criticalHitMultiplier);
+    } else {
+      // 会心の一撃が発生しない場合
+      const statusRatio = skillTarget.currentstatus.def / status;
+
+      if (statusRatio >= 0 && statusRatio < 1.75) {
+        // 割った値が0以上1.75未満の場合
+        baseDamage = status / 2 - skillTarget.currentstatus.def / 4;
+        const randomOffset = (Math.random() * baseDamage) / 8 - baseDamage / 16 + Math.random() * 2 - 1;
+        baseDamage = Math.floor(baseDamage + randomOffset);
+      } else if (statusRatio >= 1.75 && statusRatio < 2) {
+        // 割った値が1.75以上2未満の場合
+        if (Math.random() < 0.75) {
+          baseDamage = Math.floor(Math.random() * (status / 16));
+        }
+      } else {
+        // 割った値が2以上の場合
+        if (Math.random() < 0.5) {
+          baseDamage = 1;
+        }
+      }
+    }
+    baseDamage *= executingSkill.ratio;
   } else if (executingSkill.howToCalculate === "int") {
     const { minInt, maxInt, minIntDamage, maxIntDamage } = executingSkill;
     const int = skillUser.currentstatus.int;
@@ -1590,16 +1633,86 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         : intDiff >= 1
         ? 1.1
         : 1;
+    const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+    baseDamage = Math.floor(baseDamage * randomMultiplier);
     baseDamage *= executingSkill.skillPlus * intBonus;
+  }
+  let damage = baseDamage;
+
+  //弱点1.8倍処理
+  if (resistanceValue === 1.5 && executingSkill.weakness18) {
+    resistanceValue = 1.8;
+  }
+  //耐性
+  damage *= resistanceValue;
+
+  //連携
+
+  //呪文会心
+  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge)
+    if (skillUser.buffs.baiki && executingSkill.howToCalculate === "atk" && !executingSkill.ignoreBaiki) {
+      //確率
+      //乗算バフ
+      //バイキ
+      damage *= skillUser.buffs.baiki.strength;
+    }
+
+  //魔力覚醒
+  if (skillUser.buffs.manaBoost && !executingSkill.ignoreManaBoost && executingSkill.howToCalculate === "int" && executingSkill.type === "spell") {
+    damage *= skillUser.buffs.manaBoost.strength;
+  }
+  //力ため 斬撃体技踊りまたはatk依存
+  if (
+    skillUser.buffs.powerCharge &&
+    !executingSkill.ignorePowerCharge &&
+    (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")
+  ) {
+    damage *= skillUser.buffs.powerCharge.strength;
+  }
+  //息を吸い込む
+  if (skillUser.buffs.breathCharge && executingSkill.type === "breath") {
+    damage *= skillUser.buffs.breathCharge.strength;
+  }
+
+  //乗算デバフ
+  //魔防・斬撃・体技・息防御
+  const barrierTypes = {
+    spell: "spellBarrier",
+    slash: "slashBarrier",
+    martial: "martialBarrier",
+    breath: "breathBarrier",
+  };
+  const barrierType = barrierTypes[executingSkill.type];
+  if (skillTarget.buffs[barrierType] && !executingSkill.criticalHitProbability) {
+    //確定会心系は防御バフ無視
+    damage *= skillUser.buffs[barrierType].strength;
   }
 
   //反射以外の場合にメタル処理
   if (!isReflection && skillTarget.buffs.metal) {
+    damage *= 1 - skillTarget.buffs.metal.strength;
+    //メタルキラー処理
+    if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.type === "metal") {
+      damage *= 1 - skillUser.buffs.metalKiller.strength;
+    }
   }
 
+  //特技の種族特効
+  if (executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.type)) {
+    damage *= executingSkill.RaceBaneValue;
+  }
+  //みがわり特効
+  if (executingSkill.SubstituteBreaker && skillTarget.flags.isSubstituting) {
+    damage *= executingSkill.SubstituteBreaker;
+  }
+
+  // anchorBonus
+  if (executingSkill.anchorBonus) {
+  }
+
+  //以下加算処理
+
   // ダメージ処理
-  const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-  damage = baseDamage * randomMultiplier * resistanceValue;
   applyDamage(skillTarget, damage, resistance);
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
@@ -1643,7 +1756,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
       const speedRatio = skillTarget.currentstatus.spd / skillUser.currentstatus.spd;
       let evasionRate = 0;
       if (speedRatio >= 1 && speedRatio < 1.5) {
-        evasionRate = 0.02;
+        evasionRate = 0.01; //下方修正
       } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
         evasionRate = 0.15;
       } else if (speedRatio >= 1.75 && speedRatio < 2) {
@@ -2493,30 +2606,41 @@ const skill = [
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd
+    ratio: 1,
     element: "", //fire ice thunder io wind light dark
     order: "", //preemptive anchor
     preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     targetType: "", //single random all
     targetTeam: "enemy",
     numofhit: "",
-    ignoreProt: true,
+    ignoreProtection: true,
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
     ignoreEvasion: true,
-    MP: 76,
-    //ignoreDazzle: true, penetrateIronize: true,
-    //文字列・数値格納可能 真偽値？？
-    folowingSkill: "ryohuzentai",
+    ignoreTypeEvasion: true,
+    ignoreDazzle: true,
+    penetrateIronize: true,
+    ignoreBaiki: true,
+    ignoreManaBoost: true,
+    ignorePowerCharge: true,
+    weakness18: true,
+    RaceBane: ["slime", "dragon"],
+    RaceBaneValue: 3,
+    anchorBonus: 3,
+    damageByLevel: true,
+    SubstituteBreaker: 3,
+    MPcost: 76,
+    followingSkill: "ryohuzentai",
   },
   {
     name: "通常攻撃",
     type: "notskill",
     howToCalculate: "atk",
+    ratio: 1,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    damage: 200,
     MPcost: 0,
   },
   {
@@ -2538,7 +2662,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     damage: 142,
-    folowingSkill: "涼風一陣後半",
+    followingSkill: "涼風一陣後半",
     MPcost: 96,
   },
   {
@@ -2555,6 +2679,11 @@ const skill = [
     name: "神楽の術",
     type: "spell",
     howToCalculate: "int",
+    minInt: 500,
+    minIntDamage: 222,
+    maxInt: 1000,
+    maxIntDamage: 310,
+    skillPlus: 1.15,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -2564,6 +2693,7 @@ const skill = [
     name: "昇天斬り",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 1.74,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
@@ -2584,6 +2714,7 @@ const skill = [
     name: "氷華大繚乱",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 0.9,
     element: "ice",
     targetType: "random",
     targetTeam: "enemy",
@@ -2607,6 +2738,7 @@ const skill = [
     name: "おぞましいおたけび",
     type: "martial",
     howToCalculate: "atk",
+    ratio: 1.4,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -2616,6 +2748,7 @@ const skill = [
     name: "スパークふんしゃ",
     type: "breath",
     howToCalculate: "fix",
+    damage: 230,
     element: "thunder",
     targetType: "random",
     targetTeam: "enemy",
@@ -2658,6 +2791,7 @@ const skill = [
     name: "煉獄火炎",
     type: "breath",
     howToCalculate: "fix",
+    damage: 333,
     element: "fire",
     targetType: "all",
     targetTeam: "enemy",
@@ -2667,6 +2801,7 @@ const skill = [
     name: "むらくもの息吹",
     type: "breath",
     howToCalculate: "fix",
+    damage: 161,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
@@ -2677,16 +2812,19 @@ const skill = [
     name: "獄炎の息吹",
     type: "breath",
     howToCalculate: "fix",
+    damage: 230,
     element: "fire",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    weakness18: true,
     MPcost: 30,
   },
   {
     name: "ほとばしる暗闇",
     type: "martial",
     howToCalculate: "fix",
+    damage: 162,
     element: "dark",
     targetType: "all",
     targetTeam: "enemy",
@@ -2707,10 +2845,12 @@ const skill = [
     name: "ラヴァフレア",
     type: "breath",
     howToCalculate: "fix",
+    damage: 732,
     element: "fire",
     targetType: "single",
     targetTeam: "enemy",
     order: "anchor",
+    anchorBonus: 3,
     hitNum: 3,
     MPcost: 76,
   },
@@ -2752,20 +2892,38 @@ const skill = [
     name: "超魔滅光",
     type: "martial",
     howToCalculate: "fix",
+    damage: 475,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 78,
+    RaceBane: ["???", "tyoma"],
+    RaceBaneValue: 4,
+  },
+  {
+    name: "超魔滅光後半",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 200,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    RaceBane: ["???", "tyoma"],
+    RaceBaneValue: 4,
   },
   {
     name: "真・ゆうきの斬舞",
     type: "dance",
     howToCalculate: "atk",
+    ratio: 0.91,
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
     hitNum: 6,
+    MPcost: 71,
   },
   {
     name: "神獣の封印",
@@ -2774,6 +2932,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 34,
   },
   {
     name: "斬撃よそく",
@@ -2782,16 +2941,17 @@ const skill = [
     element: "none",
     targetType: "me",
     targetTeam: "ally",
+    MPcost: 5,
   },
   {
     name: "ソウルハーベスト",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 0.9,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 9,
-    damage: 280,
     MPcost: 58,
   },
   {
@@ -2801,45 +2961,63 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 39,
   },
   {
     name: "暗黒閃",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 3.6,
     element: "dark",
     targetType: "single",
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
-    damage: 1400,
     MPcost: 43,
+  },
+  {
+    name: "冥王の奪命鎌",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.12,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    damage: 1,
+    MPcost: 52,
   },
   {
     name: "終の流星",
     type: "martial",
     howToCalculate: "fix",
+    damage: 580,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
     order: "anchor",
     hitNum: 6,
+    MPcost: 79,
   },
   {
     name: "失望の光舞",
     type: "dance",
     howToCalculate: "fix",
+    damage: 210,
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
+    MPcost: 65,
   },
   {
     name: "パニッシュスパーク",
     type: "martial",
     howToCalculate: "fix",
+    damage: 310,
     element: "thunder",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 92,
   },
   {
     name: "堕天使の理",
@@ -2850,32 +3028,52 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 2,
+    MPcost: 50,
+  },
+  {
+    name: "光速の連打",
+    type: "dance",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 51,
   },
   {
     name: "ヘルバーナー",
     type: "martial",
     howToCalculate: "fix",
+    damage: 891,
     element: "fire",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 74,
   },
   {
     name: "氷魔のダイヤモンド",
     type: "breath",
     howToCalculate: "fix",
+    damage: 891,
     element: "ice",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 74,
   },
   {
     name: "炎獣の爪",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 2.15,
     element: "fire",
     targetType: "single",
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 8,
+    MPcost: 30,
+    RaceBane: ["dragon", "???"],
+    RaceBaneValue: 2,
   },
   {
     name: "プリズムヴェール",
@@ -2884,6 +3082,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 54,
   },
   {
     name: "ルカナン",
@@ -2892,6 +3091,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 18,
   },
   {
     name: "ザオリク",
@@ -2900,36 +3100,55 @@ const skill = [
     element: "none",
     targetType: "dead",
     targetTeam: "ally",
+    MPcost: 103,
   },
   {
     name: "タイムストーム",
     type: "spell",
     howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 218,
+    skillPlus: 1.09,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    hitNum: 65,
+    hitNum: 6,
+    MPcost: 85,
   },
   {
     name: "零時の儀式",
     type: "ritual",
     howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 150,
+    maxInt: 600,
+    maxIntDamage: 330,
+    skillPlus: 1.09,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
     order: "preemptive",
     preemptivegroup: 7,
+    MPcost: 120,
   },
   {
     name: "クロノストーム",
     type: "spell",
     howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 140,
+    maxInt: 1000,
+    maxIntDamage: 244,
+    skillPlus: 1,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
     order: "preemptive",
     preemptivegroup: 8,
+    MPcost: 85,
   },
   {
     name: "かくせいリバース",
@@ -2939,14 +3158,21 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     order: "anchor",
+    MPcost: 60,
   },
   {
     name: "呪いの儀式",
     type: "ritual",
     howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 150,
+    maxInt: 600,
+    maxIntDamage: 330,
+    skillPlus: 1.09,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: 90,
   },
   {
     name: "はめつの流星",
@@ -2956,6 +3182,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
+    MPcost: 88,
   },
   {
     name: "暗黒神の連撃",
@@ -2966,6 +3193,7 @@ const skill = [
     targetTeam: "enemy",
     order: "anchor",
     hitNum: 3,
+    MPcost: 80,
   },
   {
     name: "真・闇の結界",
@@ -2976,15 +3204,18 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
+    MPcost: 38,
   },
   {
     name: "必殺の双撃",
     type: "slash",
     howToCalculate: "atk",
+    ratio: 4.6,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
     hitNum: 2,
+    MPcost: 100,
   },
   {
     name: "帝王のかまえ",
@@ -2995,6 +3226,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
+    MPcost: 37,
   },
   {
     name: "体砕きの斬舞",
@@ -3004,6 +3236,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
+    MPcost: 41,
   },
   {
     name: "アストロンゼロ",
@@ -3014,6 +3247,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 5,
+    MPcost: 52,
   },
   {
     name: "衝撃波",
@@ -3023,6 +3257,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     order: "anchor",
+    MPcost: 38,
   },
   {
     name: "おおいかくす",
@@ -3033,6 +3268,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 3,
+    MPcost: 16,
   },
   {
     name: "闇の紋章",
@@ -3042,6 +3278,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     following: "", //敵にも付与
+    MPcost: 53,
   },
   {
     name: "物質の爆発",
@@ -3054,6 +3291,8 @@ const skill = [
     skipAbnormalityCheck: true,
     damage: 100,
     trigger: "death",
+    ignoreBaiki: true,
+    ignorePowerCharge: true,
     MPcost: 0,
   },
   {
@@ -3281,11 +3520,11 @@ function displayDamage(monster, damage, resistance, MP) {
 
       // 耐性によって画像を変更 (HPダメージの場合のみ)
       if (!MP) {
-        if (resistance === "Weakness") {
+        if (resistance === 1.5) {
           effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
-        } else if (resistance === "superWeakness") {
+        } else if (resistance === 2) {
           effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
-        } else if (resistance === "ultraWeakness") {
+        } else if (resistance === 2.5) {
           effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
         }
       }
@@ -3369,6 +3608,7 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       delete monster.flags.isZombie;
       delete monster.flags.isRecentlyDamaged;
       applyDamage(monster, -1500, -1);
+      applyDamage(monster, -1500, -1, true);
       updatebattleicons(monster);
       displayMessage("ザオリーマをとなえた");
     }
