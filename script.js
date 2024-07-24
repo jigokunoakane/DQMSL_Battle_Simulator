@@ -3446,8 +3446,10 @@ function displayDamage(monster, damage, resistance, MP) {
 
       const digitImage = document.createElement("img");
       digitImage.src = MP ? "images/systems/MPRecoveryNumbers/0.png" : "images/systems/HPRecoveryNumbers/0.png"; // 数字0の画像
-      digitImage.style.maxWidth = "50%";
+      digitImage.style.maxWidth = "60%";
       digitImage.style.height = "auto";
+      digitImage.style.marginLeft = "-1.5px";
+      digitImage.style.marginRight = "-1.5px";
       damageContainer.appendChild(digitImage);
 
       // 各数字のアニメーションを設定
@@ -3576,8 +3578,8 @@ function displayDamage(monster, damage, resistance, MP) {
         digitImage.style.maxWidth = "80%";
       }
       digitImage.style.height = "auto";
-      digitImage.style.marginLeft = "-2px";
-      digitImage.style.marginRight = "-2px";
+      digitImage.style.marginLeft = "-1.5px";
+      digitImage.style.marginRight = "-1.5px";
       damageContainer.appendChild(digitImage);
 
       // 各数字のアニメーションを設定
