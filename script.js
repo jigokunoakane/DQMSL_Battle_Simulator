@@ -3431,7 +3431,7 @@ function displayDamage(monster, damage, resistance, MP) {
       damageContainer.style.transform = "translate(-50%, -50%)";
       damageContainer.style.justifyContent = "center";
 
-      const effectImagePath = MP ? "images/systems/MPRecovery.png" : "images/systems/HPRecovery.png"; // MP回復かHP回復か
+      const effectImagePath = MP ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png"; // MP回復かHP回復か
 
       const effectImage = document.createElement("img");
       effectImage.src = effectImagePath;
@@ -3513,19 +3513,19 @@ function displayDamage(monster, damage, resistance, MP) {
     let effectImagePath = "";
     if (resistance === -1) {
       // 回復の場合
-      effectImagePath = MP ? "images/systems/MPRecovery.png" : "images/systems/HPRecovery.png";
+      effectImagePath = MP ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png";
     } else {
       // ダメージの場合
-      effectImagePath = MP ? "images/systems/MPDamaged.png" : monster.teamID === 0 ? "images/systems/allyDamaged.png" : "images/systems/enemyDamaged.png";
+      effectImagePath = MP ? "images/systems/effectImages/MPDamaged.png" : monster.teamID === 0 ? "images/systems/effectImages/allyDamaged.png" : "images/systems/effectImages/enemyDamaged.png";
 
       // 耐性によって画像を変更 (HPダメージの場合のみ)
       if (!MP) {
         if (resistance === 1.5) {
-          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedWeakness.png" : "images/systems/enemyDamagedWeakness.png";
+          effectImagePath = monster.teamID === 0 ? "images/systems/effectImages/allyDamagedWeakness.png" : "images/systems/effectImages/enemyDamagedWeakness.png";
         } else if (resistance === 2) {
-          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedSuperWeakness.png" : "images/systems/enemyDamagedSuperWeakness.png";
+          effectImagePath = monster.teamID === 0 ? "images/systems/effectImages/allyDamagedSuperWeakness.png" : "images/systems/effectImages/enemyDamagedSuperWeakness.png";
         } else if (resistance === 2.5) {
-          effectImagePath = monster.teamID === 0 ? "images/systems/allyDamagedUltraWeakness.png" : "images/systems/enemyDamagedUltraWeakness.png";
+          effectImagePath = monster.teamID === 0 ? "images/systems/effectImages/allyDamagedUltraWeakness.png" : "images/systems/effectImages/enemyDamagedUltraWeakness.png";
         }
       }
     }
@@ -3533,8 +3533,12 @@ function displayDamage(monster, damage, resistance, MP) {
     const effectImage = document.createElement("img");
     effectImage.src = effectImagePath;
     effectImage.style.position = "absolute";
-    effectImage.style.width = monsterIcon.offsetWidth + "px";
-    effectImage.style.height = monsterIcon.offsetHeight + "px";
+    let scale = 1;
+    if (resistance > 1.4) {
+      scale = 2;
+    }
+    effectImage.style.width = monsterIcon.offsetWidth * scale + "px";
+    effectImage.style.height = "auto";
     // effectImage を damageEffectContainer の中心に配置
     effectImage.style.top = "50%";
     effectImage.style.left = "50%";
@@ -3567,7 +3571,10 @@ function displayDamage(monster, damage, resistance, MP) {
           : MP
           ? `images/systems/MPDamageNumbers/${digits[i]}.png`
           : `images/systems/HPDamageNumbers/${digits[i]}.png`;
-      digitImage.style.maxWidth = "50%";
+      digitImage.style.maxWidth = "60%";
+      if (resistance > 1.4) {
+        digitImage.style.maxWidth = "80%";
+      }
       digitImage.style.height = "auto";
       digitImage.style.marginLeft = "-2px";
       digitImage.style.marginRight = "-2px";
