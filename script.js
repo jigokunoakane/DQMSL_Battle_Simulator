@@ -724,6 +724,9 @@ function startTurn() {
   // monster.attributeに含まれるもののうちturnNumに等しいものをbuffに入れる
   for (const party of parties) {
     for (const monster of party) {
+      if (monster.flags.isDead) {
+        continue;
+      }
       // turnNum に対応するバフを適用
       if (monster.attribute.hasOwnProperty(turnNum)) {
         applyBuff(monster, monster.attribute[turnNum]);
@@ -828,6 +831,11 @@ function applyBuff(monster, newBuff) {
       darkResistance: "dark",
     };
 
+    // statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
+    if (monster.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (newBuff[buffName] && newBuff[buffName].hasOwnProperty("type") && newBuff[buffName].type === "familyBuff"))) {
+      continue;
+    }
+
     // buffData 内に probability が存在するかチェック
     const probability = buffData.probability !== undefined ? buffData.probability : 1;
     // 付与判定後、probability を削除
@@ -879,6 +887,14 @@ function applyBuff(monster, newBuff) {
       // 重ねがけ不可のバフの場合、元々存在しないまたはstrength が大きい場合のみ上書き
       if (!currentBuff || buffData.strength > currentBuff.strength) {
         monster.buffs[buffName] = { ...buffData };
+        // ここでもしstatusLockを付与した場合は stackableBuffs と familyBuff を削除
+        if (buffName === "statusLock") {
+          for (const existingBuffName in monster.buffs) {
+            if (stackableBuffs.hasOwnProperty(existingBuffName) || (monster.buffs[existingBuffName] && monster.buffs[existingBuffName].type === "familyBuff")) {
+              delete monster.buffs[existingBuffName];
+            }
+          }
+        }
       }
     }
   }
@@ -887,30 +903,20 @@ function applyBuff(monster, newBuff) {
 
 // 各モンスターの全バフと状態異常のdurationを1減らす関数 turnが進んだら起動
 function decreaseBuffDurations(monster) {
-  // buffs要素が1つ以上ある場合のみforEachを実行
-  if (monster.buffs.length > 0) {
-    monster.buffs.forEach((buff) => {
-      buff.duration--;
-    });
+  for (const buffName in monster.buffs) {
+    monster.buffs[buffName].duration--;
   }
   // abnormality要素が1つ以上ある場合のみforEachを実行
-  if (monster.abnormality.length > 0) {
-    monster.abnormality.forEach((eachabnormality) => {
-      eachabnormality.duration--;
-    });
-  }
 }
 
 // durationが0になったバフを消去する関数 skill使用前に起動
 function removeExpiredBuffs(monster) {
-  // buffs要素が1つ以上ある場合のみfilterを実行
-  if (monster.buffs.length > 0) {
-    monster.buffs = monster.buffs.filter((buff) => buff.duration > 0);
+  for (const buffName in monster.buffs) {
+    if (monster.buffs[buffName].duration <= 0) {
+      delete monster.buffs[buffName];
+    }
   }
   // abnormality要素が1つ以上ある場合のみfilterを実行
-  if (monster.abnormality.length > 0) {
-    monster.abnormality = monster.abnormality.filter((eachabnormality) => eachabnormality.duration > 0);
-  }
   updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
 }
 
@@ -1778,6 +1784,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillUser.buffs.breathCharge && executingSkill.type === "breath") {
     damage *= skillUser.buffs.breathCharge.strength;
   }
+  //コツ系
+  if (skillUser.buffs.breathEnhancement && executingSkill.type === "breath") {
+    damage *= 1.15;
+  }
+  //属性コツ
+  if (skillUser.buffs.elementEnhancement && skillUser.buffs.elementEnhancement.element === executingSkill.element) {
+    damage *= 1.15;
+  }
 
   //乗算デバフ
   //魔防・斬撃・体技・息防御
@@ -2078,7 +2092,12 @@ async function reviveMonster(monster) {
   let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
 
   delete monster.flags.isDead;
-  monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
+  if (reviveSource === monster.buffs.Revive) {
+    monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
+  } else {
+    //タッグ変化時はHPmaxで復活
+    monster.currentstatus.HP = monster.defaultstatus.HP;
+  }
   updateMonsterBar(monster);
   updatebattleicons(monster);
   console.log(`なんと${monster.name}が生き返った！`);
@@ -2513,6 +2532,7 @@ const monsters = [
     attribute: {
       1: {
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
+        breathEnhancement: { keepOnDeath: true },
         breathCharge: { strength: 1.2 },
       },
       2: { breathCharge: { strength: 1.5 } },
@@ -2559,7 +2579,10 @@ const monsters = [
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     attribute: {
-      1: { fireBreak: { keepOnDeath: true, strength: 2 } },
+      1: {
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        breathEnhancement: { keepOnDeath: true },
+      },
       evenTurnBuffs: { slashResistance: { strength: 1 } },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -2573,7 +2596,7 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
-    attribute: "",
+    attribute: { 1: { metal: { keepOnDeath: true, strength: 0.75, type: "notmetal" } } },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 10, MP: 10 },
     lstarget: "all",
@@ -3790,6 +3813,7 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       applyDamage(monster, -1500, -1, true);
       updatebattleicons(monster);
       displayMessage("ザオリーマをとなえた");
+      preparebattle();
     }
   }
 });
