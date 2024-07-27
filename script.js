@@ -115,6 +115,8 @@ function confirmparty() {
 
 //パテ設定画面の確定で起動
 function preparebattle() {
+  //初期化
+  fieldState = { turnNum: 0 };
   //敵味方識別子を追加
   parties.forEach((party, index) => {
     party.forEach((member) => {
@@ -193,11 +195,11 @@ function preparebattle() {
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons();
   //field管理用変数の導入はglobalで
-  startTurn(1);
+  startTurn();
 }
 //finish preparebattle 開始時処理終了
 
-const fieldState = [];
+let fieldState = { turnNum: 0 };
 
 //targetTeamごとに特技target選択画面で起動
 function setElementIcon(elementId, id) {
@@ -702,7 +704,9 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 //ここは最大ダメージ検知AIなども含めて統合処理
 
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
-function startTurn(turnNum) {
+function startTurn() {
+  fieldState.turnNum++;
+  const turnNum = fieldState.turnNum;
   //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
   for (const party of parties) {
     for (const monster of party) {
@@ -716,6 +720,31 @@ function startTurn(turnNum) {
   closeSelectCommandPopupWindowContents();
 
   startSelectingCommandForFirstMonster(0);
+
+  // monster.attributeに含まれるもののうちturnNumに等しいものをbuffに入れる
+  for (const party of parties) {
+    for (const monster of party) {
+      // turnNum に対応するバフを適用
+      if (monster.attribute.hasOwnProperty(turnNum)) {
+        applyBuff(monster, monster.attribute[turnNum]);
+      }
+
+      // 毎ターン発動バフを適用
+      if (monster.attribute.hasOwnProperty("permanentBuffs")) {
+        applyBuff(monster, monster.attribute.permanentBuffs);
+      }
+
+      // 偶数ターンのバフを適用
+      if (turnNum % 2 === 0 && monster.attribute.hasOwnProperty("evenTurnBuffs")) {
+        applyBuff(monster, monster.attribute.evenTurnBuffs);
+      }
+
+      // 奇数ターンのバフを適用
+      if (turnNum % 2 !== 0 && monster.attribute.hasOwnProperty("oddTurnBuffs")) {
+        applyBuff(monster, monster.attribute.oddTurnBuffs);
+      }
+    }
+  }
 }
 
 //毎ラウンドコマンド選択後処理
@@ -763,21 +792,97 @@ function endTurn() {
   }
 }
 
-//バフ追加用関数
-function addBuff(monster, name, canRemove, strength, duration) {
-  // バフが既に存在し、strengthが現在のバフより小さい場合は何もしない
-  if (monster.buffs[name] && monster.buffs[name].strength >= strength) {
-    return;
+// バフ追加用関数
+function applyBuff(monster, newBuff) {
+  for (const buffName in newBuff) {
+    const currentBuff = monster.buffs[buffName];
+    const buffData = newBuff[buffName];
+
+    // 重ねがけ可能なバフ
+    const stackableBuffs = {
+      baiki: { max: 2, min: -2 },
+      defUp: { max: 2, min: -2 },
+      spdUp: { max: 2, min: -2 },
+      intUp: { max: 2, min: -2 },
+      spellBarrier: { max: 2, min: -2 },
+      slashBarrier: { max: 2, min: -2 },
+      martialBarrier: { max: 2, min: -2 },
+      breathBarrier: { max: 2, min: -2 },
+      fireResistance: { max: 3, min: -3 },
+      iceResistance: { max: 3, min: -3 },
+      thunderResistance: { max: 3, min: -3 },
+      windResistance: { max: 3, min: -3 },
+      ioResistance: { max: 3, min: -3 },
+      lightResistance: { max: 3, min: -3 },
+      darkResistance: { max: 3, min: -3 },
+    };
+
+    // Resistance 系バフの場合の属性名
+    const resistanceBuffElementMap = {
+      fireResistance: "fire",
+      iceResistance: "ice",
+      thunderResistance: "thunder",
+      windResistance: "wind",
+      ioResistance: "io",
+      lightResistance: "light",
+      darkResistance: "dark",
+    };
+
+    // buffData 内に probability が存在するかチェック
+    const probability = buffData.probability !== undefined ? buffData.probability : 1;
+    // 付与判定後、probability を削除
+    delete buffData.probability;
+
+    //まず確率判定、耐性ダウンの場合のみ特殊で耐性をかけて処理、付与失敗時はcontinueで次へ飛ばす
+    // Resistance 系バフで strength が負の値の場合の耐性ダウン処理
+    if (resistanceBuffElementMap.hasOwnProperty(buffName) && buffData.strength < 0) {
+      const buffElement = resistanceBuffElementMap[buffName];
+      const resistance = calculateResistance(null, buffElement, monster, fieldState.isDistorted);
+
+      if (resistance > 0) {
+        // 現在の耐性が無効未満の場合のみ耐性ダウンを適用
+        // 確率を調整
+        const adjustedProbability = probability * resistance;
+        // 確率に基づいてバフ適用を判定
+        if (Math.random() > adjustedProbability) {
+          continue; // 確率でバフ適用しない場合は次のバフへ
+        }
+      } else {
+        // 現在の耐性が 0 以下の場合は適用しない
+        continue; // 次のバフへ
+      }
+    } else {
+      // Resistance 系バフ以外の場合の確率判定
+      if (Math.random() > probability) {
+        continue; // 確率でバフ適用しない場合は次のバフへ
+      }
+    }
+
+    // 確率判定成功時にバフ適用処理
+    if (stackableBuffs.hasOwnProperty(buffName)) {
+      // 重ねがけ可能なバフ
+      if (currentBuff) {
+        // 既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
+        const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
+        if (newStrength === 0) {
+          // strength が 0 になったらバフを削除
+          delete monster.buffs[buffName];
+        } else {
+          // 0以外の場合はstrengthだけ加算して新しいバフで上書き
+          monster.buffs[buffName] = { ...currentBuff, strength: newStrength };
+        }
+      } else {
+        // バフが存在しない場合はそのまま適用
+        monster.buffs[buffName] = { ...buffData };
+      }
+    } else {
+      // 重ねがけ不可のバフの場合、元々存在しないまたはstrength が大きい場合のみ上書き
+      if (!currentBuff || buffData.strength > currentBuff.strength) {
+        monster.buffs[buffName] = { ...buffData };
+      }
+    }
   }
-
-  // バフが存在しない、またはstrengthが現在のバフより大きい場合は上書き
-  monster.buffs[name] = {
-    canRemove: canRemove,
-    strength: strength,
-    duration: duration,
-  };
-
-  updateCurrentStatus(monster); // バフ追加後に該当monsterのcurrentstatusを更新
+  //updateCurrentStatus(monster); // バフ追加後に該当monsterのcurrentstatusを更新
 }
 
 // 各モンスターの全バフと状態異常のdurationを1減らす関数 turnが進んだら起動
@@ -1502,7 +1607,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //耐性処理
-  const resistance = calculateResistance(assignedSkillUser, executingSkill, skillTarget, fieldState.isDistorted);
+  const resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted);
   let resistanceValue = resistance;
 
   // 吸収以外の場合に、種別無効処理と反射処理
@@ -1697,6 +1802,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
+  //ダメージ軽減
+  if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
+    damage *= 1 - skillTarget.buffs.protection.strength;
+  }
+
   //特技の種族特効
   if (executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.type)) {
     damage *= executingSkill.RaceBaneValue;
@@ -1779,17 +1889,18 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
   return "hit";
 }
 
-function calculateResistance(skillUser, executingSkill, skillTarget, distorted = null) {
-  const element = executingSkill.element;
+//damageCalc、耐性表示、耐性ダウン付与で実行。耐性ダウン確率判定ではskillUserをnull指定
+function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = null) {
+  const element = executingSkillElement;
   const baseResistance = skillTarget.resistance[element] ?? 1;
   const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
 
   // --- 無属性の処理 ---
-  if (executingSkill.type === "notskill") {
+  if (element === "notskill") {
     return 1;
   }
-  if (executingSkill.element === "none") {
+  if (element === "none") {
     let noneResistance = 1; //初期値
     if (skillTarget.buffs.nonElementalResistance) {
       noneResistance = 0;
@@ -1822,21 +1933,23 @@ function calculateResistance(skillUser, executingSkill, skillTarget, distorted =
     //ここまでの処理の結果を格納
     let normalResistance = resistanceValues[normalResistanceIndex];
 
-    // 使い手効果
-    if (skillUser.buffs[element + "Break"]) {
-      normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
-      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
-      normalResistance = resistanceValues[normalResistanceIndex];
-    } else if (skillUser.buffs.allElementalBreak) {
-      normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
-      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
-      normalResistance = resistanceValues[normalResistanceIndex];
-    }
-    // 大弱点・超弱点処理
-    if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
-      normalResistance = 2;
-    } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
-      normalResistance = 2.5;
+    // skillUserが渡された場合のみ使い手効果を適用
+    if (skillUser) {
+      if (skillUser.buffs[element + "Break"]) {
+        normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
+        normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+        normalResistance = resistanceValues[normalResistanceIndex];
+      } else if (skillUser.buffs.allElementalBreak) {
+        normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
+        normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+        normalResistance = resistanceValues[normalResistanceIndex];
+      }
+      // 大弱点・超弱点処理
+      if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
+        normalResistance = 2;
+      } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
+        normalResistance = 2.5;
+      }
     }
     return normalResistance;
   } else {
@@ -1859,22 +1972,25 @@ function calculateResistance(skillUser, executingSkill, skillTarget, distorted =
     //ここまでの処理の結果を変換後に格納
     let distortedResistance = distortedResistanceValues[distortedResistanceIndex];
 
-    // 使い手効果 (反転)
-    if (skillUser.buffs[element + "Break"]) {
-      // 変換後の耐性値からresistanceValuesのインデックスを取得 変換後の耐性値を本来の耐性表のindexに変えてから操作
-      distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
-      // インデックスに対する操作
-      distortedResistanceIndex -= skillUser.buffs[element + "Break"].strength;
-      // インデックスの範囲を制限
-      distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
-      // distortedResistanceを更新
-      distortedResistance = resistanceValues[distortedResistanceIndex];
-    } else if (skillUser.buffs.allElementalBreak) {
-      distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
-      distortedResistanceIndex -= skillUser.buffs.allElementalBreak.strength;
-      distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
-      distortedResistance = resistanceValues[distortedResistanceIndex];
+    // skillUserが渡された場合のみ使い手効果を適用 (反転)
+    if (skillUser) {
+      if (skillUser.buffs[element + "Break"]) {
+        // 変換後の耐性値からresistanceValuesのインデックスを取得 変換後の耐性値を本来の耐性表のindexに変えてから操作
+        distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
+        // インデックスに対する操作
+        distortedResistanceIndex -= skillUser.buffs[element + "Break"].strength;
+        // インデックスの範囲を制限
+        distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
+        // distortedResistanceを更新
+        distortedResistance = resistanceValues[distortedResistanceIndex];
+      } else if (skillUser.buffs.allElementalBreak) {
+        distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
+        distortedResistanceIndex -= skillUser.buffs.allElementalBreak.strength;
+        distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
+        distortedResistance = resistanceValues[distortedResistanceIndex];
+      }
     }
+
     return distortedResistance;
   }
 }
@@ -2392,11 +2508,18 @@ const monsters = [
     name: "マスタードラゴン",
     id: "masudora",
     type: "ドラゴン",
-    status: { HP: 700, MP: 700, atk: 700, def: 700, spd: 530, int: 700 },
+    status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 550, int: 259 },
     skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
-    attribute: "",
-    seed: { atk: 0, def: 0, spd: 0, int: 0 },
-    ls: { HP: 1.3, spd: 1.3 },
+    attribute: {
+      1: {
+        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
+        breathCharge: { strength: 1.2 },
+      },
+      2: { breathCharge: { strength: 1.5 } },
+      3: { breathCharge: { strength: 2 } },
+    },
+    seed: { atk: 15, def: 35, spd: 70, int: 0 },
+    ls: { HP: 1.15, spd: 1.3 },
     lstarget: "ドラゴン",
     resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1 },
   },
@@ -2416,9 +2539,14 @@ const monsters = [
     name: "魔夏姫アンルシア",
     id: "rusia",
     type: "ドラゴン",
-    status: { HP: 1000, MP: 1000, atk: 1000, def: 1000, spd: 555, int: 1000 },
+    status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 555, int: 294 },
     skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
-    attribute: "",
+    attribute: {
+      1: {
+        powerCharge: { strength: 2 },
+        iceBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
     lstarget: "スライム",
@@ -2428,9 +2556,12 @@ const monsters = [
     name: "怪竜やまたのおろち",
     id: "orochi",
     type: "ドラゴン",
-    status: { HP: 500, MP: 500, atk: 500, def: 500, spd: 380, int: 500 },
+    status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
-    attribute: "",
+    attribute: {
+      1: { fireBreak: { keepOnDeath: true, strength: 2 } },
+      evenTurnBuffs: { slashResistance: { strength: 1 } },
+    },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
     lstarget: "スライム",
@@ -2440,10 +2571,10 @@ const monsters = [
     name: "ヴォルカドラゴン",
     id: "voruka",
     type: "ドラゴン",
-    status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 100, int: 1300 },
+    status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: "",
-    seed: { atk: 0, def: 0, spd: 0, int: 0 },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 10, MP: 10 },
     lstarget: "all",
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1 },
@@ -2455,7 +2586,12 @@ const monsters = [
     weight: "30",
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
     skill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
-    attribute: "",
+    attribute: {
+      1: {
+        isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
+        lightBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1.13, spd: 1.13, atk: 1.05 },
     lstarget: "all",
@@ -2468,7 +2604,18 @@ const monsters = [
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
     skill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
-    attribute: "",
+    attribute: {
+      1: {
+        protection: { strength: 0.5 },
+        darkBreak: { keepOnDeath: true, strength: 2 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -2481,7 +2628,18 @@ const monsters = [
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
     skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "終の流星"],
-    attribute: "",
+    attribute: {
+      1: {
+        protection: { strength: 0.5 },
+        lightBreak: { keepOnDeath: true, strength: 2 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -2494,7 +2652,13 @@ const monsters = [
     weight: "25",
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
     skill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
-    attribute: "",
+    attribute: {
+      1: {
+        tagTransformation: { keepOnDeath: true },
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        iceBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -2507,7 +2671,11 @@ const monsters = [
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     skill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
-    attribute: "",
+    attribute: {
+      1: {
+        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
+      },
+    },
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -2638,7 +2806,7 @@ const skill = [
     type: "notskill",
     howToCalculate: "atk",
     ratio: 1,
-    element: "none",
+    element: "notskill",
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
@@ -2674,6 +2842,7 @@ const skill = [
     targetTeam: "enemy",
     damage: 420,
     MPcost: 0,
+    ignoreProtection: true,
   },
   {
     name: "神楽の術",
@@ -2879,7 +3048,7 @@ const skill = [
   {
     name: "みがわり",
     type: "martial",
-    howToCalculate: "fix",
+    howToCalculate: "none",
     element: "none",
     targetType: "single",
     targetTeam: "ally",
@@ -2890,6 +3059,7 @@ const skill = [
   },
   {
     name: "超魔滅光",
+    followingSkill: "超魔滅光後半",
     type: "martial",
     howToCalculate: "fix",
     damage: 475,
