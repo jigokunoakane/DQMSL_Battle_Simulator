@@ -482,7 +482,7 @@ document.querySelectorAll(".selecttargetmonster").forEach((img) => {
   });
 });
 
-//allでyes選択時、skilltarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmosnterのskill選択に移行する
+//allでyes選択時、skilltarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmonsterのskill選択に移行する
 function finishSelectingEachMonstersCommand() {
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
 
@@ -721,6 +721,11 @@ function startTurn() {
 
   startSelectingCommandForFirstMonster(0);
 
+  //ターン経過で一律にデクリメントタイプの実行 バフ付与前に
+  decreaseAllBuffDurations();
+  //durationが0になったバフを消去 ターン開始時に削除(帝王の構えや予測等、removeAtTurnStart指定)
+  removeExpiredBuffsAtTurnStart();
+
   // monster.attributeに含まれるもののうちturnNumに等しいものをbuffに入れる
   for (const party of parties) {
     for (const monster of party) {
@@ -761,38 +766,6 @@ async function startbattle() {
     await sleep(750);
   }
   startTurn();
-}
-
-//バフ管理system
-
-// ターン終了時の処理
-function endTurn() {
-  //各モンスターのバフを更新
-  for (const party of parties) {
-    for (const monster of party) {
-      //バフ削除処理において、ループ中に monster.buffs を直接操作するとインデックスがずれてしまう問題を避けるため浅いcopy
-      const currentBuffs = [...monster.buffs];
-      for (let i = 0; i < currentBuffs.length; i++) {
-        const buff = currentBuffs[i];
-        buff.duration--; //持続時間を1減らす
-        if (buff.duration <= 0) {
-          //持続時間が0以下になったらバフを削除
-          monster.buffs.splice(monster.buffs.indexOf(buff), 1);
-          //indexOf(buff) で、削除対象のバフのindex取得後、splice(index, 1) で、指定indexから1要素を削除
-
-          // バフの効果を打ち消す処理 (別途)
-          // 例: buff.effectType によって処理を分岐
-        }
-      }
-    }
-  }
-  //他の処理
-  // 各モンスターの currentstatus を更新
-  for (const party of parties) {
-    for (const monster of party) {
-      updateCurrentStatus(monster);
-    }
-  }
 }
 
 // バフ追加用関数
@@ -838,7 +811,7 @@ function applyBuff(monster, newBuff) {
 
     // buffData 内に probability が存在するかチェック
     const probability = buffData.probability !== undefined ? buffData.probability : 1;
-    // 付与判定後、probability を削除
+    // 確率格納後にprobability を削除
     delete buffData.probability;
 
     //まず確率判定、耐性ダウンの場合のみ特殊で耐性をかけて処理、付与失敗時はcontinueで次へ飛ばす
@@ -870,24 +843,27 @@ function applyBuff(monster, newBuff) {
     if (stackableBuffs.hasOwnProperty(buffName)) {
       // 重ねがけ可能なバフ
       if (currentBuff) {
-        // 既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
+        // 重ねがけ可能かつ既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
         const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
         if (newStrength === 0) {
           // strength が 0 になったらバフを削除
           delete monster.buffs[buffName];
+          continue;
         } else {
           // 0以外の場合はstrengthだけ加算して新しいバフで上書き
           monster.buffs[buffName] = { ...currentBuff, strength: newStrength };
         }
       } else {
-        // バフが存在しない場合はそのまま適用
+        // 重ねがけ可能かつ既に存在しない場合はそのまま適用
         monster.buffs[buffName] = { ...buffData };
       }
+      //重ねがけ可能の付与成功
     } else {
       // 重ねがけ不可のバフの場合、元々存在しないまたはstrength が大きい場合のみ上書き
       if (!currentBuff || buffData.strength > currentBuff.strength) {
         monster.buffs[buffName] = { ...buffData };
-        // ここでもしstatusLockを付与した場合は stackableBuffs と familyBuff を削除
+        //重ねがけ不可の付与成功
+        // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
         if (buffName === "statusLock") {
           for (const existingBuffName in monster.buffs) {
             if (stackableBuffs.hasOwnProperty(existingBuffName) || (monster.buffs[existingBuffName] && monster.buffs[existingBuffName].type === "familyBuff")) {
@@ -895,29 +871,132 @@ function applyBuff(monster, newBuff) {
             }
           }
         }
+      } else {
+        continue;
+      }
+    }
+    //付与成功時処理 duration設定
+    const buffDurations = {
+      baiki: {
+        16: 3,
+        48: 4,
+        78: 5,
+        100: 6,
+      },
+      defUp: {
+        63: 3,
+        88: 4,
+        98: 5,
+        100: 6,
+      },
+      spdUp: {
+        63: 3,
+        88: 4,
+        98: 5,
+        100: 6,
+      },
+      intUp: {
+        63: 3,
+        88: 4,
+        98: 5,
+        100: 6,
+      },
+      spellBarrier: {
+        69: 4,
+        94: 5,
+        99: 6,
+        100: 7,
+      },
+      slashBarrier: {
+        69: 4,
+        94: 5,
+        99: 6,
+        100: 7,
+      },
+      martialBarrier: {
+        69: 4,
+        94: 5,
+        99: 6,
+        100: 7,
+      },
+      breathBarrier: {
+        63: 4,
+        93: 5,
+        99: 6,
+        100: 7,
+      },
+    };
+
+    const getDuration = (buffName) => {
+      const durations = buffDurations[buffName];
+      const randomValue = Math.random() * 100;
+      for (const threshold in durations) {
+        if (randomValue < threshold) {
+          return durations[threshold];
+        }
+      }
+    };
+    //duration表に含まれる場合のみduration更新
+    if (buffName in buffDurations) {
+      monster.buffs[buffName].duration = getDuration(buffName);
+    }
+  }
+  //updateCurrentStatus(monster); // バフ全て追加後に該当monsterのcurrentstatusを更新
+}
+
+// ターン経過でデクリメントするタイプ decreaseTurnEnd
+function decreaseAllBuffDurations() {
+  for (const party of parties) {
+    for (const monster of party) {
+      // ターン経過で減少するバフの持続時間を減少
+      for (const buffName in monster.buffs) {
+        const buff = monster.buffs[buffName];
+        // duration プロパティが存在し、decreaseTurnEndがtrueの場合のみデクリメント
+        if (buff.duration !== undefined && buff.decreaseTurnEnd) {
+          buff.duration--;
+        }
       }
     }
   }
-  //updateCurrentStatus(monster); // バフ追加後に該当monsterのcurrentstatusを更新
 }
 
-// 各モンスターの全バフと状態異常のdurationを1減らす関数 turnが進んだら起動
-function decreaseBuffDurations(monster) {
+// 行動直前に持続時間を減少させる decreaseBeforeAction
+function decreaseBuffDurationBeforeAction(monster) {
   for (const buffName in monster.buffs) {
-    monster.buffs[buffName].duration--;
+    const buff = monster.buffs[buffName];
+    // duration プロパティが存在し、decreaseBeforeActionがtrueの場合のみデクリメント
+    if (buff.duration !== undefined && buff.decreaseBeforeAction) {
+      buff.duration--;
+    }
   }
-  // abnormality要素が1つ以上ある場合のみforEachを実行
 }
 
-// durationが0になったバフを消去する関数 skill使用前に起動
+// durationが0になったバフを消去 行動直前に削除(通常タイプ)
 function removeExpiredBuffs(monster) {
-  for (const buffName in monster.buffs) {
-    if (monster.buffs[buffName].duration <= 0) {
+  for (const buffName of Object.keys(monster.buffs)) {
+    const buff = monster.buffs[buffName];
+    // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがfalseの場合に削除
+    if (buff.hasOwnProperty("duration") && buff.duration <= 0 && !buff.removeAtTurnStart) {
       delete monster.buffs[buffName];
     }
   }
-  // abnormality要素が1つ以上ある場合のみfilterを実行
-  updateCurrentStatus(monster); // バフ更新後に該当monsterのcurrentstatusを更新
+  updateCurrentStatus(monster);
+}
+
+// durationが0になったバフを消去 ターン開始時(帝王の構えや予測等、removeAtTurnStart指定)
+function removeExpiredBuffsAtTurnStart() {
+  for (const party of parties) {
+    for (const monster of party) {
+      for (const buffName of Object.keys(monster.buffs)) {
+        const buff = monster.buffs[buffName];
+        // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがtrueの場合に削除
+        if (buff.hasOwnProperty("duration") && buff.duration <= 0 && buff.removeAtTurnStart) {
+          delete monster.buffs[buffName];
+        }
+      }
+      updateCurrentStatus(monster);
+    }
+  }
 }
 
 // currentstatusを更新する関数
@@ -1099,8 +1178,6 @@ function calculateModifiedSpeed(monster) {
 
 // 各monsterの行動を実行する関数
 async function processMonsterAction(skillUser, executingSkill, executedSkills = []) {
-  // 0. 事前準備
-  //let executingSkill = skillUser.skill.find((skill) => skill.name === executingSkillName);
   // 全てのモンスターの isRecentlyDamaged フラグを削除
   for (const party of parties) {
     for (const monster of party) {
@@ -1121,6 +1198,9 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 2. バフ状態異常継続時間確認
+  // 行動直前に持続時間を減少させる decreaseBeforeAction
+  decreaseBuffDurationBeforeAction(skillUser);
+  // durationが0になったバフを消去 行動直前に削除(通常タイプ)
   removeExpiredBuffs(skillUser);
 
   // 3. 状態異常確認
@@ -1410,7 +1490,7 @@ function handleDeath(target) {
     //みがわられ中 hasSubstituteのtargetのisSubstitutingをupdate
     const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
     if (substitutingMonster) {
-      // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.mosterIdと等しい文字列を削除する。
+      // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
       substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
       //空になったら削除
       if (substitutingMonster.flags.isSubstituting.targetMonsterId.length === 0) {
@@ -2613,6 +2693,7 @@ const monsters = [
       1: {
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         lightBreak: { keepOnDeath: true, strength: 2 },
+        martialReflection: { strength: 1.5 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
