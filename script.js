@@ -1000,30 +1000,19 @@ function removeExpiredBuffsAtTurnStart() {
 }
 
 // currentstatusを更新する関数
-//buff追加時・解除時・持続時間切れ時に起動
+// applyBuffの追加時および持続時間切れ、解除時に起動
 function updateCurrentStatus(monster) {
-  //全回復してしまうので仮で無効化
-  return;
   // currentstatus を defaultstatus の値で初期化
-  monster.currentstatus = structuredClone(monster.defaultstatus);
-
+  monster.currentstatus.atk = monster.defaultstatus.atk;
+  monster.currentstatus.def = monster.defaultstatus.def;
+  monster.currentstatus.spd = monster.defaultstatus.spd;
+  monster.currentstatus.int = monster.defaultstatus.int;
+  return;
   //仮
-  if (Object.keys(monster.buffs).length === 0) {
-    return;
+  if (monster.buffs.defUp) {
+    monster.currentstatus.def *= monster.buffs.defUp;
   }
-
-  // バフの効果を適用
-  for (const buff of monster.buffs) {
-    switch (buff.name) {
-      case "攻撃力アップ":
-        monster.currentstatus.atk = Math.ceil(monster.currentstatus.atk * buff.strength);
-        break;
-      case "素早さアップ":
-        monster.currentstatus.spd = Math.ceil(monster.currentstatus.spd * buff.strength);
-        break;
-      // 他のバフ効果もここに追加
-    }
-  }
+  //段階管理かこれ
 }
 
 // 使用例
@@ -1840,13 +1829,28 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //連携
 
   //呪文会心
-  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge)
-    if (skillUser.buffs.baiki && executingSkill.howToCalculate === "atk" && !executingSkill.ignoreBaiki) {
-      //確率
-      //乗算バフ
-      //バイキ
-      damage *= skillUser.buffs.baiki.strength;
+  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge) {
+    //確率で暴走
+  }
+
+  //乗算バフ
+
+  //バイキ
+  if (skillUser.buffs.baiki && executingSkill.howToCalculate === "atk" && !executingSkill.ignoreBaiki) {
+    // strengthの値に応じた倍率を定義 (strength + 2 をkey)
+    const strengthMultipliersForBaiki = {
+      0: 0.6, // -2 + 2
+      1: 0.8, // -1 + 2
+      3: 1.2, //  1 + 2
+      4: 1.4, //  2 + 2
+    };
+    // strengthの値に対応する倍率を取得する
+    const strengthKey = skillUser.buffs.baiki.strength + 2;
+    const BaikiMultiplier = strengthMultipliersForBaiki[strengthKey];
+    if (BaikiMultiplier) {
+      damage *= BaikiMultiplier;
     }
+  }
 
   //魔力覚醒
   if (skillUser.buffs.manaBoost && !executingSkill.ignoreManaBoost && executingSkill.howToCalculate === "int" && executingSkill.type === "spell") {
@@ -1883,8 +1887,18 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   };
   const barrierType = barrierTypes[executingSkill.type];
   if (skillTarget.buffs[barrierType] && !executingSkill.criticalHitProbability) {
-    //確定会心系は防御バフ無視
-    damage *= skillUser.buffs[barrierType].strength;
+    // 確定会心系は防御バフ無視
+    // strengthの値に応じた倍率を定義
+    const strengthMultipliers = {
+      0: 2, // -2
+      1: 1.5, // -1
+      3: 0.5, // 1
+      4: 0.25, // 2
+    };
+    // strengthの値に対応する倍率を取得する
+    const strengthKey = skillTarget.buffs[barrierType].strength + 2;
+    const BarrierMultiplier = strengthMultipliers[strengthKey];
+    damage *= BarrierMultiplier;
   }
 
   //反射以外の場合にメタル処理
@@ -2663,7 +2677,7 @@ const monsters = [
         fireBreak: { keepOnDeath: true, strength: 2 },
         breathEnhancement: { keepOnDeath: true },
       },
-      evenTurnBuffs: { slashResistance: { strength: 1 } },
+      evenTurnBuffs: { slashBarrier: { strength: 1 } },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
