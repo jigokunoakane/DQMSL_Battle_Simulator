@@ -536,7 +536,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
     }
   });
 
-  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustmonstericonstickoutにdisplaymassage
+  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustmonstericonstickoutにdisplaymessage
 
   // parties[teamNum]の先頭から、行動可能なモンスターを探す
   selectingwhichteamscommand = teamNum;
@@ -707,6 +707,7 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 function startTurn() {
   fieldState.turnNum++;
   const turnNum = fieldState.turnNum;
+  displayMessage(`ラウンド${turnNum}`, null, true);
   //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
   for (const party of parties) {
     for (const monster of party) {
@@ -815,6 +816,7 @@ function applyBuff(monster, newBuff) {
     delete buffData.probability;
 
     //まず確率判定、耐性ダウンの場合のみ特殊で耐性をかけて処理、付与失敗時はcontinueで次へ飛ばす
+    // 耐性バフ、状態異常、その他の順で処理
     // Resistance 系バフで strength が負の値の場合の耐性ダウン処理
     if (resistanceBuffElementMap.hasOwnProperty(buffName) && buffData.strength < 0) {
       const buffElement = resistanceBuffElementMap[buffName];
@@ -832,6 +834,8 @@ function applyBuff(monster, newBuff) {
         // 現在の耐性が 0 以下の場合は適用しない
         continue; // 次のバフへ
       }
+      //} else if () {
+      //hoge
     } else {
       // Resistance 系バフ以外の場合の確率判定
       if (Math.random() > probability) {
@@ -925,6 +929,15 @@ function applyBuff(monster, newBuff) {
         99: 6,
         100: 7,
       },
+      manaBoost: {
+        100: 1,
+      },
+      powerCharge: {
+        100: 1,
+      },
+      breathCharge: {
+        100: 1,
+      },
     };
 
     const getDuration = (buffName) => {
@@ -936,12 +949,25 @@ function applyBuff(monster, newBuff) {
         }
       }
     };
-    //duration表に含まれる場合のみduration更新
+    //duration表に含まれるバフのみduration更新
     if (buffName in buffDurations) {
       monster.buffs[buffName].duration = getDuration(buffName);
     }
+    // ターン経過で減少するバフのリスト
+    const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
+    //継続時間指定されている場合に、デクリメントのタイプを設定
+    if (monster.buffs[buffName].duration) {
+      // stackableBuffs または decreaseTurnEnd に含まれる場合
+      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName)) {
+        //ターン経過で一律にデクリメントするタイプを設定
+        monster.buffs[buffName].decreaseTurnEnd = true;
+      } else {
+        //それ以外は行動後にデクリメント
+        monster.buffs[buffName].decreaseBeforeAction = true;
+      }
+    }
   }
-  //updateCurrentStatus(monster); // バフ全て追加後に該当monsterのcurrentstatusを更新
+  updateCurrentStatus(monster); // バフ全て追加後に該当monsterのcurrentstatusを更新
 }
 
 // ターン経過でデクリメントするタイプ decreaseTurnEnd
@@ -1007,12 +1033,38 @@ function updateCurrentStatus(monster) {
   monster.currentstatus.def = monster.defaultstatus.def;
   monster.currentstatus.spd = monster.defaultstatus.spd;
   monster.currentstatus.int = monster.defaultstatus.int;
-  return;
-  //仮
+
+  const strengthMultipliersForDef = {
+    0: 0.6, // -2 + 2
+    1: 0.8, // -1 + 2
+    3: 1.2, //  1 + 2
+    4: 1.4, //  2 + 2
+  };
+  const strengthMultipliersForSpdInt = {
+    0: 0.25, // -2 + 2
+    1: 0.5, // -1 + 2
+    3: 1.5, //  1 + 2
+    4: 2, //  2 + 2
+  };
+
   if (monster.buffs.defUp) {
-    monster.currentstatus.def *= monster.buffs.defUp;
+    const strengthKey = monster.buffs.defUp.strength + 2;
+    const Multiplier = strengthMultipliersForDef[strengthKey];
+    monster.currentstatus.def *= Multiplier;
   }
-  //段階管理かこれ
+  if (monster.buffs.spdUp) {
+    const strengthKey = monster.buffs.spdUp.strength + 2;
+    const Multiplier = strengthMultipliersForSpdInt[strengthKey];
+    monster.currentstatus.spd *= Multiplier;
+  }
+  if (monster.buffs.intUp) {
+    const strengthKey = monster.buffs.intUp.strength + 2;
+    const Multiplier = strengthMultipliersForSpdInt[strengthKey];
+    monster.currentstatus.int *= Multiplier;
+  }
+
+  //系統バフは直接strengthをかける
+  //TODO: 内部バフの実装
 }
 
 // 使用例
@@ -1997,7 +2049,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
   return "hit";
 }
 
-//damageCalc、耐性表示、耐性ダウン付与で実行。耐性ダウン確率判定ではskillUserをnull指定
+//damageCalc、耐性表示、耐性ダウン付与、状態異常耐性取得で実行。耐性ダウン確率判定ではskillUserをnull指定
 function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = null) {
   const element = executingSkillElement;
   const baseResistance = skillTarget.resistance[element] ?? 1;
@@ -2043,15 +2095,15 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 
     // skillUserが渡された場合のみ使い手効果を適用
     if (skillUser) {
+      const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
       if (skillUser.buffs[element + "Break"]) {
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
-        normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
-        normalResistance = resistanceValues[normalResistanceIndex];
-      } else if (skillUser.buffs.allElementalBreak) {
-        normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
-        normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
+        //全属性の使い手 状態異常以外に効果
         normalResistance = resistanceValues[normalResistanceIndex];
       }
+      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+      normalResistance = resistanceValues[normalResistanceIndex];
       // 大弱点・超弱点処理
       if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
         normalResistance = 2;
@@ -2707,7 +2759,7 @@ const monsters = [
       1: {
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         lightBreak: { keepOnDeath: true, strength: 2 },
-        martialReflection: { strength: 1.5 },
+        martialReflection: { strength: 1.5, duration: 3 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -2724,7 +2776,7 @@ const monsters = [
     skill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
     attribute: {
       1: {
-        protection: { strength: 0.5 },
+        protection: { strength: 0.5, duration: 3 },
         darkBreak: { keepOnDeath: true, strength: 2 },
       },
       evenTurnBuffs: {
@@ -2748,7 +2800,7 @@ const monsters = [
     skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "終の流星"],
     attribute: {
       1: {
-        protection: { strength: 0.5 },
+        protection: { strength: 0.5, duration: 3 },
         lightBreak: { keepOnDeath: true, strength: 2 },
       },
       evenTurnBuffs: {
@@ -3964,9 +4016,19 @@ document.getElementById("endbtn").addEventListener("click", function () {
 const messageLine1 = document.getElementById("message-line1");
 const messageLine2 = document.getElementById("message-line2");
 
-function displayMessage(line1Text, line2Text = "") {
+function displayMessage(line1Text, line2Text = "", centerText = false) {
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
+  if (centerText) {
+    // 第三引数がtrueの場合、中央揃えのスタイルを適用し、文字を大きくする
+    consolescreen.style.justifyContent = "center";
+    messageLine1.style.textAlign = "center";
+    messageLine1.style.fontSize = "1.05rem";
+  } else {
+    consolescreen.style.justifyContent = "space-between";
+    messageLine1.style.textAlign = "";
+    messageLine1.style.fontSize = "0.9rem";
+  }
 }
 
 /*
