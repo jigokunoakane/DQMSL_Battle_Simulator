@@ -770,9 +770,9 @@ async function startbattle() {
 }
 
 // バフ追加用関数
-function applyBuff(monster, newBuff) {
+function applyBuff(buffTarget, newBuff, skillUser = null) {
   for (const buffName in newBuff) {
-    const currentBuff = monster.buffs[buffName];
+    const currentBuff = buffTarget.buffs[buffName];
     const buffData = newBuff[buffName];
 
     // 重ねがけ可能なバフ
@@ -805,8 +805,12 @@ function applyBuff(monster, newBuff) {
       darkResistance: "dark",
     };
 
+    const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle"];
+    const removeGuardAbnormalities = ["tempted", "sealed", "confused", "paralyzed", "asleep"];
+    const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
+
     // statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
-    if (monster.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (newBuff[buffName] && newBuff[buffName].hasOwnProperty("type") && newBuff[buffName].type === "familyBuff"))) {
+    if (buffTarget.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (newBuff[buffName] && newBuff[buffName].hasOwnProperty("type") && newBuff[buffName].type === "familyBuff"))) {
       continue;
     }
 
@@ -815,12 +819,11 @@ function applyBuff(monster, newBuff) {
     // 確率格納後にprobability を削除
     delete buffData.probability;
 
-    //まず確率判定、耐性ダウンの場合のみ特殊で耐性をかけて処理、付与失敗時はcontinueで次へ飛ばす
-    // 耐性バフ、状態異常、その他の順で処理
-    // Resistance 系バフで strength が負の値の場合の耐性ダウン処理
+    // 耐性バフ、状態異常、その他の順で独立して確率判定処理、付与失敗時はcontinueで次へ飛ばす
+    // 1. 耐性ダウンの場合のみ耐性をかけて処理
     if (resistanceBuffElementMap.hasOwnProperty(buffName) && buffData.strength < 0) {
       const buffElement = resistanceBuffElementMap[buffName];
-      const resistance = calculateResistance(null, buffElement, monster, fieldState.isDistorted);
+      const resistance = calculateResistance(null, buffElement, buffTarget, fieldState.isDistorted);
 
       if (resistance > 0) {
         // 現在の耐性が無効未満の場合のみ耐性ダウンを適用
@@ -834,12 +837,68 @@ function applyBuff(monster, newBuff) {
         // 現在の耐性が 0 以下の場合は適用しない
         continue; // 次のバフへ
       }
-      //} else if () {
-      //hoge
+    } else if (abnormalityBuffs.includes(buffName)) {
+      //2. 状態異常系の特殊処理
+      //防壁や魔王バリアで防ぐ
+      if (buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) {
+        continue;
+      }
+      //マインド封じ無効
+      if (buffTarget.buffs.mindAndSealBarrier && mindAndSealBarrierTargets.includes(buffName)) {
+        continue;
+      }
+      //マインドバリア
+      if ((buffName === "fear" || buffName === "tempted") && buffTarget.buffs.mindBarrier) {
+        continue;
+      }
+      //眠りバリア
+      if (buffName === "asleep" && buffTarget.buffs.sleepBarrier) {
+        continue;
+      }
+      //混乱バリア
+      if (buffName === "confused" && buffTarget.buffs.confusionBarrier) {
+        continue;
+      }
+      //既にほかの状態異常にかかっている場合はfear, tempted, sealedはかけない ただし封印によるマインド上書きは例外
+      if (buffTarget.buffs.fear && buffName === "sealed") {
+      } else if ((buffName === "fear" || buffName === "tempted" || buffName === "sealed") && hasAbnormality(buffTarget)) {
+        continue;
+      }
+      //耐性を参照して確率判定
+      const abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
+      if (Math.random() > probability * abnormalityResistance) {
+        continue;
+      }
+      //状態異常の確率判定成功時処理
+
+      //ここでもう上書き処理を実行
+      //封印によるマインドの上書き 確率成功時にマインドを削除
+      if (buffTarget.buffs.fear && buffName === "sealed") {
+        delete buffTarget.buffs.fear;
+      }
+      //他状態異常によるマインド魅了封印の上書き 確率成功時にマインド魅了封印削除
+      if (buffName === "confused" || buffName === "paralyzed" || buffName === "asleep") {
+        delete buffTarget.buffs.fear;
+        delete buffTarget.buffs.tempted;
+        delete buffTarget.buffs.sealed;
+      }
+      //ぼうぎょ解除
+      if (removeGuardAbnormalities.includes(buffName) && buffTarget.flags.guard) {
+        delete buffTarget.flags.guard;
+      }
+      //みがわり解除
+      if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
+        for (const eachMonster of parties.flat()) {
+          if (eachMonster.flags.hasSubstitute && eachMonster.flags.hasSubstitute.targetMonsterId === buffTarget.monsterId) {
+            delete eachMonster.flags.hasSubstitute;
+          }
+        }
+        delete buffTarget.flags.isSubstituting;
+      }
     } else {
-      // Resistance 系バフ以外の場合の確率判定
+      // 3. Resistance系バフと状態異常以外の場合の確率判定
       if (Math.random() > probability) {
-        continue; // 確率でバフ適用しない場合は次のバフへ
+        continue;
       }
     }
 
@@ -851,27 +910,27 @@ function applyBuff(monster, newBuff) {
         const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
         if (newStrength === 0) {
           // strength が 0 になったらバフを削除
-          delete monster.buffs[buffName];
+          delete buffTarget.buffs[buffName];
           continue;
         } else {
           // 0以外の場合はstrengthだけ加算して新しいバフで上書き
-          monster.buffs[buffName] = { ...currentBuff, strength: newStrength };
+          buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
         }
       } else {
         // 重ねがけ可能かつ既に存在しない場合はそのまま適用
-        monster.buffs[buffName] = { ...buffData };
+        buffTarget.buffs[buffName] = { ...buffData };
       }
       //重ねがけ可能の付与成功
     } else {
       // 重ねがけ不可のバフの場合、元々存在しないまたはstrength が大きい場合のみ上書き
       if (!currentBuff || buffData.strength > currentBuff.strength) {
-        monster.buffs[buffName] = { ...buffData };
+        buffTarget.buffs[buffName] = { ...buffData };
         //重ねがけ不可の付与成功
         // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
         if (buffName === "statusLock") {
-          for (const existingBuffName in monster.buffs) {
-            if (stackableBuffs.hasOwnProperty(existingBuffName) || (monster.buffs[existingBuffName] && monster.buffs[existingBuffName].type === "familyBuff")) {
-              delete monster.buffs[existingBuffName];
+          for (const existingBuffName in buffTarget.buffs) {
+            if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
+              delete buffTarget.buffs[existingBuffName];
             }
           }
         }
@@ -951,23 +1010,23 @@ function applyBuff(monster, newBuff) {
     };
     //duration表に含まれるバフのみduration更新
     if (buffName in buffDurations) {
-      monster.buffs[buffName].duration = getDuration(buffName);
+      buffTarget.buffs[buffName].duration = getDuration(buffName);
     }
     // ターン経過で減少するバフのリスト
     const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
     //継続時間指定されている場合に、デクリメントのタイプを設定
-    if (monster.buffs[buffName].duration) {
+    if (buffTarget.buffs[buffName].duration) {
       // stackableBuffs または decreaseTurnEnd に含まれる場合
       if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName)) {
         //ターン経過で一律にデクリメントするタイプを設定
-        monster.buffs[buffName].decreaseTurnEnd = true;
+        buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
         //それ以外は行動後にデクリメント
-        monster.buffs[buffName].decreaseBeforeAction = true;
+        buffTarget.buffs[buffName].decreaseBeforeAction = true;
       }
     }
   }
-  updateCurrentStatus(monster); // バフ全て追加後に該当monsterのcurrentstatusを更新
+  updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
 }
 
 // ターン経過でデクリメントするタイプ decreaseTurnEnd
@@ -1253,7 +1312,7 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 4. 特技封じ確認
-  if (skillUser.abnormality[executingSkill.type + "seal"] && !executingSkill.skipSkillSealCheck) {
+  if (skillUser.abnormality[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) {
     // 特技封じされている場合は7. 行動後処理にスキップ
     console.log(`${skillUser.name}はとくぎを封じられている！`);
     await postActionProcess(skillUser, executingSkill, executedSkills);
@@ -1391,7 +1450,7 @@ function isDead(monster) {
 
 // 状態異常判定を行う関数
 function hasAbnormality(monster) {
-  const abnormalityKeys = ["fear", "confused", "paralyzed", "asleep", "stoned", "sealed"];
+  const abnormalityKeys = ["fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "stoned"];
   for (const key of abnormalityKeys) {
     if (monster.abnormality[key]) {
       return true;
@@ -1783,6 +1842,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       int: skillUser.currentstatus.int,
     }[executingSkill.howToCalculate];
 
+    //魅了判定と超ドレアム判定 以下targetDefを用いる
+    let targetDef = skillTarget.currentstatus.def;
+    if (skillTarget.buffs.tempted) {
+      targetDef = 1;
+    } else if (skillUser.name === "超ドレアム") {
+      targetDef *= 0.5;
+    }
+
     // 会心の一撃判定
     let criticalHitProbability = executingSkill.criticalHitProbability;
     if (criticalHitProbability !== undefined) {
@@ -1799,11 +1866,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       baseDamage = Math.floor((status / 2) * criticalHitMultiplier);
     } else {
       // 会心の一撃が発生しない場合
-      const statusRatio = skillTarget.currentstatus.def / status;
+      const statusRatio = targetDef / status;
 
       if (statusRatio >= 0 && statusRatio < 1.75) {
         // 割った値が0以上1.75未満の場合
-        baseDamage = status / 2 - skillTarget.currentstatus.def / 4;
+        baseDamage = status / 2 - targetDef / 4;
         const randomOffset = (Math.random() * baseDamage) / 8 - baseDamage / 16 + Math.random() * 2 - 1;
         baseDamage = Math.floor(baseDamage + randomOffset);
       } else if (statusRatio >= 1.75 && statusRatio < 2) {
@@ -1878,6 +1945,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //耐性
   damage *= resistanceValue;
 
+  //ぼうぎょ
+  if (!executingSkill.ignoreGuard && skillTarget.flags.guard) {
+    damage *= 0.5;
+  }
+
   //連携
 
   //呪文会心
@@ -1925,7 +1997,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= 1.15;
   }
   //属性コツ
-  if (skillUser.buffs.elementEnhancement && skillUser.buffs.elementEnhancement.element === executingSkill.element) {
+  if (skillUser.buffs.elementEnhancement && executingSkill.type === "spell" && skillUser.buffs.elementEnhancement.element === executingSkill.element) {
     damage *= 1.15;
   }
 
@@ -2099,7 +2171,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       if (skillUser.buffs[element + "Break"]) {
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
       } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
-        //全属性の使い手 状態異常以外に効果
+        //全属性の使い手 状態異常以外 普通の属性の場合に処理
         normalResistance = resistanceValues[normalResistanceIndex];
       }
       normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
