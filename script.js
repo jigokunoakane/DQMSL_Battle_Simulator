@@ -872,13 +872,22 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       if (buffName === "confused" && buffTarget.buffs.confusionBarrier) {
         continue;
       }
-      //既にほかの状態異常にかかっている場合はfear, tempted, sealedはかけない ただし封印によるマインド上書きは例外
+      //既にほかの行動停止系状態異常にかかっている場合はfear, tempted, sealedはかけない ただし封印によるマインド上書きは例外
       if (buffTarget.buffs.fear && buffName === "sealed") {
       } else if ((buffName === "fear" || buffName === "tempted" || buffName === "sealed") && hasAbnormality(buffTarget)) {
         continue;
       }
       //耐性を参照して確率判定
-      const abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
+      let abnormalityResistance = 1;
+      //氷の王国処理
+      if (buffName === "sealed" && buffData.element) {
+        abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget);
+        if (abnormalityResistance < 0.6) {
+          abnormalityResistance = -1;
+        }
+      } else {
+        abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
+      }
       if (Math.random() > probability * abnormalityResistance) {
         continue;
       }
