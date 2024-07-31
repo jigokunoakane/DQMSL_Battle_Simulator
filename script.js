@@ -717,6 +717,19 @@ function startTurn() {
   // ぼうぎょタグを削除
   removeallrecede();
 
+  //覆い隠す以外の身代わりflagとぼうぎょ削除
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.guard;
+      if (!monster.flags.isSubstituting.cover) {
+        delete monster.flags.isSubstituting;
+      }
+      if (!monster.flags.hasSubstitute.cover) {
+        delete monster.flags.hasSubstitute;
+      }
+    }
+  }
+
   //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
   closeSelectCommandPopupWindowContents();
 
