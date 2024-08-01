@@ -908,6 +908,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       if (removeGuardAbnormalities.includes(buffName) && buffTarget.flags.guard) {
         delete buffTarget.flags.guard;
       }
+      //魅了による防御バフ解除
+      if (buffName === "tempted") {
+        delete buffTarget.buffs.defUp;
+      }
       //みがわり解除
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
         for (const eachMonster of parties.flat()) {
@@ -922,6 +926,21 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       if (Math.random() > probability) {
         continue;
       }
+    }
+
+    //バフ適用処理の前に、競合処理の共通部分
+    //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
+    function getBuffPriority(buff) {
+      if (buff.keepOnDeath) return 3;
+      if (buff.unDispellable) return 2;
+      if (buff.devineDispellable) return 1;
+      return 0;
+    }
+    const currentBuffPriority = getBuffPriority(currentBuff);
+    const newBuffPriority = getBuffPriority(buffData);
+    // currentBuffの方が優先度が高い場合はcontinue
+    if (currentBuffPriority > newBuffPriority) {
+      continue;
     }
 
     // 確率判定成功時にバフ適用処理
@@ -944,20 +963,32 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       }
       //重ねがけ可能の付与成功
     } else {
-      // 重ねがけ不可のバフの場合、元々存在しないまたはstrength が大きい場合のみ上書き
-      if (!currentBuff || buffData.strength > currentBuff.strength) {
-        buffTarget.buffs[buffName] = { ...buffData };
-        //重ねがけ不可の付与成功
-        // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
-        if (buffName === "statusLock") {
-          for (const existingBuffName in buffTarget.buffs) {
-            if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
-              delete buffTarget.buffs[existingBuffName];
-            }
+      // 重ねがけ不可のバフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
+      if (currentBuff) {
+        //1. currentbuffにremoveAtTurnStartがあり、newbuffにないときはcontinue (予測系は上書きしない)
+        if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
+          continue;
+        }
+        //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオや、黄泉の封印vs普通)
+        //これは重ねがけ可能なバフも含めて実行
+        //3. currentbuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない)
+        if (!currentBuff.duration && buffData.duration) {
+          continue;
+        }
+        //4. strengthが両方存在し、かつ負けてるときはcontinue (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与で負けてたら上書きしない)
+        if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
+          continue;
+        }
+      }
+      buffTarget.buffs[buffName] = { ...buffData };
+      //重ねがけ不可の付与成功
+      // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
+      if (buffName === "statusLock") {
+        for (const existingBuffName in buffTarget.buffs) {
+          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
+            delete buffTarget.buffs[existingBuffName];
           }
         }
-      } else {
-        continue;
       }
     }
     //付与成功時処理 duration設定
