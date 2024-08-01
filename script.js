@@ -984,7 +984,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       //重ねがけ不可の付与成功
       // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
       if (buffName === "statusLock") {
-        for (const existingBuffName in buffTarget.buffs) {
+        const buffNames = Object.keys(buffTarget.buffs);
+        for (const existingBuffName of buffNames) {
           if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
             delete buffTarget.buffs[existingBuffName];
           }
@@ -1050,6 +1051,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       breathCharge: {
         100: 1,
       },
+      reviveBlock: {
+        100: 1,
+      },
     };
 
     const getDuration = (buffName) => {
@@ -1077,6 +1081,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
         //それ以外は行動後にデクリメント
         buffTarget.buffs[buffName].decreaseBeforeAction = true;
       }
+    }
+
+    //ターン最初に解除するバフのリスト 反射以外
+    const removeAtTurnStartBuffs = ["reviveBlock"];
+    if (removeAtTurnStartBuffs.includes(buffName)) {
+      buffTarget.buffs[buffName].removeAtTurnStart = true;
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
