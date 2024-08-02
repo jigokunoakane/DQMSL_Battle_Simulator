@@ -720,10 +720,10 @@ function startTurn() {
   for (const party of parties) {
     for (const monster of party) {
       delete monster.flags.guard;
-      if (!monster.flags.isSubstituting.cover) {
+      if (monster.flags.isSubstituting && !monster.flags.isSubstituting.cover) {
         delete monster.flags.isSubstituting;
       }
-      if (!monster.flags.hasSubstitute.cover) {
+      if (monster.flags.hasSubstitute && !monster.flags.hasSubstitute.cover) {
         delete monster.flags.hasSubstitute;
       }
     }
@@ -845,7 +845,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     }
 
     // buffData 内に probability が存在するかチェック
-    const probability = buffData.probability !== undefined ? buffData.probability : 1;
+    const probability = buffData.probability !== undefined ? buffData.probability : 10;
     // 確率格納後にprobability を削除
     delete buffData.probability;
 
@@ -947,17 +947,19 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
 
     //バフ適用処理の前に、競合処理の共通部分
     //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
-    function getBuffPriority(buff) {
-      if (buff.keepOnDeath) return 3;
-      if (buff.unDispellable) return 2;
-      if (buff.devineDispellable) return 1;
-      return 0;
-    }
-    const currentBuffPriority = getBuffPriority(currentBuff);
-    const newBuffPriority = getBuffPriority(buffData);
-    // currentBuffの方が優先度が高い場合はcontinue
-    if (currentBuffPriority > newBuffPriority) {
-      continue;
+    if (currentBuff) {
+      function getBuffPriority(buff) {
+        if (buff.keepOnDeath) return 3;
+        if (buff.unDispellable) return 2;
+        if (buff.devineDispellable) return 1;
+        return 0;
+      }
+      const currentBuffPriority = getBuffPriority(currentBuff);
+      const newBuffPriority = getBuffPriority(buffData);
+      // currentBuffの方が優先度が高い場合はcontinue
+      if (currentBuffPriority > newBuffPriority) {
+        continue;
+      }
     }
 
     // 確率判定成功時にバフ適用処理
@@ -1154,7 +1156,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       }
     };
     //duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、侵食(3)などduration設定時は自動設定しない)
-    if (buffName in buffDurations && !buffData.hasOwnProperty(duration)) {
+    if (buffName in buffDurations && !buffData.hasOwnProperty("duration")) {
       buffTarget.buffs[buffName].duration = getDuration(buffName);
     }
     // ターン経過で減少するバフのリスト
@@ -1467,7 +1469,8 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 4. 特技封じ確認
-  if (skillUser.abnormality[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) {
+  const sealTypes = ["spell", "breath", "slash", "martial"];
+  if (sealTypes.some((sealType) => executingSkill.type === sealType && skillUser.buffs[sealType + "Seal"] && !executingSkill.skipSkillSealCheck)) {
     // 特技封じされている場合は7. 行動後処理にスキップ
     console.log(`${skillUser.name}はとくぎを封じられている！`);
     await postActionProcess(skillUser, executingSkill, executedSkills);
