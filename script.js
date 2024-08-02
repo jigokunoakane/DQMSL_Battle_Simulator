@@ -157,7 +157,6 @@ function preparebattle() {
       monster.confirmedcommand = "";
       monster.confirmedcommandtarget = "";
       monster.buffs = {};
-      monster.abnormality = {};
       monster.flags = {};
       monster.abilities = {};
     }
@@ -869,7 +868,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
         continue; // 次のバフへ
       }
     } else if (abnormalityBuffs.includes(buffName)) {
-      //2. 状態異常系の特殊処理
+      //2. 状態異常系のうち、耐性が存在して防壁系バフで防がれるタイプの特殊処理 (蘇生・回復封じ・継続ダメ・マソ以外)
       //防壁や魔王バリアで防ぐ
       if (buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) {
         continue;
@@ -1557,7 +1556,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
 
   // 7-5. 属性断罪の刻印処理
   if (!skillUser.flags.hasDiedThisAction) {
-    if (skillUser.abnormality.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
+    if (skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
       const damage = Math.floor(skillUser.defaultstatus.HP * 0.7);
       console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
@@ -1567,17 +1566,17 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
 
   // 7-6. 毒・継続ダメージ処理
   if (!skillUser.flags.hasDiedThisAction) {
-    if (skillUser.abnormality.poisoned) {
+    if (skillUser.buffs.poisoned) {
       const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.poisoned.strength * poisonDepth);
+      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
       console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
       await sleep(400); // 毒ダメージ処理後に待機時間を設ける
     }
   }
   if (!skillUser.flags.hasDiedThisAction) {
-    if (skillUser.abnormality.dotDamage) {
-      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.abnormality.dotDamage.strength);
+    if (skillUser.buffs.dotDamage) {
+      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.buffs.dotDamage.strength);
       console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
       await sleep(400); // 継続ダメージ処理後に待機時間を設ける
@@ -1608,7 +1607,7 @@ function isDead(monster) {
 function hasAbnormality(monster) {
   const abnormalityKeys = ["fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "stoned"];
   for (const key of abnormalityKeys) {
-    if (monster.abnormality[key]) {
+    if (monster.buffs[key]) {
       return true;
     }
   }
@@ -1757,16 +1756,13 @@ function handleDeath(target) {
   }
 
   // keepOnDeathを持たないバフと異常を削除
+  const newBuffs = {};
   for (const buffKey in target.buffs) {
-    if (!target.buffs[buffKey].keepOnDeath) {
-      delete target.buffs[buffKey];
+    if (target.buffs[buffKey].keepOnDeath) {
+      newBuffs[buffKey] = target.buffs[buffKey];
     }
   }
-  for (const abnormalityKey in target.abnormality) {
-    if (!target.abnormality[abnormalityKey].keepOnDeath) {
-      delete target.abnormality[abnormalityKey];
-    }
-  }
+  target.buffs = newBuffs;
 
   // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
   if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
@@ -2234,7 +2230,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
   // マヌーサ処理
-  if (skillUser.abnormality.dazzle && !executingSkill.ignoreDazzle) {
+  if (skillUser.buffs.dazzle && !executingSkill.ignoreDazzle) {
     if (Math.random() < 0.36) {
       console.log(`${skillTarget.name}は目を回して攻撃を外した！`);
       return "miss";
@@ -2561,7 +2557,7 @@ function hasAbnormalityofAINormalAttack(monster) {
   const abnormalityKeys = ["confused", "paralyzed", "asleep"];
   //Todo: 麻痺どうだっけ
   for (const key of abnormalityKeys) {
-    if (monster.abnormality[key]) {
+    if (monster.buffs[key]) {
       return true;
     }
   }
