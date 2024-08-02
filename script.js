@@ -821,6 +821,24 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle"];
     const removeGuardAbnormalities = ["tempted", "sealed", "confused", "paralyzed", "asleep"];
     const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
+    const dispellableByRadiantWaveAbnormalities = [
+      "spellSeal",
+      "breathSeal",
+      "slashSeal",
+      "martialSeal",
+      "fear",
+      "tempted",
+      "sealed",
+      "confused",
+      "paralyzed",
+      "asleep",
+      "poisoned",
+      "dazzle",
+      "reviveBlock",
+      "dotDamage",
+      "healBlock",
+      "maso",
+    ];
 
     // statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
     if (buffTarget.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (newBuff[buffName] && newBuff[buffName].hasOwnProperty("type") && newBuff[buffName].type === "familyBuff"))) {
@@ -994,6 +1012,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     }
     //付与成功時処理 duration設定
     const buffDurations = {
+      //decreaseTurnEnd 行動前後がデクリメントに寄与しないタイプ stackableと反射系
       baiki: {
         16: 3,
         48: 4,
@@ -1042,6 +1061,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
         99: 6,
         100: 7,
       },
+      reviveBlock: {
+        100: 1,
+      },
+      //decreaseBeforeAction 行動前にデクリメントして消える
       manaBoost: {
         100: 1,
       },
@@ -1051,8 +1074,74 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       breathCharge: {
         100: 1,
       },
-      reviveBlock: {
-        100: 1,
+      nonElementalResistance: {
+        100: 3,
+      },
+      demonKingBarrier: {
+        100: 3,
+      },
+      fear: {
+        100: 2,
+      },
+      tempted: {
+        100: 2,
+      },
+      sealed: {
+        100: 2,
+      },
+      confused: {
+        55: 2,
+        87: 3,
+        99: 4,
+        100: 5,
+      },
+      paralyzed: {
+        55: 2,
+        87: 3,
+        99: 4,
+        100: 5,
+      },
+      asleep: {
+        68: 2,
+        88: 3,
+        97: 4,
+        100: 5,
+      },
+      poisoned: {
+        41: 4,
+        78: 5,
+        97: 6,
+        100: 7,
+      },
+      dazzle: {
+        16: 3,
+        49: 4,
+        83: 5,
+        100: 6,
+      },
+      spellSeal: {
+        41: 4,
+        78: 5,
+        97: 6,
+        100: 7,
+      },
+      breathSeal: {
+        41: 4,
+        78: 5,
+        97: 6,
+        100: 7,
+      },
+      slashSeal: {
+        41: 4,
+        78: 5,
+        97: 6,
+        100: 7,
+      },
+      martialSeal: {
+        41: 4,
+        78: 5,
+        97: 6,
+        100: 7,
       },
     };
 
@@ -1065,12 +1154,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
         }
       }
     };
-    //duration表に含まれるバフのみduration更新
-    if (buffName in buffDurations) {
+    //duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、侵食(3)などduration設定時は自動設定しない)
+    if (buffName in buffDurations && !buffData.hasOwnProperty(duration)) {
       buffTarget.buffs[buffName].duration = getDuration(buffName);
     }
     // ターン経過で減少するバフのリスト
-    const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
+    const decreaseTurnEnd = ["skillTurn", "hogeReflection", "reviveBlock"];
     //継続時間指定されている場合に、デクリメントのタイプを設定
     if (buffTarget.buffs[buffName].duration) {
       // stackableBuffs または decreaseTurnEnd に含まれる場合
@@ -1087,6 +1176,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     const removeAtTurnStartBuffs = ["reviveBlock"];
     if (removeAtTurnStartBuffs.includes(buffName)) {
       buffTarget.buffs[buffName].removeAtTurnStart = true;
+    }
+    //光の波動で解除可能なフラグを付与 解除不可毒や回復封じを除く
+    if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
+      buffTarget.buffs[buffName].dispellableByRadiantWave = true;
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
