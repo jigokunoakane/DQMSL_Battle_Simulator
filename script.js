@@ -945,6 +945,16 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       }
     }
 
+    //光の波動で解除可能なフラグを付与 解除不可毒や回復封じを除く
+    //もし同種状態異常で、かつ既存のバフがundispellable > 新規付与がdispellable の場合は上書きしない
+    //上の上書き処理を事前に行うことはあまり望ましくないが、競合するバフなどのため特に問題は起きない
+    if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
+      buffData.dispellableByRadiantWave = true;
+    }
+    if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
+      continue;
+    }
+
     //バフ適用処理の前に、競合処理の共通部分
     //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
@@ -1177,10 +1187,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     const removeAtTurnStartBuffs = ["reviveBlock"];
     if (removeAtTurnStartBuffs.includes(buffName)) {
       buffTarget.buffs[buffName].removeAtTurnStart = true;
-    }
-    //光の波動で解除可能なフラグを付与 解除不可毒や回復封じを除く
-    if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
-      buffTarget.buffs[buffName].dispellableByRadiantWave = true;
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
