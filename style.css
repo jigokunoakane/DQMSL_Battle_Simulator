@@ -625,3 +625,24 @@ select {
 #closeselectcommandpopupwindowbtn::after {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
+
+.buff-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  display: flex;
+  justify-content: space-around;
+}
+
+.buff-icon {
+  width: 33.33%;
+  padding-top: 33.33%; /* アスペクト比を維持するためにパディングトップを使用 */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.buff-container {
+  justify-content: flex-start; /* バフアイコンを左詰めに変更 */
+}

@@ -1190,6 +1190,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
+  updateMonsterBuffsDisplay(buffTarget);
 }
 
 // ターン経過でデクリメントするタイプ decreaseTurnEnd
@@ -2910,8 +2911,9 @@ const monsters = [
     skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     attribute: {
       1: {
-        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         breathEnhancement: { keepOnDeath: true },
+        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
+        mindAndSealBarrier: { keepOnDeath: true },
         breathCharge: { strength: 1.2 },
       },
       2: { breathCharge: { strength: 1.5 } },
@@ -2928,7 +2930,11 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
     skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
-    attribute: "",
+    attribute: {
+      permanentBuffs: {
+        mindAndSealBarrier: { devineDispellable: true, probability: 0.25 },
+      },
+    },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, spd: 1 },
     lstarget: "ドラゴン",
@@ -2942,8 +2948,12 @@ const monsters = [
     skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     attribute: {
       1: {
-        powerCharge: { strength: 2 },
         iceBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { keepOnDeath: true },
+        demonKingBarrier: { devineDispellable: true },
+        spdUp: { strength: 1 },
+        powerCharge: { strength: 2 },
+        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
       },
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
@@ -2961,6 +2971,7 @@ const monsters = [
       1: {
         fireBreak: { keepOnDeath: true, strength: 2 },
         breathEnhancement: { keepOnDeath: true },
+        mindBarrier: { keepOnDeath: true },
       },
       evenTurnBuffs: { slashBarrier: { strength: 1 } },
     },
@@ -2975,7 +2986,12 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
-    attribute: { 1: { metal: { keepOnDeath: true, strength: 0.75, type: "notmetal" } } },
+    attribute: {
+      1: {
+        metal: { keepOnDeath: true, strength: 0.75, type: "notmetal" },
+        spellBarrier: { strength: 1 },
+      },
+    },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 10, MP: 10 },
     lstarget: "all",
@@ -2990,9 +3006,10 @@ const monsters = [
     skill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
     attribute: {
       1: {
-        isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         lightBreak: { keepOnDeath: true, strength: 2 },
-        martialReflection: { strength: 1.5, duration: 3 },
+        isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
+        mindBarrier: { keepOnDeath: true },
+        martialReflection: { devineDispellable: true, strength: 1.5, duration: 3 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -3009,8 +3026,9 @@ const monsters = [
     skill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
     attribute: {
       1: {
-        protection: { strength: 0.5, duration: 3 },
         darkBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { keepOnDeath: true },
+        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -3033,8 +3051,9 @@ const monsters = [
     skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "終の流星"],
     attribute: {
       1: {
-        protection: { strength: 0.5, duration: 3 },
         lightBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { keepOnDeath: true },
+        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -3060,6 +3079,7 @@ const monsters = [
         tagTransformation: { keepOnDeath: true },
         fireBreak: { keepOnDeath: true, strength: 2 },
         iceBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { duration: 3 },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -4193,9 +4213,9 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       applyDamage(monster, -1500, -1, true);
       updatebattleicons(monster);
       displayMessage("ザオリーマをとなえた");
-      preparebattle();
     }
   }
+  preparebattle();
 });
 
 document.getElementById("hametsubtn").addEventListener("click", function () {
@@ -4338,4 +4358,83 @@ function addMirrorEffect(targetImageId) {
   setTimeout(() => {
     mirror.remove();
   }, 300);
+}
+
+const imageCache = {};
+async function imageExists(imageUrl) {
+  // 画像のURLごとにキャッシュを保持
+  if (!(imageUrl in imageCache)) {
+    imageCache[imageUrl] = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = imageUrl;
+    });
+  }
+  return await imageCache[imageUrl];
+}
+
+async function updateMonsterBuffsDisplay(monster) {
+  const wrapper = document.getElementById(monster.iconElementId).parentElement;
+  const buffContainer = wrapper.querySelector(".buff-container");
+  if (buffContainer) {
+    buffContainer.remove();
+  }
+
+  // 画像が存在するバフのデータのみを格納する配列
+  const activeBuffs = [];
+  for (const buffKey in monster.buffs) {
+    // 基本のアイコンパス
+    let iconSrc = `images/buffIcons/${buffKey}.png`;
+
+    // keepOnDeath, devineDispellable, unDispellableByRadiantWave, strength の順に確認し、
+    // 対応するアイコンが存在すればパスを更新
+    const buffAttributes = ["keepOnDeath", "devineDispellable", "unDispellableByRadiantWave", "strength"];
+    for (const prop of buffAttributes) {
+      if (monster.buffs[buffKey][prop] !== undefined) {
+        const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : ""}.png`; // strengthの場合は"str" + 属性値 を使う
+        if (await imageExists(tempSrc)) {
+          iconSrc = tempSrc;
+          break;
+        }
+      }
+    }
+
+    // 画像が存在する場合は、activeBuffsにバフデータを追加
+    if (await imageExists(iconSrc)) {
+      activeBuffs.push({ key: buffKey, src: iconSrc });
+    }
+  }
+
+  if (activeBuffs.length === 0) {
+    return;
+  }
+
+  const newBuffContainer = document.createElement("div");
+  newBuffContainer.classList.add("buff-container");
+  wrapper.appendChild(newBuffContainer);
+
+  let buffIndex = 0;
+
+  async function showNextBuffs() {
+    newBuffContainer.innerHTML = "";
+
+    const startIndex = buffIndex * 3;
+    const buffsToShow = activeBuffs.slice(startIndex, startIndex + 3);
+
+    for (const buff of buffsToShow) {
+      const buffIcon = document.createElement("img");
+      buffIcon.src = buff.src;
+      buffIcon.classList.add("buff-icon");
+      newBuffContainer.appendChild(buffIcon);
+    }
+
+    buffIndex = (buffIndex + 1) % Math.ceil(activeBuffs.length / 3);
+
+    if (activeBuffs.length > 3) {
+      setTimeout(showNextBuffs, 600);
+    }
+  }
+
+  await showNextBuffs();
 }
