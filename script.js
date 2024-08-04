@@ -571,14 +571,14 @@ function startSelectingCommandForFirstMonster(teamNum) {
 //backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
 //一旦全削除用function、コマンド選択終了時にも起動
 function removeallstickout() {
-  const allmonstericonsstickout = document.querySelectorAll(".monstericon");
+  const allmonstericonsstickout = document.querySelectorAll(".monstericon-wrapper");
   allmonstericonsstickout.forEach((monstericon) => {
     monstericon.classList.remove("stickout");
   });
 }
 //防御の引っ込みを消す ターン終了時に起動 死亡時は個別に削除
 function removeallrecede() {
-  const allmonstericonsrecede = document.querySelectorAll(".monstericon");
+  const allmonstericonsrecede = document.querySelectorAll(".monstericon-wrapper");
   allmonstericonsrecede.forEach((monstericon) => {
     monstericon.classList.remove("recede");
   });
@@ -587,7 +587,7 @@ function removeallrecede() {
 function adjustmonstericonstickout() {
   removeallstickout();
   const targetmonstericonstickout = document.getElementById(`battleiconally${selectingwhichmonsterscommand}`);
-  targetmonstericonstickout.classList.add("stickout");
+  targetmonstericonstickout.parentNode.classList.add("stickout");
 }
 
 function backbtn() {
@@ -1077,13 +1077,13 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       },
       //decreaseBeforeAction 行動前にデクリメントして消える
       manaBoost: {
-        100: 1,
+        100: 2,
       },
       powerCharge: {
-        100: 1,
+        100: 2,
       },
       breathCharge: {
-        100: 1,
+        100: 2,
       },
       nonElementalResistance: {
         100: 3,
@@ -1230,6 +1230,7 @@ function removeExpiredBuffs(monster) {
     }
   }
   updateCurrentStatus(monster);
+  updateMonsterBuffsDisplay(monster);
 }
 
 // durationが0になったバフを消去 ターン開始時(帝王の構えや予測等、removeAtTurnStart指定)
@@ -1244,6 +1245,7 @@ function removeExpiredBuffsAtTurnStart() {
         }
       }
       updateCurrentStatus(monster);
+      updateMonsterBuffsDisplay(monster);
     }
   }
 }
@@ -1456,9 +1458,9 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
 
   removeallstickout();
   if (executingSkill.name === "ぼうぎょ") {
-    document.getElementById(skillUser.iconElementId).classList.add("recede");
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("recede");
   } else {
-    document.getElementById(skillUser.iconElementId).classList.add("stickout");
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickout");
   }
 
   // 2. バフ状態異常継続時間確認
@@ -1782,8 +1784,10 @@ function handleDeath(target) {
   }
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
-  document.getElementById(target.iconElementId).classList.remove("stickout");
-  document.getElementById(target.iconElementId).classList.remove("recede");
+  updateCurrentStatus(target);
+  updateMonsterBuffsDisplay(target);
+  document.getElementById(target.iconElementId).parentNode.classList.remove("stickout");
+  document.getElementById(target.iconElementId).parentNode.classList.remove("recede");
   if (target.teamID === 0) {
     console.log(`${target.name}はちからつきた！`);
     displayMessage(`${target.name}は　ちからつきた！`);
@@ -2932,7 +2936,7 @@ const monsters = [
     skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     attribute: {
       permanentBuffs: {
-        mindAndSealBarrier: { devineDispellable: true, probability: 0.25 },
+        mindAndSealBarrier: { devineDispellable: true, duration: 3, probability: 0.25 },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -4380,6 +4384,9 @@ async function updateMonsterBuffsDisplay(monster) {
   if (buffContainer) {
     buffContainer.remove();
   }
+  if (monster.flags.isDead) {
+    return;
+  }
 
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
@@ -4392,7 +4399,7 @@ async function updateMonsterBuffsDisplay(monster) {
     const buffAttributes = ["keepOnDeath", "devineDispellable", "unDispellableByRadiantWave", "strength"];
     for (const prop of buffAttributes) {
       if (monster.buffs[buffKey][prop] !== undefined) {
-        const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : ""}.png`; // strengthの場合は"str" + 属性値 を使う
+        const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
         if (await imageExists(tempSrc)) {
           iconSrc = tempSrc;
           break;

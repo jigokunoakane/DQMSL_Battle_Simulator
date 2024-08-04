@@ -187,15 +187,15 @@ select {
   height: auto;
 }
 
-.battlepageallyicon.stickout {
+.battlepageallywrapper.stickout {
   transform: translate(0%, -15%);
 }
 
-.battlepageenemyicon.stickout {
+.battlepageenemywrapper.stickout {
   transform: translate(0%, 10%);
 }
 
-.battlepageallyicon.recede {
+.battlepageallywrapper.recede {
   transform: translate(0%, 10%);
 }
 
