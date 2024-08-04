@@ -25,11 +25,7 @@ const defaultMonster = {
 };
 
 const defaultparty = Array(5).fill(defaultMonster);
-//defaultpartyにmonster5体を格納
-/*let allparties = [
-  { party: [...defaultparty] }10
-];
-*/
+
 let allparties = Array.from({ length: 10 }, () => ({ party: [...defaultparty] }));
 //全パテの枠組みを用意
 let parties = [{ party: [...defaultparty] }, { party: [...defaultparty] }];
@@ -406,7 +402,7 @@ function selectcommand(selectedskillnum) {
     //allならmonster名は隠すのみ
     document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
-    /*parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";*/
+    //parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
     //allとかmeとか保存してもいいけど、結局skillの中身主導で動かすから不要かも
     //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
   } else {
@@ -755,22 +751,22 @@ function startTurn() {
       }
       // turnNum に対応するバフを適用
       if (monster.attribute.hasOwnProperty(turnNum)) {
-        applyBuff(monster, monster.attribute[turnNum]);
+        applyBuff(monster, structuredClone(monster.attribute[turnNum]));
       }
 
       // 毎ターン発動バフを適用
       if (monster.attribute.hasOwnProperty("permanentBuffs")) {
-        applyBuff(monster, monster.attribute.permanentBuffs);
+        applyBuff(monster, structuredClone(monster.attribute.permanentBuffs));
       }
 
       // 偶数ターンのバフを適用
       if (turnNum % 2 === 0 && monster.attribute.hasOwnProperty("evenTurnBuffs")) {
-        applyBuff(monster, monster.attribute.evenTurnBuffs);
+        applyBuff(monster, structuredClone(monster.attribute.evenTurnBuffs));
       }
 
       // 奇数ターンのバフを適用
       if (turnNum % 2 !== 0 && monster.attribute.hasOwnProperty("oddTurnBuffs")) {
-        applyBuff(monster, monster.attribute.oddTurnBuffs);
+        applyBuff(monster, structuredClone(monster.attribute.oddTurnBuffs));
       }
     }
   }
@@ -1083,6 +1079,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       reviveBlock: {
         100: 1,
       },
+      preemptiveAction: {
+        100: 1,
+      },
+      anchorAction: {
+        100: 1,
+      },
       //decreaseBeforeAction 行動前にデクリメントして消える
       manaBoost: {
         100: 2,
@@ -1178,11 +1180,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       buffTarget.buffs[buffName].duration = getDuration(buffName);
     }
     // ターン経過で減少するバフのリスト
-    const decreaseTurnEnd = ["skillTurn", "hogeReflection", "reviveBlock"];
+    const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
+    //ターン最初に解除するバフのリスト 反射以外 これとstackableは自動的にdecreaseTurnEndを付与
+    const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction"];
+
     //継続時間指定されている場合に、デクリメントのタイプを設定
     if (buffTarget.buffs[buffName].duration) {
-      // stackableBuffs または decreaseTurnEnd に含まれる場合
-      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName)) {
+      // stackableBuffs または decreaseTurnEnd または removeAtTurnStartBuffs に含まれる場合
+      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName) || removeAtTurnStartBuffs.includes(buffName)) {
         //ターン経過で一律にデクリメントするタイプを設定
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
@@ -1191,8 +1196,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
       }
     }
 
-    //ターン最初に解除するバフのリスト 反射以外
-    const removeAtTurnStartBuffs = ["reviveBlock"];
     if (removeAtTurnStartBuffs.includes(buffName)) {
       buffTarget.buffs[buffName].removeAtTurnStart = true;
     }
@@ -1300,13 +1303,6 @@ function updateCurrentStatus(monster) {
   //TODO: 内部バフの実装
 }
 
-// 使用例
-/*
-const monsterA = parties[0][0]; 
-addBuff(monsterA, "攻撃力アップ", 1.5, 3); // 攻撃力1.5倍、3ターンのバフを追加
-console.log(monsterA.currentstatus.攻撃力); // バフ適用後の攻撃力
-*/
-
 // 行動順を決定する関数 コマンド決定後にstartbattleで起動
 let turnOrder = [];
 function decideTurnOrder(parties, skills) {
@@ -1328,9 +1324,9 @@ function decideTurnOrder(parties, skills) {
       preemptiveMonsters.push(monster);
     } else if (confirmedSkilldetector?.order === "anchor") {
       anchorMonsters.push(monster);
-    } else if (monster.preemptiveAction) {
+    } else if (monster.buffs.preemptiveAction) {
       preemptiveActionMonsters.push(monster);
-    } else if (monster.anchorAction) {
+    } else if (monster.buffs.anchorAction) {
       anchorActionMonsters.push(monster);
     } else {
       normalMonsters.push(monster);
@@ -1367,9 +1363,9 @@ function decideTurnOrder(parties, skills) {
     // 2. アンカー技を使うモンスターを追加 (anchorAction所持, 特性未所持, preemptiveAction所持の順、
     //    各グループ内ではmodifiedSpeedの遅い順)
     turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.anchorAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)),
-      ...anchorMonsters.filter((monster) => !monster.anchorAction && !monster.preemptiveAction).sort((a, b) => a.modifiedSpeed - b.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.preemptiveAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0))
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => a.modifiedSpeed - b.modifiedSpeed),
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0))
     );
 
     // 3. anchorActionを持つモンスターを追加 (currentstatus.spdの遅い順)
@@ -1434,9 +1430,9 @@ function decideTurnOrder(parties, skills) {
 
     // 6. アンカー技を使うモンスターを追加 (preemptiveAction持ち-> 通常行動 -> anchorAction持ち)
     turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.preemptiveAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)),
-      ...anchorMonsters.filter((monster) => !monster.anchorAction && !monster.preemptiveAction).sort((a, b) => b.modifiedSpeed - a.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.anchorAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0))
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => b.modifiedSpeed - a.modifiedSpeed),
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0))
     );
   }
 
@@ -1451,7 +1447,7 @@ function calculateModifiedSpeed(monster) {
 }
 
 // 各monsterの行動を実行する関数
-async function processMonsterAction(skillUser, executingSkill, executedSkills = []) {
+async function processMonsterAction(skillUser, executingSkill, executedSkills = [], isFollowingSkill = false) {
   // 全てのモンスターの isRecentlyDamaged フラグを削除
   for (const party of parties) {
     for (const monster of party) {
@@ -1472,10 +1468,12 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 2. バフ状態異常継続時間確認
-  // 行動直前に持続時間を減少させる decreaseBeforeAction
-  decreaseBuffDurationBeforeAction(skillUser);
-  // durationが0になったバフを消去 行動直前に削除(通常タイプ)
-  removeExpiredBuffs(skillUser);
+  if (!isFollowingSkill) {
+    // 行動直前に持続時間を減少させる decreaseBeforeAction
+    decreaseBuffDurationBeforeAction(skillUser);
+    // durationが0になったバフを消去 行動直前に削除(通常タイプ)
+    removeExpiredBuffs(skillUser);
+  }
 
   // 3. 状態異常確認
   if (hasAbnormality(skillUser) && !executingSkill.skipAbnormalityCheck) {
@@ -1495,24 +1493,28 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   }
 
   // 5. 消費MP確認
-  if (executingSkill.MPcost === "all") {
-    skillUser.currentstatus.MP = 0;
-  } else if (skillUser.currentstatus.MP >= executingSkill.MPcost) {
-    skillUser.currentstatus.MP -= executingSkill.MPcost;
-    updateMonsterBar(skillUser);
-  } else {
-    console.log(skillUser.currentstatus.MP);
-    console.log(executingSkill.MPcost);
-    console.log("しかし、MPが足りなかった！");
-    displayMessage("しかし、MPが足りなかった！");
-    // MP不足の場合は7. 行動後処理にスキップ
-    await postActionProcess(skillUser, executingSkill, executedSkills);
-    return;
+  if (!isFollowingSkill) {
+    if (executingSkill.MPcost === "all") {
+      skillUser.currentstatus.MP = 0;
+    } else if (skillUser.currentstatus.MP >= executingSkill.MPcost) {
+      skillUser.currentstatus.MP -= executingSkill.MPcost;
+      updateMonsterBar(skillUser);
+    } else {
+      console.log(skillUser.currentstatus.MP);
+      console.log(executingSkill.MPcost);
+      console.log("しかし、MPが足りなかった！");
+      displayMessage("しかし、MPが足りなかった！");
+      // MP不足の場合は7. 行動後処理にスキップ
+      await postActionProcess(skillUser, executingSkill, executedSkills);
+      return;
+    }
   }
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  if (!isFollowingSkill) {
+    displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  }
   const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
   if (skillUser.confirmedcommandtarget === "") {
@@ -1532,7 +1534,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
   // 7-1. followingSkill判定処理
   if (executingSkill.followingSkill && !(skillUser.confirmedcommand === "skipThisTurn" && !executingSkill.skipDeathCheck)) {
     // "skipThisTurn" ではない または skipDeathCheck が存在するときに実行
-    await processMonsterAction(skillUser, findSkillByName(executingSkill.followingSkill), [...executedSkills]); // スキル実行履歴を引き継ぐ
+    await processMonsterAction(skillUser, findSkillByName(executingSkill.followingSkill), [...executedSkills], true); // スキル実行履歴を引き継ぐ
     return; // followingSkillを実行した場合は以降の処理はスキップ
   }
 
@@ -2592,18 +2594,6 @@ function hasAbnormalityofAINormalAttack(monster) {
   return false;
 }
 
-//todo:死亡時や蘇生時、攻撃ダメージmotionのアイコン調整も
-/*
-
-順番に特技発動、一発づつ処理
-hit処理、ダメージ処理、ダメージや死亡に対する処理、バトル終了フラグ確認のループ
-すべての行動が終わったら、コマンドに戻る
-
-ラウンド管理システム
-*/
-///////////////////////////////////////////////
-///////////////////////////////////////////////
-
 //monster選択部分
 let selectingmonstericon = "";
 let selectingmonsternum = "";
@@ -2803,11 +2793,9 @@ function changeseedselect() {
   });
 }
 
-/*
-select変化時、全部の合計値を算出、
-120-その合計値を算出 = remain
-すべてのselectで、現状の値+remainを超える選択肢をdisable化
-*/
+//select変化時、全部の合計値を算出、
+//120-その合計値を算出 = remain
+//すべてのselectで、現状の値+remainを超える選択肢をdisable化
 
 //増分計算fun selectseedatkを元に、増分計算・表示、増分をparty該当モンスター内に格納
 function seedzoubuncalc() {
@@ -2990,6 +2978,7 @@ const monsters = [
         fireBreak: { keepOnDeath: true, strength: 2 },
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { keepOnDeath: true },
+        preemptiveAction: { duration: 1 },
       },
       evenTurnBuffs: { slashBarrier: { strength: 1 } },
     },
@@ -3172,7 +3161,6 @@ const monsters = [
     seed: { atk: 40, def: 80, spd: 0, int: 0 },
     ls: { HP: 1.15 },
     lstarget: "all",
-    anchorAction: 100,
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1 },
   },
   {
@@ -3966,20 +3954,20 @@ document.getElementById("preActionbtn").addEventListener("click", function () {
   const preActiondetector = document.getElementById("preActionbtn").textContent;
   if (preActiondetector === "味方神速") {
     document.getElementById("preActionbtn").textContent = "4のみ";
-    parties[0][0].preemptiveAction = 100;
-    parties[0][1].preemptiveAction = 100;
-    parties[0][2].preemptiveAction = 100;
-    parties[0][3].preemptiveAction = 100;
-    parties[0][4].preemptiveAction = 100;
+    parties[0][0].buffs.preemptiveAction = 100;
+    parties[0][1].buffs.preemptiveAction = 100;
+    parties[0][2].buffs.preemptiveAction = 100;
+    parties[0][3].buffs.preemptiveAction = 100;
+    parties[0][4].buffs.preemptiveAction = 100;
   } else {
     document.getElementById("preActionbtn").textContent = "味方神速";
     for (const party of parties) {
       for (const monster of party) {
-        delete monster.preemptiveAction;
+        delete monster.buffs.preemptiveAction;
       }
     }
     if (parties[0] && parties[0][3]) {
-      parties[0][3].preemptiveAction = 100;
+      parties[0][3].buffs.preemptiveAction = 100;
     }
   }
   decideTurnOrder(parties, skill);
@@ -4301,28 +4289,6 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
     messageLine1.style.fontSize = "0.9rem";
   }
 }
-
-/*
-function addMirrorEffect(targetImageId) {
-  // 対象となる画像要素を取得
-  const targetImage = document.getElementById(targetImageId);
-
-  // 鏡要素を作成
-  const mirror = document.createElement("div");
-  mirror.style.position = "absolute";
-  mirror.style.top = "0";
-  mirror.style.left = "0";
-  mirror.style.width = "100%";
-  mirror.style.height = "100%";
-  mirror.style.borderRadius = "50%";
-  mirror.style.backgroundImage = "radial-gradient(#fffcfb, #fffcfb 30%, #9347d1 30%)"; // 縁と内側を明確に分ける
-  mirror.style.backgroundSize = "cover"; // 背景画像を要素全体にフィットさせる
-
-  // 対象となる画像要素の親要素に鏡要素を追加
-  targetImage.parentNode.appendChild(mirror);
-}
-*/
-// 例：IDが "battleiconally0" の画像に鏡効果を追加
 
 function addMirrorEffect(targetImageId) {
   // 対象の画像要素を取得
