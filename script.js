@@ -317,6 +317,7 @@ function reverseMonsterBarDisplay() {
   for (let i = 0; i < parties.length; i++) {
     for (let j = 0; j < parties[i].length; j++) {
       updateMonsterBar(parties[i][j], "", true); // 逆転フラグをtrueで渡す
+      updateMonsterBuffsDisplay(parties[i][j], true);
     }
   }
 }
@@ -325,6 +326,7 @@ function restoreMonsterBarDisplay() {
   for (let i = 0; i < parties.length; i++) {
     for (let j = 0; j < parties[i].length; j++) {
       updateMonsterBar(parties[i][j]);
+      updateMonsterBuffsDisplay(parties[i][j]);
     }
   }
 }
@@ -555,7 +557,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
       //アイコン反転
       preparebattlepageicons(true);
       adjustmonstericonstickout();
-      //bar反転
+      //barとバフ反転
       reverseMonsterBarDisplay();
     }
   } else {
@@ -671,7 +673,7 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
     disablecommandbtns(true);
     //popupを閉じ、commandbtnsを無効化
     preparebattlepageicons();
-    //反転を戻す
+    //barとバフの反転を戻す
     restoreMonsterBarDisplay();
     removeallstickout();
     startbattle();
@@ -4378,8 +4380,15 @@ async function imageExists(imageUrl) {
   return await imageCache[imageUrl];
 }
 
-async function updateMonsterBuffsDisplay(monster) {
-  const wrapper = document.getElementById(monster.iconElementId).parentElement;
+async function updateMonsterBuffsDisplay(monster, isReversed = false) {
+  let wrapper = document.getElementById(monster.iconElementId).parentElement;
+  if (isReversed) {
+    // monster.iconElementId を入れ替える
+    const newId = monster.iconElementId.includes("ally") ? monster.iconElementId.replace("ally", "enemy") : monster.iconElementId.replace("enemy", "ally");
+
+    // wrapper を新しい要素の親要素に置き換える
+    wrapper = document.getElementById(newId).parentElement;
+  }
   const buffContainer = wrapper.querySelector(".buff-container");
   if (buffContainer) {
     buffContainer.remove();
