@@ -125,6 +125,8 @@ function preparebattle() {
       member.enemyTeamID = index === 0 ? 1 : 0;
     });
   });
+  //バフタイマー初期化
+  buffDisplayTimers = {};
 
   // 以下はパーティごとに処理
   for (const party of parties) {
@@ -185,7 +187,11 @@ function preparebattle() {
       monster.mpBarElementId = mpBarId;
       monster.hpBarTextElementId = hpBarTextId;
       monster.mpBarTextElementId = mpBarTextId;
-
+    }
+  }
+  //初期生成後にバフ表示を開始
+  for (const party of parties) {
+    for (const monster of party) {
       updateMonsterBar(monster);
     }
   }
@@ -1787,6 +1793,12 @@ function handleDeath(target) {
   updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
   updateCurrentStatus(target);
+  // TODO:仮置き ここで明示的に buffContainer を削除する
+  let wrapper = document.getElementById(target.iconElementId).parentElement;
+  const buffContainer = wrapper.querySelector(".buff-container");
+  if (buffContainer) {
+    buffContainer.remove();
+  }
   updateMonsterBuffsDisplay(target);
   document.getElementById(target.iconElementId).parentNode.classList.remove("stickout");
   document.getElementById(target.iconElementId).parentNode.classList.remove("recede");
@@ -4380,7 +4392,17 @@ async function imageExists(imageUrl) {
   return await imageCache[imageUrl];
 }
 
+// 各モンスターのバフ表示を管理するオブジェクト
+let buffDisplayTimers = {};
+
 async function updateMonsterBuffsDisplay(monster, isReversed = false) {
+  // 前回のタイマーをクリア
+  if (buffDisplayTimers[monster.monsterId]) {
+    clearTimeout(buffDisplayTimers[monster.monsterId]);
+    // タイマーをクリアしたら、オブジェクトから削除する
+    delete buffDisplayTimers[monster.monsterId];
+  }
+
   let wrapper = document.getElementById(monster.iconElementId).parentElement;
   if (isReversed) {
     // monster.iconElementId を入れ替える
@@ -4432,7 +4454,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 
   let buffIndex = 0;
 
-  async function showNextBuffs() {
+  function showNextBuffs() {
     newBuffContainer.innerHTML = "";
 
     const startIndex = buffIndex * 3;
@@ -4448,9 +4470,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     buffIndex = (buffIndex + 1) % Math.ceil(activeBuffs.length / 3);
 
     if (activeBuffs.length > 3) {
-      setTimeout(showNextBuffs, 600);
+      // タイマーを保存
+      buffDisplayTimers[monster.monsterId] = setTimeout(showNextBuffs, 600);
     }
   }
 
-  await showNextBuffs();
+  showNextBuffs();
 }
