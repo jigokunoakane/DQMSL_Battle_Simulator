@@ -965,12 +965,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     }
 
     //バフ適用処理の前に、競合処理の共通部分
-    //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
+    //2. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
       function getBuffPriority(buff) {
         if (buff.keepOnDeath) return 3;
         if (buff.unDispellable) return 2;
-        if (buff.devineDispellable) return 1;
+        if (buff.divineDispellable) return 1;
         return 0;
       }
       const currentBuffPriority = getBuffPriority(currentBuff);
@@ -1007,7 +1007,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
           continue;
         }
-        //2. keepOnDeath > unDispellable > devineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオや、黄泉の封印vs普通)
+        //2. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオや、黄泉の封印vs普通)
         //これは重ねがけ可能なバフも含めて実行
         //3. currentbuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない)
         if (!currentBuff.duration && buffData.duration) {
@@ -1980,15 +1980,18 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
-    // 種別無効かつ無効貫通でないならばミス表示後にreturn
-    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"]) {
+    // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
+    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
       applyDamage(skillTarget, 0, "");
       return false;
     }
-    // 反射持ちかつ反射無視でないならば反射化
+    // 反射持ちかつ反射無視でない、かつ味方対象ではなく、かつ波動系ではないならば反射化
     if (
+      executingSkill.targetTeam !== "ally" &&
       !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill")) &&
+      executingSkill.appliedEffect !== "divineWave" &&
+      executingSkill.appliedEffect !== "disruptiveWave"
     ) {
       isReflection = true;
       //反射演出
@@ -2002,10 +2005,18 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return false;
   }
 
-  function processAppliedEffect(skillTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
-    // AppliedEffect指定されてたらapplybuff
+  function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
+    // AppliedEffect指定されてたら、規定値による波動処理またはapplybuff
     if (executingSkill.appliedEffect) {
-      applyBuff(skillTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
+      if (executingSkill.appliedEffect === "radiantWave") {
+        executeRadiantWave(buffTarget);
+      } else if (executingSkill.appliedEffect === "divineWave") {
+        executeDivineWave(buffTarget);
+      } else if (executingSkill.appliedEffect === "disruptiveWave") {
+        executeDisruptiveWave(buffTarget);
+      } else {
+        applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
+      }
     }
     // 他act処理
   }
@@ -2026,13 +2037,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
   if (resistance !== -1) {
-    //種別無効かつ無効貫通でないならばreturn
-    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"]) {
+    // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
+    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
       applyDamage(skillTarget, 0, "");
       return false;
     }
-    //反射持ちかつ反射無視でないならば反射化し、耐性も変更
+    //反射持ちかつ反射無視でない かつ味方対象ではないならば反射化し、耐性も変更
     if (
+      executingSkill.targetTeam !== "ally" &&
       !executingSkill.ignoreReflection &&
       (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
     ) {
@@ -2999,7 +3011,7 @@ const monsters = [
     skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     attribute: {
       permanentBuffs: {
-        mindAndSealBarrier: { devineDispellable: true, duration: 3, probability: 0.25 },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -3017,10 +3029,10 @@ const monsters = [
       1: {
         iceBreak: { keepOnDeath: true, strength: 1 },
         mindBarrier: { keepOnDeath: true },
-        demonKingBarrier: { devineDispellable: true },
+        demonKingBarrier: { divineDispellable: true },
         spdUp: { strength: 1 },
         powerCharge: { strength: 2 },
-        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
@@ -3077,7 +3089,7 @@ const monsters = [
         lightBreak: { keepOnDeath: true, strength: 2 },
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         mindBarrier: { keepOnDeath: true },
-        martialReflection: { devineDispellable: true, strength: 1.5, duration: 3 },
+        martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -3096,7 +3108,7 @@ const monsters = [
       1: {
         darkBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
-        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -3121,7 +3133,7 @@ const monsters = [
       1: {
         lightBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
-        protection: { devineDispellable: true, strength: 0.5, duration: 3 },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -3290,6 +3302,10 @@ const skill = [
     SubstituteBreaker: 3,
     MPcost: 76,
     followingSkill: "ryohuzentai",
+    act: function (skillUser, skillTarget) {
+      console.log("hoge");
+    },
+    appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
   },
   {
     name: "通常攻撃",
@@ -4452,9 +4468,9 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     // 基本のアイコンパス
     let iconSrc = `images/buffIcons/${buffKey}.png`;
 
-    // keepOnDeath, devineDispellable, unDispellableByRadiantWave, strength の順に確認し、
+    // keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認し、
     // 対応するアイコンが存在すればパスを更新
-    const buffAttributes = ["keepOnDeath", "devineDispellable", "unDispellableByRadiantWave", "strength"];
+    const buffAttributes = ["keepOnDeath", "divineDispellable", "unDispellableByRadiantWave", "strength"];
     for (const prop of buffAttributes) {
       if (monster.buffs[buffKey][prop] !== undefined) {
         const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
@@ -4503,4 +4519,29 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   showNextBuffs();
+}
+
+//光の波動 dispellableByRadiantWave指定以外を残す
+function executeRadiantWave(monster) {
+  monster.buffs = Object.fromEntries(Object.entries(monster.buffs).filter(([key, value]) => !value.dispellableByRadiantWave));
+  updateCurrentStatus(monster);
+  updateMonsterBuffsDisplay(monster);
+}
+
+//かみは 解除不可以上 光の波動の対象 を残す
+function executeDivineWave(monster) {
+  monster.buffs = Object.fromEntries(
+    Object.entries(monster.buffs).filter(([key, value]) => value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave)
+  );
+  updateCurrentStatus(monster);
+  updateMonsterBuffsDisplay(monster);
+}
+
+//いては
+function executeDisruptiveWave(monster) {
+  monster.buffs = Object.fromEntries(
+    Object.entries(monster.buffs).filter(([key, value]) => value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || value.divineDispellable)
+  );
+  updateCurrentStatus(monster);
+  updateMonsterBuffsDisplay(monster);
 }
