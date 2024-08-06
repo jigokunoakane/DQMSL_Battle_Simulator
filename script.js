@@ -786,7 +786,7 @@ async function startbattle() {
 }
 
 // バフ追加用関数
-function applyBuff(buffTarget, newBuff, skillUser = null) {
+function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) {
   for (const buffName in newBuff) {
     const currentBuff = buffTarget.buffs[buffName];
     const buffData = newBuff[buffName];
@@ -907,7 +907,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
           abnormalityResistance = -1;
         }
       } else {
-        abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
+        //状態異常系かつ反射の場合は逆転 反射によって逆転されているのを戻し、元々の使用者とtargetの耐性および使い手で判定
+        if (isReflection) {
+          abnormalityResistance = calculateResistance(buffTarget, buffName, skillUser);
+        } else {
+          abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
+        }
       }
       if (Math.random() > probability * abnormalityResistance) {
         continue;
@@ -1198,6 +1203,16 @@ function applyBuff(buffTarget, newBuff, skillUser = null) {
 
     if (removeAtTurnStartBuffs.includes(buffName)) {
       buffTarget.buffs[buffName].removeAtTurnStart = true;
+    }
+
+    //状態異常によるduration1の構え系解除
+    if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
+      const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+      for (const reflection of reflectionMap) {
+        if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].removeAtTurnStart && buffTarget.buffs[reflection].duration === 1) {
+          delete buffTarget.buffs[reflection];
+        }
+      }
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
@@ -1956,13 +1971,43 @@ function determineRandomTarget(target, skillUser, executingSkill, killedThisSkil
 async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, killedThisSkill) {
   let skillTarget = assignedSkillTarget;
   let skillUser = assignedSkillUser;
-  // みがわり処理
-  if (assignedSkillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute) {
+  let isReflection = false;
+  let reflectionType = "yosoku";
+  // みがわり処理 味方補助でないまたはみがわり無視でないときに処理
+  if (assignedSkillTarget.flags.hasSubstitute && (!executingSkill.ignoreSubstitute || !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally"))) {
     skillTarget = parties.flat().find((monster) => monster.monsterId === assignedSkillTarget.flags.hasSubstitute.targetMonsterId);
   }
 
+  // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
-    return;
+    // 種別無効かつ無効貫通でないならばミス表示後にreturn
+    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"]) {
+      applyDamage(skillTarget, 0, "");
+      return false;
+    }
+    // 反射持ちかつ反射無視でないならば反射化
+    if (
+      !executingSkill.ignoreReflection &&
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
+    ) {
+      isReflection = true;
+      //反射演出
+      addMirrorEffect(skillTarget.iconElementId);
+      //全ての場合でカンタと同様に、skillUserとskillTargetを入れ替え (applyBuff内での耐性処理のため)
+      skillUser = skillTarget;
+      skillTarget = assignedSkillUser;
+    }
+    // isDamageExsistingはfalseで送る
+    processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
+    return false;
+  }
+
+  function processAppliedEffect(skillTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
+    // AppliedEffect指定されてたらapplybuff
+    if (executingSkill.appliedEffect) {
+      applyBuff(skillTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
+    }
+    // 他act処理
   }
 
   // みかわし・マヌーサ処理
@@ -1970,7 +2015,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
       applyDamage(skillTarget, 0, "");
-      return;
+      return false;
     }
   }
 
@@ -1979,29 +2024,33 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let resistanceValue = resistance;
 
   // 吸収以外の場合に、種別無効処理と反射処理
-  let isReflection = false;
+  let skillUserForAppliedEffect = skillUser;
   if (resistance !== -1) {
     //種別無効かつ無効貫通でないならばreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"]) {
       applyDamage(skillTarget, 0, "");
-      return;
+      return false;
     }
     //反射持ちかつ反射無視でないならば反射化し、耐性も変更
     if (
       !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.atakan && (executingSkill.type === "slash" || executingSkill.type === "notskill")))
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
     ) {
       isReflection = true;
       resistanceValue = 1;
       //反射演出
       addMirrorEffect(skillTarget.iconElementId);
       //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
-      if (skillTarget.buffs[executingSkill.type + "Reflection"].type === "kanta") {
+      const skillType = executingSkill.type === "notskill" ? "slash" : executingSkill.type;
+      if (skillTarget.buffs[skillType + "Reflection"].type === "kanta") {
         skillUser = skillTarget;
+        reflectionType = "kanta";
       }
+      //バフは予測カンタにかかわらず反転
+      skillUserForAppliedEffect = skillTarget;
       //反射化、skillTargetをskillUserに変更
       skillTarget = assignedSkillUser;
-      //strengthの分を乗算要素に追加
+      //反射のときは反射のstrengthを乗算
     }
   }
 
@@ -2120,6 +2169,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   let damage = baseDamage;
 
+  //呪文会心
+  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge) {
+    //確率で暴走
+  }
+
+  //会心完全ガード
+
   //弱点1.8倍処理
   if (resistanceValue === 1.5 && executingSkill.weakness18) {
     resistanceValue = 1.8;
@@ -2133,11 +2189,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //連携
-
-  //呪文会心
-  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge) {
-    //確率で暴走
-  }
 
   //乗算バフ
 
@@ -2158,22 +2209,26 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  //魔力覚醒
-  if (skillUser.buffs.manaBoost && !executingSkill.ignoreManaBoost && executingSkill.howToCalculate === "int" && executingSkill.type === "spell") {
-    damage *= skillUser.buffs.manaBoost.strength;
+  //力溜め系 カンタ系で反射して撃っているとき無効化
+  if (!(isReflection && reflectionType === "kanta")) {
+    //魔力覚醒
+    if (skillUser.buffs.manaBoost && !executingSkill.ignoreManaBoost && executingSkill.howToCalculate === "int" && executingSkill.type === "spell") {
+      damage *= skillUser.buffs.manaBoost.strength;
+    }
+    //力ため 斬撃体技踊りまたはatk依存
+    if (
+      skillUser.buffs.powerCharge &&
+      !executingSkill.ignorePowerCharge &&
+      (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")
+    ) {
+      damage *= skillUser.buffs.powerCharge.strength;
+    }
+    //息を吸い込む
+    if (skillUser.buffs.breathCharge && executingSkill.type === "breath") {
+      damage *= skillUser.buffs.breathCharge.strength;
+    }
   }
-  //力ため 斬撃体技踊りまたはatk依存
-  if (
-    skillUser.buffs.powerCharge &&
-    !executingSkill.ignorePowerCharge &&
-    (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")
-  ) {
-    damage *= skillUser.buffs.powerCharge.strength;
-  }
-  //息を吸い込む
-  if (skillUser.buffs.breathCharge && executingSkill.type === "breath") {
-    damage *= skillUser.buffs.breathCharge.strength;
-  }
+
   //コツ系
   if (skillUser.buffs.breathEnhancement && executingSkill.type === "breath") {
     damage *= 1.15;
@@ -2192,8 +2247,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     breath: "breathBarrier",
   };
   const barrierType = barrierTypes[executingSkill.type];
-  if (skillTarget.buffs[barrierType] && !executingSkill.criticalHitProbability) {
-    // 確定会心系は防御バフ無視
+  if (skillTarget.buffs[barrierType] && !(executingSkill.criticalHitProbability && isCriticalHit)) {
+    // 確定会心系で会心が出た場合は防御バフ無視
     // strengthの値に応じた倍率を定義
     const strengthMultipliers = {
       0: 2, // -2
@@ -2221,14 +2276,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= 1 - skillTarget.buffs.protection.strength;
   }
 
-  //特技の種族特効
-  if (executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.type)) {
+  //特技の種族特効 反射には乗らない
+  if (!isReflection && executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.type)) {
     damage *= executingSkill.RaceBaneValue;
   }
   //みがわり特効
   if (executingSkill.SubstituteBreaker && skillTarget.flags.isSubstituting) {
     damage *= executingSkill.SubstituteBreaker;
   }
+  //魔神の金槌など
 
   // anchorBonus
   if (executingSkill.anchorBonus) {
@@ -2238,6 +2294,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージ処理
   applyDamage(skillTarget, damage, resistance);
+
+  //target生存かつdamageが0超えのときに、追加効果付与を実行
+  if (!skillTarget.flags.recentlyKilled && damage > 0) {
+    processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
+  }
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
   if (skillTarget.flags.recentlyKilled) {
@@ -2547,7 +2608,7 @@ function decideNormalAttackTarget(skillUser) {
       continue;
     }
     // 有効な攻撃対象の判定
-    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !monster.buffs.atakan;
+    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !(monster.buffs.slashReflection && monster.buffs.slashReflection.type === "kanta");
     // 有効な攻撃対象でない場合はスキップ
     if (!isValidTarget) {
       continue;
