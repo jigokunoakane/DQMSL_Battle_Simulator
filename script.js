@@ -3563,7 +3563,7 @@ const skill = [
     preemptivegroup: 3,
     MPcost: 14,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      applySubstitute(skillUser, skillTarget, true);
     },
   },
   {
@@ -3590,7 +3590,7 @@ const skill = [
     preemptivegroup: 4,
     MPcost: 5,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      applySubstitute(skillUser, skillTarget);
     },
   },
   {
@@ -3983,6 +3983,9 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 3,
     MPcost: 16,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, skillTarget, false, true);
+    },
   },
   {
     name: "闇の紋章",
@@ -4609,4 +4612,27 @@ function executeDisruptiveWave(monster) {
   );
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
+}
+
+//みがわり付与
+function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false) {
+  if (isAll) {
+    //自分以外に身代わりisSubstitutingがあるときはreturn hasだと仁王連続処理が初回で止まる
+    for (const monster of parties[skillUser.teamID]) {
+      if (monster.flags.isSubstituting && monster.index !== skillUser.index) {
+        return;
+      }
+    }
+  }
+  skillTarget.flags.hasSubstitute = {};
+  skillTarget.flags.hasSubstitute.targetMonsterId = skillUser.monsterId;
+  if (!skillUser.flags.isSubstituting) {
+    skillUser.flags.isSubstituting = {};
+    skillUser.flags.isSubstituting.targetMonsterId = [];
+  }
+  skillUser.flags.isSubstituting.targetMonsterId.push(skillTarget.monsterId);
+  if (isCover) {
+    skillTarget.flags.hasSubstitute.cover = true;
+    skillUser.flags.isSubstituting.cover = true;
+  }
 }
