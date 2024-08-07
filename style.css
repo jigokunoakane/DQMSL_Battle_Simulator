@@ -630,9 +630,10 @@ select {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: auto;
+  width: 100%;
+  height: auto;
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start; /* バフアイコンを左詰めに変更 */
 }
 
 .buff-icon {
@@ -641,8 +642,4 @@ select {
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-}
-
-.buff-container {
-  justify-content: flex-start; /* バフアイコンを左詰めに変更 */
 }

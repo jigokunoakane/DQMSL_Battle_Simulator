@@ -774,6 +774,7 @@ function startTurn() {
 
 //毎ラウンドコマンド選択後処理
 async function startbattle() {
+  await sleep(1000);
   //1round目なら戦闘開始時flagを持つ特性等を発動
   //ラウンド開始時flagを持つ特性を発動 多分awaitする
   decideTurnOrder(parties, skill);
@@ -1189,20 +1190,20 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     //ターン最初に解除するバフのリスト 反射以外 これとstackableは自動的にdecreaseTurnEndを付与
     const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction"];
 
+    if (removeAtTurnStartBuffs.includes(buffName)) {
+      buffTarget.buffs[buffName].removeAtTurnStart = true;
+    }
+
     //継続時間指定されている場合に、デクリメントのタイプを設定
     if (buffTarget.buffs[buffName].duration) {
-      // stackableBuffs または decreaseTurnEnd または removeAtTurnStartBuffs に含まれる場合
-      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName) || removeAtTurnStartBuffs.includes(buffName)) {
+      // stackableBuffs または decreaseTurnEnd または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsに含まれる) 場合
+      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart) {
         //ターン経過で一律にデクリメントするタイプを設定
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
         //それ以外は行動後にデクリメント
         buffTarget.buffs[buffName].decreaseBeforeAction = true;
       }
-    }
-
-    if (removeAtTurnStartBuffs.includes(buffName)) {
-      buffTarget.buffs[buffName].removeAtTurnStart = true;
     }
 
     //状態異常によるduration1の構え系解除
@@ -2018,7 +2019,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
       }
     }
-    // 他act処理
+    //act処理
+    if (executingSkill.act) {
+      executingSkill.act(skillUser, buffTarget);
+      updateCurrentStatus(buffTarget);
+      updateMonsterBuffsDisplay(buffTarget);
+    }
   }
 
   // みかわし・マヌーサ処理
@@ -3327,6 +3333,9 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 6,
     MPcost: 0,
+    act: function (skillUser, skillTarget) {
+      skillUser.flags.guard = true;
+    },
   },
   {
     name: "涼風一陣",
@@ -3338,6 +3347,9 @@ const skill = [
     damage: 142,
     followingSkill: "涼風一陣後半",
     MPcost: 96,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "涼風一陣後半",
@@ -3349,6 +3361,9 @@ const skill = [
     damage: 420,
     MPcost: 0,
     ignoreProtection: true,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "神楽の術",
@@ -3363,6 +3378,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
+    appliedEffect: "divineWave",
   },
   {
     name: "昇天斬り",
@@ -3384,6 +3400,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 2,
     MPcost: 30,
+    appliedEffect: { dodgeBuff: { strength: 0.5, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "氷華大繚乱",
@@ -3396,6 +3413,7 @@ const skill = [
     hitNum: 6,
     MPcost: 65,
     damage: 420,
+    appliedEffect: { iceResistance: { strength: -1, probability: 0.57 } },
   },
   {
     name: "フローズンシャワー",
@@ -3418,6 +3436,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
+    appliedEffect: { fear: { probability: 0.57 }, confused: { probability: 0.57 } },
   },
   {
     name: "スパークふんしゃ",
@@ -3429,6 +3448,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 58,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "天空竜の息吹",
@@ -3471,6 +3491,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 68,
+    appliedEffect: { fear: { probability: 0.57 } },
   },
   {
     name: "むらくもの息吹",
@@ -3504,6 +3525,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 82,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "防刃の守り",
@@ -3515,6 +3537,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 2,
     MPcost: 54,
+    appliedEffect: { protection: { strength: 0.2, duration: 2 }, slashBarrier: { strength: 1 } },
   },
   {
     name: "ラヴァフレア",
@@ -3539,6 +3562,9 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 3,
     MPcost: 14,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "大樹の守り",
@@ -3550,6 +3576,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 2,
     MPcost: 79,
+    appliedEffect: { protection: { strength: 0.5, duration: 2 } },
   },
   {
     name: "みがわり",
@@ -3562,6 +3589,9 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 4,
     MPcost: 5,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "超魔滅光",
@@ -3609,6 +3639,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 34,
+    appliedEffect: { sealed: {} },
   },
   {
     name: "斬撃よそく",
@@ -3618,6 +3649,7 @@ const skill = [
     targetType: "me",
     targetTeam: "ally",
     MPcost: 5,
+    appliedEffect: { slashReflection: { type: "yosoku", duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "ソウルハーベスト",
@@ -3629,6 +3661,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 9,
     MPcost: 58,
+    appliedEffect: { reviveBlock: {} },
   },
   {
     name: "黄泉の封印",
@@ -3638,6 +3671,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 39,
+    appliedEffect: { sealed: {}, reviveBlock: { unDispellableByRadiantWave: true } },
   },
   {
     name: "暗黒閃",
@@ -3661,6 +3695,7 @@ const skill = [
     targetTeam: "enemy",
     damage: 1,
     MPcost: 52,
+    SubstituteBreaker: 3,
   },
   {
     name: "終の流星",
@@ -3684,6 +3719,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "パニッシュスパーク",
@@ -3694,6 +3730,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 92,
+    appliedEffect: "divineWave",
   },
   {
     name: "堕天使の理",
@@ -3705,6 +3742,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 2,
     MPcost: 50,
+    appliedEffect: { dodgeBuff: { strength: 1, duration: 1, removeAtTurnStart: true }, spdUp: { strength: 1 } },
   },
   {
     name: "光速の連打",
@@ -4442,8 +4480,8 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 前回のタイマーをクリア
   if (buffDisplayTimers[monster.monsterId]) {
     clearTimeout(buffDisplayTimers[monster.monsterId]);
-    // タイマーをクリアしたら、オブジェクトから削除する
-    delete buffDisplayTimers[monster.monsterId];
+    //delete buffDisplayTimers[monster.monsterId];
+    buffDisplayTimers[monster.monsterId] = null; // タイマーをクリア
   }
 
   let wrapper = document.getElementById(monster.iconElementId).parentElement;
@@ -4454,11 +4492,29 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     // wrapper を新しい要素の親要素に置き換える
     wrapper = document.getElementById(newId).parentElement;
   }
-  const buffContainer = wrapper.querySelector(".buff-container");
-  if (buffContainer) {
-    buffContainer.remove();
+
+  // buffContainerを初回のみ生成
+  let buffContainer = wrapper.querySelector(".buff-container");
+  if (!buffContainer) {
+    buffContainer = document.createElement("div");
+    buffContainer.classList.add("buff-container");
+    wrapper.appendChild(buffContainer);
   }
+
+  // buffIconを初回のみ生成
+  let buffIcons = buffContainer.querySelectorAll(".buff-icon");
+  if (buffIcons.length === 0) {
+    for (let i = 0; i < 3; i++) {
+      const buffIcon = document.createElement("img");
+      buffIcon.classList.add("buff-icon");
+      buffContainer.appendChild(buffIcon);
+      buffIcons = buffContainer.querySelectorAll(".buff-icon"); // 再取得
+    }
+  }
+
   if (monster.flags.isDead) {
+    // isDeadの場合は、すべてのbuffIconを非表示にする
+    buffIcons.forEach((icon) => (icon.style.display = "none"));
     return;
   }
 
@@ -4488,33 +4544,42 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   if (activeBuffs.length === 0) {
+    // バフがない場合は、すべてのbuffIconを非表示にする
+    buffIcons.forEach((icon) => (icon.style.display = "none"));
     return;
   }
 
-  const newBuffContainer = document.createElement("div");
-  newBuffContainer.classList.add("buff-container");
-  wrapper.appendChild(newBuffContainer);
-
   let buffIndex = 0;
 
+  // タイマーIDを保持する変数を定義
+  let showNextBuffsTimeout = null;
+
   function showNextBuffs() {
-    newBuffContainer.innerHTML = "";
+    console.log("実行");
+    // 前回のタイマーをクリア
+    if (showNextBuffsTimeout) {
+      clearTimeout(showNextBuffsTimeout);
+      showNextBuffsTimeout = null;
+    }
+    // すべてのbuffIconを非表示にする
+    buffIcons.forEach((icon) => (icon.style.display = "none"));
 
     const startIndex = buffIndex * 3;
     const buffsToShow = activeBuffs.slice(startIndex, startIndex + 3);
 
-    for (const buff of buffsToShow) {
-      const buffIcon = document.createElement("img");
+    buffsToShow.forEach((buff, index) => {
+      const buffIcon = buffIcons[index];
       buffIcon.src = buff.src;
-      buffIcon.classList.add("buff-icon");
-      newBuffContainer.appendChild(buffIcon);
-    }
+      buffIcon.style.display = "block"; // 表示する
+    });
 
     buffIndex = (buffIndex + 1) % Math.ceil(activeBuffs.length / 3);
 
     if (activeBuffs.length > 3) {
       // タイマーを保存
-      buffDisplayTimers[monster.monsterId] = setTimeout(showNextBuffs, 600);
+      //buffDisplayTimers[monster.monsterId] = setTimeout(showNextBuffs, 600);
+      showNextBuffsTimeout = setTimeout(showNextBuffs, 600);
+      buffDisplayTimers[monster.monsterId] = showNextBuffsTimeout;
     }
   }
 
