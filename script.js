@@ -1550,6 +1550,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
   // 7-1. followingSkill判定処理
   if (executingSkill.followingSkill && !(skillUser.confirmedcommand === "skipThisTurn" && !executingSkill.skipDeathCheck)) {
     // "skipThisTurn" ではない または skipDeathCheck が存在するときに実行
+    await sleep(350);
     await processMonsterAction(skillUser, findSkillByName(executingSkill.followingSkill), [...executedSkills], true); // スキル実行履歴を引き継ぐ
     return; // followingSkillを実行した場合は以降の処理はスキップ
   }
@@ -1776,6 +1777,7 @@ function handleDeath(target) {
     for (const monster of parties.flat()) {
       if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
         delete monster.flags.hasSubstitute;
+        updateMonsterBuffsDisplay(monster);
       }
     }
     delete target.flags.isSubstituting;
@@ -1785,9 +1787,10 @@ function handleDeath(target) {
     if (substitutingMonster) {
       // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
       substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
-      //空になったら削除
+      //空になったら削除・みがわり表示更新
       if (substitutingMonster.flags.isSubstituting.targetMonsterId.length === 0) {
         delete substitutingMonster.flags.isSubstituting;
+        updateMonsterBuffsDisplay(substitutingMonster);
       }
     }
     delete target.flags.hasSubstitute;
@@ -2022,6 +2025,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     //act処理
     if (executingSkill.act) {
       executingSkill.act(skillUser, buffTarget);
+      updateCurrentStatus(skillUser);
+      updateMonsterBuffsDisplay(skillUser);
       updateCurrentStatus(buffTarget);
       updateMonsterBuffsDisplay(buffTarget);
     }
@@ -3764,6 +3769,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 74,
+    followingSkill: "アイスエイジ",
   },
   {
     name: "氷魔のダイヤモンド",
@@ -3774,6 +3780,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 74,
+    followingSkill: "地獄の火炎",
   },
   {
     name: "炎獣の爪",
@@ -3788,6 +3795,31 @@ const skill = [
     MPcost: 30,
     RaceBane: ["dragon", "???"],
     RaceBaneValue: 2,
+    followingSkill: "アイスエイジ",
+  },
+  {
+    name: "アイスエイジ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 0,
+    appliedEffect: { martialBarrier: { strength: -1 } },
+  },
+  {
+    name: "地獄の火炎",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 0,
+    appliedEffect: { fireResistance: { strength: -1 } },
   },
   {
     name: "プリズムヴェール",
@@ -4544,6 +4576,14 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     if (await imageExists(iconSrc)) {
       activeBuffs.push({ key: buffKey, src: iconSrc });
     }
+  }
+
+  //みがわりアイコンをpush
+  if (monster.flags.hasSubstitute) {
+    activeBuffs.push({ key: "hasSubstitute", src: "images/buffIcons/hasSubstitute.png" });
+  }
+  if (monster.flags.isSubstituting) {
+    activeBuffs.push({ key: "isSubstituting", src: "images/buffIcons/isSubstituting.png" });
   }
 
   if (activeBuffs.length === 0) {
