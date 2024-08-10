@@ -743,31 +743,84 @@ function startTurn() {
   //durationが0になったバフを消去 ターン開始時に削除(帝王の構えや予測等、removeAtTurnStart指定)
   removeExpiredBuffsAtTurnStart();
 
+  // バフ対象の種類
+  const BuffTargetType = {
+    Self: "self",
+    Ally: "ally",
+    Enemy: "enemy",
+    All: "all",
+    Random: "random",
+  };
   // monster.attributeに含まれるもののうちturnNumに等しいものをbuffに入れる
   for (const party of parties) {
     for (const monster of party) {
       if (monster.flags.isDead) {
         continue;
       }
-      // turnNum に対応するバフを適用
-      if (monster.attribute.hasOwnProperty(turnNum)) {
-        applyBuff(monster, structuredClone(monster.attribute[turnNum]));
-      }
+      // バフを適用する関数
+      const applyBuffs = (buffs) => {
+        for (const buffName in buffs) {
+          const buffData = buffs[buffName];
 
-      // 毎ターン発動バフを適用
-      if (monster.attribute.hasOwnProperty("permanentBuffs")) {
-        applyBuff(monster, structuredClone(monster.attribute.permanentBuffs));
-      }
+          // バフ対象の取得
+          const targetType = buffData.targetType || BuffTargetType.Self; // デフォルトは自分自身
 
-      // 偶数ターンのバフを適用
-      if (turnNum % 2 === 0 && monster.attribute.hasOwnProperty("evenTurnBuffs")) {
-        applyBuff(monster, structuredClone(monster.attribute.evenTurnBuffs));
-      }
+          // バフ対象に応じた処理
+          switch (targetType) {
+            case BuffTargetType.Self:
+              applyBuff(monster, { [buffName]: structuredClone(buffData) });
+              break;
+            case BuffTargetType.Ally:
+              for (const ally of party) {
+                if (!ally.flags.isDead) {
+                  //自分除外時はally !== monster &&
+                  applyBuff(ally, { [buffName]: structuredClone(buffData) });
+                }
+              }
+              break;
+            case BuffTargetType.Enemy:
+              const enemyParty = parties.find((p) => p !== party);
+              for (const enemy of enemyParty) {
+                if (!enemy.flags.isDead) {
+                  applyBuff(enemy, { [buffName]: structuredClone(buffData) });
+                }
+              }
+              break;
+            case BuffTargetType.All:
+              for (const allMonster of parties.flat()) {
+                if (!allMonster.flags.isDead) {
+                  applyBuff(allMonster, { [buffName]: structuredClone(buffData) });
+                }
+              }
+              break;
+            case BuffTargetType.Random:
+              const aliveMonsters = (buffData.targetTeam === "ally" ? party : parties[monster.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+              const targetNum = buffData.targetNum || 1; // targetNumが指定されていない場合は1回
 
-      // 奇数ターンのバフを適用
-      if (turnNum % 2 !== 0 && monster.attribute.hasOwnProperty("oddTurnBuffs")) {
-        applyBuff(monster, structuredClone(monster.attribute.oddTurnBuffs));
-      }
+              for (let i = 0; i < targetNum; i++) {
+                if (aliveMonsters.length > 0) {
+                  const randomIndex = Math.floor(Math.random() * aliveMonsters.length);
+                  const randomTarget = aliveMonsters[randomIndex];
+                  applyBuff(randomTarget, { [buffName]: structuredClone(buffData) });
+                  // 重複は許可
+                  //aliveMonsters.splice(randomIndex, 1);
+                }
+              }
+              break;
+          }
+        }
+      };
+
+      // すべてのバフをまとめる
+      const allBuffs = {
+        ...(monster.attribute[turnNum] || {}),
+        ...(monster.attribute.permanentBuffs || {}),
+        ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
+        ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
+      };
+
+      // allBuffs を applyBuffs に渡す
+      applyBuffs(allBuffs);
     }
   }
 }
@@ -3005,6 +3058,7 @@ const monsters = [
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         mindAndSealBarrier: { keepOnDeath: true },
         breathCharge: { strength: 1.2 },
+        allElementalBreak: { strength: 1, duration: 4, devineDispellable: true, targetType: "ally" },
       },
       2: { breathCharge: { strength: 1.5 } },
       3: { breathCharge: { strength: 2 } },
@@ -3044,6 +3098,7 @@ const monsters = [
         spdUp: { strength: 1 },
         powerCharge: { strength: 2 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+        fireGuard: { strength: 50, duration: 4, targetType: "ally" },
       },
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
@@ -3080,7 +3135,8 @@ const monsters = [
     attribute: {
       1: {
         metal: { keepOnDeath: true, strength: 0.75, type: "notmetal" },
-        spellBarrier: { strength: 1 },
+        spellBarrier: { strength: 1, targetType: "ally" },
+        stonedBlock: { duration: 3, targetType: "ally" },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
