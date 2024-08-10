@@ -4515,8 +4515,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 前回のタイマーをクリア
   if (buffDisplayTimers[monster.monsterId]) {
     clearTimeout(buffDisplayTimers[monster.monsterId]);
-    //delete buffDisplayTimers[monster.monsterId];
-    buffDisplayTimers[monster.monsterId] = null; // タイマーをクリア
+    buffDisplayTimers[monster.monsterId] = null;
   }
 
   let wrapper = document.getElementById(monster.iconElementId).parentElement;
@@ -4594,17 +4593,8 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 
   let buffIndex = 0;
 
-  // タイマーIDを保持する変数を定義
-  let showNextBuffsTimeout = null;
-
   function showNextBuffs() {
     console.log("実行");
-    // 前回のタイマーをクリア
-    if (showNextBuffsTimeout) {
-      clearTimeout(showNextBuffsTimeout);
-      showNextBuffsTimeout = null;
-    }
-    // すべてのbuffIconを非表示にする
     buffIcons.forEach((icon) => (icon.style.display = "none"));
 
     const startIndex = buffIndex * 3;
@@ -4619,10 +4609,11 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     buffIndex = (buffIndex + 1) % Math.ceil(activeBuffs.length / 3);
 
     if (activeBuffs.length > 3) {
-      // タイマーを保存
-      //buffDisplayTimers[monster.monsterId] = setTimeout(showNextBuffs, 600);
-      showNextBuffsTimeout = setTimeout(showNextBuffs, 600);
-      buffDisplayTimers[monster.monsterId] = showNextBuffsTimeout;
+      // タイマーを設定する前に、既存のタイマーをクリア
+      if (buffDisplayTimers[monster.monsterId]) {
+        clearTimeout(buffDisplayTimers[monster.monsterId]);
+      }
+      buffDisplayTimers[monster.monsterId] = setTimeout(showNextBuffs, 600);
     }
   }
 
