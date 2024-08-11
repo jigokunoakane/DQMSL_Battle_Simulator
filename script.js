@@ -1615,23 +1615,30 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
   }
 
   // 7-3. AI追撃処理
-  if (!skillUser.flags.hasDiedThisAction && skillUser.abilities.AINormalAttack) {
-    const AItargetSkill = executedSkills.length > 0 ? executedSkills[0] : executingSkill;
+  if (!skillUser.flags.hasDiedThisAction && skillUser.AINormalAttack) {
+    const originalSkill = executedSkills.length > 0 ? executedSkills[0] : executingSkill;
+    const noAIskills = ["黄泉の封印", "神獣の封印"];
     if (
       !isDead(skillUser) &&
       !hasAbnormality(skillUser) &&
-      skillUser.abilities.AINormalAttack &&
-      !executedSkills.some((skill) => skill.noAINormalAttack) //&&
-      //!AItargetSkill.noAINormalAttack &&
-      //(AItargetSkill.order === "preemptive" || (AItargetSkill.order === "anchor" && AItargetSkill.howToCalculate === "none"))
+      skillUser.AINormalAttack &&
+      !noAIskills.includes(executingSkill.name) &&
+      !(originalSkill.howToCalculate === "none" && (originalSkill.order === "preemptive" || originalSkill.order === "anchor"))
     ) {
-      const attackTimes = skillUser.abilities.AINormalAttack.hitNum[Math.floor(Math.random() * skillUser.abilities.AINormalAttack.hitNum.length)];
+      await sleep(300);
+      let attackTimes =
+        skillUser.AINormalAttack.length === 1
+          ? skillUser.AINormalAttack[0] - 1
+          : Math.floor(Math.random() * (skillUser.AINormalAttack[1] - skillUser.AINormalAttack[0] + 1)) + skillUser.AINormalAttack[0] - 1;
+      if (skillUser.buffs.aiExtraAttacks) {
+        attackTimes += skillUser.buffs.aiExtraAttacks.strength;
+      }
       for (let i = 0; i < attackTimes; i++) {
+        await sleep(530); // 追撃ごとに待機時間
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
         // 通常攻撃を実行
         await executeSkill(skillUser, findSkillByName("通常攻撃"), decideNormalAttackTarget(skillUser));
-        await sleep(230); // 追撃ごとに待機時間を設ける 300
       }
     }
   }
@@ -3081,6 +3088,7 @@ const monsters = [
     seed: { atk: 15, def: 35, spd: 70, int: 0 },
     ls: { HP: 1.15, spd: 1.3 },
     lstarget: "ドラゴン",
+    AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3119,6 +3127,7 @@ const monsters = [
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
     lstarget: "スライム",
+    AINormalAttack: [2],
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3139,6 +3148,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
     lstarget: "スライム",
+    AINormalAttack: [2, 3],
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 0.5 },
   },
   {
@@ -3177,6 +3187,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1.13, spd: 1.13, atk: 1.05 },
     lstarget: "all",
+    AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
@@ -3202,6 +3213,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    AINormalAttack: [3],
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3227,6 +3239,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    AINormalAttack: [3],
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3277,6 +3290,7 @@ const monsters = [
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
     lstarget: "all",
+    AINormalAttack: [3],
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
@@ -3290,6 +3304,7 @@ const monsters = [
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    AINormalAttack: [3],
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
@@ -3303,6 +3318,7 @@ const monsters = [
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
+    AINormalAttack: [3, 4],
     resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 1 },
   },
   {
@@ -3724,6 +3740,8 @@ const skill = [
     element: "none",
     targetType: "me",
     targetTeam: "ally",
+    order: "preemptive",
+    preemptivegroup: 5,
     MPcost: 5,
     appliedEffect: { slashReflection: { type: "yosoku", duration: 1, removeAtTurnStart: true } },
   },
@@ -3796,6 +3814,9 @@ const skill = [
     hitNum: 5,
     MPcost: 65,
     appliedEffect: "disruptiveWave",
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "パニッシュスパーク",
@@ -3878,7 +3899,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 0,
-    appliedEffect: { martialBarrier: { strength: -1 } },
+    appliedEffect: { martialBarrier: { strength: -1, probability: 0.387 } },
   },
   {
     name: "地獄の火炎",
@@ -3890,7 +3911,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 0,
-    appliedEffect: { fireResistance: { strength: -1 } },
+    appliedEffect: { fireResistance: { strength: -1, probability: 0.58 } },
   },
   {
     name: "プリズムヴェール",
@@ -4033,6 +4054,9 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 2,
     MPcost: 100,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "帝王のかまえ",
