@@ -2340,7 +2340,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   //反射以外の場合にメタル処理
   if (!isReflection && skillTarget.buffs.metal) {
-    damage *= 1 - skillTarget.buffs.metal.strength;
+    damage *= skillTarget.buffs.metal.strength;
     //メタルキラー処理
     if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.type === "metal") {
       damage *= 1 - skillUser.buffs.metalKiller.strength;
@@ -2367,6 +2367,20 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //以下加算処理
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
+  let damageModifier = 1;
+
+  //全属性バフ
+  if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
+    damageModifier += skillUser.buffs.allElementalBoost.strength;
+  }
+  //軽減系
+  //全ダメージ軽減
+  if (skillTarget.buffs.shinriReduction) {
+    damageModifier += skillTarget.buffs.shinriReduction.strength;
+  }
+
+  damage *= damageModifier;
 
   // ダメージ処理
   applyDamage(skillTarget, damage, resistance);
@@ -2491,7 +2505,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
       } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
         //全属性の使い手 状態異常以外 普通の属性の場合に処理
-        normalResistance = resistanceValues[normalResistanceIndex];
+        normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
       }
       normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
       normalResistance = resistanceValues[normalResistanceIndex];
@@ -3059,6 +3073,7 @@ const monsters = [
         mindAndSealBarrier: { keepOnDeath: true },
         breathCharge: { strength: 1.2 },
         allElementalBreak: { strength: 1, duration: 4, devineDispellable: true, targetType: "ally" },
+        allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
       },
       2: { breathCharge: { strength: 1.5 } },
       3: { breathCharge: { strength: 2 } },
@@ -3066,7 +3081,7 @@ const monsters = [
     seed: { atk: 15, def: 35, spd: 70, int: 0 },
     ls: { HP: 1.15, spd: 1.3 },
     lstarget: "ドラゴン",
-    resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1 },
+    resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "宵の華シンリ",
@@ -3082,7 +3097,7 @@ const monsters = [
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, spd: 1 },
     lstarget: "ドラゴン",
-    resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1 },
+    resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0.5 },
   },
   {
     name: "魔夏姫アンルシア",
@@ -3104,7 +3119,7 @@ const monsters = [
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
     lstarget: "スライム",
-    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5 },
+    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "怪竜やまたのおろち",
@@ -3124,7 +3139,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
     lstarget: "スライム",
-    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5 },
+    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 0.5 },
   },
   {
     name: "ヴォルカドラゴン",
@@ -3142,7 +3157,7 @@ const monsters = [
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 10, MP: 10 },
     lstarget: "all",
-    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1 },
+    resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "WORLD",
@@ -3162,7 +3177,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1.13, spd: 1.13, atk: 1.05 },
     lstarget: "all",
-    resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1 },
+    resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
     name: "超ネルゲル",
@@ -3187,7 +3202,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0 },
+    resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "超エルギ",
@@ -3212,7 +3227,7 @@ const monsters = [
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0 },
+    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "イフシバ",
@@ -3232,7 +3247,7 @@ const monsters = [
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5 },
+    resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルナイト",
@@ -3249,7 +3264,7 @@ const monsters = [
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0 },
+    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "超オムド",
@@ -3262,7 +3277,7 @@ const monsters = [
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
     lstarget: "all",
-    resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0 },
+    resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "超ラプ",
@@ -3275,7 +3290,7 @@ const monsters = [
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0 },
+    resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "エスターク",
@@ -3288,7 +3303,7 @@ const monsters = [
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5 },
+    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "ミステリドール",
@@ -3301,7 +3316,7 @@ const monsters = [
     seed: { atk: 40, def: 80, spd: 0, int: 0 },
     ls: { HP: 1.15 },
     lstarget: "all",
-    resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1 },
+    resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "ティトス",
@@ -3314,7 +3329,7 @@ const monsters = [
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0 },
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "sample",
@@ -3327,7 +3342,7 @@ const monsters = [
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
-    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1 },
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
@@ -3485,7 +3500,7 @@ const skill = [
     targetTeam: "enemy",
     order: "anchor",
     hitNum: 7,
-    damage: 380,
+    damage: 190,
     MPcost: 70,
   },
   {
@@ -3519,7 +3534,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    damage: 457,
+    damage: 184,
     MPcost: 24,
   },
   {
@@ -3540,7 +3555,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     hitNum: 3,
-    damage: 611,
+    damage: 369,
     MPcost: 23,
   },
   {
