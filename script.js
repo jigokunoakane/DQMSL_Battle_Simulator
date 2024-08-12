@@ -106,6 +106,7 @@ function confirmparty() {
     document.getElementById("adjustpartypage").style.display = "none";
     document.getElementById("battlepage").style.display = "block";
     preparebattle();
+    preloadImages();
   }
 }
 
@@ -4791,4 +4792,33 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
     skillTarget.flags.hasSubstitute.cover = true;
     skillUser.flags.isSubstituting.cover = true;
   }
+}
+
+function preloadImages() {
+  const imageUrls = [
+    "images/systems/miss.png",
+    "images/systems/effectImages/allyDamagedSuperWeakness.png",
+    "images/systems/effectImages/allyDamagedUltraWeakness.png",
+    "images/systems/effectImages/allyDamagedWeakness.png",
+    "images/systems/effectImages/enemyDamaged.png",
+    "images/systems/effectImages/enemyDamagedSuperWeakness.png",
+    "images/systems/effectImages/enemyDamagedUltraWeakness.png",
+    "images/systems/effectImages/enemyDamagedWeakness.png",
+    "images/systems/effectImages/HPRecovery.png",
+    "images/systems/effectImages/MPRecovery.png",
+    "images/systems/HPDamageNumbers/0.png",
+    "images/systems/HPDamageNumbers/1.png",
+    "images/systems/HPDamageNumbers/2.png",
+    "images/systems/HPDamageNumbers/3.png",
+    "images/systems/HPDamageNumbers/4.png",
+    "images/systems/HPDamageNumbers/5.png",
+    "images/systems/HPDamageNumbers/6.png",
+    "images/systems/HPDamageNumbers/7.png",
+    "images/systems/HPDamageNumbers/8.png",
+    "images/systems/HPDamageNumbers/9.png",
+  ];
+  imageUrls.forEach((imageUrl) => {
+    const img = new Image();
+    img.src = imageUrl;
+  });
 }
