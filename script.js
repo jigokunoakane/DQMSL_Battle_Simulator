@@ -121,8 +121,6 @@ function preparebattle() {
       member.enemyTeamID = index === 0 ? 1 : 0;
     });
   });
-  //バフタイマー初期化
-  buffDisplayTimers = {};
 
   // 以下はパーティごとに処理
   for (const party of parties) {
@@ -733,11 +731,6 @@ function startTurn() {
     }
   }
 
-  //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
-  closeSelectCommandPopupWindowContents();
-
-  startSelectingCommandForFirstMonster(0);
-
   //ターン経過で一律にデクリメントタイプの実行 バフ付与前に
   decreaseAllBuffDurations();
   //durationが0になったバフを消去 ターン開始時に削除(帝王の構えや予測等、removeAtTurnStart指定)
@@ -823,6 +816,9 @@ function startTurn() {
       applyBuffs(allBuffs);
     }
   }
+  //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
+  closeSelectCommandPopupWindowContents();
+  startSelectingCommandForFirstMonster(0);
 }
 
 //毎ラウンドコマンド選択後処理
@@ -1260,13 +1256,17 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     }
 
     //状態異常によるduration1の構え系解除
+    const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
     if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
-      const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
       for (const reflection of reflectionMap) {
         if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].removeAtTurnStart && buffTarget.buffs[reflection].duration === 1) {
           delete buffTarget.buffs[reflection];
         }
       }
+    }
+    //反射の場合にエフェクト追加
+    if (reflectionMap.includes(buffName)) {
+      addMirrorEffect(buffTarget.iconElementId);
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
@@ -2102,8 +2102,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //耐性処理
-  const resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted);
-  let resistanceValue = resistance;
+  let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted);
 
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
@@ -2120,7 +2119,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
     ) {
       isReflection = true;
-      resistanceValue = 1;
+      resistance = 1;
       //反射演出
       addMirrorEffect(skillTarget.iconElementId);
       //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
@@ -2260,11 +2259,18 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //会心完全ガード
 
   //弱点1.8倍処理
-  if (resistanceValue === 1.5 && executingSkill.weakness18) {
-    resistanceValue = 1.8;
+  if (resistance === 1.5 && executingSkill.weakness18) {
+    damage *= 1.2;
   }
-  //耐性
-  damage *= resistanceValue;
+
+  //大弱点、超弱点処理
+  if (resistance === 1.5 && skillUser.buffs.ultraWeakness) {
+    resistance = 2.5;
+  } else if (resistance === 1.5 && skillUser.buffs.superWeakness) {
+    resistance = 2;
+  }
+  //耐性処理
+  damage *= resistance;
 
   //ぼうぎょ
   if (!executingSkill.ignoreGuard && skillTarget.flags.guard) {
@@ -3079,7 +3085,7 @@ const monsters = [
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         mindAndSealBarrier: { keepOnDeath: true },
         breathCharge: { strength: 1.2 },
-        allElementalBreak: { strength: 1, duration: 4, devineDispellable: true, targetType: "ally" },
+        allElementalBreak: { strength: 1, duration: 4, divineDispellable: true, targetType: "ally" },
         allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
       },
       2: { breathCharge: { strength: 1.5 } },
@@ -4140,6 +4146,26 @@ const skill = [
     MPcost: 0,
   },
   {
+    name: "いてつくはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 42,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "神のはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 42,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "邪道のかくせい",
     howToCalculate: "none",
     element: "none",
@@ -4724,8 +4750,9 @@ function executeRadiantWave(monster) {
 
 //かみは 解除不可以上 光の波動の対象 を残す
 function executeDivineWave(monster) {
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge"];
   monster.buffs = Object.fromEntries(
-    Object.entries(monster.buffs).filter(([key, value]) => value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave)
+    Object.entries(monster.buffs).filter(([key, value]) => keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave)
   );
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
@@ -4733,8 +4760,11 @@ function executeDivineWave(monster) {
 
 //いては
 function executeDisruptiveWave(monster) {
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge"];
   monster.buffs = Object.fromEntries(
-    Object.entries(monster.buffs).filter(([key, value]) => value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || value.divineDispellable)
+    Object.entries(monster.buffs).filter(
+      ([key, value]) => keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || value.divineDispellable
+    )
   );
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
