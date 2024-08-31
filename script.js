@@ -367,6 +367,7 @@ function startselectingcommand() {
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   //monster名表示に戻す
   //todo:inline?block?
+  displayMessage("とくぎをえらんでください。");
 }
 
 function selectcommand(selectedskillnum) {
@@ -379,6 +380,7 @@ function selectcommand(selectedskillnum) {
   const skilltargetTeamdetector = selectedskill.targetTeam;
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
+    displayMessage(`${selectedskillname}＋3【消費MP：${selectedskill.MPcost} 】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     if (skilltargetTeamdetector === "ally") {
@@ -396,6 +398,7 @@ function selectcommand(selectedskillnum) {
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetTypedetector === "all") {
+    displayMessage(`${selectedskillname}＋3【消費MP：${selectedskill.MPcost} 】`);
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -470,6 +473,7 @@ document.getElementById("designateskilltargetbtnno").addEventListener("click", f
   document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
   disablecommandbtns(false);
   //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後で新規選択されたら上書き
+  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
 });
 
 //skilltarget選択画面
@@ -518,6 +522,7 @@ function finishSelectingEachMonstersCommand() {
   } else {
     // 行動可能なモンスターが見つかった場合
     adjustmonstericonstickout();
+    displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
     // スキル選択ポップアップを閉じる
     document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
     // コマンドボタンを有効化
@@ -550,6 +555,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
   // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
   if (selectingwhichmonsterscommand < parties[0].length) {
     adjustmonstericonstickout();
+    displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
     disablecommandbtns(false);
     if (teamNum === 1) {
       //敵コマンド選択でplayerを選んだ場合用
@@ -602,6 +608,7 @@ function backbtn() {
       // 行動可能なモンスターが見つかった場合、そのモンスターを選択
       selectingwhichmonsterscommand = previousActionableMonsterIndex;
       adjustmonstericonstickout();
+      displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
       return;
     }
     previousActionableMonsterIndex--;
@@ -618,6 +625,7 @@ function closeSelectCommandPopupWindowContents() {
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
   disablecommandbtns(false);
+  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
 }
 
 // 閉じるボタンにイベントリスナー追加
@@ -638,6 +646,7 @@ function disablecommandbtns(trueorfalse) {
 function askfinishselectingcommand() {
   document.getElementById("askfinishselectingcommand").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
+  displayMessage("モンスターたちはやる気だ！");
 }
 
 //コマンド選択終了画面でno選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
@@ -657,6 +666,7 @@ document.getElementById("askfinishselectingcommandbtnno").addEventListener("clic
 
   // 選択中のモンスターを強調表示
   adjustmonstericonstickout();
+  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
 });
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
