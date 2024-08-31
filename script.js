@@ -4779,10 +4779,10 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
       if (monster.flags.isSubstituting && monster.index !== skillUser.index) {
         return;
       }
-      //仁王立ちで自分が対象のときはskip
-      if (monster.index == skillUser.index) {
-        return;
-      }
+    }
+    //自分自身は仁王立ちの対象にしない
+    if (skillTarget.index == skillUser.index) {
+      return;
     }
   }
   skillTarget.flags.hasSubstitute = {};
