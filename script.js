@@ -4215,13 +4215,6 @@ const gear = [
   {},
 ]; //finish gear
 
-function karitobattlepage() {
-  document.getElementById("adjustpartypage").style.display = "none";
-  document.getElementById("battlepage").style.display = "block";
-  preparebattle();
-  //temporary 戦闘画面移行用
-}
-
 document.getElementById("preActionbtn").addEventListener("click", function () {
   const preActiondetector = document.getElementById("preActionbtn").textContent;
   if (preActiondetector === "味方神速") {
