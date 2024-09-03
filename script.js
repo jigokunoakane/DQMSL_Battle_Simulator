@@ -2064,7 +2064,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (
       executingSkill.targetTeam !== "ally" &&
       !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill")) &&
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill")) &&
       executingSkill.appliedEffect !== "divineWave" &&
       executingSkill.appliedEffect !== "disruptiveWave"
     ) {
@@ -2093,7 +2093,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
       }
     }
-    //act処理
+    //act処理と、barおよびバフ表示更新
     if (executingSkill.act) {
       executingSkill.act(skillUser, buffTarget);
       updateCurrentStatus(skillUser);
@@ -2127,7 +2127,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (
       executingSkill.targetTeam !== "ally" &&
       !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.type === "kanta" && executingSkill.type === "notskill"))
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
     ) {
       isReflection = true;
       resistance = 1;
@@ -2135,7 +2135,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       addMirrorEffect(skillTarget.iconElementId);
       //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
       const skillType = executingSkill.type === "notskill" ? "slash" : executingSkill.type;
-      if (skillTarget.buffs[skillType + "Reflection"].type === "kanta") {
+      if (skillTarget.buffs[skillType + "Reflection"].isKanta) {
         skillUser = skillTarget;
         reflectionType = "kanta";
       }
@@ -2259,13 +2259,29 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
     baseDamage = Math.floor(baseDamage * randomMultiplier);
     baseDamage *= executingSkill.skillPlus * intBonus;
+    //呪文会心
+    const noSpellSurgeList = [
+      "カオスストーム",
+      "クラックストーム",
+      "滅びの呪文",
+      "サイコストーム",
+      "メラゾストーム",
+      "陰惨な暗闇",
+      "メラゾスペル",
+      "メテオ",
+      "マヒャドストーム",
+      "メドローア",
+      "ハザードウェポン",
+    ];
+    if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name)) {
+      isCriticalHit = Math.random() < 0.009;
+      if (isCriticalHit) {
+        // 暴走成功時
+        baseDamage *= 1.6;
+      }
+    }
   }
   let damage = baseDamage;
-
-  //呪文会心
-  if (executingSkill.type === "spell" && executingSkill.howToCalculate === "int" && !executingSkill.ratio && !executingSkill.noSpellSurge) {
-    //確率で暴走
-  }
 
   //会心完全ガード
 
@@ -2406,7 +2422,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   damage *= damageModifier;
 
-  // ダメージ処理
+  // ダメージ付与処理
+  damage = Math.floor(damage);
   applyDamage(skillTarget, damage, resistance);
 
   //target生存かつdamageが0超えのときに、追加効果付与を実行
@@ -2722,7 +2739,7 @@ function decideNormalAttackTarget(skillUser) {
       continue;
     }
     // 有効な攻撃対象の判定
-    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !(monster.buffs.slashReflection && monster.buffs.slashReflection.type === "kanta");
+    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta);
     // 有効な攻撃対象でない場合はスキップ
     if (!isValidTarget) {
       continue;
@@ -3330,7 +3347,7 @@ const monsters = [
     type: "???",
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
-    skill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "体砕きの斬舞"],
+    skill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     attribute: "",
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
@@ -3392,12 +3409,27 @@ const skill = [
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd
     ratio: 1,
+    damage: 142,
+    minInt: 500,
+    minIntDamage: 222,
+    maxInt: 1000,
+    maxIntDamage: 310,
+    skillPlus: 1.15,
     element: "", //fire ice thunder io wind light dark
+    targetType: "", //single random all me
+    targetTeam: "enemy", //ally enemy
+    excludeTarget: "me",
+    hitNum: 3,
+    MPcost: 76,
     order: "", //preemptive anchor
-    preemptivegroup: "num", //1封印の霧,邪神召喚 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
-    targetType: "", //single random all
-    targetTeam: "enemy",
-    numofhit: "",
+    preemptivegroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
+    weakness18: true,
+    criticalHitProbability: 1, //noSpellSurgeはリスト管理
+    RaceBane: ["slime", "dragon"],
+    RaceBaneValue: 3,
+    anchorBonus: 3,
+    damageByLevel: true,
+    SubstituteBreaker: 3,
     ignoreProtection: true,
     ignoreReflection: true,
     ignoreSubstitute: true,
@@ -3409,18 +3441,11 @@ const skill = [
     ignoreBaiki: true,
     ignoreManaBoost: true,
     ignorePowerCharge: true,
-    weakness18: true,
-    RaceBane: ["slime", "dragon"],
-    RaceBaneValue: 3,
-    anchorBonus: 3,
-    damageByLevel: true,
-    SubstituteBreaker: 3,
-    MPcost: 76,
-    followingSkill: "ryohuzentai",
+    followingSkill: "涼風一陣後半",
+    appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
-    appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
   },
   {
     name: "通常攻撃",
@@ -3436,12 +3461,12 @@ const skill = [
     name: "ぼうぎょ",
     type: "notskill",
     howToCalculate: "none",
-    element: "none",
+    element: "notskill",
     targetType: "me",
     targetTeam: "ally",
+    MPcost: 0,
     order: "preemptive",
     preemptivegroup: 6,
-    MPcost: 0,
     act: function (skillUser, skillTarget) {
       skillUser.flags.guard = true;
     },
@@ -3450,12 +3475,12 @@ const skill = [
     name: "涼風一陣",
     type: "martial",
     howToCalculate: "fix",
+    damage: 142,
     element: "ice",
     targetType: "all",
     targetTeam: "enemy",
-    damage: 142,
-    followingSkill: "涼風一陣後半",
     MPcost: 96,
+    followingSkill: "涼風一陣後半",
     act: function (skillUser, skillTarget) {
       delete skillTarget.buffs.isUnbreakable;
     },
@@ -3464,10 +3489,10 @@ const skill = [
     name: "涼風一陣後半",
     type: "breath",
     howToCalculate: "fix",
+    damage: 420,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    damage: 420,
     MPcost: 0,
     ignoreProtection: true,
     act: function (skillUser, skillTarget) {
@@ -3487,6 +3512,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
+    SubstituteBreaker: 3,
     appliedEffect: "divineWave",
   },
   {
@@ -3498,6 +3524,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
+    //執念
   },
   {
     name: "タップダンス",
@@ -3506,9 +3533,9 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 30,
     order: "preemptive",
     preemptivegroup: 2,
-    MPcost: 30,
     appliedEffect: { dodgeBuff: { strength: 0.5, duration: 1, removeAtTurnStart: true } },
   },
   {
@@ -3521,20 +3548,22 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 65,
-    damage: 420,
+    ignoreReflection: true,
     appliedEffect: { iceResistance: { strength: -1, probability: 0.57 } },
   },
   {
     name: "フローズンシャワー",
     type: "martial",
     howToCalculate: "fix",
+    damage: 190,
     element: "ice",
     targetType: "single",
     targetTeam: "enemy",
-    order: "anchor",
     hitNum: 7,
-    damage: 190,
     MPcost: 70,
+    order: "anchor",
+    ignoreProtection: true,
+    ignoreReflection: true,
   },
   {
     name: "おぞましいおたけび",
@@ -3545,6 +3574,9 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
+    criticalHitProbability: 0,
+    ignoreDazzle: true,
+    ignoreBaiki: true,
     appliedEffect: { fear: { probability: 0.57 }, confused: { probability: 0.57 } },
   },
   {
@@ -3563,32 +3595,36 @@ const skill = [
     name: "天空竜の息吹",
     type: "breath",
     howToCalculate: "fix",
+    damage: 184,
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    damage: 184,
     MPcost: 24,
+    ignoreProtection: true,
   },
   {
     name: "エンドブレス",
     type: "breath",
     howToCalculate: "fix",
+    damage: 2000,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    damage: 2000,
     MPcost: 250,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreGuard: true,
   },
   {
     name: "テンペストブレス",
     type: "breath",
     howToCalculate: "fix",
+    damage: 369,
     element: "wind",
     targetType: "single",
     targetTeam: "enemy",
     hitNum: 3,
-    damage: 369,
     MPcost: 23,
   },
   {
@@ -3600,18 +3636,19 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 68,
-    appliedEffect: { fear: { probability: 0.57 } },
+    appliedEffect: { fear: { probability: 0.213 } },
   },
   {
     name: "むらくもの息吹",
     type: "breath",
     howToCalculate: "fix",
-    damage: 161,
+    damage: 140,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 35,
+    //息ダウン
   },
   {
     name: "獄炎の息吹",
@@ -3622,8 +3659,8 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    weakness18: true,
     MPcost: 30,
+    weakness18: true,
   },
   {
     name: "ほとばしる暗闇",
@@ -3634,7 +3671,24 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 82,
+    damageByLevel: true,
     appliedEffect: "disruptiveWave",
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.powerCharge;
+      delete skillTarget.buffs.manaBoost;
+      delete skillTarget.buffs.breathCharge;
+    },
+  },
+  {
+    name: "ダイヤモンドダスト",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 215,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 64,
+    appliedEffect: { asleep: { probability: 0.58 } },
   },
   {
     name: "防刃の守り",
@@ -3643,10 +3697,10 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 54,
     order: "preemptive",
     preemptivegroup: 2,
-    MPcost: 54,
-    appliedEffect: { protection: { strength: 0.2, duration: 2 }, slashBarrier: { strength: 1 } },
+    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2 } },
   },
   {
     name: "ラヴァフレア",
@@ -3657,9 +3711,10 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     order: "anchor",
-    anchorBonus: 3,
     hitNum: 3,
     MPcost: 76,
+    anchorBonus: 3,
+    ignoreProtection: true,
   },
   {
     name: "におうだち",
@@ -3668,9 +3723,9 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 14,
     order: "preemptive",
     preemptivegroup: 3,
-    MPcost: 14,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, true);
     },
@@ -3682,9 +3737,9 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 79,
     order: "preemptive",
     preemptivegroup: 2,
-    MPcost: 79,
     appliedEffect: { protection: { strength: 0.5, duration: 2 } },
   },
   {
@@ -3695,16 +3750,15 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     excludeTarget: "me",
+    MPcost: 5,
     order: "preemptive",
     preemptivegroup: 4,
-    MPcost: 5,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
     },
   },
   {
     name: "超魔滅光",
-    followingSkill: "超魔滅光後半",
     type: "martial",
     howToCalculate: "fix",
     damage: 475,
@@ -3714,6 +3768,8 @@ const skill = [
     MPcost: 78,
     RaceBane: ["???", "tyoma"],
     RaceBaneValue: 4,
+    damageByLevel: true,
+    followingSkill: "超魔滅光後半",
   },
   {
     name: "超魔滅光後半",
@@ -3726,6 +3782,7 @@ const skill = [
     MPcost: 0,
     RaceBane: ["???", "tyoma"],
     RaceBaneValue: 4,
+    damageByLevel: true,
   },
   {
     name: "真・ゆうきの斬舞",
@@ -3735,10 +3792,12 @@ const skill = [
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
-    order: "preemptive",
-    preemptivegroup: 8,
     hitNum: 6,
     MPcost: 71,
+    order: "preemptive",
+    preemptivegroup: 8,
+    criticalHitProbability: 0,
+    ignoreDazzle: true,
   },
   {
     name: "神獣の封印",
@@ -3748,6 +3807,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 34,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
     appliedEffect: { sealed: {} },
   },
   {
@@ -3757,10 +3818,10 @@ const skill = [
     element: "none",
     targetType: "me",
     targetTeam: "ally",
+    MPcost: 5,
     order: "preemptive",
     preemptivegroup: 5,
-    MPcost: 5,
-    appliedEffect: { slashReflection: { type: "yosoku", duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { slashReflection: { duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "ソウルハーベスト",
@@ -3792,9 +3853,10 @@ const skill = [
     element: "dark",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 43,
     order: "preemptive",
     preemptivegroup: 8,
-    MPcost: 43,
+    ignoreEvasion: true,
   },
   {
     name: "冥王の奪命鎌",
@@ -3804,9 +3866,10 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    damage: 1,
     MPcost: 52,
     SubstituteBreaker: 3,
+    ignoreEvasion: true,
+    //即死
   },
   {
     name: "終の流星",
@@ -3816,9 +3879,34 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    order: "anchor",
     hitNum: 6,
     MPcost: 79,
+    order: "anchor",
+    ignoreProtection: true,
+    ignoreReflection: true,
+  },
+  {
+    name: "暴獣の右ウデ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 380,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 54,
+    appliedEffect: "divineWave",
+    followingSkill: "暴獣の右ウデ後半",
+  },
+  {
+    name: "暴獣の右ウデ後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 0,
+    appliedEffect: { martialEvasion: { duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "失望の光舞",
@@ -3836,6 +3924,21 @@ const skill = [
     },
   },
   {
+    name: "絶望の光舞",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 210,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 75,
+    appliedEffect: "divineWave",
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
+  },
+  {
     name: "パニッシュスパーク",
     type: "martial",
     howToCalculate: "fix",
@@ -3845,6 +3948,17 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 92,
     appliedEffect: "divineWave",
+    followingSkill: "パニッシュスパーク後半",
+  },
+  {
+    name: "パニッシュスパーク後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { slashSeal: {} },
   },
   {
     name: "堕天使の理",
@@ -3853,9 +3967,9 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    MPcost: 50,
     order: "preemptive",
     preemptivegroup: 2,
-    MPcost: 50,
     appliedEffect: { dodgeBuff: { strength: 1, duration: 1, removeAtTurnStart: true }, spdUp: { strength: 1 } },
   },
   {
@@ -3868,6 +3982,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 51,
+    ignoreEvasion: true,
+    appliedEffect: { lightResistance: { strength: -1, probability: 0.57 } },
   },
   {
     name: "ヘルバーナー",
@@ -3878,6 +3994,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 74,
+    ignoreSubstitute: true,
     followingSkill: "アイスエイジ",
   },
   {
@@ -3889,6 +4006,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 74,
+    ignoreSubstitute: true,
     followingSkill: "地獄の火炎",
   },
   {
@@ -3899,9 +4017,9 @@ const skill = [
     element: "fire",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 30,
     order: "preemptive",
     preemptivegroup: 8,
-    MPcost: 30,
     RaceBane: ["dragon", "???"],
     RaceBaneValue: 2,
     followingSkill: "アイスエイジ",
@@ -3938,6 +4056,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 54,
+    //effect
   },
   {
     name: "ルカナン",
@@ -3947,6 +4066,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 18,
+    appliedEffect: { defUp: { strength: -1, probability: 0.2 } },
   },
   {
     name: "ザオリク",
@@ -3956,21 +4076,7 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 103,
-  },
-  {
-    name: "タイムストーム",
-    type: "spell",
-    howToCalculate: "int",
-    minInt: 200,
-    minIntDamage: 130,
-    maxInt: 1000,
-    maxIntDamage: 218,
-    skillPlus: 1.09,
-    element: "none",
-    targetType: "random",
-    targetTeam: "enemy",
-    hitNum: 6,
-    MPcost: 85,
+    //蘇生act
   },
   {
     name: "零時の儀式",
@@ -3987,6 +4093,34 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 7,
     MPcost: 120,
+    followingSkill: "零時の儀式後半",
+  },
+  {
+    name: "零時の儀式後半",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 0,
+    appliedEffect: { spellBarrier: { strength: 1 } },
+  },
+  {
+    name: "タイムストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 218,
+    skillPlus: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 85,
+    ignoreReflection: true,
+    //effect
   },
   {
     name: "クロノストーム",
@@ -4001,19 +4135,52 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
+    MPcost: 85,
     order: "preemptive",
     preemptivegroup: 8,
-    MPcost: 85,
+    ignoreReflection: true,
+    //effect
+  },
+  {
+    name: "エレメントエラー",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptivegroup: 1,
+    MPcost: 39,
+    act: function (skillUser, skillTarget) {
+      fieldState.isDistorted = true;
+    },
   },
   {
     name: "かくせいリバース",
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "me",
     targetTeam: "ally",
-    order: "anchor",
     MPcost: 60,
+    order: "anchor",
+    appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
+    act: function (skillUser, skillTarget) {
+      fieldState.isReverse = true;
+    },
+  },
+  {
+    name: "永劫の闇冥",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 310,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 75,
+    weakness18: true,
+    appliedEffect: { healBlock: {} },
   },
   {
     name: "呪いの儀式",
@@ -4028,6 +4195,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 90,
+    //effect
   },
   {
     name: "はめつの流星",
@@ -4038,17 +4206,38 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 88,
+    //damage
   },
   {
     name: "暗黒神の連撃",
     type: "martial",
     howToCalculate: "fix",
+    damage: 324,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    order: "anchor",
     hitNum: 3,
     MPcost: 80,
+    order: "anchor",
+    anchorBonus: 3,
+    damageByLevel: true,
+  },
+  {
+    name: "真・神々の怒り",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 676,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    RaceBane: ["???"],
+    RaceBaneValue: 0.333,
+    ignoreReflection: true,
+    damageByLevel: true,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
   },
   {
     name: "真・闇の結界",
@@ -4060,6 +4249,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 38,
+    appliedEffect: { martialReflection: { strength: 1 }, slashReflection: { strength: 1, isKanta: true } },
   },
   {
     name: "必殺の双撃",
@@ -4069,8 +4259,27 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    hitNum: 2,
     MPcost: 100,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    ignoreTypeEvasion: true,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
+    followingSkill: "必殺の双撃後半",
+  },
+  {
+    name: "必殺の双撃後半",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4.6,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 100,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    ignoreTypeEvasion: true,
     act: function (skillUser, skillTarget) {
       delete skillTarget.buffs.isUnbreakable;
     },
@@ -4085,16 +4294,21 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 37,
+    appliedEffect: { martialReflection: { strength: 1 }, slashReflection: { strength: 1, isKanta: true } },
+    //上限とpowerCharge、順番注意
   },
   {
     name: "体砕きの斬舞",
     type: "dance",
     howToCalculate: "atk",
+    ratio: 0.44,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    hitNum: 6,
+    hitNum: 5,
     MPcost: 41,
+    criticalHitProbability: 0,
+    //反射特攻
   },
   {
     name: "アストロンゼロ",
@@ -4103,19 +4317,22 @@ const skill = [
     element: "none",
     targetType: "me",
     targetTeam: "ally",
+    MPcost: 52,
     order: "preemptive",
     preemptivegroup: 5,
-    MPcost: 52,
+    //effect act
   },
   {
     name: "衝撃波",
     type: "martial",
     howToCalculate: "atk",
+    ratio: 1.24,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    order: "anchor",
     MPcost: 38,
+    order: "anchor",
+    //effect
   },
   {
     name: "おおいかくす",
@@ -4124,9 +4341,9 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    MPcost: 16,
     order: "preemptive",
     preemptivegroup: 3,
-    MPcost: 16,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
@@ -4177,14 +4394,246 @@ const skill = [
     appliedEffect: "divineWave",
   },
   {
-    name: "邪道のかくせい",
-    howToCalculate: "none",
+    name: "邪悪なこだま",
+    type: "martial",
+    howToCalculate: "int",
+    ratio: 1.09,
     element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    MPcost: 63,
+    hitNum: 5,
+    ignoreProtection: true,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
   },
   {
     name: "絶氷の嵐",
+    type: "spell",
     howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 245,
+    maxInt: 800,
+    maxIntDamage: 434,
+    skillPlus: 1.15,
     element: "ice",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 68,
+    hitNum: 3,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
+  },
+  {
+    name: "禁忌のかくせい",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 74,
+    order: "preemptive",
+    preemptivegroup: 1,
+    appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { strength: 0.33 } },
+  },
+  {
+    name: "邪道のかくせい",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 86,
+    order: "preemptive",
+    preemptivegroup: 1,
+    //efect
+  },
+  {
+    name: "無双のつるぎ",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 1300,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 78,
+    ignoreEvasion: true,
+    followingSkill: "無双のつるぎ後半",
+  },
+  {
+    name: "無双のつるぎ後半",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreEvasion: true,
+    ignoreReflection: true,
+  },
+  {
+    name: "瞬撃",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.08,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 68,
+    ignoreReflection: true,
+    ignoreEvasion: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "カタストロフ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 162,
+    maxInt: 1000,
+    maxIntDamage: 290,
+    skillPlus: 1.15,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 92,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "らいてい弾",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 270,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 44,
+  },
+  {
+    name: "ラストストーム",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.2,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 91,
+    order: "anchor",
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    appliedEffect: { statusLock: {}, paralyzed: { probability: 0.58 } },
+  },
+  {
+    name: "陰惨な暗闇",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 54,
+    maxInt: 600,
+    maxIntDamage: 164,
+    skillPlus: 1.15,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 54,
+    appliedEffect: { darkResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
+    name: "蠱惑の舞い",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    SubstituteBreaker: 3,
+    appliedEffect: { confused: { probability: 0.377 } },
+  },
+  {
+    name: "宵の暴風",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 120,
+    maxInt: 1000,
+    maxIntDamage: 144,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 61,
+    order: "preemptive",
+    preemptivegroup: 8,
+    RaceBane: ["dragon"],
+    RaceBaneValue: 2,
+    //呪文減少
+  },
+  {
+    name: "妖艶イオマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
+    },
+  },
+  {
+    name: "キャンセルステップ",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 95,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 41,
+    damageByLevel: true,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "ディバインフェザー",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 85,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 48,
+    damageByLevel: true,
+    appliedEffect: { spellBarrier: { strength: -2, probability: 0.33 } },
+  },
+  {
+    name: "悪魔の息見切り",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 69,
+    order: "preemptive",
+    preemptivegroup: 5,
+    appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true } },
+    act: function (skillUser, skillTarget) {
+      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+    },
   },
 
   {},
