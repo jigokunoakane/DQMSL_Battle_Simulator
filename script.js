@@ -155,6 +155,7 @@ function preparebattle() {
       monster.confirmedcommandtarget = "";
       monster.buffs = {};
       monster.flags = {};
+      monster.flags.unavailableSkills = [];
       monster.abilities = {};
     }
   }
@@ -357,12 +358,21 @@ document.getElementById("commandguardbtn").addEventListener("click", function ()
 function startselectingcommand() {
   disablecommandbtns(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
-  document.getElementById("selectskillbtn0").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[0];
-  document.getElementById("selectskillbtn1").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[1];
-  document.getElementById("selectskillbtn2").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[2];
-  document.getElementById("selectskillbtn3").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[3];
+  const skillUser = parties[selectingwhichteamscommand][selectingwhichmonsterscommand];
+  for (let i = 0; i < 4; i++) {
+    const selectSkillBtn = document.getElementById(`selectskillbtn${i}`);
+    selectSkillBtn.textContent = skillUser.skill[i];
+    const MPcost = calculateMPcost(skillUser, findSkillByName(skillUser.skill[i]));
+    if (skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) || skillUser.currentstatus.MP < MPcost) {
+      selectSkillBtn.disabled = true;
+      selectSkillBtn.style.opacity = "0.4";
+    } else {
+      selectSkillBtn.disabled = false;
+      selectSkillBtn.style.opacity = "";
+    }
+  }
   document.getElementById("selectskillbtns").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow-text").textContent = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name;
+  document.getElementById("selectcommandpopupwindow-text").textContent = skillUser.name;
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
   //monster名表示に戻す
@@ -372,15 +382,17 @@ function startselectingcommand() {
 
 function selectcommand(selectedskillnum) {
   document.getElementById("selectskillbtns").style.visibility = "hidden";
-  const selectedskillname = parties[selectingwhichteamscommand][selectingwhichmonsterscommand].skill[selectedskillnum];
-  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = selectedskillname;
+  const skillUser = parties[selectingwhichteamscommand][selectingwhichmonsterscommand];
+  const selectedskillname = skillUser.skill[selectedskillnum];
+  skillUser.confirmedcommand = selectedskillname;
   //confirmedcommandに格納
   const selectedskill = findSkillByName(selectedskillname);
   const skilltargetTypedetector = selectedskill.targetType;
   const skilltargetTeamdetector = selectedskill.targetTeam;
+  const MPcost = calculateMPcost(skillUser, selectedskill);
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${selectedskill.MPcost} 】`);
+    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost} 】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     if (skilltargetTeamdetector === "ally") {
@@ -398,7 +410,7 @@ function selectcommand(selectedskillnum) {
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetTypedetector === "all") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${selectedskill.MPcost} 】`);
+    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost} 】`);
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -1574,14 +1586,11 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
 
   // 5. 消費MP確認
   if (!isFollowingSkill) {
-    if (executingSkill.MPcost === "all") {
-      skillUser.currentstatus.MP = 0;
-    } else if (skillUser.currentstatus.MP >= executingSkill.MPcost) {
+    const MPcost = calculateMPcost(skillUser, executingSkill);
+    if (skillUser.currentstatus.MP >= MPcost) {
       skillUser.currentstatus.MP -= executingSkill.MPcost;
       updateMonsterBar(skillUser);
     } else {
-      console.log(skillUser.currentstatus.MP);
-      console.log(executingSkill.MPcost);
       console.log("しかし、MPが足りなかった！");
       displayMessage("しかし、MPが足りなかった！");
       // MP不足の場合は7. 行動後処理にスキップ
@@ -1606,6 +1615,10 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   // 7. 行動後処理
   // 実行済みスキルを配列末尾に追加
   executedSkills.push(executingSkill);
+  if (!isFollowingSkill && executingSkill.isOneTimeUse) {
+    skillUser.flags.unavailableSkills.push(executingSkill.name);
+  }
+
   await postActionProcess(skillUser, executingSkill, executedSkills);
 }
 
@@ -1796,7 +1809,7 @@ function applyDamage(target, damage, resistance, MP) {
             }
           } else {
             if (target.buffs.isUnbreakable.left > 0) {
-              if (target.buffs.Revive) {
+              if (target.buffs.revive) {
                 if (Math.random() < 0.75) {
                   handleUnbreakable(target);
                 } else {
@@ -2382,7 +2395,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (!isReflection && skillTarget.buffs.metal) {
     damage *= skillTarget.buffs.metal.strength;
     //メタルキラー処理
-    if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.type === "metal") {
+    if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
       damage *= 1 - skillUser.buffs.metalKiller.strength;
     }
   }
@@ -2643,7 +2656,7 @@ async function processDeathAction(skillUser, killedThisSkill) {
     await executeDeathAbilities(monster);
 
     // 復活処理
-    if (monster.buffs.Revive || monster.buffs.tagTransformation) {
+    if (monster.buffs.revive || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
     } else {
       await zombifyMonster(monster);
@@ -2657,7 +2670,7 @@ async function executeDeathAbilities(monster) {
   const abilitiesToExecute = [];
 
   // 復活とタグ変化が予定されているか判定
-  let isReviving = monster.buffs.Revive || monster.buffs.tagTransformation;
+  let isReviving = monster.buffs.revive || monster.buffs.tagTransformation;
 
   for (const ability of Object.values(monster.abilities)) {
     if (ability.left === undefined || ability.left > 0) {
@@ -2681,10 +2694,10 @@ async function executeDeathAbilities(monster) {
 // モンスターを蘇生させる関数
 async function reviveMonster(monster) {
   await sleep(600);
-  let reviveSource = monster.buffs.tagTransformation || monster.buffs.Revive;
+  let reviveSource = monster.buffs.tagTransformation || monster.buffs.revive;
 
   delete monster.flags.isDead;
-  if (reviveSource === monster.buffs.Revive) {
+  if (reviveSource === monster.buffs.revive) {
     monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
   } else {
     //タッグ変化時はHPmaxで復活
@@ -2697,7 +2710,7 @@ async function reviveMonster(monster) {
   if (reviveSource.act) {
     reviveSource.act();
   }
-  delete monster.buffs[reviveSource === monster.buffs.Revive ? "Revive" : "tagTransformation"];
+  delete monster.buffs[reviveSource === monster.buffs.revive ? "revive" : "tagTransformation"];
   await sleep(400);
 }
 
@@ -3193,7 +3206,8 @@ const monsters = [
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: {
       1: {
-        metal: { keepOnDeath: true, strength: 0.75, type: "notmetal" },
+        metal: { keepOnDeath: true, strength: 0.75 },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         spellBarrier: { strength: 1, targetType: "ally" },
         stonedBlock: { duration: 3, targetType: "ally" },
       },
@@ -3375,7 +3389,12 @@ const monsters = [
     weight: "14",
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     skill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
-    attribute: "",
+    attribute: {
+      1: {
+        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+      },
+    },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -3423,6 +3442,7 @@ const skill = [
     MPcost: 76,
     order: "", //preemptive anchor
     preemptivegroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
+    isOneTimeUse: true,
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
     RaceBane: ["slime", "dragon"],
@@ -3600,7 +3620,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    MPcost: 24,
+    MPcost: 48,
     ignoreProtection: true,
   },
   {
@@ -3611,7 +3631,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 250,
+    MPcost: 524,
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
@@ -3625,7 +3645,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     hitNum: 3,
-    MPcost: 23,
+    MPcost: 47,
   },
   {
     name: "煉獄火炎",
@@ -3635,7 +3655,7 @@ const skill = [
     element: "fire",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 68,
+    MPcost: 136,
     appliedEffect: { fear: { probability: 0.213 } },
   },
   {
@@ -3647,7 +3667,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    MPcost: 35,
+    MPcost: 70,
     //息ダウン
   },
   {
@@ -3659,7 +3679,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    MPcost: 30,
+    MPcost: 60,
     weakness18: true,
   },
   {
@@ -3740,6 +3760,7 @@ const skill = [
     MPcost: 79,
     order: "preemptive",
     preemptivegroup: 2,
+    isOneTimeUse: true,
     appliedEffect: { protection: { strength: 0.5, duration: 2 } },
   },
   {
@@ -3807,6 +3828,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 34,
+    isOneTimeUse: true,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
     appliedEffect: { sealed: {} },
@@ -3843,6 +3865,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 39,
+    isOneTimeUse: true,
     appliedEffect: { sealed: {}, reviveBlock: { unDispellableByRadiantWave: true } },
   },
   {
@@ -4164,6 +4187,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 60,
     order: "anchor",
+    isOneTimeUse: true,
     appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
     act: function (skillUser, skillTarget) {
       fieldState.isReverse = true;
@@ -4294,7 +4318,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 37,
-    appliedEffect: { martialReflection: { strength: 1 }, slashReflection: { strength: 1, isKanta: true } },
+    appliedEffect: { spellReflection: { strength: 1, isKanta: true }, slashReflection: { strength: 1, isKanta: true } },
     //上限とpowerCharge、順番注意
   },
   {
@@ -4320,6 +4344,7 @@ const skill = [
     MPcost: 52,
     order: "preemptive",
     preemptivegroup: 5,
+    isOneTimeUse: true,
     //effect act
   },
   {
@@ -4357,6 +4382,7 @@ const skill = [
     targetTeam: "ally",
     following: "", //敵にも付与
     MPcost: 53,
+    isOneTimeUse: true,
   },
   {
     name: "物質の爆発",
@@ -4448,6 +4474,7 @@ const skill = [
     MPcost: 86,
     order: "preemptive",
     preemptivegroup: 1,
+    isOneTimeUse: true,
     //efect
   },
   {
@@ -4985,7 +5012,7 @@ document.getElementById("materialbtn").addEventListener("click", function () {
 
 document.getElementById("rezaobtn").addEventListener("click", function () {
   for (const monster of parties[1]) {
-    monster.buffs.Revive = { keepOnDeath: true, strength: 0.5 };
+    monster.buffs.revive = { keepOnDeath: true, strength: 0.5 };
   }
   displayMessage("リザオ付与");
 });
@@ -5277,4 +5304,28 @@ function preloadImages() {
     const img = new Image();
     img.src = imageUrl;
   });
+}
+
+//MPcostを返す スキル選択時と実行時
+function calculateMPcost(skillUser, executingSkill) {
+  if (executingSkill.MPcost === "all") {
+    return skillUser.currentstatus.MP;
+  }
+  let calcMPcost = executingSkill.MPcost;
+  //メタル
+  if (skillUser.buffs.mpCostMultiplier) {
+    calcMPcost = Math.ceil(calcMPcost * skillUser.buffs.mpCostMultiplier.strength);
+  }
+  //超伝説
+  if (skillUser.type === "tyoden" && !skillUser.buffs.tagTransformation) {
+    calcMPcost = Math.ceil(calcMPcost * 1.2);
+  }
+  //コツの半減
+  if (
+    (skillUser.buffs.breathEnhancement && executingSkill.type === "breath") ||
+    (skillUser.buffs.elementEnhancement && executingSkill.type === "spell" && skillUser.buffs.elementEnhancement.element === executingSkill.element)
+  ) {
+    calcMPcost = Math.floor(calcMPcost * 0.5);
+  }
+  return calcMPcost;
 }
