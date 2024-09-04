@@ -362,8 +362,10 @@ function startselectingcommand() {
   for (let i = 0; i < 4; i++) {
     const selectSkillBtn = document.getElementById(`selectskillbtn${i}`);
     selectSkillBtn.textContent = skillUser.skill[i];
-    const MPcost = calculateMPcost(skillUser, findSkillByName(skillUser.skill[i]));
-    if (skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) || skillUser.currentstatus.MP < MPcost) {
+    // スキル情報を取得
+    const skillInfo = findSkillByName(skillUser.skill[i]);
+    const MPcost = calculateMPcost(skillUser, skillInfo);
+    if (skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) || skillUser.currentstatus.MP < MPcost || (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser))) {
       selectSkillBtn.disabled = true;
       selectSkillBtn.style.opacity = "0.4";
     } else {
@@ -3270,7 +3272,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
-    skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "終の流星"],
+    skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
     attribute: {
       1: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -3333,7 +3335,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
-    skill: ["タイムストーム", "零時の儀式", "クロノストーム", "かくせいリバース"],
+    skill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
     attribute: "",
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
@@ -3466,6 +3468,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
   {
     name: "通常攻撃",
@@ -4372,6 +4375,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
   {
     name: "闇の紋章",
