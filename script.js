@@ -2742,48 +2742,42 @@ function checkFlag(target, flagName) {
 //AI追撃targetを返す
 function decideNormalAttackTarget(skillUser) {
   const enemyParty = parties[skillUser.enemyTeamID];
-  let target = null;
-  let minHPRatio = Infinity;
-  let minIndex = Infinity;
 
-  // 敵パーティ内の各モンスターに対して
-  for (let i = 0; i < enemyParty.length; i++) {
-    const monster = enemyParty[i];
-    // isDeadのフラグを持っている場合はスキップ
-    if (monster.flags.isDead) {
-      continue;
-    }
-    // 有効な攻撃対象の判定
-    const isValidTarget = !hasAbnormalityofAINormalAttack(monster) || !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta);
-    // 有効な攻撃対象でない場合はスキップ
-    if (!isValidTarget) {
-      continue;
-    }
-    // 残存HP割合を計算
-    const hpRatio = monster.currentstatus.HP / monster.defaultstatus.HP;
-    // 残存HP割合が今までの最小値より小さいか、同じ場合はindexが小さい場合
-    if (hpRatio < minHPRatio || (hpRatio === minHPRatio && i < minIndex)) {
-      target = monster;
-      minHPRatio = hpRatio;
-      minIndex = i;
-    }
+  // 生きている敵のみに絞り込む
+  const aliveEnemies = enemyParty.filter((monster) => !monster.flags.isDead);
+
+  // #1: 状態異常・反射のどちらも持っていない敵を探す
+  let candidates = aliveEnemies.filter((monster) => !hasAbnormalityofAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
+  if (candidates.length > 0) {
+    return findLowestHPRateTarget(candidates);
   }
-  // 有効な攻撃対象が見つからなかった場合、条件を緩和(atakan可)して再検索
-  if (target === null) {
-    for (let i = 0; i < enemyParty.length; i++) {
-      const monster = enemyParty[i];
-      // isDeadのフラグを持っている場合はスキップ
-      if (monster.flags.isDead) {
-        continue;
-      }
-      // 残存HP割合を計算
-      const hpRatio = monster.currentstatus.HP / monster.defaultstatus.HP;
-      // 残存HP割合が今までの最小値より小さいか、同じ場合はindexが小さい場合
-      if (hpRatio < minHPRatio || (hpRatio === minHPRatio && i < minIndex)) {
-        target = monster;
-        minHPRatio = hpRatio;
-        minIndex = i;
-      }
+
+  // #2: 状態異常は持っているが、反射は持っていない敵を探す
+  candidates = aliveEnemies.filter((monster) => hasAbnormalityofAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
+  if (candidates.length > 0) {
+    return findLowestHPRateTarget(candidates);
+  }
+
+  // #3: 反射を持っている敵を探す
+  candidates = aliveEnemies.filter((monster) => monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta);
+  if (candidates.length > 0) {
+    return findLowestHPRateTarget(candidates);
+  }
+
+  // 対象が見つからない場合はnullを返す
+  return null;
+}
+
+// 最もHP割合が低いモンスターを探すヘルパー関数
+function findLowestHPRateTarget(candidates) {
+  let target = candidates[0];
+  let lowestHPRate = target.currentstatus.HP / target.defaultstatus.HP;
+
+  for (let i = 1; i < candidates.length; i++) {
+    const currentHPRate = candidates[i].currentstatus.HP / candidates[i].defaultstatus.HP;
+    if (currentHPRate < lowestHPRate) {
+      target = candidates[i];
+      lowestHPRate = currentHPRate;
     }
   }
 
