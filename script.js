@@ -2063,8 +2063,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let skillUser = assignedSkillUser;
   let isReflection = false;
   let reflectionType = "yosoku";
-  // みがわり処理 味方補助でないまたはみがわり無視でないときに処理
-  if (assignedSkillTarget.flags.hasSubstitute && (!executingSkill.ignoreSubstitute || !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally"))) {
+  // みがわり処理 味方補助でないかつみがわり無視でないときに処理
+  if (assignedSkillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
     skillTarget = parties.flat().find((monster) => monster.monsterId === assignedSkillTarget.flags.hasSubstitute.targetMonsterId);
   }
 
