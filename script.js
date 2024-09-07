@@ -112,82 +112,55 @@ function confirmparty() {
 
 //パテ設定画面の確定で起動
 function preparebattle() {
-  //初期化
+  // 初期化
   fieldState = { turnNum: 0 };
-  //敵味方識別子を追加
-  parties.forEach((party, index) => {
-    party.forEach((member) => {
-      member.teamID = index;
-      // 敵チームIDを付与
-      member.enemyTeamID = index === 0 ? 1 : 0;
-    });
-  });
 
-  // 以下はパーティごとに処理
-  for (const party of parties) {
-    // リーダースキルの取得 (ループ外に移動)
+  // 敵味方識別子と要素IDの追加を一度に実行
+  for (let i = 0; i < parties.length; i++) {
+    const party = parties[i];
+    // 要素ID用のprefix
+    const prefix = i === 0 ? "ally" : "enemy";
+
+    // リーダースキルの取得
     const leaderSkill = party[0].ls;
     const lstarget = party[0].lstarget;
 
-    // 各モンスターについて処理
-    for (const monster of party) {
-      // defaultstatusを直接定義
-      monster.defaultstatus = {};
-
-      // ループを統合してステータスをコピー&リーダースキルを適用
-      for (const key in monster.displaystatus) {
-        monster.defaultstatus[key] = monster.displaystatus[key];
-        //ls反映済のdefaultstatus生成
-
-        // lstargetがallまたはモンスターのタイプと一致する場合のみリーダースキル適用
-        if (lstarget === "all" || monster.type === lstarget) {
-          if (leaderSkill[key]) {
-            monster.defaultstatus[key] = Math.ceil(monster.defaultstatus[key] * leaderSkill[key]);
-          }
-        }
-      }
-
-      // currentstatusをdefaultstatusのコピーとして生成
-      monster.currentstatus = structuredClone(monster.defaultstatus);
-
-      // 初期生成
-      monster.confirmedcommand = "";
-      monster.confirmedcommandtarget = "";
-      monster.buffs = {};
-      monster.flags = {};
-      monster.flags.unavailableSkills = [];
-      monster.abilities = {};
-    }
-  }
-  //iconとbarのelement idを格納
-  for (let i = 0; i < parties.length; i++) {
-    const party = parties[i];
     for (let j = 0; j < party.length; j++) {
       const monster = party[j];
 
-      // 接頭辞を設定 (ally または enemy)
-      const prefix = i === 0 ? "ally" : "enemy";
+      // 敵味方識別子を追加
+      monster.teamID = i;
+      monster.enemyTeamID = i === 0 ? 1 : 0;
 
       // 各要素のIDを作成
-      const iconId = `battleicon${prefix}${j}`;
-      const hpBarId = `hpbar${prefix}${j}`;
-      const mpBarId = `mpbar${prefix}${j}`;
-      const hpBarTextId = `hpbartext${prefix}${j}`;
-      const mpBarTextId = `mpbartext${prefix}${j}`;
-
-      // オブジェクトにIDを追加
       monster.index = j;
       monster.monsterId = `parties[${i}][${j}]`;
-      monster.iconElementId = iconId;
-      monster.hpBarElementId = hpBarId;
-      monster.mpBarElementId = mpBarId;
-      monster.hpBarTextElementId = hpBarTextId;
-      monster.mpBarTextElementId = mpBarTextId;
-    }
-  }
-  //初期生成後にバフ表示を開始
-  for (const party of parties) {
-    for (const monster of party) {
+      monster.iconElementId = `battleicon${prefix}${j}`;
+      monster.hpBarElementId = `hpbar${prefix}${j}`;
+      monster.mpBarElementId = `mpbar${prefix}${j}`;
+      monster.hpBarTextElementId = `hpbartext${prefix}${j}`;
+      monster.mpBarTextElementId = `mpbartext${prefix}${j}`;
+
+      // ステータス処理
+      monster.defaultstatus = {};
+      for (const key in monster.displaystatus) {
+        // リーダースキル適用
+        let statusValue = monster.displaystatus[key];
+        if (lstarget === "all" || monster.type === lstarget) {
+          statusValue *= leaderSkill[key] || 1; // leaderSkill[key] が存在しない場合は 1 を掛ける
+        }
+        monster.defaultstatus[key] = Math.ceil(statusValue);
+      }
+      monster.currentstatus = structuredClone(monster.defaultstatus);
+
+      // 初期化
+      monster.confirmedcommand = "";
+      monster.confirmedcommandtarget = "";
+      monster.buffs = {};
+      monster.flags = { unavailableSkills: [] };
+      monster.abilities = {};
+
+      // バフ表示の更新
       updateMonsterBar(monster);
     }
   }
@@ -210,8 +183,8 @@ function setElementIcon(elementId, id) {
 
 //死亡処理で起動、死亡時や亡者化のicon変化処理、preparebattlepageiconsでも起動して敵skill選択時の反転にそれを反映する
 //状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
-function updatebattleicons(monster, reverse = false) {
-  const side = reverse ? 1 - monster.teamID : monster.teamID;
+function updatebattleicons(monster, reverseDisplay = false) {
+  const side = reverseDisplay ? 1 - monster.teamID : monster.teamID;
   const elementId = `battleicon${side === 0 ? "ally" : "enemy"}${monster.index}`;
   const iconElement = document.getElementById(elementId);
   iconElement.src = "images/icons/" + monster.id + ".jpeg";
@@ -232,13 +205,10 @@ function updatebattleicons(monster, reverse = false) {
 }
 
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
-function preparebattlepageicons(reverse = false) {
-  for (let i = 0; i < 2; i++) {
-    for (let j = 0; j < 5; j++) {
-      // parties[i][j] が存在する場合のみ updatebattleicons を実行
-      if (parties[i][j]) {
-        updatebattleicons(parties[i][j], reverse);
-      }
+function preparebattlepageicons(reverseDisplay = false) {
+  for (const party of parties) {
+    for (const monster of party) {
+      updatebattleicons(monster, reverseDisplay);
     }
   }
 }
@@ -1740,27 +1710,27 @@ function hasAbnormality(monster) {
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance, MP) {
+function applyDamage(target, damage, resistance, isMPdamage = false) {
   if (resistance === -1) {
     // 回復処理
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
     if (target.buffs.healBlock) {
       //回復封じ処理
-      if (MP) {
-        displayDamage(target, 0, -1, MP); // MP回復封じ
+      if (isMPdamage) {
+        displayDamage(target, 0, -1, true); // MP回復封じ
       } else {
         displayDamage(target, 0, -1); // HP回復封じ
       }
       return;
     }
 
-    if (MP) {
+    if (isMPdamage) {
       // MP回復
       healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
       target.currentstatus.MP += healAmount;
       console.log(`${target.name}のMPが${healAmount}回復！`);
       displayMessage(`${target.name}の`, `MPが　${healAmount}回復した！`);
-      displayDamage(target, -healAmount, -1, MP); // MP回復は負の数で表示
+      displayDamage(target, -healAmount, -1, true); // MP回復は負の数で表示
     } else {
       // HP回復
       healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
@@ -1774,13 +1744,13 @@ function applyDamage(target, damage, resistance, MP) {
     return;
   } else {
     // ダメージ処理
-    if (MP) {
+    if (isMPdamage) {
       // MPダメージ
       let mpDamage = Math.min(target.currentstatus.MP, Math.floor(damage));
       target.currentstatus.MP -= mpDamage;
       console.log(`${target.name}はMPダメージを受けている！`);
       displayDamage(`${target.name}は　MPダメージを受けている！`);
-      displayDamage(target, mpDamage, resistance, MP);
+      displayDamage(target, mpDamage, resistance, true);
       updateMonsterBar(target);
       return;
     } else {
@@ -3852,6 +3822,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 9,
     MPcost: 58,
+    ignoreReflection: true,
     appliedEffect: { reviveBlock: {} },
   },
   {
@@ -4765,7 +4736,7 @@ function findSkillByName(skillName) {
   return skill.find((skill) => skill.name === skillName);
 }
 
-function displayDamage(monster, damage, resistance, MP) {
+function displayDamage(monster, damage, resistance, isMPdamage = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
   if (damage === 0) {
@@ -4779,7 +4750,7 @@ function displayDamage(monster, damage, resistance, MP) {
       damageContainer.style.transform = "translate(-50%, -50%)";
       damageContainer.style.justifyContent = "center";
 
-      const effectImagePath = MP ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png"; // MP回復かHP回復か
+      const effectImagePath = isMPdamage ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png"; // MP回復かHP回復か
 
       const effectImage = document.createElement("img");
       effectImage.src = effectImagePath;
@@ -4793,7 +4764,7 @@ function displayDamage(monster, damage, resistance, MP) {
       monsterIcon.parentElement.appendChild(damageContainer);
 
       const digitImage = document.createElement("img");
-      digitImage.src = MP ? "images/systems/MPRecoveryNumbers/0.png" : "images/systems/HPRecoveryNumbers/0.png"; // 数字0の画像
+      digitImage.src = isMPdamage ? "images/systems/MPRecoveryNumbers/0.png" : "images/systems/HPRecoveryNumbers/0.png"; // 数字0の画像
       digitImage.style.maxWidth = "60%";
       digitImage.style.height = "auto";
       digitImage.style.marginLeft = "-1.5px";
@@ -4863,13 +4834,17 @@ function displayDamage(monster, damage, resistance, MP) {
     let effectImagePath = "";
     if (resistance === -1) {
       // 回復の場合
-      effectImagePath = MP ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png";
+      effectImagePath = isMPdamage ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png";
     } else {
       // ダメージの場合
-      effectImagePath = MP ? "images/systems/effectImages/MPDamaged.png" : monster.teamID === 0 ? "images/systems/effectImages/allyDamaged.png" : "images/systems/effectImages/enemyDamaged.png";
+      effectImagePath = isMPdamage
+        ? "images/systems/effectImages/MPDamaged.png"
+        : monster.teamID === 0
+        ? "images/systems/effectImages/allyDamaged.png"
+        : "images/systems/effectImages/enemyDamaged.png";
 
       // 耐性によって画像を変更 (HPダメージの場合のみ)
-      if (!MP) {
+      if (!isMPdamage) {
         if (resistance === 1.5) {
           effectImagePath = monster.teamID === 0 ? "images/systems/effectImages/allyDamagedWeakness.png" : "images/systems/effectImages/enemyDamagedWeakness.png";
         } else if (resistance === 2) {
@@ -4915,10 +4890,10 @@ function displayDamage(monster, damage, resistance, MP) {
       const digitImage = document.createElement("img");
       digitImage.src =
         resistance === -1
-          ? MP
+          ? isMPdamage
             ? `images/systems/MPRecoveryNumbers/${digits[i]}.png`
             : `images/systems/HPRecoveryNumbers/${digits[i]}.png`
-          : MP
+          : isMPdamage
           ? `images/systems/MPDamageNumbers/${digits[i]}.png`
           : `images/systems/HPDamageNumbers/${digits[i]}.png`;
       digitImage.style.maxWidth = "60%";
