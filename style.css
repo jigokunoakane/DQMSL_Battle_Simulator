@@ -380,6 +380,7 @@ select {
 
 #battlepage {
   width: 100%;
+  display: none;
 }
 
 #battlepage-above {

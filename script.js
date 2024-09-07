@@ -1,5 +1,4 @@
 //初期処理
-document.getElementById("battlepage").style.display = "none";
 const defaultMonster = {
   name: "未選択",
   id: "unselected",
@@ -699,18 +698,12 @@ function startTurn() {
   fieldState.turnNum++;
   const turnNum = fieldState.turnNum;
   displayMessage(`ラウンド${turnNum}`, null, true);
-  //modifiedSpeed生成 ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
+  //ターン開始時loop
   for (const party of parties) {
     for (const monster of party) {
-      monster.modifiedSpeed = calculateModifiedSpeed(monster);
-    }
-  }
-  // ぼうぎょタグを削除
-  removeallrecede();
-
-  //覆い隠す以外の身代わりflagとぼうぎょ削除
-  for (const party of parties) {
-    for (const monster of party) {
+      //calculateModifiedSpeed ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
+      monster.modifiedSpeed = monster.currentstatus.spd * (0.975 + Math.random() * 0.05);
+      //flag削除 ぼうぎょ・覆い隠す以外の身代わり
       delete monster.flags.guard;
       if (monster.flags.isSubstituting && !monster.flags.isSubstituting.cover) {
         delete monster.flags.isSubstituting;
@@ -720,6 +713,8 @@ function startTurn() {
       }
     }
   }
+  // ぼうぎょタグを削除
+  removeallrecede();
 
   //ターン経過で一律にデクリメントタイプの実行 バフ付与前に
   decreaseAllBuffDurations();
@@ -1497,12 +1492,6 @@ function decideTurnOrder(parties, skills) {
 
   console.log(turnOrder);
   return turnOrder;
-}
-
-// SPDに乱数をかけた補正値を計算する関数 蘇生時にも使うかも
-function calculateModifiedSpeed(monster) {
-  const randomMultiplier = 0.975 + Math.random() * 0.05;
-  return monster.currentstatus.spd * randomMultiplier;
 }
 
 // 各monsterの行動を実行する関数
