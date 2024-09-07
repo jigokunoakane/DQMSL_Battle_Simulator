@@ -140,6 +140,7 @@ function preparebattle() {
       monster.mpBarElementId = `mpbar${prefix}${j}`;
       monster.hpBarTextElementId = `hpbartext${prefix}${j}`;
       monster.mpBarTextElementId = `mpbartext${prefix}${j}`;
+      monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
 
       // ステータス処理
       monster.defaultstatus = {};
@@ -175,19 +176,13 @@ function preparebattle() {
 
 let fieldState = { turnNum: 0 };
 
-//targetTeamごとに特技target選択画面で起動
-function setElementIcon(elementId, id) {
-  const iconSrc = "images/icons/" + id + ".jpeg";
-  document.getElementById(elementId).src = iconSrc;
-}
-
 //死亡処理で起動、死亡時や亡者化のicon変化処理、preparebattlepageiconsでも起動して敵skill選択時の反転にそれを反映する
 //状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
 function updatebattleicons(monster, reverseDisplay = false) {
   const side = reverseDisplay ? 1 - monster.teamID : monster.teamID;
   const elementId = `battleicon${side === 0 ? "ally" : "enemy"}${monster.index}`;
   const iconElement = document.getElementById(elementId);
-  iconElement.src = "images/icons/" + monster.id + ".jpeg";
+  iconElement.src = monster.iconSrc;
 
   iconElement.style.display = "flex";
   //sideが1かつ死亡は非表示、0かつ死亡は暗転、亡者は全て中間
@@ -400,11 +395,11 @@ function selectcommand(selectedskillnum) {
 
 function selectskilltargettoggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedskill) {
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
-  setElementIcon("selecttargetmonster0", parties[targetTeamnum][0].id);
-  setElementIcon("selecttargetmonster1", parties[targetTeamnum][1].id);
-  setElementIcon("selecttargetmonster2", parties[targetTeamnum][2].id);
-  setElementIcon("selecttargetmonster3", parties[targetTeamnum][3].id);
-  setElementIcon("selecttargetmonster4", parties[targetTeamnum][4].id);
+  document.getElementById("selecttargetmonster0").src = parties[targetTeamnum][0].iconSrc;
+  document.getElementById("selecttargetmonster1").src = parties[targetTeamnum][1].iconSrc;
+  document.getElementById("selecttargetmonster2").src = parties[targetTeamnum][2].iconSrc;
+  document.getElementById("selecttargetmonster3").src = parties[targetTeamnum][3].iconSrc;
+  document.getElementById("selecttargetmonster4").src = parties[targetTeamnum][4].iconSrc;
 
   // target選択用iconに対して、順番に非表示や暗転&無効化
   const excludeTarget = selectedskill.excludeTarget || null;
