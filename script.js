@@ -1103,6 +1103,17 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
       if (buffName === "spellReflection") {
         buffTarget.buffs.spellReflection.isKanta = true;
       }
+      //防壁魔王バリア付与時の状態異常解除
+      if (buffName === "sacredBarrier" || buffName === "demonKingBarrier") {
+        executeRadiantWave(buffTarget);
+      }
+      //封じマインドバリア付与時の状態異常解除
+      if (buffName === "mindAndSealBarrier") {
+        const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
+        for (const type of mindAndSealBarrierTargets) {
+          delete buffTarget.buffs[type];
+        }
+      }
     }
     //付与成功時処理 duration設定
     const buffDurations = {
