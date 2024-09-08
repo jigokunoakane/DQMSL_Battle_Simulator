@@ -2436,6 +2436,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージ付与処理
   damage = Math.floor(damage);
+  //damage上限
+  if (skillTarget.buffs.damageLimit && damage > skillTarget.buffs.damageLimit.strength) {
+    damage = skillTarget.buffs.damageLimit.strength;
+  }
   applyDamage(skillTarget, damage, resistance);
 
   //target生存かつdamageが0超えのときに、追加効果付与を実行
