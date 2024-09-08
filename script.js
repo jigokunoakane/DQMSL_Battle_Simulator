@@ -795,6 +795,7 @@ function startTurn() {
         ...(monster.attribute.permanentBuffs || {}),
         ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
         ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
+        ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
       };
 
       // allBuffs を applyBuffs に渡す
@@ -873,8 +874,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     "dotDamage",
     "healBlock",
   ];
+  const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
 
   const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+
+  const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -903,9 +907,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
       continue;
     }
-    //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与 その後順位付け処理
+    //順位付け処理の前に自動付与
+    //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与
     if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
       buffData.unDispellable = true;
+    }
+    //breakBoostの追加付与を可能に
+    if (breakBoosts.includes(buffName)) {
+      buffData.divineDispellable = true;
     }
     // 1-4. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
@@ -961,7 +970,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         continue;
       }
       // マインド封じ無効
-      const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
       if (buffTarget.buffs.mindAndSealBarrier && mindAndSealBarrierTargets.includes(buffName)) {
         continue;
       }
@@ -1023,8 +1031,16 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         buffTarget.buffs[buffName] = { ...buffData };
       }
       //重ねがけ可能バフの付与成功時処理
+    } else if (breakBoosts.includes(buffName)) {
+      // 3-2. 重ねがけ可能なうち特殊
+      if (currentBuff) {
+        const newStrength = Math.min(currentBuff.strength + buffData.strength, buffData.maxStrength);
+        buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
+      } else {
+        buffTarget.buffs[buffName] = { ...buffData };
+      }
     } else {
-      // 3-2. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
+      // 3-3. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
         //// 3-2-1. currentbuffにremoveAtTurnStartがあり、newbuffにないときはcontinue (予測系は上書きしない)
         //if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
@@ -1109,7 +1125,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
       }
       //封じマインドバリア付与時の状態異常解除
       if (buffName === "mindAndSealBarrier") {
-        const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
         for (const type of mindAndSealBarrierTargets) {
           delete buffTarget.buffs[type];
         }
@@ -2313,12 +2328,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= 1.2;
   }
 
-  //大弱点、超弱点処理
-  if (resistance === 1.5 && skillUser.buffs.ultraWeakness) {
-    resistance = 2.5;
-  } else if (resistance === 1.5 && skillUser.buffs.superWeakness) {
-    resistance = 2;
-  }
   //耐性処理
   damage *= resistance;
 
@@ -2571,6 +2580,9 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
       if (skillUser.buffs[element + "Break"]) {
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
+        if (skillUser.buffs[element + "BreakBoost"]) {
+          normalResistanceIndex += skillUser.buffs[element + "BreakBoost"].strength;
+        }
       } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
         //全属性の使い手 状態異常以外 普通の属性の場合に処理
         normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
@@ -2612,6 +2624,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
         // インデックスに対する操作
         distortedResistanceIndex -= skillUser.buffs[element + "Break"].strength;
+        // ブレイク深化も同様
+        if (skillUser.buffs[element + "BreakBoost"]) {
+          distortedResistanceIndex -= skillUser.buffs[element + "BreakBoost"].strength;
+        }
         // インデックスの範囲を制限
         distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
         // distortedResistanceを更新
@@ -3238,6 +3254,9 @@ const monsters = [
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         mindBarrier: { divineDispellable: true, duration: 3 },
         martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
+      },
+      buffsFromTurn2: {
+        lightBreakBoost: { strength: 1, maxStrength: 2 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
