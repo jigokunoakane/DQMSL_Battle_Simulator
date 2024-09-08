@@ -3366,8 +3366,8 @@ const monsters = [
         spellBarrier: { strength: 1 },
       },
       permanentBuffs: {
-        martialReflection: { strength: 1, duration: 1, unDispellable: true },
         slashReflection: { strength: 1, duration: 1, unDispellable: true, isKanta: true },
+        martialReflection: { strength: 1, duration: 1, unDispellable: true },
       },
     },
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
@@ -4321,7 +4321,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 38,
-    appliedEffect: { martialReflection: { strength: 1, duration: 1, removeAtTurnStart: true }, slashReflection: { strength: 1, duration: 1, removeAtTurnStart: true, isKanta: true } },
+    appliedEffect: { slashReflection: { strength: 1, duration: 1, removeAtTurnStart: true, isKanta: true }, martialReflection: { strength: 1, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "必殺の双撃",
@@ -5228,6 +5228,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
           break;
         }
       }
+    }
+    //アタカン処理
+    if (buffKey === "slashReflection" && monster.buffs[buffKey].isKanta) {
+      iconSrc = "images/buffIcons/atakan.png";
     }
 
     // 画像が存在する場合は、activeBuffsにバフデータを追加
