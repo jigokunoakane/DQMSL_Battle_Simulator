@@ -822,115 +822,155 @@ async function startbattle() {
 
 // バフ追加用関数
 function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) {
+  // 重ねがけ可能なバフ
+  const stackableBuffs = {
+    baiki: { max: 2, min: -2 },
+    defUp: { max: 2, min: -2 },
+    spdUp: { max: 2, min: -2 },
+    intUp: { max: 2, min: -2 },
+    spellBarrier: { max: 2, min: -2 },
+    slashBarrier: { max: 2, min: -2 },
+    martialBarrier: { max: 2, min: -2 },
+    breathBarrier: { max: 2, min: -2 },
+    fireResistance: { max: 3, min: -3 },
+    iceResistance: { max: 3, min: -3 },
+    thunderResistance: { max: 3, min: -3 },
+    windResistance: { max: 3, min: -3 },
+    ioResistance: { max: 3, min: -3 },
+    lightResistance: { max: 3, min: -3 },
+    darkResistance: { max: 3, min: -3 },
+  };
+
+  // Resistance 系バフの場合の属性名
+  const resistanceBuffElementMap = {
+    fireResistance: "fire",
+    iceResistance: "ice",
+    thunderResistance: "thunder",
+    windResistance: "wind",
+    ioResistance: "io",
+    lightResistance: "light",
+    darkResistance: "dark",
+  };
+
+  //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
+  const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle", "reviveBlock", "stoned"];
+  //hasAbnormalityのfear以外
+  const removeGuardAbnormalities = ["tempted", "sealed", "confused", "paralyzed", "asleep", "stoned"];
+  //封印とstoned以外
+  const dispellableByRadiantWaveAbnormalities = [
+    "spellSeal",
+    "breathSeal",
+    "slashSeal",
+    "martialSeal",
+    "fear",
+    "tempted",
+    "confused",
+    "paralyzed",
+    "asleep",
+    "poisoned",
+    "dazzle",
+    "reviveBlock",
+    "dotDamage",
+    "healBlock",
+  ];
+
+  const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+
   for (const buffName in newBuff) {
+    // 0. 新規バフと既存バフを定義
     const currentBuff = buffTarget.buffs[buffName];
     const buffData = newBuff[buffName];
 
-    // 重ねがけ可能なバフ
-    const stackableBuffs = {
-      baiki: { max: 2, min: -2 },
-      defUp: { max: 2, min: -2 },
-      spdUp: { max: 2, min: -2 },
-      intUp: { max: 2, min: -2 },
-      spellBarrier: { max: 2, min: -2 },
-      slashBarrier: { max: 2, min: -2 },
-      martialBarrier: { max: 2, min: -2 },
-      breathBarrier: { max: 2, min: -2 },
-      fireResistance: { max: 3, min: -3 },
-      iceResistance: { max: 3, min: -3 },
-      thunderResistance: { max: 3, min: -3 },
-      windResistance: { max: 3, min: -3 },
-      ioResistance: { max: 3, min: -3 },
-      lightResistance: { max: 3, min: -3 },
-      darkResistance: { max: 3, min: -3 },
-    };
-
-    // Resistance 系バフの場合の属性名
-    const resistanceBuffElementMap = {
-      fireResistance: "fire",
-      iceResistance: "ice",
-      thunderResistance: "thunder",
-      windResistance: "wind",
-      ioResistance: "io",
-      lightResistance: "light",
-      darkResistance: "dark",
-    };
-
-    const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle"];
-    const removeGuardAbnormalities = ["tempted", "sealed", "confused", "paralyzed", "asleep"];
-    const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
-    const dispellableByRadiantWaveAbnormalities = [
-      "spellSeal",
-      "breathSeal",
-      "slashSeal",
-      "martialSeal",
-      "fear",
-      "tempted",
-      "sealed",
-      "confused",
-      "paralyzed",
-      "asleep",
-      "poisoned",
-      "dazzle",
-      "reviveBlock",
-      "dotDamage",
-      "healBlock",
-      "maso",
-    ];
-
-    // statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
-    if (buffTarget.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (newBuff[buffName] && newBuff[buffName].hasOwnProperty("type") && newBuff[buffName].type === "familyBuff"))) {
+    // 1. バフ非上書き条件の処理
+    // 1-1. 石化には付与しない
+    if (buffTarget.buffs.stoned) {
       continue;
     }
+    // 1-2. statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
+    if (buffTarget.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (buffData.hasOwnProperty("type") && buffData.type === "familyBuff"))) {
+      continue;
+    }
+    // 1-3. 解除不可状態異常を上書きしない
+    //上位毒・上位回復封じ等以外の、解除不可が設定されていない新規状態異常系バフに対して、光の波動で解除可能なフラグを下処理として付与
+    if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
+      buffData.dispellableByRadiantWave = true;
+    }
+    //封印と石化はデフォルトで解除不可
+    if (buffName === "sealed" || buffName === "stoned") {
+      buffData.unDispellableByRadiantWave = true;
+    }
+    //もし同種状態異常が既存で、かつ既存unDispellableByRadiantWave > 新規付与dispellableByRadiantWave の場合は上書きしない
+    if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
+      continue;
+    }
+    //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与 その後順位付け処理
+    if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
+      buffData.unDispellable = true;
+    }
+    // 1-4. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
+    if (currentBuff) {
+      function getBuffPriority(buff) {
+        if (buff.keepOnDeath) return 3;
+        if (buff.unDispellable) return 2;
+        if (buff.divineDispellable) return 1;
+        return 0;
+      }
+      const currentBuffPriority = getBuffPriority(currentBuff);
+      const newBuffPriority = getBuffPriority(buffData);
+      // currentBuffの方が優先度が高い場合は付与失敗　同格以上ならば上書き
+      if (currentBuffPriority > newBuffPriority) {
+        continue;
+      }
+    }
 
-    // buffData 内に probability が存在するかチェック
-    const probability = buffData.probability !== undefined ? buffData.probability : 10;
-    // 確率格納後にprobability を削除
+    // buffData 内に probability が存在するかチェックして用意
+    const probability = buffData.probability ?? 10;
     delete buffData.probability;
 
-    // 耐性バフ、状態異常、その他の順で独立して確率判定処理、付与失敗時はcontinueで次へ飛ばす
-    // 1. 耐性ダウンの場合のみ耐性をかけて処理
+    // 2. 耐性バフ、状態異常、その他の順で独立して確率判定・耐性・バリアバフによる無効化処理、付与失敗時はcontinueで次へ飛ばす
+    // 2-1. 耐性ダウンの場合のみ耐性をかけて処理
     if (resistanceBuffElementMap.hasOwnProperty(buffName) && buffData.strength < 0) {
       const buffElement = resistanceBuffElementMap[buffName];
       const resistance = calculateResistance(null, buffElement, buffTarget, fieldState.isDistorted);
 
       if (resistance > 0) {
         // 現在の耐性が無効未満の場合のみ耐性ダウンを適用
-        // 確率を調整
         const adjustedProbability = probability * resistance;
         // 確率に基づいてバフ適用を判定
         if (Math.random() > adjustedProbability) {
           continue; // 確率でバフ適用しない場合は次のバフへ
         }
       } else {
-        // 現在の耐性が 0 以下の場合は適用しない
+        // 現在の耐性が無効吸収の場合は適用しない
         continue; // 次のバフへ
       }
     } else if (abnormalityBuffs.includes(buffName)) {
-      //2. 状態異常系のうち、耐性が存在して防壁系バフで防がれるタイプの特殊処理 (蘇生・回復封じ・継続ダメ・マソ以外)
-      //防壁や魔王バリアで防ぐ
-      if (buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) {
+      // 2-2. //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
+      const barrierMap = {
+        fear: "mindBarrier",
+        tempted: "mindBarrier",
+        asleep: "sleepBarrier",
+        confused: "confusionBarrier",
+        paralyzed: "paralyzeBarrier",
+        sealed: "sealBarrier",
+        stoned: "stonedBlock",
+        reviveBlock: "reviveBlockBarrier",
+      };
+      // 防壁や魔王バリアで防ぐ
+      if ((buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) && buffName !== "sealed" && buffName !== "stoned") {
         continue;
       }
-      //マインド封じ無効
+      // マインド封じ無効
+      const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
       if (buffTarget.buffs.mindAndSealBarrier && mindAndSealBarrierTargets.includes(buffName)) {
         continue;
       }
-      //マインドバリア
-      if ((buffName === "fear" || buffName === "tempted") && buffTarget.buffs.mindBarrier) {
+      // バリアによる無効化
+      if (barrierMap[buffName] && buffTarget.buffs[barrierMap[buffName]]) {
         continue;
       }
-      //眠りバリア
-      if (buffName === "asleep" && buffTarget.buffs.sleepBarrier) {
-        continue;
-      }
-      //混乱バリア
-      if (buffName === "confused" && buffTarget.buffs.confusionBarrier) {
-        continue;
-      }
-      //既にほかの行動停止系状態異常にかかっている場合はfear, tempted, sealedはかけない ただし封印によるマインド上書きは例外
-      if (buffTarget.buffs.fear && buffName === "sealed") {
-      } else if ((buffName === "fear" || buffName === "tempted" || buffName === "sealed") && hasAbnormality(buffTarget)) {
+      //既にほかの行動停止系状態異常にかかっているかつ新規バフがfear, tempted, sealedのときは付与しない ただし封印によるマインド上書きは例外
+      if (!(buffTarget.buffs.fear && buffName === "sealed") && (buffName === "fear" || buffName === "tempted" || buffName === "sealed") && hasAbnormality(buffTarget)) {
         continue;
       }
       //耐性を参照して確率判定
@@ -939,22 +979,79 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
       if (buffName === "sealed" && buffData.element) {
         abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget);
         if (abnormalityResistance < 0.6) {
+          //使い手込でも半減以上は確定失敗
           abnormalityResistance = -1;
         }
       } else {
-        //状態異常系かつ反射の場合は逆転 反射によって逆転されているのを戻し、元々の使用者とtargetの耐性および使い手で判定
+        //氷の王国以外の状態異常系の耐性処理については、反射有無で分岐
+        //反射時は逆転 反射によって逆転されているのを戻し、元々の使用者と使い手およびtargetの耐性で判定 (状態異常バリアなどは通常と同じく実施済)
+        //このため追加効果の反射時は、process内で全ての場合で予測ではなくカンタ系のように、完全に反転させてapplyBuffに渡す (skillUserForAppliedEffectを使用)
+        //予測のとき、自分で自分に打つので反射者の情報が欠落してしまい、反転耐性計算ができなくなるのを防止
         if (isReflection) {
           abnormalityResistance = calculateResistance(buffTarget, buffName, skillUser);
         } else {
           abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
         }
       }
+      //耐性と確率処理で失敗したら次へ
       if (Math.random() > probability * abnormalityResistance) {
         continue;
       }
-      //状態異常の確率判定成功時処理
+    } else {
+      // 2-3. Resistance系バフと状態異常以外の場合の確率判定
+      if (Math.random() > probability) {
+        continue;
+      }
+    }
 
-      //ここでもう上書き処理を実行
+    // 3. 確率判定成功時にバフ適用処理 バフ付与に付随する効果の処理もここで durationやstrengthによる比較で弾く処理も
+    if (stackableBuffs.hasOwnProperty(buffName)) {
+      // 3-1. 重ねがけ可能バフ
+      if (currentBuff) {
+        // 重ねがけ可能かつ既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
+        const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
+        if (newStrength === 0) {
+          // strength が 0 になったらバフを削除
+          delete buffTarget.buffs[buffName];
+          continue;
+        } else {
+          // 0以外の場合はstrengthだけ加算して新しいバフで上書き
+          buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
+        }
+      } else {
+        // 重ねがけ可能かつ既に存在しない場合はそのまま適用
+        buffTarget.buffs[buffName] = { ...buffData };
+      }
+      //重ねがけ可能バフの付与成功時処理
+    } else {
+      // 3-2. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
+      if (currentBuff) {
+        //// 3-2-1. currentbuffにremoveAtTurnStartがあり、newbuffにないときはcontinue (予測系は上書きしない)
+        //if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
+        //  continue;
+        //}
+        // 3-2-2. currentbuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
+        //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
+        //if (!currentBuff.duration && buffData.duration) {
+        //  continue;
+        //}
+        // 3-2-3. strengthが両方存在し、かつ負けてるときはcontinue (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与で負けてたら上書きしない)
+        if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
+          continue;
+        }
+      }
+      buffTarget.buffs[buffName] = { ...buffData };
+      // 重ねがけ不可の付与成功時処理
+      // statusLockを付与時、既存のstackableBuffsとfamilyBuffを削除
+      if (buffName === "statusLock") {
+        const buffNames = Object.keys(buffTarget.buffs);
+        for (const existingBuffName of buffNames) {
+          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
+            delete buffTarget.buffs[existingBuffName];
+          }
+        }
+      }
+      //状態異常の付与時発動効果(上書き等)
       //封印によるマインドの上書き 確率成功時にマインドを削除
       if (buffTarget.buffs.fear && buffName === "sealed") {
         delete buffTarget.buffs.fear;
@@ -982,87 +1079,29 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         }
         delete buffTarget.flags.isSubstituting;
       }
-    } else {
-      // 3. Resistance系バフと状態異常以外の場合の確率判定
-      if (Math.random() > probability) {
-        continue;
-      }
-    }
-
-    //光の波動で解除可能なフラグを付与 解除不可毒や回復封じを除く
-    //もし同種状態異常で、かつ既存のバフがundispellable > 新規付与がdispellable の場合は上書きしない
-    //上の上書き処理を事前に行うことはあまり望ましくないが、競合するバフなどのため特に問題は起きない
-    if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
-      buffData.dispellableByRadiantWave = true;
-    }
-    if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
-      continue;
-    }
-
-    //バフ適用処理の前に、競合処理の共通部分
-    //2. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
-    if (currentBuff) {
-      function getBuffPriority(buff) {
-        if (buff.keepOnDeath) return 3;
-        if (buff.unDispellable) return 2;
-        if (buff.divineDispellable) return 1;
-        return 0;
-      }
-      const currentBuffPriority = getBuffPriority(currentBuff);
-      const newBuffPriority = getBuffPriority(buffData);
-      // currentBuffの方が優先度が高い場合はcontinue
-      if (currentBuffPriority > newBuffPriority) {
-        continue;
-      }
-    }
-
-    // 確率判定成功時にバフ適用処理
-    if (stackableBuffs.hasOwnProperty(buffName)) {
-      // 重ねがけ可能なバフ
-      if (currentBuff) {
-        // 重ねがけ可能かつ既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
-        const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
-        if (newStrength === 0) {
-          // strength が 0 になったらバフを削除
-          delete buffTarget.buffs[buffName];
-          continue;
-        } else {
-          // 0以外の場合はstrengthだけ加算して新しいバフで上書き
-          buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
-        }
-      } else {
-        // 重ねがけ可能かつ既に存在しない場合はそのまま適用
-        buffTarget.buffs[buffName] = { ...buffData };
-      }
-      //重ねがけ可能の付与成功
-    } else {
-      // 重ねがけ不可のバフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
-      if (currentBuff) {
-        //1. currentbuffにremoveAtTurnStartがあり、newbuffにないときはcontinue (予測系は上書きしない)
-        if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
-          continue;
-        }
-        //2. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオや、黄泉の封印vs普通)
-        //これは重ねがけ可能なバフも含めて実行
-        //3. currentbuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない)
-        if (!currentBuff.duration && buffData.duration) {
-          continue;
-        }
-        //4. strengthが両方存在し、かつ負けてるときはcontinue (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与で負けてたら上書きしない)
-        if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
-          continue;
-        }
-      }
-      buffTarget.buffs[buffName] = { ...buffData };
-      //重ねがけ不可の付与成功
-      // ここでもしstatusLockを付与した場合は 既存のstackableBuffs と familyBuff を削除
-      if (buffName === "statusLock") {
+      //石化は防御身代わり解除は実行済
+      if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
-          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
+          //stackableBuffs, keepOnDeat, unDispellableByRadiantWave, undispellable, divineDispellableは残す
+          if (
+            !(
+              stackableBuffs.hasOwnProperty(existingBuffName) ||
+              existingBuffName.keepOnDeath ||
+              existingBuffName.unDispellableByRadiantWave ||
+              existingBuffName.undispellable ||
+              existingBuffName.divineDispellable
+            )
+          ) {
             delete buffTarget.buffs[existingBuffName];
           }
         }
+        //reviveは問答無用で削除
+        delete buffTarget.buffs.revive;
+      }
+      //マホカンは自動でカンタに
+      if (buffName === "spellReflection") {
+        buffTarget.buffs.spellReflection.isKanta = true;
       }
     }
     //付与成功時処理 duration設定
@@ -1123,6 +1162,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         100: 1,
       },
       anchorAction: {
+        100: 1,
+      },
+      dodgeBuff: {
         100: 1,
       },
       //decreaseBeforeAction 行動前にデクリメントして消える
@@ -1215,33 +1257,32 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
         }
       }
     };
-    //duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、侵食(3)などduration設定時は自動設定しない)
-    if (buffName in buffDurations && !buffData.hasOwnProperty("duration")) {
+    //duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、帝王の構えなどduration設定時は自動設定しない) さらに上位蘇生封じや常バイキ等の場合も設定しない
+    if (buffName in buffDurations && !buffData.hasOwnProperty("duration") && !buffData.hasOwnProperty("keepOnDeath")) {
       buffTarget.buffs[buffName].duration = getDuration(buffName);
-    }
-    // ターン経過で減少するバフのリスト
-    const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
-    //ターン最初に解除するバフのリスト 反射以外 これとstackableは自動的にdecreaseTurnEndを付与
-    const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction"];
-
-    if (removeAtTurnStartBuffs.includes(buffName)) {
-      buffTarget.buffs[buffName].removeAtTurnStart = true;
     }
 
     //継続時間指定されている場合に、デクリメントのタイプを設定
     if (buffTarget.buffs[buffName].duration) {
-      // stackableBuffs または decreaseTurnEnd または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsに含まれる) 場合
+      //decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
+      //うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
+      const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
+      //うち、removeAtTurnStart付与： ターン最初に削除  付与されたnターン後のターン最初に切れる
+      const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction", "stoned", "damageLimit", "dodgeBuff"];
+      if (removeAtTurnStartBuffs.includes(buffName)) {
+        buffTarget.buffs[buffName].removeAtTurnStart = true;
+      }
+      //stackableBuffs または decreaseTurnEnd または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与)
       if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart) {
-        //ターン経過で一律にデクリメントするタイプを設定
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
-        //それ以外は行動後にデクリメント
+        //decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
+        //removeAtTurnStartなし：行動前のデクリメント後にそのまま削除
         buffTarget.buffs[buffName].decreaseBeforeAction = true;
       }
     }
 
-    //状態異常によるduration1の構え系解除
-    const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+    //状態異常によるduration1・removeAtTurnStartの構え予測系解除
     if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
       for (const reflection of reflectionMap) {
         if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].removeAtTurnStart && buffTarget.buffs[reflection].duration === 1) {
@@ -1291,6 +1332,7 @@ function removeExpiredBuffs(monster) {
     const buff = monster.buffs[buffName];
     // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがfalseの場合に削除
     if (buff.hasOwnProperty("duration") && buff.duration <= 0 && !buff.removeAtTurnStart) {
+      console.log(`${fieldState.turnNum}R:${monster.name}の${buffName}の効果が行動前に切れた!`);
       delete monster.buffs[buffName];
     }
   }
@@ -1306,6 +1348,7 @@ function removeExpiredBuffsAtTurnStart() {
         const buff = monster.buffs[buffName];
         // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがtrueの場合に削除
         if (buff.hasOwnProperty("duration") && buff.duration <= 0 && buff.removeAtTurnStart) {
+          console.log(`${fieldState.turnNum}R:${monster.name}の${buffName}の効果が切れた!`);
           delete monster.buffs[buffName];
         }
       }
@@ -2055,9 +2098,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (executingSkill.appliedEffect === "radiantWave") {
         executeRadiantWave(buffTarget);
       } else if (executingSkill.appliedEffect === "divineWave") {
-        executeDivineWave(buffTarget);
+        executeWave(buffTarget, true);
       } else if (executingSkill.appliedEffect === "disruptiveWave") {
-        executeDisruptiveWave(buffTarget);
+        executeWave(buffTarget);
       } else {
         applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
       }
@@ -3138,7 +3181,7 @@ const monsters = [
         fireBreak: { keepOnDeath: true, strength: 2 },
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { keepOnDeath: true },
-        preemptiveAction: { duration: 1 },
+        preemptiveAction: {},
       },
       evenTurnBuffs: { slashBarrier: { strength: 1 } },
     },
@@ -3178,7 +3221,7 @@ const monsters = [
       1: {
         lightBreak: { keepOnDeath: true, strength: 2 },
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
-        mindBarrier: { keepOnDeath: true },
+        mindBarrier: { divineDispellable: true, duration: 3 },
         martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
       },
     },
@@ -3284,7 +3327,17 @@ const monsters = [
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
     skill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
-    attribute: "",
+    attribute: {
+      1: {
+        mindBarrier: { keepOnDeath: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        intUp: { strength: 1 },
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 },
+      },
+    },
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
     lstarget: "all",
@@ -3298,9 +3351,23 @@ const monsters = [
     weight: "40",
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
     skill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
-    attribute: "",
+    attribute: {
+      1: {
+        mindBarrier: { keepOnDeath: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        intUp: { strength: 1 },
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 },
+      },
+      permanentBuffs: {
+        martialReflection: { strength: 1, duration: 1, unDispellable: true },
+        slashReflection: { strength: 1, duration: 1, unDispellable: true, isKanta: true },
+      },
+    },
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
-    ls: { HP: 1, MP: 1 },
+    ls: { HP: 1.35, int: 1.15 },
     lstarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
@@ -3312,7 +3379,18 @@ const monsters = [
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     skill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
-    attribute: "",
+    attribute: {
+      1: {
+        demonKingBarrier: { divineDispellable: true, duration: 3 },
+        protection: { strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -3326,7 +3404,20 @@ const monsters = [
     weight: "16",
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     skill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
-    attribute: "",
+    attribute: {
+      1: {
+        mindBarrier: { duration: 3 },
+        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
+      },
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 },
+        breathBarrier: { strength: 1 },
+      },
+      permanentBuffs: {
+        anchorAction: {},
+      },
+    },
     seed: { atk: 40, def: 80, spd: 0, int: 0 },
     ls: { HP: 1.15 },
     lstarget: "all",
@@ -3343,6 +3434,7 @@ const monsters = [
       1: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        damageLimit: { strength: 250 },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -3507,7 +3599,7 @@ const skill = [
     MPcost: 30,
     order: "preemptive",
     preemptivegroup: 2,
-    appliedEffect: { dodgeBuff: { strength: 0.5, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { dodgeBuff: { strength: 0.5 } },
   },
   {
     name: "氷華大繚乱",
@@ -3671,7 +3763,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptivegroup: 2,
-    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2 } },
+    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
   },
   {
     name: "ラヴァフレア",
@@ -3712,7 +3804,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.5, duration: 2 } },
+    appliedEffect: { protection: { strength: 0.5, duration: 2, removeAtTurnStart: true } },
   },
   {
     name: "みがわり",
@@ -3794,7 +3886,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptivegroup: 5,
-    appliedEffect: { slashReflection: { duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "ソウルハーベスト",
@@ -3818,7 +3910,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 39,
     isOneTimeUse: true,
-    appliedEffect: { sealed: {}, reviveBlock: { unDispellableByRadiantWave: true } },
+    appliedEffect: { sealed: {}, reviveBlock: { keepOnDeath: true } },
   },
   {
     name: "暗黒閃",
@@ -3945,7 +4037,7 @@ const skill = [
     MPcost: 50,
     order: "preemptive",
     preemptivegroup: 2,
-    appliedEffect: { dodgeBuff: { strength: 1, duration: 1, removeAtTurnStart: true }, spdUp: { strength: 1 } },
+    appliedEffect: { dodgeBuff: { strength: 1 }, spdUp: { strength: 1 } },
   },
   {
     name: "光速の連打",
@@ -4171,7 +4263,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 90,
-    //effect
+    appliedEffect: { statusLock: { probability: 0.7 } },
   },
   {
     name: "はめつの流星",
@@ -4225,7 +4317,7 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 38,
-    appliedEffect: { martialReflection: { strength: 1 }, slashReflection: { strength: 1, isKanta: true } },
+    appliedEffect: { martialReflection: { strength: 1, duration: 1, removeAtTurnStart: true }, slashReflection: { strength: 1, duration: 1, removeAtTurnStart: true, isKanta: true } },
   },
   {
     name: "必殺の双撃",
@@ -4270,8 +4362,12 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     MPcost: 37,
-    appliedEffect: { spellReflection: { strength: 1, isKanta: true }, slashReflection: { strength: 1, isKanta: true } },
-    //上限とpowerCharge、順番注意
+    appliedEffect: {
+      powerCharge: { strength: 2, duration: 3 },
+      slashReflection: { strength: 1, duration: 2, removeAtTurnStart: true, isKanta: true },
+      spellReflection: { strength: 1, duration: 2, removeAtTurnStart: true },
+      damageLimit: { strength: 200, duration: 2 },
+    },
   },
   {
     name: "体砕きの斬舞",
@@ -4297,7 +4393,8 @@ const skill = [
     order: "preemptive",
     preemptivegroup: 5,
     isOneTimeUse: true,
-    //effect act
+    appliedEffect: { stoned: { duration: 1 } },
+    //act
   },
   {
     name: "衝撃波",
@@ -5185,22 +5282,13 @@ function executeRadiantWave(monster) {
   updateMonsterBuffsDisplay(monster);
 }
 
-//かみは 解除不可以上 光の波動の対象 を残す
-function executeDivineWave(monster) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge"];
-  monster.buffs = Object.fromEntries(
-    Object.entries(monster.buffs).filter(([key, value]) => keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave)
-  );
-  updateCurrentStatus(monster);
-  updateMonsterBuffsDisplay(monster);
-}
-
-//いては
-function executeDisruptiveWave(monster) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge"];
+//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア
+function executeWave(monster, isDivine = false) {
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock ", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock"];
   monster.buffs = Object.fromEntries(
     Object.entries(monster.buffs).filter(
-      ([key, value]) => keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || value.divineDispellable
+      ([key, value]) =>
+        keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable) // いてはの場合のみdivineDispellableも残す
     )
   );
   updateCurrentStatus(monster);
