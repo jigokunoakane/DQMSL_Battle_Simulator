@@ -12,15 +12,18 @@
       <div id="adjustpartypage">
         <span id="playerAorB"> プレイヤーA</span>&nbsp;
         <select id="selectparty" onchange="selectparty()">
-          <option value="1">パーティ1</option>
-          <option value="2">パーティ2</option>
-          <option value="3">パーティ3</option>
-          <option value="4">パーティ4</option>
-          <option value="5">パーティ5</option>
+          <option value="0">パーティ1</option>
+          <option value="1">パーティ2</option>
+          <option value="2">パーティ3</option>
+          <option value="3">パーティ4</option>
+          <option value="4">パーティ5</option>
         </select>
         &nbsp;&nbsp;&nbsp;w150&nbsp;&nbsp;
         <button id="confirmparty" class="normalbutton" onclick="confirmparty()">パテ決定</button>
         <div class="partyicons-container">
+          <div class="partyicon-wrapper">
+            <img src="images/icons/unselected.jpeg" id="partyicon0" class="partyicon" />
+          </div>
           <div class="partyicon-wrapper">
             <img src="images/icons/unselected.jpeg" id="partyicon1" class="partyicon" />
           </div>
@@ -33,13 +36,13 @@
           <div class="partyicon-wrapper">
             <img src="images/icons/unselected.jpeg" id="partyicon4" class="partyicon" />
           </div>
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon5" class="partyicon" />
-          </div>
         </div>
         <!--finish partyicons-container-->
 
         <div class="partygears-container">
+          <div class="partygear-wrapper">
+            <img src="images/gear/ungeared.jpeg" id="partygear0" class="partygear" />
+          </div>
           <div class="partygear-wrapper">
             <img src="images/gear/ungeared.jpeg" id="partygear1" class="partygear" />
           </div>
@@ -51,9 +54,6 @@
           </div>
           <div class="partygear-wrapper">
             <img src="images/gear/ungeared.jpeg" id="partygear4" class="partygear" />
-          </div>
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear5" class="partygear" />
           </div>
         </div>
         <!--finish partygears-container-->

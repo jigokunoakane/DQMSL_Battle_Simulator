@@ -33,18 +33,17 @@ let parties = [{ party: [...defaultparty] }, { party: [...defaultparty] }];
 // allparties[0].party が party1
 
 let party = [...defaultparty];
-let selectingpartynum = 1;
+let selectingPartyNum = 0;
 //party初期化
 
 function selectparty() {
   //パテ切り替え時に起動
-  // 現在の仮partyのdeep copyを、allparties内のselectingpartynum-1で指定された番目に格納
-  allparties[selectingpartynum - 1].party = structuredClone(party);
-  // selectingpartyを選択値に更新
-  selectingpartynum = parseInt(document.getElementById("selectparty").value);
+  // 現在の仮partyのdeep copyを、allparties内のselectingPartyNumで指定された番目に格納
+  allparties[selectingPartyNum].party = structuredClone(party);
+  // selectingPartyNumを選択値に更新
+  selectingPartyNum = Number(document.getElementById("selectparty").value);
   //仮partyにallparties内の情報を下ろす
-  party = structuredClone(allparties[selectingpartynum - 1].party);
-  //party.splice(0, party.length, ...window[newparty]);
+  party = structuredClone(allparties[selectingPartyNum].party);
 
   //頭モンスターを選択状態に
   //これで、icon2種、ステ、種増分、種選択、特技の表示更新も兼ねる
@@ -58,11 +57,11 @@ function selectparty() {
     document.getElementById("partygear" + elementId.slice(-1)).src = gearSrc;
   }
   //partyの中身のidとgearidから、適切な画像を設定
-  updateImage("partyicon1", party[0]?.id, party[0]?.gear?.id);
-  updateImage("partyicon2", party[1]?.id, party[1]?.gear?.id);
-  updateImage("partyicon3", party[2]?.id, party[2]?.gear?.id);
-  updateImage("partyicon4", party[3]?.id, party[3]?.gear?.id);
-  updateImage("partyicon5", party[4]?.id, party[4]?.gear?.id);
+  updateImage("partyicon0", party[0]?.id, party[0]?.gear?.id);
+  updateImage("partyicon1", party[1]?.id, party[1]?.gear?.id);
+  updateImage("partyicon2", party[2]?.id, party[2]?.gear?.id);
+  updateImage("partyicon3", party[3]?.id, party[3]?.gear?.id);
+  updateImage("partyicon4", party[4]?.id, party[4]?.gear?.id);
 }
 
 //どちらのプレイヤーがパテ選択中かの関数定義
@@ -78,15 +77,15 @@ function confirmparty() {
     document.getElementById("playerAorB").textContent = "プレイヤーB";
     //新しいoptionを追加
     for (let i = 6; i <= 10; i++) {
-      selectpartymanipu.innerHTML += `<option value="${i}">パーティ${i - 5}</option>`;
+      selectpartymanipu.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
     }
-    document.getElementById("selectparty").value = 6;
-    //現在の仮partyを対戦用partiesにcopyして確定、selectpartyを6にして敵を表示状態にした上で
-    //selectparty関数で通常通り、未変更のallpartyies内のselectingpartynum-1番目に仮partyを格納、enemy編成をhtmlに展開
+    document.getElementById("selectparty").value = 5;
+    //現在の仮partyを対戦用partiesにcopyして確定、selectpartyを5にして敵を表示状態にした上で
+    //selectparty関数で通常通り、未変更のallpartyies内のselectingPartyNumに仮partyを格納、enemy編成をhtmlに展開
     parties[0] = structuredClone(party);
     selectparty();
     // 1から5までの選択肢を削除
-    selectpartymanipu.querySelectorAll('option[value="1"], option[value="2"], option[value="3"], option[value="4"], option[value="5"]').forEach((option) => option.remove());
+    selectpartymanipu.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
   } else {
     //状態の保存とselect入れ替え
     allyorenemy = "ally";
@@ -2762,11 +2761,6 @@ function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-// フラグをチェックする関数
-function checkFlag(target, flagName) {
-  return target.flags[flagName] === true;
-}
-
 //AI追撃targetを返す
 function decideNormalAttackTarget(skillUser) {
   const enemyParty = parties[skillUser.enemyTeamID];
@@ -2822,11 +2816,11 @@ function hasAbnormalityofAINormalAttack(monster) {
   }
   return false;
 }
+//partyicon
 
 //monster選択部分
-let selectingmonstericon = "";
-let selectingmonsternum = "";
-let selectingmonsternumminus1 = "";
+let selectingMonsterIcon = "";
+let selectingMonsterNum = "";
 const partyIcons = document.querySelectorAll(".partyicon");
 partyIcons.forEach((icon) => {
   icon.addEventListener("click", function () {
@@ -2834,14 +2828,13 @@ partyIcons.forEach((icon) => {
     //todo:?
     document.getElementById("selectmonsteroverlay").style.visibility = "visible";
     document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
-    selectingmonstericon = icon.id;
-    selectingmonsternum = selectingmonstericon.replace(/(party|icon)/g, "");
-    selectingmonsternum = Number(selectingmonsternum);
-    selectingmonsternumminus1 = selectingmonsternum - 1;
-    //配列検索用に-1
+    //どの要素をクリックして選択中か格納
+    selectingMonsterIcon = icon.id;
+    //要素idから選択中のモンスターの数値を生成
+    selectingMonsterNum = Number(selectingMonsterIcon.replace(/(party|icon)/g, ""));
   });
 });
-//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingmonstericonにidを格納-partyicon1、selectingmonsternumに1-5を格納、minus1に配列用で1引いてっか右脳
+//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyicon0-4)、selectingMonsterNum(0-4)
 
 document.getElementById("selectmonsteroverlay").addEventListener("click", function () {
   //ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
@@ -2863,24 +2856,23 @@ document.querySelectorAll(".allmonstericons").forEach((img) => {
 function selectMonster(monsterName) {
   //ポップアップ内各画像クリック時に起動
   const newmonsterImageSrc = "images/icons/" + monsterName + ".jpeg";
-  document.getElementById(selectingmonstericon).src = newmonsterImageSrc;
+  document.getElementById(selectingMonsterIcon).src = newmonsterImageSrc;
   //取得した選択中の枠に、ポップアップウィンドウ内で選択したモンスターの画像を代入
   //todo:tabの処理と共通化
-  //todo:-1処理の削除
 
-  const targetgear = "partygear" + selectingmonsternum;
+  const targetgear = "partygear" + selectingMonsterNum;
   document.getElementById(targetgear).src = "images/gear/ungeared.jpeg";
   //装備リセットのため装備アイコンを未選択にselectingmonsternum
 
-  party[selectingmonsternumminus1] = monsters.find((monster) => monster.id == monsterName);
-  //selectingmonsternum-1でparty配列内の何番目の要素か指定、party配列内に引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
+  party[selectingMonsterNum] = monsters.find((monster) => monster.id == monsterName);
+  //party配列内に引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
 
-  party[selectingmonsternumminus1].displaystatus = party[selectingmonsternumminus1].status;
-  party[selectingmonsternumminus1].gearzoubun = defaultgearzoubun;
+  party[selectingMonsterNum].displaystatus = party[selectingMonsterNum].status;
+  party[selectingMonsterNum].gearzoubun = defaultgearzoubun;
   //表示値を宣言、statusを初期値として代入、以下switchtabで種や装備処理を行い、追加する
 
   //格納後、新規モンスターの詳細を表示するため、selectingmonsternumのtabに表示を切り替える
-  switchTab(selectingmonsternum);
+  switchTab(selectingMonsterNum);
 
   // ポップアップウィンドウを閉じる
   document.getElementById("selectmonsteroverlay").style.visibility = "hidden";
@@ -2899,24 +2891,20 @@ let defaultgearzoubun = {
 };
 
 //装備選択部分
-let selectinggear = "";
-let selectinggearnum = "";
-let selectinggearnumminus1 = "";
-
+let selectingGear = "";
+let selectingGearNum = "";
 const partyGear = document.querySelectorAll(".partygear");
 partyGear.forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden";
     document.getElementById("selectgearoverlay").style.visibility = "visible";
     document.getElementById("selectgearpopupwindow").style.opacity = "1";
-    selectinggear = icon.id;
-    selectinggearnum = selectinggear.replace(/(party|gear)/g, "");
-    selectinggearnum = Number(selectinggearnum);
-    selectinggearnumminus1 = selectinggearnum - 1;
-    //配列検索用に-1
+    //どの装備をクリックして選択中か格納
+    selectingGear = icon.id;
+    selectingGearNum = Number(selectingGear.replace(/(party|gear)/g, ""));
   });
 });
-//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得、selectinggearにidを格納-partygear1、selectinggearnumに1-5を格納
+//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得
 
 document.getElementById("selectgearoverlay").addEventListener("click", function () {
   //ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
@@ -2938,12 +2926,12 @@ document.querySelectorAll(".allgear").forEach((img) => {
 function selectgear(gearName) {
   // ポップアップウィンドウ内で選択した装備の画像をポップアップを開く画像に置き換える
   const newgearImageSrc = "images/gear/" + gearName + ".jpeg";
-  document.getElementById(selectinggear).src = newgearImageSrc;
+  document.getElementById(selectingGear).src = newgearImageSrc;
   //取得した選択中の枠に、ウィンドウ内で選択した装備を代入
 
-  party[selectinggearnumminus1].gear = gear.find((gear) => gear.id == gearName);
-  //selectinggearnum-1でparty配列内の何番目の要素か指定、party配列内の、さらに該当要素のgear部分に引数gearNameとidが等しいgearのデータの配列を丸ごと代入
-  party[selectinggearnumminus1].gearzoubun = party[selectinggearnumminus1].gear.status;
+  party[selectingGearNum].gear = gear.find((gear) => gear.id == gearName);
+  //selectingGearNumでparty配列内の何番目の要素か指定、party配列内の、さらに該当要素のgear部分に引数gearNameとidが等しいgearのデータの配列を丸ごと代入
+  party[selectingGearNum].gearzoubun = party[selectingGearNum].gear.status;
 
   //tab遷移は不要、tabm1も不変のため、gear格納、gearstatusをgearzoubunに格納、display再計算、表示変更
   calcandadjustdisplaystatus();
