@@ -47,7 +47,7 @@ function selectparty() {
 
   //頭モンスターを選択状態に
   //これで、icon2種、ステ、種増分、種選択、特技の表示更新も兼ねる
-  switchTab(1);
+  switchTab(0);
 
   function updateImage(elementId, id, gearId) {
     var iconSrc = id ? "images/icons/" + id + ".jpeg" : "images/icons/unselected.jpeg";
@@ -2862,7 +2862,7 @@ function selectMonster(monsterName) {
 
   const targetgear = "partygear" + selectingMonsterNum;
   document.getElementById(targetgear).src = "images/gear/ungeared.jpeg";
-  //装備リセットのため装備アイコンを未選択にselectingmonsternum
+  //装備リセットのため装備アイコンを未選択にselectingMonsterNum
 
   party[selectingMonsterNum] = monsters.find((monster) => monster.id == monsterName);
   //party配列内に引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
@@ -2871,7 +2871,7 @@ function selectMonster(monsterName) {
   party[selectingMonsterNum].gearzoubun = defaultgearzoubun;
   //表示値を宣言、statusを初期値として代入、以下switchtabで種や装備処理を行い、追加する
 
-  //格納後、新規モンスターの詳細を表示するため、selectingmonsternumのtabに表示を切り替える
+  //格納後、新規モンスターの詳細を表示するため、selectingMonsterNumのtabに表示を切り替える
   switchTab(selectingMonsterNum);
 
   // ポップアップウィンドウを閉じる
@@ -2933,8 +2933,8 @@ function selectgear(gearName) {
   //selectingGearNumでparty配列内の何番目の要素か指定、party配列内の、さらに該当要素のgear部分に引数gearNameとidが等しいgearのデータの配列を丸ごと代入
   party[selectingGearNum].gearzoubun = party[selectingGearNum].gear.status;
 
-  //tab遷移は不要、tabm1も不変のため、gear格納、gearstatusをgearzoubunに格納、display再計算、表示変更
-  calcandadjustdisplaystatus();
+  //tab遷移は不要、currentTabも不変のため、gear格納、gearstatusをgearzoubunに格納、display再計算、表示変更
+  calcAndAdjustDisplayStatus();
 
   // ポップアップウィンドウを閉じる
   document.getElementById("selectgearoverlay").style.visibility = "hidden";
@@ -2945,24 +2945,19 @@ function selectgear(gearName) {
 //装備選択部分終了
 
 //タブ遷移時や新規モンス選択時起動、currentTabのステータス、特技、種表示
-function adjuststatusandskilldisplay() {
+function adjustStatusAndSkillDisplay() {
   //丸ごと放り込まれているor操作済みのため、ただ引っ張ってくれば良い
-  //下に移動
-  //ステ表示変更
-
-  //特技を取り出す、party[tabm1].skill[0]がryohu
-  //party内該当monsterのskillのn番目要素と同じ文字列のidをskill配列からfind、そのnameを表示
-  document.getElementById("skill1").textContent = party[tabm1].skill[0];
-  document.getElementById("skill2").textContent = party[tabm1].skill[1];
-  document.getElementById("skill3").textContent = party[tabm1].skill[2];
-  document.getElementById("skill4").textContent = party[tabm1].skill[3];
-  //特技表示変更
-
-  document.getElementById("selectseed-atk").value = party[tabm1].seed.atk;
-  document.getElementById("selectseed-def").value = party[tabm1].seed.def;
-  document.getElementById("selectseed-spd").value = party[tabm1].seed.spd;
-  document.getElementById("selectseed-int").value = party[tabm1].seed.int;
-  changeseedselect();
+  //所持特技名表示変更
+  document.getElementById("skill0").textContent = party[currentTab].skill[0];
+  document.getElementById("skill1").textContent = party[currentTab].skill[1];
+  document.getElementById("skill2").textContent = party[currentTab].skill[2];
+  document.getElementById("skill3").textContent = party[currentTab].skill[3];
+  //種表示変更
+  document.getElementById("selectseed-atk").value = party[currentTab].seed.atk;
+  document.getElementById("selectseed-def").value = party[currentTab].seed.def;
+  document.getElementById("selectseed-spd").value = party[currentTab].seed.spd;
+  document.getElementById("selectseed-int").value = party[currentTab].seed.int;
+  changeSeedSelect();
   //種表示変更
 }
 
@@ -2975,9 +2970,9 @@ let selectseeddef = "";
 let selectseedspd = "";
 let selectseedint = "";
 
-//種変更検知後、値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedzoubuncalcによる増分計算、格納、表示
-//tab遷移、モンスター変更時いずれも、switchTabからadjuststatusandskilldisplay、changeseedselectを起動、seedzoubuncalcで増分計算
-function changeseedselect() {
+//種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedZoubunCalcによる増分計算、格納、表示
+//tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedZoubunCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
+function changeSeedSelect() {
   // 選択された数値を取得
   selectseedatk = document.getElementById("selectseed-atk").value;
   selectseeddef = document.getElementById("selectseed-def").value;
@@ -2985,11 +2980,11 @@ function changeseedselect() {
   selectseedint = document.getElementById("selectseed-int").value;
 
   //この新たな値を、party配列内の表示中のタブのseed情報に格納
-  party[tabm1].seed.atk = selectseedatk;
-  party[tabm1].seed.def = selectseeddef;
-  party[tabm1].seed.spd = selectseedspd;
-  party[tabm1].seed.int = selectseedint;
-  seedzoubuncalc();
+  party[currentTab].seed.atk = selectseedatk;
+  party[currentTab].seed.def = selectseeddef;
+  party[currentTab].seed.spd = selectseedspd;
+  party[currentTab].seed.int = selectseedint;
+  seedZoubunCalc();
 
   // 120上限種無効化処理
   var remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
@@ -3015,7 +3010,7 @@ function changeseedselect() {
 //すべてのselectで、現状の値+remainを超える選択肢をdisable化
 
 //増分計算fun selectseedatkを元に、増分計算・表示、増分をparty該当モンスター内に格納
-function seedzoubuncalc() {
+function seedZoubunCalc() {
   let seedzoubun = {
     HP: "",
     MP: "",
@@ -3067,30 +3062,30 @@ function seedzoubuncalc() {
   document.getElementById("status-info-seedgear-spd").textContent = `(+${spdzoubun})`;
   document.getElementById("status-info-seedgear-int").textContent = `(+${intzoubun})`;
   //増分表示
-  party[tabm1].seedzoubun = seedzoubun;
+  party[currentTab].seedzoubun = seedzoubun;
   //増分格納
 
-  calcandadjustdisplaystatus();
-} //finish seedzoubuncalc
+  calcAndAdjustDisplayStatus();
+}
 
-function calcandadjustdisplaystatus() {
+function calcAndAdjustDisplayStatus() {
   //statusとseedzoubunとgearzoubunを足して、displaystatusを計算、表示更新
 
-  party[tabm1].displaystatus = {
-    HP: party[tabm1].status.HP + party[tabm1].seedzoubun.HP + party[tabm1].gearzoubun.HP,
-    MP: party[tabm1].status.MP + party[tabm1].seedzoubun.MP + party[tabm1].gearzoubun.MP,
-    atk: party[tabm1].status.atk + party[tabm1].seedzoubun.atk + party[tabm1].gearzoubun.atk,
-    def: party[tabm1].status.def + party[tabm1].seedzoubun.def + party[tabm1].gearzoubun.def,
-    spd: party[tabm1].status.spd + party[tabm1].seedzoubun.spd + party[tabm1].gearzoubun.spd,
-    int: party[tabm1].status.int + party[tabm1].seedzoubun.int + party[tabm1].gearzoubun.int,
+  party[currentTab].displaystatus = {
+    HP: party[currentTab].status.HP + party[currentTab].seedzoubun.HP + party[currentTab].gearzoubun.HP,
+    MP: party[currentTab].status.MP + party[currentTab].seedzoubun.MP + party[currentTab].gearzoubun.MP,
+    atk: party[currentTab].status.atk + party[currentTab].seedzoubun.atk + party[currentTab].gearzoubun.atk,
+    def: party[currentTab].status.def + party[currentTab].seedzoubun.def + party[currentTab].gearzoubun.def,
+    spd: party[currentTab].status.spd + party[currentTab].seedzoubun.spd + party[currentTab].gearzoubun.spd,
+    int: party[currentTab].status.int + party[currentTab].seedzoubun.int + party[currentTab].gearzoubun.int,
   };
 
-  document.getElementById("status-info-displayHP").textContent = party[tabm1].displaystatus.HP;
-  document.getElementById("status-info-displayMP").textContent = party[tabm1].displaystatus.MP;
-  document.getElementById("status-info-displayatk").textContent = party[tabm1].displaystatus.atk;
-  document.getElementById("status-info-displaydef").textContent = party[tabm1].displaystatus.def;
-  document.getElementById("status-info-displayspd").textContent = party[tabm1].displaystatus.spd;
-  document.getElementById("status-info-displayint").textContent = party[tabm1].displaystatus.int;
+  document.getElementById("status-info-displayHP").textContent = party[currentTab].displaystatus.HP;
+  document.getElementById("status-info-displayMP").textContent = party[currentTab].displaystatus.MP;
+  document.getElementById("status-info-displayatk").textContent = party[currentTab].displaystatus.atk;
+  document.getElementById("status-info-displaydef").textContent = party[currentTab].displaystatus.def;
+  document.getElementById("status-info-displayspd").textContent = party[currentTab].displaystatus.spd;
+  document.getElementById("status-info-displayint").textContent = party[currentTab].displaystatus.int;
 
   //表示値更新
 }
@@ -3098,9 +3093,9 @@ function calcandadjustdisplaystatus() {
 //タブ処理
 
 //tab選択時の詳細や表示中の切り替えだけ
-function addTabclass(targettabnum) {
+function addTabClass(targetTabNum) {
   const tabButtons = document.querySelectorAll(".monster-info-tabs");
-  const targetTabButton = document.getElementById(`tab${targettabnum}`);
+  const targetTabButton = document.getElementById(`tab${targetTabNum}`);
   tabButtons.forEach((tabButton) => {
     tabButton.classList.remove("selectedtab");
     tabButton.textContent = "詳細";
@@ -3109,16 +3104,14 @@ function addTabclass(targettabnum) {
   targetTabButton.textContent = "表示中";
 }
 
-let currentTab = 1;
-let tabm1 = 0;
+let currentTab = 0;
 function switchTab(tabNumber) {
-  //tab button押した時または新規モンスター選択時に起動、タブ自体の詳細/表示中を切り替え、currentTabに表示中のtabnumを格納、引数tabNumber番目のモンスター情報を取り出して下に表示(ステ、特技、種)
+  //tab button押した時または新規モンスター選択時に起動、タブ自体の詳細/表示中を切り替え、currentTabに表示中のtabnumを格納、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
   currentTab = tabNumber;
-  tabm1 = currentTab - 1;
-  adjuststatusandskilldisplay();
+  adjustStatusAndSkillDisplay();
   //ステ特技種の呼び出しと表示へ
   // タブボタンに枠線を追加する
-  addTabclass(tabNumber);
+  addTabClass(tabNumber);
 }
 
 //monster data

@@ -59,12 +59,12 @@
         <!--finish partygears-container-->
 
         <div id="monsterinfo-tabs">
+          <div id="tab0" class="monster-info-tabs" onclick="switchTab(0)">詳細</div>
           <div id="tab1" class="monster-info-tabs" onclick="switchTab(1)">詳細</div>
           <div id="tab2" class="monster-info-tabs" onclick="switchTab(2)">詳細</div>
           <div id="tab3" class="monster-info-tabs" onclick="switchTab(3)">詳細</div>
           <div id="tab4" class="monster-info-tabs" onclick="switchTab(4)">詳細</div>
-          <div id="tab5" class="monster-info-tabs" onclick="switchTab(5)">詳細</div>
-          <span id="tab6" class="monster-info-tabs" style="display: none"></span>
+          <span id="tab5" class="monster-info-tabs" style="display: none"></span>
         </div>
 
         <!-- ポップアップ部分モンスター選択 -->
@@ -190,7 +190,7 @@
           </div>
           <div class="status-info-seed-seed">
             <div>
-              <select id="selectseed-atk" class="selectseed" onchange="changeseedselect()">
+              <select id="selectseed-atk" class="selectseed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -215,7 +215,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-def" class="selectseed" onchange="changeseedselect()">
+              <select id="selectseed-def" class="selectseed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -240,7 +240,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-spd" class="selectseed" onchange="changeseedselect()">
+              <select id="selectseed-spd" class="selectseed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -265,7 +265,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-int" class="selectseed" onchange="changeseedselect()">
+              <select id="selectseed-int" class="selectseed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -300,10 +300,10 @@
           <br />
           <div class="skill-flex-container">
             <div>
-              <div>1 <span id="skill1"></span></div>
-              <div>2 <span id="skill2"></span></div>
-              <div>3 <span id="skill3"></span></div>
-              <div>4 <span id="skill4"></span></div>
+              <div>1 <span id="skill0"></span></div>
+              <div>2 <span id="skill1"></span></div>
+              <div>3 <span id="skill2"></span></div>
+              <div>4 <span id="skill3"></span></div>
             </div>
             <button id="karidisplaybtn" class="normalbutton" onclick="karitobattlepage()">test用</button>
             <br /><br /><br /><br /><br />
