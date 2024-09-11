@@ -92,14 +92,14 @@ function confirmparty() {
     document.getElementById("playerAorB").textContent = "プレイヤーA";
     //新しいoptionを追加
     for (let i = 1; i <= 5; i++) {
-      selectpartymanipu.innerHTML += `<option value="${i}">パーティ${i}</option>`;
+      selectpartymanipu.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
     }
-    document.getElementById("selectparty").value = 1;
+    document.getElementById("selectparty").value = 0;
     parties[1] = structuredClone(party);
     selectparty();
     //これで戦闘画面から戻った場合はplayer1のparty1が表示
     //6-10を削除
-    selectpartymanipu.querySelectorAll('option[value="6"], option[value="7"], option[value="8"], option[value="9"], option[value="10"]').forEach((option) => option.remove());
+    selectpartymanipu.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
     //displayで全体切り替え、attle画面へ
     document.getElementById("adjustpartypage").style.display = "none";
     document.getElementById("battlepage").style.display = "block";
@@ -3462,7 +3462,7 @@ const monsters = [
     id: "",
     type: "",
     weight: "",
-    status: { HP: 1300, MP: 1300, atk: 1300, def: 1300, spd: 1300, int: 1300 },
+    status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
     skill: ["", "", "", ""],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
