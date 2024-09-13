@@ -1564,23 +1564,13 @@ function decideTurnOrder(parties, skills) {
 }
 
 // 各monsterの行動を実行する関数
-async function processMonsterAction(skillUser, executingSkill, executedSkills = [], isFollowingSkill = false) {
-  /*返り値化
-  // 全てのモンスターの isRecentlyDamaged フラグを削除
-  for (const party of parties) {
-    for (const monster of party) {
-      delete monster.flags.isRecentlyDamaged;
-    }
-  }
-*/
-
+async function processMonsterAction(skillUser, executingSkill) {
   // 1. バフ状態異常継続時間確認
-  if (!isFollowingSkill) {
-    // 行動直前に持続時間を減少させる decreaseBeforeAction
-    decreaseBuffDurationBeforeAction(skillUser);
-    // durationが0になったバフを消去 行動直前に削除(通常タイプ)
-    removeExpiredBuffs(skillUser);
-  }
+  // 行動直前に持続時間を減少させる decreaseBeforeAction
+  decreaseBuffDurationBeforeAction(skillUser);
+  // durationが0になったバフを消去 行動直前に削除(通常タイプ)
+  removeExpiredBuffs(skillUser);
+
   removeallstickout();
 
   // 2. 死亡確認
@@ -1595,7 +1585,7 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
     const abnormalityMessage = hasAbnormality(skillUser);
     console.log(`${skillUser.name}は${abnormalityMessage}`);
     displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
-    await postActionProcess(skillUser, executingSkill, executedSkills);
+    await postActionProcess(skillUser, executingSkill);
     return;
   }
 
@@ -1612,42 +1602,37 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
   if (sealTypes.some((sealType) => executingSkill.type === sealType && skillUser.buffs[sealType + "Seal"] && !executingSkill.skipSkillSealCheck)) {
     // 特技封じされている場合は7. 行動後処理にスキップ
     console.log(`${skillUser.name}はとくぎを封じられている！`);
-    await postActionProcess(skillUser, executingSkill, executedSkills);
+    await postActionProcess(skillUser, executingSkill);
     return;
   }
 
   // 5. 消費MP確認
-  if (!isFollowingSkill) {
-    const MPcost = calculateMPcost(skillUser, executingSkill);
-    if (skillUser.currentstatus.MP >= MPcost) {
-      skillUser.currentstatus.MP -= executingSkill.MPcost;
-      updateMonsterBar(skillUser);
-    } else {
-      console.log("しかし、MPが足りなかった！");
-      displayMessage("しかし、MPが足りなかった！");
-      // MP不足の場合は7. 行動後処理にスキップ
-      await postActionProcess(skillUser, executingSkill, executedSkills);
-      return;
-    }
+  const MPcost = calculateMPcost(skillUser, executingSkill);
+  if (skillUser.currentstatus.MP >= MPcost) {
+    skillUser.currentstatus.MP -= executingSkill.MPcost;
+    updateMonsterBar(skillUser);
+  } else {
+    console.log("しかし、MPが足りなかった！");
+    displayMessage("しかし、MPが足りなかった！");
+    // MP不足の場合は7. 行動後処理にスキップ
+    await postActionProcess(skillUser, executingSkill);
+    return;
   }
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  if (!isFollowingSkill) {
-    displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
-  }
+  displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
   const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
+  let executedSkills = [];
   if (skillUser.confirmedcommandtarget === "") {
-    await executeSkill(skillUser, executingSkill);
+    executedSkills = await executeSkill(skillUser, executingSkill);
   } else {
-    await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)]);
+    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)]);
   }
 
   // 7. 行動後処理
-  // 実行済みスキルを配列末尾に追加
-  executedSkills.push(executingSkill);
-  if (!isFollowingSkill && executingSkill.isOneTimeUse) {
+  if (executingSkill.isOneTimeUse) {
     skillUser.flags.unavailableSkills.push(executingSkill.name);
   }
 
@@ -1655,15 +1640,7 @@ async function processMonsterAction(skillUser, executingSkill, executedSkills = 
 }
 
 // 行動後処理
-async function postActionProcess(skillUser, executingSkill, executedSkills) {
-  // 7-1. followingSkill判定処理
-  if (executingSkill.followingSkill && !(skillUser.confirmedcommand === "skipThisTurn" && !executingSkill.skipDeathCheck)) {
-    // "skipThisTurn" ではない または skipDeathCheck が存在するときに実行
-    await sleep(350);
-    await processMonsterAction(skillUser, findSkillByName(executingSkill.followingSkill), [...executedSkills], true); // スキル実行履歴を引き継ぐ
-    return; // followingSkillを実行した場合は以降の処理はスキップ
-  }
-
+async function postActionProcess(skillUser, executingSkill, executedSkills = null) {
   // 7-2. flag付与
   skillUser.flags.hasActedThisTurn = true;
   if (executingSkill.type !== "notskill") {
@@ -1672,14 +1649,13 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
 
   // 7-3. AI追撃処理
   if (!skillUser.flags.hasDiedThisAction && skillUser.AINormalAttack) {
-    const originalSkill = executedSkills.length > 0 ? executedSkills[0] : executingSkill;
     const noAIskills = ["黄泉の封印", "神獣の封印"];
     if (
       !isDead(skillUser) &&
       !hasAbnormality(skillUser) &&
       skillUser.AINormalAttack &&
       !noAIskills.includes(executingSkill.name) &&
-      !(originalSkill.howToCalculate === "none" && (originalSkill.order === "preemptive" || originalSkill.order === "anchor"))
+      !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor"))
     ) {
       await sleep(300);
       let attackTimes =
@@ -1690,7 +1666,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills) {
         attackTimes += skillUser.buffs.aiExtraAttacks.strength;
       }
       for (let i = 0; i < attackTimes; i++) {
-        await sleep(530); // 追撃ごとに待機時間
+        await sleep(500); // 追撃ごとに待機時間
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
         // 通常攻撃を実行
@@ -1957,26 +1933,44 @@ function handleDeath(target) {
   }
 }
 
-// スキルを実行する関数
 async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
-  // 6. スキル実行処理
-  const killedThisSkill = new Set(); // スキル実行中に死亡したモンスターを追跡
-  // スキル開始時に死亡しているモンスターを記録
-  for (const monster of parties.flat()) {
-    if (monster.flags.isDead) {
-      killedThisSkill.add(monster);
-    }
-  }
+  let currentSkill = executingSkill;
+  // 実行済skillを格納
+  let executedSkills = [];
+  while (currentSkill && skillUser.confirmedcommand !== "skipThisTurn") {
+    //&& !executingSkill.skipDeathCheck
+    // 6. スキル実行処理
+    // 実行済みスキルを配列末尾に追加
+    executedSkills.push(currentSkill);
 
-  //コマンドによるskill実行時にまず全てのskillUser死亡検知フラグをリセット
-  if (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) {
+    // スキル実行中に死亡したモンスターを追跡
+    const killedThisSkill = new Set();
+    // スキル開始時に死亡しているモンスターを記録
     for (const monster of parties.flat()) {
-      delete monster.flags.hasDiedThisAction;
+      if (monster.flags.isDead) {
+        killedThisSkill.add(monster);
+      }
+    }
+
+    //コマンドによるskill実行時にまず全てのskillUser死亡検知フラグをリセット
+    if (!currentSkill.trigger || (currentSkill.trigger !== "death" && currentSkill.trigger !== "damageTaken")) {
+      for (const monster of parties.flat()) {
+        delete monster.flags.hasDiedThisAction;
+      }
+    }
+
+    // ヒット処理の実行
+    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0);
+
+    // followingSkillが存在する場合、次のスキルを取得
+    if (currentSkill.followingSkill) {
+      currentSkill = findSkillByName(currentSkill.followingSkill);
+      await sleep(350);
+    } else {
+      currentSkill = null; // ループを抜けるためにnullを設定
     }
   }
-
-  // ヒット処理の実行
-  await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, 0);
+  return executedSkills;
 }
 
 // ヒットシーケンスを処理する関数
