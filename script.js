@@ -1454,6 +1454,7 @@ function decideTurnOrder(parties, skills) {
       normalMonsters.push(monster);
     }
   });
+  //死亡もしくはAIのモンスターはpreemptiveActionMonsters, anchorActionMonsters, normalMonstersのいずれかに格納される
 
   // 行動順を決定
   turnOrder = [];
@@ -1564,39 +1565,46 @@ function decideTurnOrder(parties, skills) {
 
 // 各monsterの行動を実行する関数
 async function processMonsterAction(skillUser, executingSkill, executedSkills = [], isFollowingSkill = false) {
+  /*返り値化
   // 全てのモンスターの isRecentlyDamaged フラグを削除
   for (const party of parties) {
     for (const monster of party) {
       delete monster.flags.isRecentlyDamaged;
     }
   }
+*/
 
-  // 1. 死亡確認
-  if (skillUser.confirmedcommand === "skipThisTurn") {
-    return; // 行動前に一回でも死んでいたら処理をスキップ
-  }
-
-  removeallstickout();
-  if (executingSkill.name === "ぼうぎょ") {
-    document.getElementById(skillUser.iconElementId).parentNode.classList.add("recede");
-  } else {
-    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickout");
-  }
-
-  // 2. バフ状態異常継続時間確認
+  // 1. バフ状態異常継続時間確認
   if (!isFollowingSkill) {
     // 行動直前に持続時間を減少させる decreaseBeforeAction
     decreaseBuffDurationBeforeAction(skillUser);
     // durationが0になったバフを消去 行動直前に削除(通常タイプ)
     removeExpiredBuffs(skillUser);
   }
+  removeallstickout();
 
-  // 3. 状態異常確認
-  if (hasAbnormality(skillUser) && !executingSkill.skipAbnormalityCheck) {
+  // 2. 死亡確認
+  if (skillUser.confirmedcommand === "skipThisTurn") {
+    return; // 行動前に一回でも死んでいたら処理をスキップ
+  }
+
+  // 状態異常確認
+
+  if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
-    console.log(`${skillUser.name}は状態異常`);
+    const abnormalityMessage = hasAbnormality(skillUser);
+    console.log(`${skillUser.name}は${abnormalityMessage}`);
+    displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
     await postActionProcess(skillUser, executingSkill, executedSkills);
     return;
+  }
+
+  // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
+
+  if (executingSkill.name === "ぼうぎょ") {
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("recede");
+  } else {
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickout");
   }
 
   // 4. 特技封じ確認
@@ -1752,10 +1760,19 @@ function isDead(monster) {
 
 // 状態異常判定を行う関数
 function hasAbnormality(monster) {
-  const abnormalityKeys = ["fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "stoned"];
-  for (const key of abnormalityKeys) {
+  const abnormalityMessages = {
+    stoned: "鉄のようになり  みがまえている！",
+    paralyzed: "からだがしびれて動けない！",
+    asleep: "ねむっている！",
+    confused: "こんらんしている！",
+    fear: "動きを  ふうじられている！",
+    tempted: "動きを  ふうじられている！",
+    sealed: "動きを  ふうじられている！",
+  };
+
+  for (const key in abnormalityMessages) {
     if (monster.buffs[key]) {
-      return true;
+      return abnormalityMessages[key];
     }
   }
   return false;
@@ -5034,7 +5051,6 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       delete monster.flags.hasDiedThisAction;
       delete monster.flags.isDead;
       delete monster.flags.isZombie;
-      delete monster.flags.isRecentlyDamaged;
       applyDamage(monster, -1500, -1);
       applyDamage(monster, -1500, -1, true);
       updatebattleicons(monster);
