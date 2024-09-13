@@ -1590,6 +1590,38 @@ async function processMonsterAction(skillUser, executingSkill) {
   }
 
   // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
+  if (skillUser.confirmedcommand === "normalAICommand") {
+    skillUser.confirmedcommand === "通常攻撃";
+    //decideNormalAICommand(skillUser);
+  }
+
+  function decideNormalAICommand(skillUser) {
+    const availableSkills = [];
+    for (const skillName of skillUser.skill) {
+      const skillInfo = findSkillByName(skillName);
+      const unavailableOnAISkills = ["黄泉の封印", "神獣の封印"];
+      const MPcost = calculateMPcost(skillUser, skillInfo);
+
+      // 除外条件のいずれかを満たすかどうかをチェック
+      if (
+        unavailableOnAISkills.includes(skillName) ||
+        skillInfo.order !== undefined ||
+        (skillUser.buffs[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) ||
+        skillUser.currentstatus.MP < MPcost ||
+        (executingSkill.targetTeam !== "ally" &&
+          !executingSkill.ignoreReflection &&
+          (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill")) &&
+          executingSkill.appliedEffect !== "divineWave" &&
+          executingSkill.appliedEffect !== "disruptiveWave")
+      ) {
+        continue; // 条件を満たす場合は、次のスキルへ
+      }
+      //全部だめなら通常攻撃;
+
+      // 条件を満たさない場合は、availableSkillsに追加
+      availableSkills.push(skillInfo);
+    }
+  }
 
   if (executingSkill.name === "ぼうぎょ") {
     document.getElementById(skillUser.iconElementId).parentNode.classList.add("recede");
@@ -1598,10 +1630,10 @@ async function processMonsterAction(skillUser, executingSkill) {
   }
 
   // 4. 特技封じ確認
-  const sealTypes = ["spell", "breath", "slash", "martial"];
-  if (sealTypes.some((sealType) => executingSkill.type === sealType && skillUser.buffs[sealType + "Seal"] && !executingSkill.skipSkillSealCheck)) {
+  if (skillUser.buffs[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) {
     // 特技封じされている場合は7. 行動後処理にスキップ
-    console.log(`${skillUser.name}はとくぎを封じられている！`);
+    console.log(`${executingSkill.type}はふうじこめられている！`);
+    displayMessage(`${executingSkill.type}はふうじこめられている！`);
     await postActionProcess(skillUser, executingSkill);
     return;
   }
