@@ -814,7 +814,7 @@ async function startbattle() {
   decideTurnOrder(parties, skill);
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
-    await processMonsterAction(monster, findSkillByName(monster.confirmedcommand));
+    await processMonsterAction(monster);
     await sleep(750);
   }
   startTurn();
@@ -1564,7 +1564,7 @@ function decideTurnOrder(parties, skills) {
 }
 
 // 各monsterの行動を実行する関数
-async function processMonsterAction(skillUser, executingSkill) {
+async function processMonsterAction(skillUser) {
   // 1. バフ状態異常継続時間確認
   // 行動直前に持続時間を減少させる decreaseBeforeAction
   decreaseBuffDurationBeforeAction(skillUser);
@@ -1580,6 +1580,13 @@ async function processMonsterAction(skillUser, executingSkill) {
 
   // 状態異常確認
 
+  // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
+  if (skillUser.confirmedcommand === "normalAICommand") {
+    skillUser.confirmedcommand = "通常攻撃";
+    //decideNormalAICommand(skillUser);
+  }
+  let executingSkill = findSkillByName(skillUser.confirmedcommand);
+
   if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
     const abnormalityMessage = hasAbnormality(skillUser);
@@ -1587,12 +1594,6 @@ async function processMonsterAction(skillUser, executingSkill) {
     displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
     await postActionProcess(skillUser, executingSkill);
     return;
-  }
-
-  // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
-  if (skillUser.confirmedcommand === "normalAICommand") {
-    skillUser.confirmedcommand === "通常攻撃";
-    //decideNormalAICommand(skillUser);
   }
 
   function decideNormalAICommand(skillUser) {
@@ -1653,13 +1654,13 @@ async function processMonsterAction(skillUser, executingSkill) {
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  if ((executingSkill.type = "spell")) {
+  if (executingSkill.type === "spell") {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  となえた！`);
-  } else if ((executingSkill.type = "slash")) {
+  } else if (executingSkill.type === "slash") {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  はなった！`);
-  } else if ((executingSkill.name = "通常攻撃")) {
+  } else if (executingSkill.name === "通常攻撃") {
     displayMessage(`${skillUser.name}のこうげき！`);
-  } else if ((executingSkill.name = "ぼうぎょ")) {
+  } else if (executingSkill.name === "ぼうぎょ") {
     displayMessage(`${skillUser.name}は身を守っている！`);
   } else {
     displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
