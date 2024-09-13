@@ -1621,7 +1621,17 @@ async function processMonsterAction(skillUser, executingSkill) {
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  if ((executingSkill.type = "spell")) {
+    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  となえた！`);
+  } else if ((executingSkill.type = "slash")) {
+    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  はなった！`);
+  } else if ((executingSkill.name = "通常攻撃")) {
+    displayMessage(`${skillUser.name}のこうげき！`);
+  } else if ((executingSkill.name = "ぼうぎょ")) {
+    displayMessage(`${skillUser.name}は身を守っている！`);
+  } else {
+    displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+  }
   const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
