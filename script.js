@@ -1669,9 +1669,9 @@ async function processMonsterAction(skillUser) {
   await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
   if (skillUser.confirmedcommandtarget === "") {
-    executedSkills = await executeSkill(skillUser, executingSkill);
+    executedSkills = await executeSkill(skillUser, executingSkill, null, true);
   } else {
-    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)]);
+    executedSkills = await executeSkill(skillUser, executingSkill, Number(skillUser.confirmedcommandtarget), true);
   }
 
   // 7. 行動後処理
@@ -1976,7 +1976,7 @@ function handleDeath(target) {
   }
 }
 
-async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
+async function executeSkill(skillUser, executingSkill, assignedTarget = null, isProcessMonsterAction = false) {
   let currentSkill = executingSkill;
   // 実行済skillを格納
   let executedSkills = [];
@@ -1989,16 +1989,20 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null) {
     // スキル実行中に死亡したモンスターを追跡
     const killedThisSkill = new Set();
     // スキル開始時に死亡しているモンスターを記録
-    for (const monster of parties.flat()) {
-      if (monster.flags.isDead) {
-        killedThisSkill.add(monster);
+    for (const party of parties) {
+      for (const monster of party) {
+        if (monster.flags.isDead) {
+          killedThisSkill.add(monster);
+        }
       }
     }
 
     //コマンドによるskill実行時にまず全てのskillUser死亡検知フラグをリセット
-    if (!currentSkill.trigger || (currentSkill.trigger !== "death" && currentSkill.trigger !== "damageTaken")) {
-      for (const monster of parties.flat()) {
-        delete monster.flags.hasDiedThisAction;
+    if (isProcessMonsterAction) {
+      for (const party of parties) {
+        for (const monster of party) {
+          delete monster.flags.hasDiedThisAction;
+        }
       }
     }
 
@@ -2149,7 +2153,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
       applyDamage(skillTarget, 0, "");
-      return false;
+      return;
     }
     // 反射持ちかつ反射無視でない、かつ味方対象ではなく、かつ波動系ではないならば反射化
     if (
@@ -2168,7 +2172,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
     // isDamageExsistingはfalseで送る
     processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    return false;
+    return;
   }
 
   function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
@@ -2199,7 +2203,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
       applyDamage(skillTarget, 0, "");
-      return false;
+      return;
     }
   }
 
@@ -2212,7 +2216,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
       applyDamage(skillTarget, 0, "");
-      return false;
+      return;
     }
     //反射持ちかつ反射無視でない かつ味方対象ではないならば反射化し、耐性も変更
     if (
@@ -2526,16 +2530,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       killedThisSkill.add(skillTarget);
     }
     delete skillTarget.flags.recentlyKilled;
-  }
-  // 大元のスキル使用者(assignedSkillUser)が死亡したら true を返す
-  if (assignedSkillUser.flags.recentlyKilled) {
-    if (!killedThisSkill.has(assignedSkillUser)) {
-      killedThisSkill.add(skillTarget);
-    }
-    delete assignedSkillUser.flags.recentlyKilled;
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -5083,7 +5077,6 @@ document.getElementById("revivebtn").addEventListener("click", function () {
   for (const party of parties) {
     for (const monster of party) {
       monster.currentstatus.HP = 200;
-      delete monster.flags.recentlyKilled;
       delete monster.flags.beforeDeathActionCheck;
       delete monster.flags.hasDiedThisAction;
       delete monster.flags.isDead;
