@@ -1980,9 +1980,16 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let currentSkill = executingSkill;
   // 実行済skillを格納
   let executedSkills = [];
+  let isFollowingSkill = false;
+  let executedSingleSkillTarget = [];
   while (currentSkill && skillUser.confirmedcommand !== "skipThisTurn") {
     //&& !executingSkill.skipDeathCheck
     // 6. スキル実行処理
+    // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
+    if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
+      break;
+    }
+
     // 実行済みスキルを配列末尾に追加
     executedSkills.push(currentSkill);
 
@@ -2007,11 +2014,12 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     }
 
     // ヒット処理の実行
-    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0);
+    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0, null, executedSingleSkillTarget);
 
-    // followingSkillが存在する場合、次のスキルを取得
+    // followingSkillが存在する場合、次のスキルを代入してループ
     if (currentSkill.followingSkill) {
       currentSkill = findSkillByName(currentSkill.followingSkill);
+      isFollowingSkill = true;
       await sleep(350);
     } else {
       currentSkill = null; // ループを抜けるためにnullを設定
@@ -2021,7 +2029,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 }
 
 // ヒットシーケンスを処理する関数
-async function processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, singleSkillTarget = null) {
+async function processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, singleSkillTarget = null, executedSingleSkillTarget = null) {
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
@@ -2067,6 +2075,8 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
         if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
           skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
         }
+        // 初回hitのみ実行 singleのみ、最終的なみがわり処理後のskillTargetをexecutedSingleSkillTargetに格納
+        executedSingleSkillTarget.push(skillTarget);
       } else {
         // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
         skillTarget = singleSkillTarget;
