@@ -1671,7 +1671,7 @@ async function processMonsterAction(skillUser) {
   if (skillUser.confirmedcommandtarget === "") {
     executedSkills = await executeSkill(skillUser, executingSkill, null, true);
   } else {
-    executedSkills = await executeSkill(skillUser, executingSkill, Number(skillUser.confirmedcommandtarget), true);
+    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)], true);
   }
 
   // 7. 行動後処理
@@ -2046,7 +2046,12 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
         return;
       }
       for (const target of aliveMonsters) {
-        await processHit(skillUser, executingSkill, target, killedThisSkill);
+        let eachTarget = target;
+        // みがわり処理 味方補助でないかつみがわり無視でないときに変更
+        if (eachTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
+          eachTarget = parties.flat().find((monster) => monster.monsterId === eachTarget.flags.hasSubstitute.targetMonsterId);
+        }
+        await processHit(skillUser, executingSkill, eachTarget, killedThisSkill);
       }
       break;
     case "single":
@@ -2057,6 +2062,10 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
         // ターゲットが存在しない場合は処理を中断
         if (!skillTarget) {
           return;
+        }
+        // みがわり処理 味方補助でないかつみがわり無視でないときに変更
+        if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
+          skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
         }
       } else {
         // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
@@ -2071,11 +2080,15 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
     case "random":
       // ランダム攻撃
       skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, killedThisSkill, currentHit);
-      if (skillTarget) {
-        await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
-      } else {
+      // ターゲットが存在しない場合は処理を中断
+      if (!skillTarget) {
         return;
       }
+      // みがわり処理 味方補助でないかつみがわり無視でないときに変更
+      if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
+        skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+      }
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
       break;
     case "me":
       // 自分自身をターゲット
@@ -2143,10 +2156,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let skillUser = assignedSkillUser;
   let isReflection = false;
   let reflectionType = "yosoku";
-  // みがわり処理 味方補助でないかつみがわり無視でないときに処理
-  if (assignedSkillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
-    skillTarget = parties.flat().find((monster) => monster.monsterId === assignedSkillTarget.flags.hasSubstitute.targetMonsterId);
-  }
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
@@ -5314,7 +5323,6 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   let buffIndex = 0;
 
   function showNextBuffs() {
-    console.log("実行");
     buffIcons.forEach((icon) => (icon.style.display = "none"));
 
     const startIndex = buffIndex * 3;
