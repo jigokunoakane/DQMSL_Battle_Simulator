@@ -4497,6 +4497,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    excludeTarget: "me",
     MPcost: 16,
     order: "preemptive",
     preemptivegroup: 3,
