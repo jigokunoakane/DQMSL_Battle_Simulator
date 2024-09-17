@@ -696,6 +696,12 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 function startTurn() {
   fieldState.turnNum++;
   const turnNum = fieldState.turnNum;
+  fieldState.cooperation = {
+    lastTeamID: null,
+    lastSkillType: null,
+    count: 1,
+    isValid: false,
+  };
   displayMessage(`ラウンド${turnNum}`, null, true);
   //ターン開始時loop
   for (const party of parties) {
@@ -1656,6 +1662,37 @@ async function processMonsterAction(skillUser) {
     return;
   }
 
+  // 6. スキル実行処理の前に連携状態を確認
+  const currentTeamID = skillUser.teamID;
+  const previousTeamID = fieldState.cooperation.lastTeamID;
+  const previousSkillType = fieldState.cooperation.lastSkillType;
+  const isCooperationValid = fieldState.cooperation.isValid;
+  // 前回の行動と同じチームID・typeかつ、通常攻撃やダメージ無しではないときに連携
+  if (isCooperationValid && currentTeamID === previousTeamID && executingSkill.type === previousSkillType && executingSkill.type !== "notskill" && executingSkill.howToCalculate !== "none") {
+    // 100%連携継続
+    fieldState.cooperation.count++;
+    console.log("100%の連携継続が発生");
+    console.log(`${fieldState.cooperation.count}連携!`);
+  } else if (isCooperationValid && currentTeamID === previousTeamID && executingSkill.type !== "notskill" && executingSkill.howToCalculate !== "none" && Math.random() < 0.33) {
+    // 33%の確率で連携継続
+    fieldState.cooperation.count++;
+    console.log("33%の連携継続が発生");
+    console.log(`${fieldState.cooperation.count}連携!`);
+  } else {
+    // 連携リセット
+    fieldState.cooperation.count = 1;
+    console.log("連携reset");
+  }
+  // スキル実行前に連携情報を更新
+  fieldState.cooperation.lastTeamID = currentTeamID;
+  fieldState.cooperation.lastSkillType = executingSkill.type;
+  // ダメージなしやskill以外のときはfalseに設定し、ダメージなし等から連携が継続しないように
+  if (executingSkill.type === "notskill" || executingSkill.howToCalculate === "none") {
+    fieldState.cooperation.isValid = false;
+  } else {
+    fieldState.cooperation.isValid = true;
+  }
+
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
   if (executingSkill.type === "spell") {
@@ -2018,7 +2055,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     }
 
     // ヒット処理の実行
-    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0, null, executedSingleSkillTarget);
+    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction);
 
     // followingSkillが存在する場合、次のスキルを代入してループ
     if (currentSkill.followingSkill) {
@@ -2033,7 +2070,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 }
 
 // ヒットシーケンスを処理する関数
-async function processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, singleSkillTarget = null, executedSingleSkillTarget = null) {
+async function processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, singleSkillTarget = null, executedSingleSkillTarget = null, isProcessMonsterAction) {
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
@@ -2063,7 +2100,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
         if (eachTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
           eachTarget = parties.flat().find((monster) => monster.monsterId === eachTarget.flags.hasSubstitute.targetMonsterId);
         }
-        await processHit(skillUser, executingSkill, eachTarget, killedThisSkill);
+        await processHit(skillUser, executingSkill, eachTarget, killedThisSkill, isProcessMonsterAction);
       }
       break;
     case "single":
@@ -2089,7 +2126,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
           return;
         }
       }
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
     case "random":
       // ランダム攻撃
@@ -2102,17 +2139,17 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
         skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
       }
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
     case "me":
       // 自分自身をターゲット
       skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
     case "dead":
       // 蘇生特技
       skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
     default:
       console.error("無効なターゲットタイプ:", executingSkill.targetType);
@@ -2129,7 +2166,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
     // 次のヒット処理
     currentHit++;
     await sleep(70);
-    await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget);
+    await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget, isProcessMonsterAction);
   }
 }
 
@@ -2165,7 +2202,7 @@ function determineRandomTarget(target, skillUser, executingSkill, killedThisSkil
 }
 
 // ヒット処理を実行する関数
-async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, killedThisSkill) {
+async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, killedThisSkill, isProcessMonsterAction) {
   let skillTarget = assignedSkillTarget;
   let skillUser = assignedSkillUser;
   let isReflection = false;
@@ -2417,6 +2454,19 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //連携
+  if (isProcessMonsterAction && executingSkill.howToCalculate !== "MP") {
+    const cooperationDamageMultiplier = {
+      1: 1,
+      2: 1.2,
+      3: 1.3,
+      4: 1.4,
+      5: 1.5,
+      6: 1.5,
+    };
+    const multiplier = cooperationDamageMultiplier[fieldState.cooperation.count] || 1;
+    damage *= multiplier;
+    console.log(`連携倍率で${multiplier}倍された`);
+  }
 
   //乗算バフ
 
