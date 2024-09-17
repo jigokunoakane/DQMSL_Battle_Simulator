@@ -1598,29 +1598,33 @@ async function processMonsterAction(skillUser) {
 
   function decideNormalAICommand(skillUser) {
     const availableSkills = [];
+    const unavailableSkillsOnAI = ["黄泉の封印", "超魔滅光", "神獣の封印", "エンドブレス", "涼風一陣", "昇天斬り", "誇りのつるぎ", "狂気のいあつ"];
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
-      const unavailableOnAISkills = ["黄泉の封印", "神獣の封印"];
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
-      // 除外条件のいずれかを満たすかどうかをチェック
+      // 除外条件のいずれかを満たすとき次へ送る
       if (
-        unavailableOnAISkills.includes(skillName) ||
+        unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
-        (skillUser.buffs[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) ||
+        (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.currentstatus.MP < MPcost ||
-        (executingSkill.targetTeam !== "ally" &&
-          !executingSkill.ignoreReflection &&
-          (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill")) &&
-          executingSkill.appliedEffect !== "divineWave" &&
-          executingSkill.appliedEffect !== "disruptiveWave")
+        skillInfo.howToCalculate === "none" ||
+        //仮で敵対象skillのみ
+        skillInfo.targetTeam !== "enemy" ||
+        //反射が存在
+        (skillInfo.targetTeam === "enemy" &&
+          (skillInfo.targetType === "all" || skillInfo.targetType === "random") &&
+          !skillInfo.ignoreReflection &&
+          parties[skillUser.enemyTeamID].some((monster) => {
+            return monster.buffs[skillInfo.type + "Reflection"] || (monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta && skillInfo.type === "notskill");
+          }))
       ) {
-        continue; // 条件を満たす場合は、次のスキルへ
+        continue;
       }
-      //全部だめなら通常攻撃;
-
       // 条件を満たさない場合は、availableSkillsに追加
       availableSkills.push(skillInfo);
+      //全部だめなら通常攻撃;
     }
   }
 
@@ -2105,7 +2109,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       skillTarget = skillUser;
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
       break;
-    case "Dead":
+    case "dead":
       // 蘇生特技
       skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill);
@@ -2174,9 +2178,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       applyDamage(skillTarget, 0, "");
       return;
     }
-    // 反射持ちかつ反射無視でない、かつ味方対象ではなく、かつ波動系ではないならば反射化
+    // 反射持ちかつ反射無視でない、かつ敵対象で、かつ波動系ではないならば反射化
     if (
-      executingSkill.targetTeam !== "ally" &&
+      executingSkill.targetTeam === "enemy" &&
       !executingSkill.ignoreReflection &&
       (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill")) &&
       executingSkill.appliedEffect !== "divineWave" &&
@@ -2237,9 +2241,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       applyDamage(skillTarget, 0, "");
       return;
     }
-    //反射持ちかつ反射無視でない かつ味方対象ではないならば反射化し、耐性も変更
+    //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
     if (
-      executingSkill.targetTeam !== "ally" &&
+      executingSkill.targetTeam === "enemy" &&
       !executingSkill.ignoreReflection &&
       (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
     ) {
