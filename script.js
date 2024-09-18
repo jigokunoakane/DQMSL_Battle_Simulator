@@ -4888,29 +4888,6 @@ const gear = [
   {},
 ]; //finish gear
 
-document.getElementById("preActionbtn").addEventListener("click", function () {
-  const preActiondetector = document.getElementById("preActionbtn").textContent;
-  if (preActiondetector === "味方神速") {
-    document.getElementById("preActionbtn").textContent = "4のみ";
-    parties[0][0].buffs.preemptiveAction = 100;
-    parties[0][1].buffs.preemptiveAction = 100;
-    parties[0][2].buffs.preemptiveAction = 100;
-    parties[0][3].buffs.preemptiveAction = 100;
-    parties[0][4].buffs.preemptiveAction = 100;
-  } else {
-    document.getElementById("preActionbtn").textContent = "味方神速";
-    for (const party of parties) {
-      for (const monster of party) {
-        delete monster.buffs.preemptiveAction;
-      }
-    }
-    if (parties[0] && parties[0][3]) {
-      parties[0][3].buffs.preemptiveAction = 100;
-    }
-  }
-  decideTurnOrder(parties, skill);
-});
-
 document.getElementById("elementErrorbtn").addEventListener("click", function () {
   const elementErrortext = document.getElementById("elementErrorbtn").textContent;
   if (elementErrortext === "エレエラ") {
@@ -4924,14 +4901,13 @@ document.getElementById("elementErrorbtn").addEventListener("click", function ()
 
 document.getElementById("Reversebtn").addEventListener("click", function () {
   const reversedetector = document.getElementById("Reversebtn").textContent;
-  if (reversedetector === "リバース化") {
-    document.getElementById("Reversebtn").textContent = "リバース解除";
+  if (reversedetector === "リバ化") {
+    document.getElementById("Reversebtn").textContent = "リバ解除";
     fieldState.isReverse = true;
   } else {
-    document.getElementById("Reversebtn").textContent = "リバース化";
+    document.getElementById("Reversebtn").textContent = "リバ化";
     fieldState.isReverse = false;
   }
-  decideTurnOrder(parties, skill);
 });
 
 //画像の暗転と無効化 trueで暗転
@@ -5158,7 +5134,7 @@ document.getElementById("revivebtn").addEventListener("click", function () {
       applyDamage(monster, -1500, -1);
       applyDamage(monster, -1500, -1, true);
       updatebattleicons(monster);
-      displayMessage("ザオリーマをとなえた");
+      displayMessage("戦闘リセット");
     }
   }
   preparebattle();
@@ -5212,10 +5188,9 @@ document.getElementById("endbtn").addEventListener("click", function () {
   executeSkill(parties[0][1], findSkillByName("エンドブレス"), parties[1][0]);
 });
 
-const messageLine1 = document.getElementById("message-line1");
-const messageLine2 = document.getElementById("message-line2");
-
 function displayMessage(line1Text, line2Text = "", centerText = false) {
+  const messageLine1 = document.getElementById("message-line1");
+  const messageLine2 = document.getElementById("message-line2");
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
   if (centerText) {
