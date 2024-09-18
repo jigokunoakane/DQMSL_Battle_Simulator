@@ -693,7 +693,7 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 //ここは最大ダメージ検知AIなども含めて統合処理
 
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
-function startTurn() {
+async function startTurn() {
   fieldState.turnNum++;
   const turnNum = fieldState.turnNum;
   fieldState.cooperation = {
@@ -702,7 +702,6 @@ function startTurn() {
     count: 1,
     isValid: false,
   };
-  displayMessage(`ラウンド${turnNum}`, null, true);
   //ターン開始時loop
   for (const party of parties) {
     for (const monster of party) {
@@ -726,6 +725,30 @@ function startTurn() {
   //durationが0になったバフを消去 ターン開始時に削除(帝王の構えや予測等、removeAtTurnStart指定)
   removeExpiredBuffsAtTurnStart();
 
+  if (turnNum === 1) {
+    displayMessage(`${parties[1][0].name}たちが  あらわれた！`);
+    await sleep(600);
+    displayMessage("モンスターの特性が発動した！");
+    // 戦闘開始時にバフを付与するapplyInitialBuffs
+    for (const party of parties) {
+      for (const monster of party) {
+        if (monster.flags.isDead) {
+          continue;
+        }
+
+        // 戦闘開始時に付与するバフ
+        const initialBuffs = monster.attribute.initialBuffs || {};
+
+        // バフを適用 (間隔なし)
+        for (const buffName in initialBuffs) {
+          applyBuff(monster, { [buffName]: structuredClone(initialBuffs[buffName]) }, null, false, true);
+        }
+      }
+    }
+    await sleep(600);
+  }
+  displayMessage(`ラウンド${turnNum}`, null, true);
+
   // バフ対象の種類
   const BuffTargetType = {
     Self: "self",
@@ -734,79 +757,90 @@ function startTurn() {
     All: "all",
     Random: "random",
   };
-  // monster.attributeに含まれるもののうちturnNumに等しいものをbuffに入れる
+
+  // 非同期処理でバフを適用
+  const applyBuffsAsync = async (monster, buffs) => {
+    for (const buffName in buffs) {
+      const buffData = buffs[buffName];
+
+      // バフ対象の取得
+      const targetType = buffData.targetType || BuffTargetType.Self; // デフォルトは自分自身
+      const aliveAllys = parties[monster.teamID].filter((monster) => !monster.flags.isDead);
+      const aliveEnemies = parties[monster.enemyTeamID].filter((monster) => !monster.flags.isDead);
+
+      // バフ対象に応じた処理
+      switch (targetType) {
+        case BuffTargetType.Self:
+          applyBuff(monster, { [buffName]: structuredClone(buffData) });
+          break;
+        case BuffTargetType.Ally:
+          for (const ally of aliveAllys) {
+            // 自分除外時はally !== monster
+            applyBuff(ally, { [buffName]: structuredClone(buffData) });
+            await sleep(150); // 150ms待機
+          }
+          break;
+        case BuffTargetType.Enemy:
+          for (const enemy of aliveEnemies) {
+            applyBuff(enemy, { [buffName]: structuredClone(buffData) });
+            await sleep(150); // 150ms待機
+          }
+          break;
+        case BuffTargetType.All:
+          for (const allMonster of parties.flat()) {
+            if (!allMonster.flags.isDead) {
+              applyBuff(allMonster, { [buffName]: structuredClone(buffData) });
+              await sleep(150); // 150ms待機
+            }
+          }
+          break;
+        case BuffTargetType.Random:
+          const aliveMonsters = (buffData.targetTeam === "ally" ? allyParty : enemyParty).filter((monster) => !monster.flags.isDead);
+          const targetNum = buffData.targetNum || 1; // targetNumが指定されていない場合は1回
+
+          for (let i = 0; i < targetNum; i++) {
+            if (aliveMonsters.length > 0) {
+              const randomIndex = Math.floor(Math.random() * aliveMonsters.length);
+              const randomTarget = aliveMonsters[randomIndex];
+              applyBuff(randomTarget, { [buffName]: structuredClone(buffData) });
+              // 重複は許可
+              //aliveMonsters.splice(randomIndex, 1);
+              await sleep(150); // 150ms待機
+            }
+          }
+          break;
+      }
+      await sleep(150); // バフ適用ごとに150ms待機
+    }
+  };
+
+  // バフ適用処理
+  const applyBuffsForMonster = async (monster) => {
+    if (monster.flags.isDead) {
+      return;
+    }
+
+    // すべてのバフをまとめる
+    const allBuffs = {
+      ...(monster.attribute[turnNum] || {}),
+      ...(monster.attribute.permanentBuffs || {}),
+      ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
+      ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
+      ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
+    };
+
+    // バフを適用
+    await applyBuffsAsync(monster, allBuffs);
+  };
+
+  // すべてのモンスターにバフを適用
+  await sleep(700);
   for (const party of parties) {
     for (const monster of party) {
-      if (monster.flags.isDead) {
-        continue;
-      }
-      // バフを適用する関数
-      const applyBuffs = (buffs) => {
-        for (const buffName in buffs) {
-          const buffData = buffs[buffName];
-
-          // バフ対象の取得
-          const targetType = buffData.targetType || BuffTargetType.Self; // デフォルトは自分自身
-
-          // バフ対象に応じた処理
-          switch (targetType) {
-            case BuffTargetType.Self:
-              applyBuff(monster, { [buffName]: structuredClone(buffData) });
-              break;
-            case BuffTargetType.Ally:
-              for (const ally of party) {
-                if (!ally.flags.isDead) {
-                  //自分除外時はally !== monster &&
-                  applyBuff(ally, { [buffName]: structuredClone(buffData) });
-                }
-              }
-              break;
-            case BuffTargetType.Enemy:
-              const enemyParty = parties.find((p) => p !== party);
-              for (const enemy of enemyParty) {
-                if (!enemy.flags.isDead) {
-                  applyBuff(enemy, { [buffName]: structuredClone(buffData) });
-                }
-              }
-              break;
-            case BuffTargetType.All:
-              for (const allMonster of parties.flat()) {
-                if (!allMonster.flags.isDead) {
-                  applyBuff(allMonster, { [buffName]: structuredClone(buffData) });
-                }
-              }
-              break;
-            case BuffTargetType.Random:
-              const aliveMonsters = (buffData.targetTeam === "ally" ? party : parties[monster.enemyTeamID]).filter((monster) => !monster.flags.isDead);
-              const targetNum = buffData.targetNum || 1; // targetNumが指定されていない場合は1回
-
-              for (let i = 0; i < targetNum; i++) {
-                if (aliveMonsters.length > 0) {
-                  const randomIndex = Math.floor(Math.random() * aliveMonsters.length);
-                  const randomTarget = aliveMonsters[randomIndex];
-                  applyBuff(randomTarget, { [buffName]: structuredClone(buffData) });
-                  // 重複は許可
-                  //aliveMonsters.splice(randomIndex, 1);
-                }
-              }
-              break;
-          }
-        }
-      };
-
-      // すべてのバフをまとめる
-      const allBuffs = {
-        ...(monster.attribute[turnNum] || {}),
-        ...(monster.attribute.permanentBuffs || {}),
-        ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
-        ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
-        ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
-      };
-
-      // allBuffs を applyBuffs に渡す
-      applyBuffs(allBuffs);
+      await applyBuffsForMonster(monster);
     }
   }
+
   //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
   closeSelectCommandPopupWindowContents();
   startSelectingCommandForFirstMonster(0);
@@ -827,7 +861,7 @@ async function startbattle() {
 }
 
 // バフ追加用関数
-function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) {
+function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, skipMessage = false) {
   // 重ねがけ可能なバフ
   const stackableBuffs = {
     baiki: { max: 2, min: -2 },
@@ -1324,6 +1358,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false) 
     //反射の場合にエフェクト追加
     if (reflectionMap.includes(buffName)) {
       addMirrorEffect(buffTarget.iconElementId);
+    }
+    if (!skipMessage) {
+      displayBuffMessage(buffTarget, buffName, buffData);
     }
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
@@ -3247,10 +3284,12 @@ const monsters = [
     status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 550, int: 259 },
     skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     attribute: {
-      1: {
+      initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         mindAndSealBarrier: { keepOnDeath: true },
+      },
+      1: {
         breathCharge: { strength: 1.2 },
         allElementalBreak: { strength: 1, duration: 4, divineDispellable: true, targetType: "ally" },
         allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
@@ -3287,11 +3326,13 @@ const monsters = [
     status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 555, int: 294 },
     skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     attribute: {
-      1: {
+      initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
         mindBarrier: { keepOnDeath: true },
         demonKingBarrier: { divineDispellable: true },
         spdUp: { strength: 1 },
+      },
+      1: {
         powerCharge: { strength: 2 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
         fireGuard: { strength: 50, duration: 4, targetType: "ally" },
@@ -3310,10 +3351,12 @@ const monsters = [
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     attribute: {
-      1: {
+      initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 2 },
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { keepOnDeath: true },
+      },
+      1: {
         preemptiveAction: {},
       },
       evenTurnBuffs: { slashBarrier: { strength: 1 } },
@@ -3331,9 +3374,11 @@ const monsters = [
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: {
-      1: {
+      initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75 },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+      },
+      1: {
         spellBarrier: { strength: 1, targetType: "ally" },
         stonedBlock: { duration: 3, targetType: "ally" },
       },
@@ -3351,7 +3396,7 @@ const monsters = [
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
     skill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
     attribute: {
-      1: {
+      initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
         isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
         mindBarrier: { divineDispellable: true, duration: 3 },
@@ -3375,7 +3420,7 @@ const monsters = [
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
     skill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
     attribute: {
-      1: {
+      initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
@@ -3401,7 +3446,7 @@ const monsters = [
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
     skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
     attribute: {
-      1: {
+      initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
@@ -3427,7 +3472,7 @@ const monsters = [
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
     skill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
     attribute: {
-      1: {
+      initialBuffs: {
         tagTransformation: { keepOnDeath: true },
         fireBreak: { keepOnDeath: true, strength: 2 },
         iceBreak: { keepOnDeath: true, strength: 2 },
@@ -3447,7 +3492,7 @@ const monsters = [
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     skill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
     attribute: {
-      1: {
+      initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
       },
     },
@@ -3464,7 +3509,7 @@ const monsters = [
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
     skill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
     attribute: {
-      1: {
+      initialBuffs: {
         mindBarrier: { keepOnDeath: true },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
@@ -3488,7 +3533,7 @@ const monsters = [
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
     skill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
     attribute: {
-      1: {
+      initialBuffs: {
         mindBarrier: { keepOnDeath: true },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
@@ -3516,7 +3561,7 @@ const monsters = [
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     skill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     attribute: {
-      1: {
+      initialBuffs: {
         demonKingBarrier: { divineDispellable: true, duration: 3 },
         protection: { strength: 0.5, duration: 3 },
       },
@@ -3541,7 +3586,7 @@ const monsters = [
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     skill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
     attribute: {
-      1: {
+      initialBuffs: {
         mindBarrier: { duration: 3 },
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
       },
@@ -3567,7 +3612,7 @@ const monsters = [
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     skill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
     attribute: {
-      1: {
+      initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         damageLimit: { strength: 250 },
@@ -5486,4 +5531,165 @@ function calculateMPcost(skillUser, executingSkill) {
     calcMPcost = Math.floor(calcMPcost * 0.5);
   }
   return calcMPcost;
+}
+
+function displayBuffMessage(buffTarget, buffName, buffData) {
+  // バフメッセージ定義
+  const buffMessages = {
+    fireBreak: {
+      start: `${buffTarget.name}は  メラ耐性を`,
+      message: `${buffData.strength}ランク下げて  攻撃する状態になった！`,
+    },
+    allElementalBreak: {
+      start: `${buffTarget.name}は  属性耐性を`,
+      message: `${buffData.strength}ランク下げて  攻撃する状態になった！`,
+    },
+    powerCharge: {
+      start: `${buffTarget.name}は`,
+      message: "ちからをためている！",
+    },
+    manaBoost: {
+      start: `${buffTarget.name}は`,
+      message: "魔力をためている！",
+    },
+    preemptiveAction: {
+      start: `${buffTarget.name}の`,
+      message: "こうどうが  はやくなった！",
+    },
+    anchorAction: {
+      start: `${buffTarget.name}の`,
+      message: "こうどうが  おそくなった！",
+    },
+    nonElementalResistance: {
+      start: `${buffTarget.name}は`,
+      message: "無属性攻撃を受けなくなった！",
+    },
+    damageLimit: {
+      start: `${buffTarget.name}は`,
+      message: `被ダメージ上限値${buffTarget.strength}の状態になった！`,
+    },
+    stonedBlock: {
+      start: "アストロンを  ふうじられた！",
+      message: "",
+    },
+    spellSeal: {
+      start: `${buffTarget.name}は`,
+      message: "呪文を  ふうじられた！",
+    },
+    breathSeal: {
+      start: `${buffTarget.name}は`,
+      message: "息を  ふうじられた！",
+    },
+    slashSeal: {
+      start: `${buffTarget.name}は`,
+      message: "斬撃を  ふうじられた！",
+    },
+    martialSeal: {
+      start: `${buffTarget.name}は`,
+      message: "体技を  ふうじられた！",
+    },
+    fear: {
+      start: `${buffTarget.name}は`,
+      message: "動きを  ふうじられた！",
+    },
+    tempted: {
+      start: `${buffTarget.name}の`,
+      message: "防御力がさがり  動けなくなった！",
+    },
+    sealed: {
+      start: `${buffTarget.name}は`,
+      message: "動きを  ふうじられた！",
+    },
+    confused: {
+      start: `${buffTarget.name}の`,
+      message: "あたまは  こんらんした！",
+    },
+    paralyzed: {
+      start: `${buffTarget.name}は`,
+      message: "しびれて動けなくなった！",
+    },
+    asleep: {
+      start: `${buffTarget.name}は`,
+      message: "ふかい  ねむりにおちた！",
+    },
+    stoned: {
+      start: `${buffTarget.name}の身体が`,
+      message: "金のかたまりになった！",
+    },
+    poisoned: {
+      start: `${buffTarget.name}は`,
+      message: "どくにおかされた！",
+    },
+    reviveBlock: {
+      start: `${buffTarget.name}は`,
+      message: "蘇生を  ふうじられた！",
+    },
+    demonKingBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "あらゆる状態異常が効かなくなった！",
+    },
+    demonKingBarrier: {
+      start: "行動停止系の効果が  効かなくなった！",
+      message: "",
+    },
+    protection: {
+      start: `${buffTarget.name}の`,
+      message: "受けるダメージが減少した！",
+    },
+    dodgeBuff: {
+      start: `${buffTarget.name}の`,
+      message: "回避率が  あがった！",
+    },
+    spellEvasion: {
+      start: `${buffTarget.name}は`,
+      message: "呪文攻撃を  うけなくなった！",
+    },
+    slashEvasion: {
+      start: `${buffTarget.name}は`,
+      message: "斬撃攻撃を  うけなくなった！",
+    },
+    martialEvasion: {
+      start: `${buffTarget.name}は`,
+      message: "体技攻撃を  うけなくなった！",
+    },
+    breathEvasion: {
+      start: `${buffTarget.name}は`,
+      message: "息攻撃を  うけなくなった！",
+    },
+  };
+
+  const stackableBuffs = {
+    baiki: "攻撃力",
+    defUp: "防御力",
+    spdUp: "素早さ",
+    intUp: "賢さ",
+    spellBarrier: "呪文に対する防御力",
+    slashBarrier: "斬撃に対する防御力",
+    martialBarrier: "体技に対する防御力",
+    breathBarrier: "息に対する防御力",
+    fireResistance: "メラ耐性",
+    iceResistance: "ヒャド耐性",
+    thunderResistance: "ギラ耐性",
+    windResistance: "バギ耐性",
+    ioResistance: "イオ耐性",
+    lightResistance: "デイン耐性",
+    darkResistance: "ドルマ耐性",
+  };
+
+  const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
+
+  //dazzle, dotDamage, healBlock
+  //  !の  回避率が最大になった!
+
+  if (buffMessages[buffName]) {
+    displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
+  } else if (stackableBuffs.hasOwnProperty(buffName)) {
+    if (buffData.strength < 0) {
+      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が  さがった！！`);
+    } else {
+      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が  あがった！！`);
+    }
+  } else if (breakBoosts.includes(buffName)) {
+    displayMessage(`${buffTarget.name}の`, "ブレイク状態が強化された！");
+  }
 }
