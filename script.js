@@ -4,7 +4,7 @@ const defaultMonster = {
   id: "unselected",
   type: "",
   status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-  skill: ["なし", "なし", "なし", "なし"],
+  defaultSkill: ["なし", "なし", "なし", "なし"],
   attribute: "",
   seed: { atk: 0, def: 0, spd: 0, int: 0 },
   gear: {
@@ -113,7 +113,7 @@ function preparebattle() {
   // 初期化
   fieldState = { turnNum: 0 };
 
-  // 敵味方識別子と要素IDの追加を一度に実行
+  // 初期生成
   for (let i = 0; i < parties.length; i++) {
     const party = parties[i];
     // 要素ID用のprefix
@@ -139,6 +139,9 @@ function preparebattle() {
       monster.hpBarTextElementId = `hpbartext${prefix}${j}`;
       monster.mpBarTextElementId = `mpbartext${prefix}${j}`;
       monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
+
+      // skill生成
+      monster.skill = [...monster.defaultSkill];
 
       // ステータス処理
       monster.defaultstatus = {};
@@ -3106,10 +3109,10 @@ function selectgear(gearName) {
 function adjustStatusAndSkillDisplay() {
   //丸ごと放り込まれているor操作済みのため、ただ引っ張ってくれば良い
   //所持特技名表示変更
-  document.getElementById("skill0").textContent = party[currentTab].skill[0];
-  document.getElementById("skill1").textContent = party[currentTab].skill[1];
-  document.getElementById("skill2").textContent = party[currentTab].skill[2];
-  document.getElementById("skill3").textContent = party[currentTab].skill[3];
+  document.getElementById("skill0").textContent = party[currentTab].defaultSkill[0];
+  document.getElementById("skill1").textContent = party[currentTab].defaultSkill[1];
+  document.getElementById("skill2").textContent = party[currentTab].defaultSkill[2];
+  document.getElementById("skill3").textContent = party[currentTab].defaultSkill[3];
   //種表示変更
   document.getElementById("selectseed-atk").value = party[currentTab].seed.atk;
   document.getElementById("selectseed-def").value = party[currentTab].seed.def;
@@ -3282,7 +3285,7 @@ const monsters = [
     id: "masudora",
     type: "ドラゴン",
     status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 550, int: 259 },
-    skill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
+    defaultSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     attribute: {
       initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
@@ -3308,7 +3311,7 @@ const monsters = [
     id: "sinri",
     type: "ドラゴン",
     status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
-    skill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
+    defaultSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     attribute: {
       permanentBuffs: {
         mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
@@ -3324,7 +3327,7 @@ const monsters = [
     id: "rusia",
     type: "ドラゴン",
     status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 555, int: 294 },
-    skill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
+    defaultSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
@@ -3349,7 +3352,7 @@ const monsters = [
     id: "orochi",
     type: "ドラゴン",
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
-    skill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
+    defaultSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     attribute: {
       initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 2 },
@@ -3372,7 +3375,7 @@ const monsters = [
     id: "voruka",
     type: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
-    skill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
+    defaultSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75 },
@@ -3394,7 +3397,7 @@ const monsters = [
     type: "???",
     weight: "30",
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
-    skill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
+    defaultSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -3418,7 +3421,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
-    skill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
+    defaultSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 2 },
@@ -3444,7 +3447,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
-    skill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
+    defaultSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -3470,7 +3473,7 @@ const monsters = [
     type: "???",
     weight: "25",
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
-    skill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
+    defaultSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
     attribute: {
       initialBuffs: {
         tagTransformation: { keepOnDeath: true },
@@ -3490,7 +3493,7 @@ const monsters = [
     type: "zombie",
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
-    skill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
+    defaultSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
     attribute: {
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
@@ -3507,7 +3510,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
-    skill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
+    defaultSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -3531,7 +3534,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
-    skill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
+    defaultSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -3559,7 +3562,7 @@ const monsters = [
     type: "???",
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
-    skill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
+    defaultSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     attribute: {
       initialBuffs: {
         demonKingBarrier: { divineDispellable: true, duration: 3 },
@@ -3584,7 +3587,7 @@ const monsters = [
     type: "material",
     weight: "16",
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
-    skill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
+    defaultSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
     attribute: {
       initialBuffs: {
         mindBarrier: { duration: 3 },
@@ -3610,7 +3613,7 @@ const monsters = [
     type: "???",
     weight: "14",
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
-    skill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
+    defaultSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -3629,7 +3632,7 @@ const monsters = [
     type: "",
     weight: "",
     status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
-    skill: ["", "", "", ""],
+    defaultSkill: ["", "", "", ""],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
