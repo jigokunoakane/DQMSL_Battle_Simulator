@@ -737,65 +737,65 @@ async function startTurn() {
         }
 
         // 戦闘開始時に付与するバフ
-        const initialBuffs = monster.attribute.initialBuffs || {};
 
-        // バフを適用 (間隔なし)
-        for (const buffName in initialBuffs) {
-          applyBuff(monster, { [buffName]: structuredClone(initialBuffs[buffName]) }, null, false, true);
-        }
+        const initialBuffs = { ...(monster.attribute.initialBuffs || {}) };
+
+        // バフを適用 (間隔なし、skipMessageとskipSleep: trueを渡すことで付与時messageと付与間隔を削除)
+        await applyBuffsAsync(monster, initialBuffs, true, true);
       }
     }
     await sleep(600);
   }
   displayMessage(`ラウンド${turnNum}`, null, true);
 
-  // バフ対象の種類
-  const BuffTargetType = {
-    Self: "self",
-    Ally: "ally",
-    Enemy: "enemy",
-    All: "all",
-    Random: "random",
-  };
-
   // 非同期処理でバフを適用
-  const applyBuffsAsync = async (monster, buffs) => {
+  async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
+    // バフ対象の種類
+    const BuffTargetType = {
+      Self: "self",
+      Ally: "ally",
+      Enemy: "enemy",
+      All: "all",
+      Random: "random",
+    };
     for (const buffName in buffs) {
       const buffData = buffs[buffName];
-
       // バフ対象の取得
       const targetType = buffData.targetType || BuffTargetType.Self; // デフォルトは自分自身
       const aliveAllys = parties[monster.teamID].filter((monster) => !monster.flags.isDead);
       const aliveEnemies = parties[monster.enemyTeamID].filter((monster) => !monster.flags.isDead);
-
       // バフ対象に応じた処理
       switch (targetType) {
         case BuffTargetType.Self:
-          applyBuff(monster, { [buffName]: structuredClone(buffData) });
+          applyBuff(monster, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
           break;
         case BuffTargetType.Ally:
           for (const ally of aliveAllys) {
             // 自分除外時はally !== monster
-            applyBuff(ally, { [buffName]: structuredClone(buffData) });
-            await sleep(150); // 150ms待機
+            applyBuff(ally, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
+            if (!skipSleep) await sleep(150); // skipSleep が false の場合のみ150ms待機
           }
           break;
         case BuffTargetType.Enemy:
           for (const enemy of aliveEnemies) {
-            applyBuff(enemy, { [buffName]: structuredClone(buffData) });
-            await sleep(150); // 150ms待機
+            applyBuff(enemy, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
+            if (!skipSleep) await sleep(150);
           }
           break;
         case BuffTargetType.All:
-          for (const allMonster of parties.flat()) {
-            if (!allMonster.flags.isDead) {
-              applyBuff(allMonster, { [buffName]: structuredClone(buffData) });
-              await sleep(150); // 150ms待機
-            }
+          //allyとenemyを両方実行
+          for (const ally of aliveAllys) {
+            applyBuff(ally, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
+            if (!skipSleep) await sleep(150);
+          }
+          for (const enemy of aliveEnemies) {
+            applyBuff(enemy, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
+            if (!skipSleep) await sleep(150);
           }
           break;
         case BuffTargetType.Random:
-          const aliveMonsters = (buffData.targetTeam === "ally" ? allyParty : enemyParty).filter((monster) => !monster.flags.isDead);
+          const aliveMonsters = buffData.targetTeam ? (buffData.targetTeam === "ally" ? aliveAllys : aliveEnemies) : aliveAllys;
+          //未指定時はランダムな味方を対象
           const targetNum = buffData.targetNum || 1; // targetNumが指定されていない場合は1回
 
           for (let i = 0; i < targetNum; i++) {
@@ -805,14 +805,14 @@ async function startTurn() {
               applyBuff(randomTarget, { [buffName]: structuredClone(buffData) });
               // 重複は許可
               //aliveMonsters.splice(randomIndex, 1);
-              await sleep(150); // 150ms待機
+              if (!skipSleep) await sleep(150);
             }
           }
           break;
       }
-      await sleep(150); // バフ適用ごとに150ms待機
+      if (!skipSleep) await sleep(150); //バフ適用ごとの間隔
     }
-  };
+  }
 
   // バフ適用処理
   const applyBuffsForMonster = async (monster) => {
@@ -3288,11 +3288,11 @@ const monsters = [
         breathEnhancement: { keepOnDeath: true },
         isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         mindAndSealBarrier: { keepOnDeath: true },
+        allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
       },
       1: {
-        breathCharge: { strength: 1.2 },
         allElementalBreak: { strength: 1, duration: 4, divineDispellable: true, targetType: "ally" },
-        allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
+        breathCharge: { strength: 1.2 },
       },
       2: { breathCharge: { strength: 1.5 } },
       3: { breathCharge: { strength: 2 } },
