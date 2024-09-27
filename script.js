@@ -1693,8 +1693,14 @@ async function processMonsterAction(skillUser) {
   // 4. 特技封じ確認
   if (skillUser.buffs[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) {
     // 特技封じされている場合は7. 行動後処理にスキップ
-    console.log(`${executingSkill.type}はふうじこめられている！`);
-    displayMessage(`${executingSkill.type}はふうじこめられている！`);
+    const skillTypes = {
+      spell: "呪文",
+      slash: "斬撃",
+      martial: "体技",
+      breath: "息",
+    };
+    console.log(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
+    displayMessage(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
     await postActionProcess(skillUser, executingSkill);
     return;
   }
