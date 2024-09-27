@@ -365,7 +365,7 @@ function selectcommand(selectedskillnum) {
   const MPcost = calculateMPcost(skillUser, selectedskill);
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost} 】`);
+    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost}】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     if (skilltargetTeamdetector === "ally") {
@@ -383,7 +383,7 @@ function selectcommand(selectedskillnum) {
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetTypedetector === "all") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost} 】`);
+    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost}】`);
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -5261,8 +5261,8 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
   const messageLine2 = document.getElementById("message-line2");
   // 空白を挿入 全角スペース
-  line1Text = line1Text.replace(/ /g, "　");
-  line2Text = line2Text.replace(/ /g, "　");
+  if (line1Text) line1Text = line1Text.replace(/ /g, "　");
+  if (line2Text) line2Text = line2Text.replace(/ /g, "　");
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
   if (centerText) {
@@ -5722,6 +5722,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
 }
 
 async function transformTyoma(monster) {
+  await sleep(200);
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
@@ -5742,11 +5743,15 @@ async function transformTyoma(monster) {
     monster.skill[0] = "真・神々の怒り";
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
   }
-  applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   await sleep(400);
-  applyDamage(monster, monster.currentstatus.HP, -1, false);
+  applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+  if (monster.name === "超エルギ") {
+    applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
+  }
+  await sleep(400);
+  applyDamage(monster, monster.defaultstatus.HP, -1, false);
   await sleep(500);
-  applyDamage(monster, monster.currentstatus.MP, -1, true);
-  await sleep(200);
+  applyDamage(monster, monster.defaultstatus.MP, -1, true);
+  await sleep(400);
   //変身時特性など
 }
