@@ -331,7 +331,12 @@ function startselectingcommand() {
     // スキル情報を取得
     const skillInfo = findSkillByName(skillUser.skill[i]);
     const MPcost = calculateMPcost(skillUser, skillInfo);
-    if (skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) || skillUser.currentstatus.MP < MPcost || (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser))) {
+    if (
+      skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) ||
+      skillUser.currentstatus.MP < MPcost ||
+      (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser)) ||
+      skillUser.buffs[skillInfo.type + "Seal"]
+    ) {
       selectSkillBtn.disabled = true;
       selectSkillBtn.style.opacity = "0.4";
     } else {
@@ -2665,7 +2670,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
     }
   }
   // みかわし処理
-  if (!executingSkill.ignoreEvasion) {
+  if (!executingSkill.ignoreEvasion && !(skillTarget.buffs.fear || skillTarget.buffs.seal || skillTarget.buffs.tempted)) {
     // みかわしバフ
     if (skillTarget.buffs.dodgeBuff) {
       if (Math.random() < skillTarget.buffs.dodgeBuff.strength) {
