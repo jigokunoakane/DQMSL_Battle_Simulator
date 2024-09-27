@@ -4190,7 +4190,7 @@ const skill = [
     },
   },
   {
-    name: "絶望の光舞",
+    name: "絶望の天舞",
     type: "dance",
     howToCalculate: "fix",
     damage: 210,
@@ -5716,6 +5716,17 @@ async function transformTyoma(monster) {
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
+  if (monster.name === "超エルギ") {
+    monster.skill[0] = "絶望の天舞";
+  } else if (monster.name === "超ネルゲル") {
+    monster.skill[0] = "終の流星";
+    monster.skill[1] = "暴獣の右ウデ";
+  } else if (monster.name === "超オムド") {
+    monster.skill[0] = "クロノストーム";
+    monster.skill[2] = "永劫の闇冥";
+  } else if (monster.name === "超ラプ") {
+    monster.skill[0] = "真・神々の怒り";
+  }
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   await sleep(400);
   applyDamage(monster, monster.currentstatus.HP, -1, false);
