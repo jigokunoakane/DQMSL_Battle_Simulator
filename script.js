@@ -111,7 +111,7 @@ function confirmparty() {
 //パテ設定画面の確定で起動
 function preparebattle() {
   // 初期化
-  fieldState = { turnNum: 0 };
+  fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 } };
 
   // 初期生成
   for (let i = 0; i < parties.length; i++) {
@@ -698,6 +698,7 @@ document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("
 //ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
 async function startTurn() {
   fieldState.turnNum++;
+  console.log(`ラウンド${fieldState.turnNum}`);
   const turnNum = fieldState.turnNum;
   fieldState.cooperation = {
     lastTeamID: null,
@@ -952,6 +953,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     //順位付け処理の前に自動付与
     //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与
     if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
+      buffData.unDispellable = true;
+    }
+    //無属性無効の解除不可化
+    if (buffName === "nonElementalResistance") {
       buffData.unDispellable = true;
     }
     //breakBoostの追加付与を可能に
@@ -1883,16 +1888,11 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
   if (resistance === -1) {
     // 回復処理
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
+    //回復封じ処理
     if (target.buffs.healBlock) {
-      //回復封じ処理
-      if (isMPdamage) {
-        displayDamage(target, 0, -1, true); // MP回復封じ
-      } else {
-        displayDamage(target, 0, -1); // HP回復封じ
-      }
+      displayDamage(target, 0, -1, isMPdamage);
       return;
     }
-
     if (isMPdamage) {
       // MP回復
       healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
@@ -1914,7 +1914,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
   } else {
     // ダメージ処理
     if (isMPdamage) {
-      // MPダメージ
+      // MPダメージ 現状値が最大ダメージ
       let mpDamage = Math.min(target.currentstatus.MP, Math.floor(damage));
       target.currentstatus.MP -= mpDamage;
       console.log(`${target.name}はMPダメージを受けている！`);
@@ -1923,19 +1923,19 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
       updateMonsterBar(target);
       return;
     } else {
-      // HPダメージ
-      const Hpdamage = Math.floor(damage); // 小数点以下切り捨て
-      target.currentstatus.HP -= Hpdamage;
-      console.log(`${target.name}に${Hpdamage}のダメージ！`);
-      if (Hpdamage === 0) {
+      // HPダメージ 表示はオーバーフロー可
+      const hpDamage = Math.floor(damage); // 小数点以下切り捨て
+      target.currentstatus.HP = Math.max(target.currentstatus.HP - hpDamage, 0);
+      console.log(`${target.name}に${hpDamage}のダメージ！`);
+      if (hpDamage === 0) {
         displayMessage(`ミス！ダメージをあたえられない！`);
       } else {
-        displayMessage(`${target.name}に`, `${Hpdamage}のダメージ！！`);
+        displayMessage(`${target.name}に`, `${hpDamage}のダメージ！！`);
       }
-      displayDamage(target, Hpdamage, resistance);
+      displayDamage(target, hpDamage, resistance);
       //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
 
-      if (target.currentstatus.HP <= 0) {
+      if (target.currentstatus.HP === 0 && !target.flags.isDead) {
         // くじけぬ処理
         if (target.buffs.isUnbreakable) {
           if (target.buffs.isUnbreakable.type === "toukon") {
@@ -1996,6 +1996,10 @@ function handleDeath(target) {
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
+
+  ++fieldState.deathCount[target.teamID];
+  console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
+  console.log(fieldState.deathCount);
 
   if (target.flags.isSubstituting) {
     //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
@@ -2063,8 +2067,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let executedSkills = [];
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
-  while (currentSkill && skillUser.confirmedcommand !== "skipThisTurn") {
-    //&& !executingSkill.skipDeathCheck
+  while (currentSkill && (skillUser.confirmedcommand !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
@@ -2193,6 +2196,14 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       break;
     default:
       console.error("無効なターゲットタイプ:", executingSkill.targetType);
+  }
+
+  //エルギ変身判定
+  for (const party of parties) {
+    const targetErugi = party.find((monster) => monster.name === "超エルギ");
+    if (targetErugi && fieldState.deathCount[targetErugi.teamID] > 1 && !targetErugi.flags.hasTransformed) {
+      await transformTyoma(targetErugi);
+    }
   }
 
   // 死亡時発動能力の処理
@@ -2505,7 +2516,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     };
     const multiplier = cooperationDamageMultiplier[fieldState.cooperation.count] || 1;
     damage *= multiplier;
-    console.log(`連携倍率で${multiplier}倍された`);
   }
 
   //乗算バフ
@@ -3565,7 +3575,7 @@ const monsters = [
     defaultSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     attribute: {
       initialBuffs: {
-        demonKingBarrier: { divineDispellable: true, duration: 3 },
+        demonKingBarrier: { divineDispellable: true },
         protection: { strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
@@ -5695,4 +5705,17 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
   } else if (breakBoosts.includes(buffName)) {
     displayMessage(`${buffTarget.name}の`, "ブレイク状態が強化された！");
   }
+}
+
+async function transformTyoma(monster) {
+  monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+  monster.flags.hasTransformed = true;
+  delete monster.buffs.stoned;
+  applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+  await sleep(400);
+  applyDamage(monster, monster.currentstatus.HP, -1, false);
+  await sleep(500);
+  applyDamage(monster, monster.currentstatus.MP, -1, true);
+  await sleep(200);
+  //変身時特性など
 }
