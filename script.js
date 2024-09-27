@@ -735,7 +735,7 @@ async function startTurn() {
   removeExpiredBuffsAtTurnStart();
 
   if (turnNum === 1) {
-    displayMessage(`${parties[1][0].name}たちが  あらわれた！`);
+    displayMessage(`${parties[1][0].name}たちが あらわれた！`);
     await sleep(600);
     displayMessage("モンスターの特性が発動した！");
     // 戦闘開始時にバフを付与するapplyInitialBuffs
@@ -1752,9 +1752,9 @@ async function processMonsterAction(skillUser) {
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
   if (executingSkill.type === "spell") {
-    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  となえた！`);
+    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を となえた！`);
   } else if (executingSkill.type === "slash") {
-    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を  はなった！`);
+    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を はなった！`);
   } else if (executingSkill.name === "通常攻撃") {
     displayMessage(`${skillUser.name}のこうげき！`);
   } else if (executingSkill.name === "ぼうぎょ") {
@@ -1909,14 +1909,14 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
       healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
       target.currentstatus.MP += healAmount;
       console.log(`${target.name}のMPが${healAmount}回復！`);
-      displayMessage(`${target.name}の`, `MPが　${healAmount}回復した！`);
+      displayMessage(`${target.name}の`, `MPが ${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1, true); // MP回復は負の数で表示
     } else {
       // HP回復
       healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
       target.currentstatus.HP += healAmount;
       console.log(`${target.name}のHPが${healAmount}回復！`);
-      displayMessage(`${target.name}の`, `HPが　${healAmount}回復した！`);
+      displayMessage(`${target.name}の`, `HPが ${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1); // HP回復は負の数で表示
     }
 
@@ -1995,7 +1995,7 @@ function handleUnbreakable(target) {
   target.currentstatus.HP = 1;
   updateMonsterBar(target, 1);
   console.log(`${target.name}の特性、${target.buffs.isUnbreakable.name}が発動！`);
-  displayMessage(`${target.name}の特性　${target.buffs.isUnbreakable.name}が発動！`);
+  displayMessage(`${target.name}の特性 ${target.buffs.isUnbreakable.name}が発動！`);
   if (target.buffs.isUnbreakable.left > 0) {
     console.log(`残り${target.buffs.isUnbreakable.left}回`);
     displayMessage(`残り${target.buffs.isUnbreakable.left}回`);
@@ -2065,10 +2065,10 @@ function handleDeath(target) {
   document.getElementById(target.iconElementId).parentNode.classList.remove("recede");
   if (target.teamID === 0) {
     console.log(`${target.name}はちからつきた！`);
-    displayMessage(`${target.name}は　ちからつきた！`);
+    displayMessage(`${target.name}は ちからつきた！`);
   } else {
     console.log(`${target.name}をたおした！`);
-    displayMessage(`${target.name}を　たおした！`);
+    displayMessage(`${target.name}を たおした！`);
   }
 }
 
@@ -5260,6 +5260,9 @@ document.getElementById("endbtn").addEventListener("click", function () {
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
   const messageLine2 = document.getElementById("message-line2");
+  // 空白を挿入 全角スペース
+  line1Text = line1Text.replace(/ /g, "　");
+  line2Text = line2Text.replace(/ /g, "　");
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
   if (centerText) {
@@ -5561,12 +5564,12 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
   // バフメッセージ定義
   const buffMessages = {
     fireBreak: {
-      start: `${buffTarget.name}は  メラ耐性を`,
-      message: `${buffData.strength}ランク下げて  攻撃する状態になった！`,
+      start: `${buffTarget.name}は メラ耐性を`,
+      message: `${buffData.strength}ランク下げて 攻撃する状態になった！`,
     },
     allElementalBreak: {
-      start: `${buffTarget.name}は  属性耐性を`,
-      message: `${buffData.strength}ランク下げて  攻撃する状態になった！`,
+      start: `${buffTarget.name}は 属性耐性を`,
+      message: `${buffData.strength}ランク下げて 攻撃する状態になった！`,
     },
     powerCharge: {
       start: `${buffTarget.name}は`,
@@ -5578,11 +5581,11 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     },
     preemptiveAction: {
       start: `${buffTarget.name}の`,
-      message: "こうどうが  はやくなった！",
+      message: "こうどうが はやくなった！",
     },
     anchorAction: {
       start: `${buffTarget.name}の`,
-      message: "こうどうが  おそくなった！",
+      message: "こうどうが おそくなった！",
     },
     nonElementalResistance: {
       start: `${buffTarget.name}は`,
@@ -5593,40 +5596,40 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       message: `被ダメージ上限値${buffTarget.strength}の状態になった！`,
     },
     stonedBlock: {
-      start: "アストロンを  ふうじられた！",
+      start: "アストロンを ふうじられた！",
       message: "",
     },
     spellSeal: {
       start: `${buffTarget.name}は`,
-      message: "呪文を  ふうじられた！",
+      message: "呪文を ふうじられた！",
     },
     breathSeal: {
       start: `${buffTarget.name}は`,
-      message: "息を  ふうじられた！",
+      message: "息を ふうじられた！",
     },
     slashSeal: {
       start: `${buffTarget.name}は`,
-      message: "斬撃を  ふうじられた！",
+      message: "斬撃を ふうじられた！",
     },
     martialSeal: {
       start: `${buffTarget.name}は`,
-      message: "体技を  ふうじられた！",
+      message: "体技を ふうじられた！",
     },
     fear: {
       start: `${buffTarget.name}は`,
-      message: "動きを  ふうじられた！",
+      message: "動きを ふうじられた！",
     },
     tempted: {
       start: `${buffTarget.name}の`,
-      message: "防御力がさがり  動けなくなった！",
+      message: "防御力がさがり 動けなくなった！",
     },
     sealed: {
       start: `${buffTarget.name}は`,
-      message: "動きを  ふうじられた！",
+      message: "動きを ふうじられた！",
     },
     confused: {
       start: `${buffTarget.name}の`,
-      message: "あたまは  こんらんした！",
+      message: "あたまは こんらんした！",
     },
     paralyzed: {
       start: `${buffTarget.name}は`,
@@ -5634,7 +5637,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     },
     asleep: {
       start: `${buffTarget.name}は`,
-      message: "ふかい  ねむりにおちた！",
+      message: "ふかい ねむりにおちた！",
     },
     stoned: {
       start: `${buffTarget.name}の身体が`,
@@ -5646,7 +5649,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     },
     reviveBlock: {
       start: `${buffTarget.name}は`,
-      message: "蘇生を  ふうじられた！",
+      message: "蘇生を ふうじられた！",
     },
     demonKingBarrier: {
       start: `${buffTarget.name}は`,
@@ -5662,23 +5665,23 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     },
     dodgeBuff: {
       start: `${buffTarget.name}の`,
-      message: "回避率が  あがった！",
+      message: "回避率が あがった！",
     },
     spellEvasion: {
       start: `${buffTarget.name}は`,
-      message: "呪文攻撃を  うけなくなった！",
+      message: "呪文攻撃を うけなくなった！",
     },
     slashEvasion: {
       start: `${buffTarget.name}は`,
-      message: "斬撃攻撃を  うけなくなった！",
+      message: "斬撃攻撃を うけなくなった！",
     },
     martialEvasion: {
       start: `${buffTarget.name}は`,
-      message: "体技攻撃を  うけなくなった！",
+      message: "体技攻撃を うけなくなった！",
     },
     breathEvasion: {
       start: `${buffTarget.name}は`,
-      message: "息攻撃を  うけなくなった！",
+      message: "息攻撃を うけなくなった！",
     },
   };
 
@@ -5709,9 +5712,9 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
   } else if (stackableBuffs.hasOwnProperty(buffName)) {
     if (buffData.strength < 0) {
-      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が  さがった！！`);
+      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が さがった！！`);
     } else {
-      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が  あがった！！`);
+      displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が あがった！！`);
     }
   } else if (breakBoosts.includes(buffName)) {
     displayMessage(`${buffTarget.name}の`, "ブレイク状態が強化された！");
@@ -5724,14 +5727,20 @@ async function transformTyoma(monster) {
   delete monster.buffs.stoned;
   if (monster.name === "超エルギ") {
     monster.skill[0] = "絶望の天舞";
+    displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "超ネルゲル") {
     monster.skill[0] = "終の流星";
     monster.skill[1] = "暴獣の右ウデ";
+    displayMessage("＊「……大いなる闇の根源よ。", "  我にチカラを 与えたまえ！");
+    await sleep(300);
+    displayMessage("＊「見よっ この強靱なる肉体をぉ！", "  この絶大なる魔力をぉ！");
   } else if (monster.name === "超オムド") {
     monster.skill[0] = "クロノストーム";
     monster.skill[2] = "永劫の闇冥";
+    displayMessage("＊「くだらぬ希望など", "  すべて消し去ってやろう。");
   } else if (monster.name === "超ラプ") {
     monster.skill[0] = "真・神々の怒り";
+    displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
   }
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   await sleep(400);
