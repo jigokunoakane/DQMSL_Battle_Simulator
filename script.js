@@ -161,6 +161,7 @@ function preparebattle() {
       monster.buffs = {};
       monster.flags = { unavailableSkills: [] };
       monster.abilities = {};
+      monster.attribute.additionalPermanentBuffs = {};
 
       // バフ表示の更新
       updateMonsterBar(monster);
@@ -833,6 +834,7 @@ async function startTurn() {
     const allBuffs = {
       ...(monster.attribute[turnNum] || {}),
       ...(monster.attribute.permanentBuffs || {}),
+      ...(monster.attribute.additionalPermanentBuffs || {}),
       ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
       ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
       ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
@@ -1157,7 +1159,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
               stackableBuffs.hasOwnProperty(existingBuffName) ||
               existingBuffName.keepOnDeath ||
               existingBuffName.unDispellableByRadiantWave ||
-              existingBuffName.undispellable ||
+              existingBuffName.unDispellable ||
               existingBuffName.divineDispellable
             )
           ) {
@@ -1341,7 +1343,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
 
     //継続時間指定されている場合に、デクリメントのタイプを設定
-    if (buffTarget.buffs[buffName].duration) {
+    if (buffTarget.buffs[buffName].hasOwnProperty("duration")) {
       //decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
       //うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
       const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
@@ -5504,7 +5506,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 
     // keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認し、
     // 対応するアイコンが存在すればパスを更新
-    const buffAttributes = ["keepOnDeath", "divineDispellable", "unDispellableByRadiantWave", "strength"];
+    const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
     for (const prop of buffAttributes) {
       if (monster.buffs[buffKey][prop] !== undefined) {
         const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
@@ -5837,6 +5839,7 @@ async function transformTyoma(monster) {
     monster.skill[0] = "絶望の天舞";
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "超ネルゲル") {
+    monster.attribute.additionalPermanentBuffs = { spellBarrier: { strength: 2, unDispellable: true, duration: 0 }, breathBarrier: { strength: 2, unDispellable: true, duration: 0 } };
     monster.skill[0] = "終の流星";
     monster.skill[1] = "暴獣の右ウデ";
     displayMessage("＊「……大いなる闇の根源よ。", "  我にチカラを 与えたまえ！");
