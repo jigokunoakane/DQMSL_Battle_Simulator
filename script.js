@@ -1461,6 +1461,7 @@ function updateCurrentStatus(monster) {
     4: 2, //  2 + 2
   };
 
+  // 通常バフ
   if (monster.buffs.defUp) {
     const strengthKey = monster.buffs.defUp.strength + 2;
     const Multiplier = strengthMultipliersForDef[strengthKey];
@@ -1477,8 +1478,25 @@ function updateCurrentStatus(monster) {
     monster.currentstatus.int *= Multiplier;
   }
 
+  //内部バフ
+  if (monster.buffs.internalAtkUp) {
+    const Multiplier = monster.buffs.internalAtkUp.strength + 1;
+    monster.currentstatus.def *= Multiplier;
+  }
+  if (monster.buffs.internalDefUp) {
+    const Multiplier = monster.buffs.internalDefUp.strength + 1;
+    monster.currentstatus.def *= Multiplier;
+  }
+  if (monster.buffs.internalSpdUp) {
+    const Multiplier = monster.buffs.internalSpdUp.strength + 1;
+    monster.currentstatus.spd *= Multiplier;
+  }
+  if (monster.buffs.internalIntUp) {
+    const Multiplier = monster.buffs.internalIntUp.strength + 1;
+    monster.currentstatus.int *= Multiplier;
+  }
+
   //系統バフは直接strengthをかける
-  //TODO: 内部バフの実装
 }
 
 // 行動順を決定する関数 コマンド決定後にstartbattleで起動
@@ -5837,7 +5855,8 @@ async function transformTyoma(monster) {
   if (monster.name === "超エルギ") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
   }
-  if (monster.name !== "超ネルゲル") {
+  if (monster.name === "超ネルゲル") {
+    applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
     await sleep(400);
     applyDamage(monster, monster.defaultstatus.HP, -1, false);
   }
