@@ -382,7 +382,7 @@ function selectcommand(selectedskillnum) {
       selectskilltargettoggler(0, skilltargetTypedetector, skilltargetTeamdetector, selectedskill); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
-  } else if (skilltargetTypedetector === "all") {
+  } else if (skilltargetTypedetector === "all" || skilltargetTypedetector === "field") {
     displayMessage(`${selectedskillname}＋3【消費MP：${MPcost}】`);
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
@@ -2209,6 +2209,11 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       skillTarget = skillUser;
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
+    case "field":
+      // meと同様
+      skillTarget = skillUser;
+      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
+      break;
     case "dead":
       // 蘇生特技
       skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
@@ -3698,7 +3703,7 @@ const skill = [
     maxIntDamage: 310,
     skillPlus: 1.15,
     element: "", //fire ice thunder io wind light dark
-    targetType: "", //single random all me
+    targetType: "", //single random all me field
     targetTeam: "enemy", //ally enemy
     excludeTarget: "me",
     hitNum: 3,
@@ -4204,7 +4209,7 @@ const skill = [
     type: "ritual",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 0,
     specialMessage: function (skillUserName, skillName) {
