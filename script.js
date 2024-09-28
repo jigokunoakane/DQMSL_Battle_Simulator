@@ -1751,7 +1751,9 @@ async function processMonsterAction(skillUser) {
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  if (executingSkill.type === "spell") {
+  if (executingSkill.specialMessage) {
+    executingSkill.specialMessage(skillUser.name, executingSkill.name);
+  } else if (executingSkill.type === "spell") {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を となえた！`);
   } else if (executingSkill.type === "slash") {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を はなった！`);
@@ -2002,7 +2004,7 @@ function handleUnbreakable(target) {
   }
 }
 
-function handleDeath(target) {
+function handleDeath(target, hideDeathMessage = false) {
   target.currentstatus.HP = 0;
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
@@ -2068,12 +2070,14 @@ function handleDeath(target) {
   updateMonsterBuffsDisplay(target);
   document.getElementById(target.iconElementId).parentNode.classList.remove("stickout");
   document.getElementById(target.iconElementId).parentNode.classList.remove("recede");
-  if (target.teamID === 0) {
-    console.log(`${target.name}はちからつきた！`);
-    displayMessage(`${target.name}は ちからつきた！`);
-  } else {
-    console.log(`${target.name}をたおした！`);
-    displayMessage(`${target.name}を たおした！`);
+  if (!hideDeathMessage) {
+    if (target.teamID === 0) {
+      console.log(`${target.name}はちからつきた！`);
+      displayMessage(`${target.name}は ちからつきた！`);
+    } else {
+      console.log(`${target.name}をたおした！`);
+      displayMessage(`${target.name}を たおした！`);
+    }
   }
 }
 
@@ -3720,6 +3724,9 @@ const skill = [
     ignoreBaiki: true,
     ignoreManaBoost: true,
     ignorePowerCharge: true,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}は闇に身をささげた！`);
+    },
     followingSkill: "涼風一陣後半",
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     act: function (skillUser, skillTarget) {
@@ -4200,8 +4207,11 @@ const skill = [
     targetType: "me",
     targetTeam: "ally",
     MPcost: 0,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}は闇に身をささげた！`);
+    },
     act: function (skillUser, skillTarget) {
-      handleDeath(skillUser);
+      handleDeath(skillUser, true);
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
     followingSkill: "供物をささげる死亡",
@@ -4219,7 +4229,7 @@ const skill = [
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
-        handleDeath(nerugeru);
+        handleDeath(nerugeru, true);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
           nerugeru.flags.willTransform = true;
