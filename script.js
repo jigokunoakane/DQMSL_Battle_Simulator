@@ -2301,7 +2301,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       skillTarget = assignedSkillUser;
     }
     // isDamageExsistingはfalseで送る
-    processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
+    await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // actで死亡時も死亡時発動等を実行するため
     // 追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
     if (skillTarget.flags.recentlyKilled) {
@@ -2313,7 +2313,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
-  function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
+  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
     // AppliedEffect指定されてたら、規定値による波動処理またはapplybuff
     if (executingSkill.appliedEffect) {
       if (executingSkill.appliedEffect === "radiantWave") {
@@ -2328,7 +2328,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
     //act処理と、barおよびバフ表示更新
     if (executingSkill.act) {
-      executingSkill.act(skillUser, buffTarget);
+      await executingSkill.act(skillUser, buffTarget);
       updateCurrentStatus(skillUser);
       updateMonsterBuffsDisplay(skillUser);
       updateCurrentStatus(buffTarget);
@@ -2671,7 +2671,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   //target生存かつdamageが0超えのときに、追加効果付与を実行
   if (!skillTarget.flags.recentlyKilled && damage > 0) {
-    processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
+    await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
   //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
