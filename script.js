@@ -2012,6 +2012,11 @@ function handleDeath(target) {
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
   console.log(fieldState.deathCount);
 
+  //供物を戻す
+  if (target.skill[3] === "供物をささげる") {
+    target.skill[3] = target.defaultSkill[3];
+  }
+
   if (target.flags.isSubstituting) {
     //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
     for (const monster of parties.flat()) {
@@ -2131,7 +2136,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   //毎回deathactionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
   //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
-  if (skillUser.flags.hasDiedThisAction && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken"))) {
+  if (skillUser.flags.hasDiedThisAction && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) && !executingSkill.skipDeathCheck) {
     return;
   }
 
@@ -2212,11 +2217,10 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   //エルギ変身判定
   for (const party of parties) {
     const targetErugi = party.find((monster) => monster.name === "超エルギ");
-    if (targetErugi && fieldState.deathCount[targetErugi.teamID] > 1 && !targetErugi.flags.hasTransformed) {
+    if (targetErugi && !targetErugi.flags.isDead && fieldState.deathCount[targetErugi.teamID] > 1 && !targetErugi.flags.hasTransformed) {
       await transformTyoma(targetErugi);
     }
   }
-
   // 死亡時発動能力の処理
   await processDeathAction(skillUser, killedThisSkill);
 
@@ -2294,6 +2298,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
     // isDamageExsistingはfalseで送る
     processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
+    // actで死亡時も死亡時発動等を実行するため
+    // 追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
+    if (skillTarget.flags.recentlyKilled) {
+      if (!killedThisSkill.has(skillTarget)) {
+        killedThisSkill.add(skillTarget);
+      }
+      delete skillTarget.flags.recentlyKilled;
+    }
     return;
   }
 
@@ -2904,7 +2916,7 @@ async function executeDeathAbilities(monster) {
 
 // モンスターを蘇生させる関数
 async function reviveMonster(monster) {
-  await sleep(600);
+  await sleep(400);
   let reviveSource = monster.buffs.tagTransformation || monster.buffs.revive;
 
   delete monster.flags.isDead;
@@ -2922,7 +2934,7 @@ async function reviveMonster(monster) {
     reviveSource.act();
   }
   delete monster.buffs[reviveSource === monster.buffs.revive ? "revive" : "tagTransformation"];
-  await sleep(400);
+  await sleep(300);
 }
 
 // モンスターを亡者化させる関数
@@ -4181,6 +4193,67 @@ const skill = [
     appliedEffect: { martialEvasion: { duration: 1, removeAtTurnStart: true } },
   },
   {
+    name: "供物をささげる",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 0,
+    act: function (skillUser, skillTarget) {
+      handleDeath(skillUser);
+      skillUser.skill[3] = skillUser.defaultSkill[3];
+    },
+    followingSkill: "供物をささげる死亡",
+  },
+  {
+    name: "供物をささげる死亡",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 0,
+    skipDeathCheck: true,
+    act: async function (skillUser, skillTarget) {
+      const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
+      if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
+        delete nerugeru.buffs.reviveBlock;
+        handleDeath(nerugeru);
+        //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
+        if (nerugeru.flags.isDead) {
+          nerugeru.flags.willTransform = true;
+        }
+      }
+    },
+    followingSkill: "供物をささげる変身",
+  },
+  {
+    name: "供物をささげる変身",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 0,
+    skipDeathCheck: true,
+    act: async function (skillUser, skillTarget) {
+      const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
+      if (nerugeru.flags.willTransform) {
+        delete nerugeru.flags.willTransform;
+        for (const monster of parties[skillUser.teamID]) {
+          monster.skill[3] = monster.defaultSkill[3];
+        }
+        await sleep(200);
+        delete nerugeru.flags.isDead;
+        nerugeru.currentstatus.HP = nerugeru.defaultstatus.HP;
+        updateMonsterBar(nerugeru);
+        updatebattleicons(nerugeru);
+        await transformTyoma(nerugeru);
+      }
+    },
+  },
+  {
     name: "失望の光舞",
     type: "dance",
     howToCalculate: "fix",
@@ -5247,6 +5320,7 @@ document.getElementById("materialbtn").addEventListener("click", function () {
 document.getElementById("rezaobtn").addEventListener("click", function () {
   for (const monster of parties[1]) {
     monster.buffs.revive = { keepOnDeath: true, strength: 0.5 };
+    updateMonsterBuffsDisplay(monster);
   }
   displayMessage("リザオ付与");
 });
@@ -5733,7 +5807,7 @@ async function transformTyoma(monster) {
     monster.skill[0] = "終の流星";
     monster.skill[1] = "暴獣の右ウデ";
     displayMessage("＊「……大いなる闇の根源よ。", "  我にチカラを 与えたまえ！");
-    await sleep(300);
+    await sleep(200);
     displayMessage("＊「見よっ この強靱なる肉体をぉ！", "  この絶大なる魔力をぉ！");
   } else if (monster.name === "超オムド") {
     monster.skill[0] = "クロノストーム";
@@ -5748,8 +5822,10 @@ async function transformTyoma(monster) {
   if (monster.name === "超エルギ") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
   }
-  await sleep(400);
-  applyDamage(monster, monster.defaultstatus.HP, -1, false);
+  if (monster.name !== "超ネルゲル") {
+    await sleep(400);
+    applyDamage(monster, monster.defaultstatus.HP, -1, false);
+  }
   await sleep(500);
   applyDamage(monster, monster.defaultstatus.MP, -1, true);
   await sleep(400);
