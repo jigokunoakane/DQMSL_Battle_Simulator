@@ -1797,6 +1797,9 @@ async function processMonsterAction(skillUser) {
   if (executingSkill.isOneTimeUse) {
     skillUser.flags.unavailableSkills.push(executingSkill.name);
   }
+  if (executingSkill.type !== "notskill") {
+    skillUser.flags.hasUsedSkillThisTurn = true;
+  }
 
   await postActionProcess(skillUser, executingSkill, executedSkills);
 }
@@ -1804,10 +1807,6 @@ async function processMonsterAction(skillUser) {
 // 行動後処理
 async function postActionProcess(skillUser, executingSkill, executedSkills = null) {
   // 7-2. flag付与
-  skillUser.flags.hasActedThisTurn = true;
-  if (executingSkill.type !== "notskill") {
-    skillUser.flags.hasUsedSkillThisTurn = true;
-  }
 
   // 7-3. AI追撃処理
   if (!skillUser.flags.hasDiedThisAction && skillUser.AINormalAttack) {
@@ -2668,6 +2667,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // anchorBonus
   if (executingSkill.anchorBonus) {
+    const skillUserIndex = turnOrder.indexOf(skillUser);
+    // skillUserIndexより後の要素を取得
+    const laterMonsters = turnOrder.slice(skillUserIndex + 1);
+
+    // 後の要素が存在しない、または存在したとしても全てが行動予定にないとき
+    if (laterMonsters.length === 0 || laterMonsters.every((element) => element.confirmedcommand === "skipThisTurn")) {
+      damage *= executingSkill.anchorBonus;
+    }
   }
 
   //以下加算処理
@@ -4018,7 +4025,7 @@ const skill = [
     name: "ラヴァフレア",
     type: "breath",
     howToCalculate: "fix",
-    damage: 732,
+    damage: 243,
     element: "fire",
     targetType: "single",
     targetTeam: "enemy",
