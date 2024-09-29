@@ -1793,12 +1793,18 @@ async function processMonsterAction(skillUser) {
     executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)], true);
   }
 
-  // 7. 行動後処理
+  // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
   if (executingSkill.isOneTimeUse) {
     skillUser.flags.unavailableSkills.push(executingSkill.name);
   }
-  if (executingSkill.type !== "notskill") {
-    skillUser.flags.hasUsedSkillThisTurn = true;
+  // オムド処理 特技実行後、全てのmonsterのwillTransformを削除
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.flags.willTransformOmudo;
+    }
+  }
+  if (skillUser.name === "超オムド") {
+    skillUser.flags.willTransformOmudo = true;
   }
 
   await postActionProcess(skillUser, executingSkill, executedSkills);
@@ -5709,7 +5715,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     },
     damageLimit: {
       start: `${buffTarget.name}は`,
-      message: `被ダメージ上限値${buffTarget.strength}の状態になった！`,
+      message: `被ダメージ上限値${buffData.strength}の状態になった！`,
     },
     stonedBlock: {
       start: "アストロンを ふうじられた！",
@@ -5838,6 +5844,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
 }
 
 async function transformTyoma(monster) {
+  // 冗長性
+  if (monster.flags.isDead) {
+    return;
+  }
   await sleep(200);
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
   monster.flags.hasTransformed = true;
