@@ -171,6 +171,11 @@ function preparebattle() {
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons();
+  //最初に全てのpopupを閉じる
+  closeAllPopupContents();
+  //コマンドボタン無効化 特性演出終了後に有効化
+  disablecommandbtns(true);
+  removeallstickout();
   //field管理用変数の導入はglobalで
   startTurn();
 }
@@ -601,8 +606,7 @@ function backbtn() {
   }
 }
 
-//全て閉じてcommandbtnを有効化する関数
-function closeSelectCommandPopupWindowContents() {
+function closeAllPopupContents() {
   document.getElementById("designateskilltarget").style.visibility = "hidden";
   document.getElementById("designateskilltarget-all").style.visibility = "hidden";
   document.getElementById("selectskillbtns").style.visibility = "hidden";
@@ -610,6 +614,11 @@ function closeSelectCommandPopupWindowContents() {
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
   document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
   document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+}
+
+//全て閉じてcommandbtnを有効化する関数
+function closeSelectCommandPopupWindowContents() {
+  closeAllPopupContents();
   disablecommandbtns(false);
   displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
 }
@@ -852,7 +861,7 @@ async function startTurn() {
     }
   }
 
-  //コマンド選択の用意 Todo:実際は開始時特性等の演出終了後に実行
+  //popupを全て閉じてコマンドボタンを有効化、メッセージ表示
   closeSelectCommandPopupWindowContents();
   startSelectingCommandForFirstMonster(0);
 }
