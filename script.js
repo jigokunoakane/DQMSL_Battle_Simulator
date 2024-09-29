@@ -5805,6 +5805,18 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "息攻撃を うけなくなった！",
     },
+    internalAtkUp: {
+      start: `${buffTarget.name}の`,
+      message: `攻撃力が ${buffData.strength + 1}倍になった！`,
+    },
+    internalDefUp: {
+      start: `${buffTarget.name}の`,
+      message: `防御力が ${buffData.strength + 1}倍になった！`,
+    },
+    internalIntUp: {
+      start: `${buffTarget.name}の`,
+      message: `賢さが ${buffData.strength + 1}倍になった！`,
+    },
   };
 
   const stackableBuffs = {
