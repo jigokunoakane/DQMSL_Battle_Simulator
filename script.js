@@ -160,8 +160,10 @@ function preparebattle() {
       monster.confirmedcommandtarget = "";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [] };
-      monster.abilities = {};
+      monster.abilities = {}; //削除
       monster.attribute.additionalPermanentBuffs = {};
+      monster.additionalPermanentAbilities = {};
+      monster.nextTurnAbilities = {};
 
       // バフ表示の更新
       updateMonsterBar(monster);
@@ -756,11 +758,17 @@ async function startTurn() {
         }
 
         // 戦闘開始時に付与するバフ
-
         const initialBuffs = { ...(monster.attribute.initialBuffs || {}) };
-
         // バフを適用 (間隔なし、skipMessageとskipSleep: trueを渡すことで付与時messageと付与間隔を削除)
         await applyBuffsAsync(monster, initialBuffs, true, true);
+
+        // 戦闘開始時発動特性
+        if (monster.initialAbilities) {
+          const allInitialAbilities = [...(monster.initialAbilities || [])];
+          for (const ability of allInitialAbilities) {
+            await ability.act(monster);
+          }
+        }
       }
     }
     await sleep(600);
@@ -853,12 +861,86 @@ async function startTurn() {
     await applyBuffsAsync(monster, allBuffs);
   };
 
-  // すべてのモンスターにバフを適用
+  // 1モンスターのabilityを連続的に実行する関数
+  async function executeAbility(monster, isSupportOrAttack) {
+    if (monster.flags.isDead || !monster[isSupportOrAttack]) {
+      return;
+    }
+    // すべてのabilityをまとめる
+    const allAbilities = [
+      ...(monster[isSupportOrAttack][turnNum] || []),
+      ...(monster[isSupportOrAttack].additionalPermanentAbilities || []),
+      ...(monster[isSupportOrAttack].permanentAbilities || []),
+      ...(turnNum % 2 === 0 && monster[isSupportOrAttack].evenTurnAbilities ? monster[isSupportOrAttack].evenTurnAbilities : []),
+      ...(turnNum % 2 !== 0 && monster[isSupportOrAttack].oddTurnAbilities ? monster[isSupportOrAttack].oddTurnAbilities : []),
+      ...(turnNum >= 2 && monster[isSupportOrAttack].abilitiesFromTurn2 ? monster[isSupportOrAttack].abilitiesFromTurn2 : []),
+      ...(monster[isSupportOrAttack].nextTurnAbilities || []),
+    ];
+    for (const ability of allAbilities) {
+      if (ability.name) {
+        displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+        await sleep(150);
+      }
+      await ability.act(monster);
+      await sleep(150);
+    }
+  }
+
+  // partiesに逆順でバフ適用・supportAbilities発動
   await sleep(700);
-  for (const party of parties) {
+  for (let i = parties.length - 1; i >= 0; i--) {
+    const party = parties[i];
     for (const monster of party) {
       await applyBuffsForMonster(monster);
+      await executeAbility(monster, "supportAbilities");
     }
+  }
+
+  // 行動早い含めた順番で、attackAbilitiesを実行
+  function decideAbilityOrder() {
+    let abilityOrder = [];
+    // 全てのモンスターを1つの配列にまとめる
+    let allMonsters = parties.flat();
+
+    // 各行動順のモンスターを格納する配列を定義
+    let preemptiveActionMonsters = [];
+    let anchorActionMonsters = [];
+    let normalMonsters = [];
+
+    // 各モンスターの行動順を分類
+    allMonsters.forEach((monster) => {
+      if (monster.buffs.preemptiveAction) {
+        preemptiveActionMonsters.push(monster);
+      } else if (monster.buffs.anchorAction) {
+        anchorActionMonsters.push(monster);
+      } else {
+        normalMonsters.push(monster);
+      }
+    });
+
+    // currentstatus.spd でソートし、同速の場合はランダムに並び替える関数
+    const sortBySpeedAndRandomize = (a, b) => {
+      const speedDiff = (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0);
+      return speedDiff !== 0 ? speedDiff : Math.random() - 0.5;
+    };
+
+    // isReverseの状態に応じて行動順を決定
+    if (fieldState.isReverse) {
+      // リバース状態
+      abilityOrder = [...preemptiveActionMonsters.sort(sortBySpeedAndRandomize), ...normalMonsters.sort(sortBySpeedAndRandomize), ...anchorActionMonsters.sort(sortBySpeedAndRandomize)];
+    } else {
+      // 通常状態
+      abilityOrder = [
+        ...preemptiveActionMonsters.sort(sortBySpeedAndRandomize).reverse(),
+        ...normalMonsters.sort(sortBySpeedAndRandomize).reverse(),
+        ...anchorActionMonsters.sort(sortBySpeedAndRandomize).reverse(),
+      ];
+    }
+    return abilityOrder;
+  }
+  const abilityOrder = decideAbilityOrder();
+  for (const monster of abilityOrder) {
+    await executeAbility(monster, "attackAbilities");
   }
 
   //popupを全て閉じてコマンドボタンを有効化、メッセージ表示
