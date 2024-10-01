@@ -1,106 +1,74 @@
 //初期処理
-const defaultMonster = {
-  name: "未選択",
-  id: "unselected",
-  type: "",
-  status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-  defaultSkill: ["なし", "なし", "なし", "なし"],
-  attribute: "",
-  seed: { atk: 0, def: 0, spd: 0, int: 0 },
-  gear: {
-    name: "",
-    id: "ungeared",
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-    effect: "none",
-  },
-  gearzoubun: {
-    HP: 0,
-    MP: 0,
-    atk: 0,
-    def: 0,
-    spd: 0,
-    int: 0,
-  },
-};
+const allParties = Array(10)
+  .fill(null)
+  .map(() => Array(5).fill([]));
+const parties = [];
 
-const defaultparty = Array(5).fill(defaultMonster);
-
-let allparties = Array.from({ length: 10 }, () => ({ party: [...defaultparty] }));
-//全パテの枠組みを用意
-let parties = [{ party: [...defaultparty] }, { party: [...defaultparty] }];
-//対戦に用いる2つのパテの枠組みを用意
-
-// allparties[0].party が party1
-
-let party = [...defaultparty];
 let selectingPartyNum = 0;
-//party初期化
+let selectingParty = allParties[0];
 
-function selectparty() {
-  //パテ切り替え時に起動
-  // 現在の仮partyのdeep copyを、allparties内のselectingPartyNumで指定された番目に格納
-  allparties[selectingPartyNum].party = structuredClone(party);
-  // selectingPartyNumを選択値に更新
-  selectingPartyNum = Number(document.getElementById("selectparty").value);
-  //仮partyにallparties内の情報を下ろす
-  party = structuredClone(allparties[selectingPartyNum].party);
+function switchParty() {
+  // selectingPartyNumを選択値に更新して、パテ切り替え
+  //switchPartyに変更
+  selectingPartyNum = Number(document.getElementById("switchParty").value);
+  selectingParty = allParties[selectingPartyNum];
 
   //頭モンスターを選択状態に
   //これで、icon2種、ステ、種増分、種選択、特技の表示更新も兼ねる
   switchTab(0);
 
-  function updateImage(elementId, id, gearId) {
-    var iconSrc = id ? "images/icons/" + id + ".jpeg" : "images/icons/unselected.jpeg";
-    var gearSrc = gearId ? "images/gear/" + gearId + ".jpeg" : "images/gear/ungeared.jpeg";
-
-    document.getElementById(elementId).src = iconSrc;
-    document.getElementById("partygear" + elementId.slice(-1)).src = gearSrc;
+  // selectingPartyの中身からアイコンを展開
+  for (let i = 0; i <= 4; i++) {
+    updatePartyIcon(i);
   }
-  //partyの中身のidとgearidから、適切な画像を設定
-  updateImage("partyicon0", party[0]?.id, party[0]?.gear?.id);
-  updateImage("partyicon1", party[1]?.id, party[1]?.gear?.id);
-  updateImage("partyicon2", party[2]?.id, party[2]?.gear?.id);
-  updateImage("partyicon3", party[3]?.id, party[3]?.gear?.id);
-  updateImage("partyicon4", party[4]?.id, party[4]?.gear?.id);
+}
+
+// selectingPartyのうちn番目のpartyiconを更新する関数
+function updatePartyIcon(number) {
+  const monster = selectingParty[number];
+  const iconSrc = monster.length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
+  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear.id + ".jpeg" : "images/gear/ungeared.jpeg";
+  document.getElementById(`partyicon${number}`).src = iconSrc;
+  document.getElementById(`partygear${number}`).src = gearSrc;
 }
 
 //どちらのプレイヤーがパテ選択中かの関数定義
-let allyorenemy = "ally";
+let currentPlayer = "A";
 function confirmparty() {
-  const selectpartymanipu = document.getElementById("selectparty");
+  const switchPartyElement = document.getElementById("switchParty");
 
   //todo:もしpartyの中にunselectedやungearedが入っていたらalertしてesc
 
-  if (allyorenemy === "ally") {
-    //状態の保存とselect入れ替え
-    allyorenemy = "enemy";
+  if (currentPlayer === "A") {
+    // playerBの選択に移行
+    currentPlayer = "B";
     document.getElementById("playerAorB").textContent = "プレイヤーB";
-    //新しいoptionを追加
+    // selectのoptionを変更
     for (let i = 6; i <= 10; i++) {
-      selectpartymanipu.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
+      switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
     }
-    document.getElementById("selectparty").value = 5;
-    //現在の仮partyを対戦用partiesにcopyして確定、selectpartyを5にして敵を表示状態にした上で
-    //selectparty関数で通常通り、未変更のallpartyies内のselectingPartyNumに仮partyを格納、enemy編成をhtmlに展開
-    parties[0] = structuredClone(party);
-    selectparty();
-    // 1から5までの選択肢を削除
-    selectpartymanipu.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
+    switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
+    //現在の仮partyを対戦用partiesにcopy
+    parties[0] = structuredClone(selectingParty);
+    // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
+    document.getElementById("switchParty").value = 5;
+    switchParty();
   } else {
-    //状態の保存とselect入れ替え
-    allyorenemy = "ally";
+    // playerAの選択に戻す
+    currentPlayer = "B";
     document.getElementById("playerAorB").textContent = "プレイヤーA";
-    //新しいoptionを追加
+    // selectのoptionを変更
     for (let i = 1; i <= 5; i++) {
-      selectpartymanipu.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
+      switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
     }
-    document.getElementById("selectparty").value = 0;
-    parties[1] = structuredClone(party);
-    selectparty();
-    //これで戦闘画面から戻った場合はplayer1のparty1が表示
-    //6-10を削除
-    selectpartymanipu.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
-    //displayで全体切り替え、attle画面へ
+    switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
+    // 対戦用partiesにcopy
+    parties[1] = structuredClone(selectingParty);
+    // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
+    document.getElementById("switchParty").value = 0;
+    switchParty();
+
+    //displayで全体切り替え、battle画面へ
     document.getElementById("adjustpartypage").style.display = "none";
     document.getElementById("battlepage").style.display = "block";
     preparebattle();
@@ -3146,57 +3114,43 @@ function hasAbnormalityofAINormalAttack(monster) {
 //partyicon
 
 //monster選択部分
-let selectingMonsterIcon = "";
-let selectingMonsterNum = "";
-const partyIcons = document.querySelectorAll(".partyicon");
-partyIcons.forEach((icon) => {
+//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyicon0-4)、selectingMonsterNum(0-4)
+let selectingMonsterNum = 0;
+document.querySelectorAll(".partyicon").forEach((icon) => {
   icon.addEventListener("click", function () {
-    document.body.style.overflow = "hidden";
-    //todo:?
+    document.body.style.overflow = "hidden"; //todo:?
     document.getElementById("selectmonsteroverlay").style.visibility = "visible";
     document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
     //どの要素をクリックして選択中か格納
-    selectingMonsterIcon = icon.id;
+    const selectingMonsterIcon = icon.id;
     //要素idから選択中のモンスターの数値を生成
     selectingMonsterNum = Number(selectingMonsterIcon.replace(/(party|icon)/g, ""));
   });
 });
-//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyicon0-4)、selectingMonsterNum(0-4)
 
+//まわりクリックで閉じる
 document.getElementById("selectmonsteroverlay").addEventListener("click", function () {
   //ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
   document.getElementById("selectmonsteroverlay").style.visibility = "hidden";
   document.getElementById("selectmonsterpopupwindow").style.opacity = "0";
   document.body.style.overflow = "";
 });
-//まわりクリックで閉じる
 
+//window内の各画像クリックで、選択処理を起動
 document.querySelectorAll(".allmonstericons").forEach((img) => {
   img.addEventListener("click", () => {
     const imgsrc = img.getAttribute("src");
-    const selectedmonsterName = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
-    selectMonster(selectedmonsterName);
+    const selectedMonsterName = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
+    selectMonster(selectedMonsterName);
   });
 });
-//window内の各画像クリックで、選択処理を起動
 
+//ポップアップ内各画像クリックで、そのモンスターを代入してウィンドウを閉じる
 function selectMonster(monsterName) {
-  //ポップアップ内各画像クリック時に起動
-  const newmonsterImageSrc = "images/icons/" + monsterName + ".jpeg";
-  document.getElementById(selectingMonsterIcon).src = newmonsterImageSrc;
-  //取得した選択中の枠に、ポップアップウィンドウ内で選択したモンスターの画像を代入
-  //todo:tabの処理と共通化
-
-  const targetgear = "partygear" + selectingMonsterNum;
-  document.getElementById(targetgear).src = "images/gear/ungeared.jpeg";
-  //装備リセットのため装備アイコンを未選択にselectingMonsterNum
-
-  party[selectingMonsterNum] = monsters.find((monster) => monster.id == monsterName);
-  //party配列内に引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
-
-  party[selectingMonsterNum].displaystatus = party[selectingMonsterNum].status;
-  party[selectingMonsterNum].gearzoubun = defaultgearzoubun;
-  //表示値を宣言、statusを初期値として代入、以下switchtabで種や装備処理を行い、追加する
+  //選択中partyの該当monsterに引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
+  selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id == monsterName));
+  //表示更新
+  updatePartyIcon(selectingMonsterNum);
 
   //格納後、新規モンスターの詳細を表示するため、selectingMonsterNumのtabに表示を切り替える
   switchTab(selectingMonsterNum);
@@ -3205,42 +3159,37 @@ function selectMonster(monsterName) {
   document.getElementById("selectmonsteroverlay").style.visibility = "hidden";
   document.getElementById("selectmonsterpopupwindow").style.opacity = "0";
   document.body.style.overflow = "";
-}
-//ウィンドウ内クリックでそれを代入してウィンドウを閉じる
 
-let defaultgearzoubun = {
-  HP: 0,
-  MP: 0,
-  atk: 0,
-  def: 0,
-  spd: 0,
-  int: 0,
-};
+  // 初期表示状態で種選択が無効化されている場合に解除
+  disableSeedSelect(false);
+}
 
 //装備選択部分
-let selectingGear = "";
-let selectingGearNum = "";
-const partyGear = document.querySelectorAll(".partygear");
-partyGear.forEach((icon) => {
+//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得
+let selectingGearNum = 0;
+document.querySelectorAll(".partygear").forEach((icon) => {
   icon.addEventListener("click", function () {
+    //どの装備をクリックして選択中か格納
+    const selectingGear = icon.id;
+    //要素idから選択中の装備の数値を生成
+    selectingGearNum = Number(selectingGear.replace(/(party|gear)/g, ""));
+    // モンスターが空のときはreturn
+    if (selectingParty[selectingGearNum].length === 0) return;
     document.body.style.overflow = "hidden";
     document.getElementById("selectgearoverlay").style.visibility = "visible";
     document.getElementById("selectgearpopupwindow").style.opacity = "1";
-    //どの装備をクリックして選択中か格納
-    selectingGear = icon.id;
-    selectingGearNum = Number(selectingGear.replace(/(party|gear)/g, ""));
   });
 });
-//装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得
 
+//まわりクリックで閉じる
 document.getElementById("selectgearoverlay").addEventListener("click", function () {
   //ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
   document.getElementById("selectgearoverlay").style.visibility = "hidden";
   document.getElementById("selectgearpopupwindow").style.opacity = "0";
   document.body.style.overflow = "";
 });
-//まわりクリックで閉じる
 
+//window内の各画像クリックで、選択処理を起動
 document.querySelectorAll(".allgear").forEach((img) => {
   img.addEventListener("click", () => {
     const imgsrc = img.getAttribute("src");
@@ -3248,19 +3197,17 @@ document.querySelectorAll(".allgear").forEach((img) => {
     selectgear(selectedgearName);
   });
 });
-//window内の各画像クリックで、選択処理を起動
 
+//ポップアップ内各画像クリックで、その装備を代入してウィンドウを閉じる
 function selectgear(gearName) {
-  // ポップアップウィンドウ内で選択した装備の画像をポップアップを開く画像に置き換える
-  const newgearImageSrc = "images/gear/" + gearName + ".jpeg";
-  document.getElementById(selectingGear).src = newgearImageSrc;
-  //取得した選択中の枠に、ウィンドウ内で選択した装備を代入
+  //表示値計算などはcurrentTabを元に情報を取得するため、タブ遷移しておく
+  switchTab(selectingGearNum);
+  //選択中partyの該当monsterの装備を変更
+  selectingParty[selectingGearNum].gear = structuredClone(gear.find((gear) => gear.id == gearName));
+  //表示更新
+  updatePartyIcon(selectingGearNum);
 
-  party[selectingGearNum].gear = gear.find((gear) => gear.id == gearName);
-  //selectingGearNumでparty配列内の何番目の要素か指定、party配列内の、さらに該当要素のgear部分に引数gearNameとidが等しいgearのデータの配列を丸ごと代入
-  party[selectingGearNum].gearzoubun = party[selectingGearNum].gear.status;
-
-  //tab遷移は不要、currentTabも不変のため、gear格納、gearstatusをgearzoubunに格納、display再計算、表示変更
+  //currentTabや種も不変のため、display再計算と表示変更のみ
   calcAndAdjustDisplayStatus();
 
   // ポップアップウィンドウを閉じる
@@ -3268,61 +3215,51 @@ function selectgear(gearName) {
   document.getElementById("selectgearpopupwindow").style.opacity = "0";
   document.body.style.overflow = "";
 }
-//ウィンドウ内クリックでそれを代入してウィンドウを閉じる
 //装備選択部分終了
 
-//タブ遷移時や新規モンス選択時起動、currentTabのステータス、特技、種表示
+//switchTabでタブ遷移時や新規モンス選択時起動、currentTabのステータス、特技、種select、種増分表示更新
 function adjustStatusAndSkillDisplay() {
   //丸ごと放り込まれているor操作済みのため、ただ引っ張ってくれば良い
   //所持特技名表示変更
-  document.getElementById("skill0").textContent = party[currentTab].defaultSkill[0];
-  document.getElementById("skill1").textContent = party[currentTab].defaultSkill[1];
-  document.getElementById("skill2").textContent = party[currentTab].defaultSkill[2];
-  document.getElementById("skill3").textContent = party[currentTab].defaultSkill[3];
+  document.getElementById("skill0").textContent = selectingParty[currentTab].defaultSkill[0];
+  document.getElementById("skill1").textContent = selectingParty[currentTab].defaultSkill[1];
+  document.getElementById("skill2").textContent = selectingParty[currentTab].defaultSkill[2];
+  document.getElementById("skill3").textContent = selectingParty[currentTab].defaultSkill[3];
   //種表示変更
-  document.getElementById("selectseed-atk").value = party[currentTab].seed.atk;
-  document.getElementById("selectseed-def").value = party[currentTab].seed.def;
-  document.getElementById("selectseed-spd").value = party[currentTab].seed.spd;
-  document.getElementById("selectseed-int").value = party[currentTab].seed.int;
+  document.getElementById("selectseed-atk").value = selectingParty[currentTab].seed.atk;
+  document.getElementById("selectseed-def").value = selectingParty[currentTab].seed.def;
+  document.getElementById("selectseed-spd").value = selectingParty[currentTab].seed.spd;
+  document.getElementById("selectseed-int").value = selectingParty[currentTab].seed.int;
   changeSeedSelect();
-  //種表示変更
 }
-
-//装備変更時とタブ遷移時に起動する、装備表示変更処理?
-
-// 初期値、select要素を取得
-var selectElementsseed = document.querySelectorAll(".selectseed");
-let selectseedatk = "";
-let selectseeddef = "";
-let selectseedspd = "";
-let selectseedint = "";
 
 //種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedZoubunCalcによる増分計算、格納、表示
 //tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedZoubunCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
 function changeSeedSelect() {
   // 選択された数値を取得
-  selectseedatk = document.getElementById("selectseed-atk").value;
-  selectseeddef = document.getElementById("selectseed-def").value;
-  selectseedspd = document.getElementById("selectseed-spd").value;
-  selectseedint = document.getElementById("selectseed-int").value;
+  const selectseedatk = document.getElementById("selectseed-atk").value;
+  const selectseeddef = document.getElementById("selectseed-def").value;
+  const selectseedspd = document.getElementById("selectseed-spd").value;
+  const selectseedint = document.getElementById("selectseed-int").value;
 
-  //この新たな値を、party配列内の表示中のタブのseed情報に格納
-  party[currentTab].seed.atk = selectseedatk;
-  party[currentTab].seed.def = selectseeddef;
-  party[currentTab].seed.spd = selectseedspd;
-  party[currentTab].seed.int = selectseedint;
-  seedZoubunCalc();
+  //この新たな値を、selectingParty内の表示中のタブのseed情報に格納
+  selectingParty[currentTab].seed.atk = selectseedatk;
+  selectingParty[currentTab].seed.def = selectseeddef;
+  selectingParty[currentTab].seed.spd = selectseedspd;
+  selectingParty[currentTab].seed.int = selectseedint;
+  seedZoubunCalc(selectseedatk, selectseeddef, selectseedspd, selectseedint);
 
   // 120上限種無効化処理
-  var remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
-  // どれだけ追加で振れるか
-  selectElementsseed.forEach(function (element) {
-    var selectedValue = parseInt(element.value);
+  //select変化時、全部の合計値を算出、120-その合計値を算出 = remain
+  const remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
+  //すべてのselectで、現状の値+remainを超える選択肢をdisable化
+  document.querySelectorAll(".selectseed").forEach(function (element) {
+    const selectedValue = parseInt(element.value);
     const newlimit = remainingselectseedsum + selectedValue;
 
-    var options = element.options;
-    for (var i = 0; i < options.length; i++) {
-      var optionValue = parseInt(options[i].value);
+    const options = element.options;
+    for (let i = 0; i < options.length; i++) {
+      const optionValue = parseInt(options[i].value);
       if (optionValue > newlimit) {
         options[i].disabled = true;
       } else {
@@ -3332,21 +3269,8 @@ function changeSeedSelect() {
   });
 }
 
-//select変化時、全部の合計値を算出、
-//120-その合計値を算出 = remain
-//すべてのselectで、現状の値+remainを超える選択肢をdisable化
-
-//増分計算fun selectseedatkを元に、増分計算・表示、増分をparty該当モンスター内に格納
-function seedZoubunCalc() {
-  let seedzoubun = {
-    HP: "",
-    MP: "",
-    atk: "",
-    def: "",
-    spd: "",
-    int: "",
-  };
-
+//増分計算fun selectseedatkを元に、増分計算、増分格納、増分表示更新  さらに表示値を更新
+function seedZoubunCalc(selectseedatk, selectseeddef, selectseedspd, selectseedint) {
   //事前定義
   function seedcalc(limit, targetarray) {
     let sum = 0;
@@ -3367,54 +3291,54 @@ function seedZoubunCalc() {
   const spdseedlimit = selectseedspd / 5;
   const intseedlimit = selectseedint / 5;
 
-  HPzoubun = seedcalc(atkseedlimit, atkseedarrayHP) + seedcalc(defseedlimit, defseedarrayHP) + seedcalc(spdseedlimit, defseedarrayMP);
-  MPzoubun = seedcalc(defseedlimit, defseedarrayMP) + seedcalc(spdseedlimit, defseedarrayHP) + seedcalc(intseedlimit, atkseedarrayHP);
-  atkzoubun = seedcalc(atkseedlimit, atkseedarrayatk);
-  defzoubun = seedcalc(defseedlimit, defseedarraydef);
-  spdzoubun = seedcalc(spdseedlimit, atkseedarrayatk);
-  intzoubun = seedcalc(intseedlimit, defseedarraydef);
+  const HPzoubun = seedcalc(atkseedlimit, atkseedarrayHP) + seedcalc(defseedlimit, defseedarrayHP) + seedcalc(spdseedlimit, defseedarrayMP);
+  const MPzoubun = seedcalc(defseedlimit, defseedarrayMP) + seedcalc(spdseedlimit, defseedarrayHP) + seedcalc(intseedlimit, atkseedarrayHP);
+  const atkzoubun = seedcalc(atkseedlimit, atkseedarrayatk);
+  const defzoubun = seedcalc(defseedlimit, defseedarraydef);
+  const spdzoubun = seedcalc(spdseedlimit, atkseedarrayatk);
+  const intzoubun = seedcalc(intseedlimit, defseedarraydef);
 
-  //zoubun配列内に代入
-  seedzoubun.HP = HPzoubun;
-  seedzoubun.MP = MPzoubun;
-  seedzoubun.atk = atkzoubun;
-  seedzoubun.def = defzoubun;
-  seedzoubun.spd = spdzoubun;
-  seedzoubun.int = intzoubun;
+  //格納
+  if (!selectingParty[currentTab].hasOwnProperty("seedzoubun")) {
+    selectingParty[currentTab].seedzoubun = {};
+  }
+  selectingParty[currentTab].seedzoubun.HP = HPzoubun;
+  selectingParty[currentTab].seedzoubun.MP = MPzoubun;
+  selectingParty[currentTab].seedzoubun.atk = atkzoubun;
+  selectingParty[currentTab].seedzoubun.def = defzoubun;
+  selectingParty[currentTab].seedzoubun.spd = spdzoubun;
+  selectingParty[currentTab].seedzoubun.int = intzoubun;
 
+  //増分表示
   document.getElementById("status-info-seedgear-HP").textContent = `(+${HPzoubun})`;
   document.getElementById("status-info-seedgear-MP").textContent = `(+${MPzoubun})`;
   document.getElementById("status-info-seedgear-atk").textContent = `(+${atkzoubun})`;
   document.getElementById("status-info-seedgear-def").textContent = `(+${defzoubun})`;
   document.getElementById("status-info-seedgear-spd").textContent = `(+${spdzoubun})`;
   document.getElementById("status-info-seedgear-int").textContent = `(+${intzoubun})`;
-  //増分表示
-  party[currentTab].seedzoubun = seedzoubun;
-  //増分格納
 
   calcAndAdjustDisplayStatus();
 }
 
 function calcAndAdjustDisplayStatus() {
-  //statusとseedzoubunとgearzoubunを足して、displaystatusを計算、表示更新
+  //statusとseedzoubunとgearzoubunを足して、displaystatusを計算、表示値を更新
+  const gearStatus = selectingParty[currentTab].gear?.status || {};
 
-  party[currentTab].displaystatus = {
-    HP: party[currentTab].status.HP + party[currentTab].seedzoubun.HP + party[currentTab].gearzoubun.HP,
-    MP: party[currentTab].status.MP + party[currentTab].seedzoubun.MP + party[currentTab].gearzoubun.MP,
-    atk: party[currentTab].status.atk + party[currentTab].seedzoubun.atk + party[currentTab].gearzoubun.atk,
-    def: party[currentTab].status.def + party[currentTab].seedzoubun.def + party[currentTab].gearzoubun.def,
-    spd: party[currentTab].status.spd + party[currentTab].seedzoubun.spd + party[currentTab].gearzoubun.spd,
-    int: party[currentTab].status.int + party[currentTab].seedzoubun.int + party[currentTab].gearzoubun.int,
+  selectingParty[currentTab].displaystatus = {
+    HP: selectingParty[currentTab].status.HP + selectingParty[currentTab].seedzoubun.HP + (gearStatus.HP || 0),
+    MP: selectingParty[currentTab].status.MP + selectingParty[currentTab].seedzoubun.MP + (gearStatus.MP || 0),
+    atk: selectingParty[currentTab].status.atk + selectingParty[currentTab].seedzoubun.atk + (gearStatus.atk || 0),
+    def: selectingParty[currentTab].status.def + selectingParty[currentTab].seedzoubun.def + (gearStatus.def || 0),
+    spd: selectingParty[currentTab].status.spd + selectingParty[currentTab].seedzoubun.spd + (gearStatus.spd || 0),
+    int: selectingParty[currentTab].status.int + selectingParty[currentTab].seedzoubun.int + (gearStatus.int || 0),
   };
 
-  document.getElementById("status-info-displayHP").textContent = party[currentTab].displaystatus.HP;
-  document.getElementById("status-info-displayMP").textContent = party[currentTab].displaystatus.MP;
-  document.getElementById("status-info-displayatk").textContent = party[currentTab].displaystatus.atk;
-  document.getElementById("status-info-displaydef").textContent = party[currentTab].displaystatus.def;
-  document.getElementById("status-info-displayspd").textContent = party[currentTab].displaystatus.spd;
-  document.getElementById("status-info-displayint").textContent = party[currentTab].displaystatus.int;
-
-  //表示値更新
+  document.getElementById("status-info-displayHP").textContent = selectingParty[currentTab].displaystatus.HP;
+  document.getElementById("status-info-displayMP").textContent = selectingParty[currentTab].displaystatus.MP;
+  document.getElementById("status-info-displayatk").textContent = selectingParty[currentTab].displaystatus.atk;
+  document.getElementById("status-info-displaydef").textContent = selectingParty[currentTab].displaystatus.def;
+  document.getElementById("status-info-displayspd").textContent = selectingParty[currentTab].displaystatus.spd;
+  document.getElementById("status-info-displayint").textContent = selectingParty[currentTab].displaystatus.int;
 }
 
 //タブ処理
@@ -3433,17 +3357,55 @@ function addTabClass(targetTabNum) {
 
 let currentTab = 0;
 function switchTab(tabNumber) {
-  //tab button押した時または新規モンスター選択時に起動、タブ自体の詳細/表示中を切り替え、currentTabに表示中のtabnumを格納、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
-  currentTab = tabNumber;
-  adjustStatusAndSkillDisplay();
-  //ステ特技種の呼び出しと表示へ
-  // タブボタンに枠線を追加する
-  addTabClass(tabNumber);
+  // tab button押した時または新規モンスター選択時に起動、currentTab更新、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
+  // tabの中身が存在するとき
+  if (selectingParty[tabNumber].length !== 0) {
+    currentTab = tabNumber;
+    adjustStatusAndSkillDisplay();
+    // タブ自体の詳細/表示中を切り替え
+    addTabClass(tabNumber);
+    disableSeedSelect(false);
+  } else if (tabNumber == 0) {
+    // 0は例外的に空tab選択可能にして、初期表示
+    currentTab = tabNumber;
+    // タブ自体の詳細/表示中を切り替え
+    addTabClass(tabNumber);
+    //各種表示reset
+    // skill表示空に
+    document.getElementById("skill0").textContent = "";
+    document.getElementById("skill1").textContent = "";
+    document.getElementById("skill2").textContent = "";
+    document.getElementById("skill3").textContent = "";
+    // 種表示reset
+    document.getElementById("selectseed-atk").value = 0;
+    document.getElementById("selectseed-def").value = 0;
+    document.getElementById("selectseed-spd").value = 0;
+    document.getElementById("selectseed-int").value = 0;
+    // 増分表示reset
+    document.getElementById("status-info-seedgear-HP").textContent = "(+0)";
+    document.getElementById("status-info-seedgear-MP").textContent = "(+0)";
+    document.getElementById("status-info-seedgear-atk").textContent = "(+0)";
+    document.getElementById("status-info-seedgear-def").textContent = "(+0)";
+    document.getElementById("status-info-seedgear-spd").textContent = "(+0)";
+    document.getElementById("status-info-seedgear-int").textContent = "(+0)";
+    // 表示値reset
+    document.getElementById("status-info-displayHP").textContent = "0";
+    document.getElementById("status-info-displayMP").textContent = "0";
+    document.getElementById("status-info-displayatk").textContent = "0";
+    document.getElementById("status-info-displaydef").textContent = "0";
+    document.getElementById("status-info-displayspd").textContent = "0";
+    document.getElementById("status-info-displayint").textContent = "0";
+    //種選択無効化
+    disableSeedSelect(true);
+  }
 }
+switchTab(0);
 
-//monster data
-//枠を作成
-//必要に応じて、2パテ目とかも
+function disableSeedSelect(trueOrFlase) {
+  document.querySelectorAll(".selectseed").forEach((button) => {
+    button.disabled = trueOrFlase;
+  });
+}
 
 const monsters = [
   {
@@ -5135,12 +5097,6 @@ const skill = [
 ];
 
 const gear = [
-  {
-    name: "",
-    id: "ungeared",
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
-    effect: "none",
-  },
   {
     name: "メタ爪",
     id: "metanail",
