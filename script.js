@@ -86,6 +86,7 @@ function preparebattle() {
     const party = parties[i];
     // 要素ID用のprefix
     const prefix = i === 0 ? "ally" : "enemy";
+    const reversedPrefix = i === 1 ? "ally" : "enemy";
 
     // リーダースキルの取得
     const leaderSkill = party[0].ls;
@@ -102,6 +103,7 @@ function preparebattle() {
       monster.index = j;
       monster.monsterId = `parties[${i}][${j}]`;
       monster.iconElementId = `battleicon${prefix}${j}`;
+      monster.reversedIconElementId = `battleicon${reversedPrefix}${j}`;
       monster.hpBarElementId = `hpbar${prefix}${j}`;
       monster.mpBarElementId = `mpbar${prefix}${j}`;
       monster.hpBarTextElementId = `hpbartext${prefix}${j}`;
@@ -156,22 +158,28 @@ let fieldState = { turnNum: 0 };
 //死亡処理で起動、死亡時や亡者化のicon変化処理、preparebattlepageiconsでも起動して敵skill選択時の反転にそれを反映する
 //状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
 function updatebattleicons(monster, reverseDisplay = false) {
-  const side = reverseDisplay ? 1 - monster.teamID : monster.teamID;
-  const elementId = `battleicon${side === 0 ? "ally" : "enemy"}${monster.index}`;
-  const iconElement = document.getElementById(elementId);
-  iconElement.src = monster.iconSrc;
+  const upperTeamId = reverseDisplay ? 0 : 1;
+  const targetElementId = reverseDisplay ? monster.reversedIconElementId : monster.iconElementId;
+  const targetElement = document.getElementById(targetElementId);
+  targetElement.src = monster.iconSrc;
+  // 対面monsterが存在しないとき、対面のアイコンを非表示に
+  if (!parties[monster.enemyTeamID][monster.index]) {
+    const enemyTargetElementId = reverseDisplay ? monster.iconElementId : monster.reversedIconElementId;
+    document.getElementById(enemyTargetElementId).src = "";
+    document.getElementById(enemyTargetElementId).style.display = "none";
+  }
 
-  iconElement.style.display = "flex";
-  //sideが1かつ死亡は非表示、0かつ死亡は暗転、亡者は全て中間
-  if (side === 1 && monster.flags?.isDead) {
-    iconElement.style.display = "none";
+  targetElement.style.display = "flex";
+  //上側表示かつ死亡は非表示、下かつ死亡は暗転、亡者は全て中間
+  if (monster.teamID === upperTeamId && monster.flags?.isDead) {
+    targetElement.style.display = "none";
   } else {
     if (monster.flags?.isZombie) {
-      iconElement.style.filter = "brightness(80%)"; //todo:不要か？
-    } else if (!monster.flags?.isZombie && side !== 1 && monster.flags?.isDead) {
-      iconElement.style.filter = "brightness(25%)";
+      targetElement.style.filter = "brightness(80%)"; //todo:不要か？
+    } else if (!monster.flags?.isZombie && monster.teamID !== upperTeamId && monster.flags?.isDead) {
+      targetElement.style.filter = "brightness(25%)";
     } else {
-      iconElement.style.filter = "brightness(100%)";
+      targetElement.style.filter = "brightness(100%)";
     }
   }
 }
