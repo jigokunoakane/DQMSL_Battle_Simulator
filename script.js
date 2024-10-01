@@ -3348,11 +3348,13 @@ function displayGearZoubun() {
   // 各ステータスごとに表示を更新
   const updateStatus = (statusName) => {
     // 初期値 非表示化
+    document.getElementById(`status-info-gear-${statusName}`).style.visibility = "hidden";
     document.getElementById(`status-info-gear-${statusName}`).textContent = "0";
     // 存在してかつ0より大きければ表示
     if (selectingParty[currentTab].gear) {
       const statusValue = selectingParty[currentTab].gear.status[statusName];
       if (statusValue > 0) {
+        document.getElementById(`status-info-gear-${statusName}`).style.visibility = "visible";
         document.getElementById(`status-info-gear-${statusName}`).textContent = `(+${statusValue})`;
       }
     }
