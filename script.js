@@ -3442,6 +3442,32 @@ function disableSeedSelect(trueOrFlase) {
   });
 }
 
+document.getElementById("drapa").addEventListener("click", function () {
+  selectAllPartyMembers(["masudora", "sinri", "rusia", "orochi", "voruka"]);
+});
+
+document.getElementById("yuzupa").addEventListener("click", function () {
+  selectAllPartyMembers(["world", "nerugeru", "erugi", "ifshiba", "skull"]);
+});
+
+document.getElementById("omudopa").addEventListener("click", function () {
+  selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
+});
+
+async function selectAllPartyMembers(monsters) {
+  for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
+    selectMonster(monsters[selectingMonsterNum]);
+  }
+  confirmparty();
+  await sleep(9);
+  if (currentPlayer === "B") {
+    document.body.style.overflow = "hidden";
+    document.getElementById("selectmonsteroverlay").style.visibility = "visible";
+    document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
+    selectingMonsterNum = 0;
+  }
+}
+
 const monsters = [
   {
     name: "マスタードラゴン",
