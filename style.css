@@ -222,6 +222,7 @@ select {
 .status-info-colon,
 .status-info-status,
 .status-info-seedgear,
+.status-info-gear,
 .status-info-seed-title,
 .status-info-seed-seed {
   line-height: 1.3; /* テキストの高さをリセットして均等にする */
@@ -235,7 +236,7 @@ select {
   width: 15%;
 }
 .status-info-colon {
-  width: 8%;
+  width: 6%;
 }
 .status-info-status {
   width: 10%;
@@ -244,7 +245,10 @@ select {
   width: 8%;
 }
 .status-info-seedgear {
-  width: 23%;
+  width: 12%;
+}
+.status-info-gear {
+  width: 20%;
 }
 
 .status-info-seed-title {

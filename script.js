@@ -3209,6 +3209,8 @@ function selectgear(gearName) {
 
   //currentTabや種も不変のため、display再計算と表示変更のみ
   calcAndAdjustDisplayStatus();
+  //装備増分表示はreset
+  displayGearZoubun();
 
   // ポップアップウィンドウを閉じる
   document.getElementById("selectgearoverlay").style.visibility = "hidden";
@@ -3230,6 +3232,7 @@ function adjustStatusAndSkillDisplay() {
   document.getElementById("selectseed-def").value = selectingParty[currentTab].seed.def;
   document.getElementById("selectseed-spd").value = selectingParty[currentTab].seed.spd;
   document.getElementById("selectseed-int").value = selectingParty[currentTab].seed.int;
+  displayGearZoubun();
   changeSeedSelect();
 }
 
@@ -3339,6 +3342,28 @@ function calcAndAdjustDisplayStatus() {
   document.getElementById("status-info-displaydef").textContent = selectingParty[currentTab].displaystatus.def;
   document.getElementById("status-info-displayspd").textContent = selectingParty[currentTab].displaystatus.spd;
   document.getElementById("status-info-displayint").textContent = selectingParty[currentTab].displaystatus.int;
+}
+
+function displayGearZoubun() {
+  // 各ステータスごとに表示を更新
+  const updateStatus = (statusName) => {
+    // 初期値 非表示化
+    document.getElementById(`status-info-gear-${statusName}`).textContent = "0";
+    // 存在してかつ0より大きければ表示
+    if (selectingParty[currentTab].gear) {
+      const statusValue = selectingParty[currentTab].gear.status[statusName];
+      if (statusValue > 0) {
+        document.getElementById(`status-info-gear-${statusName}`).textContent = `(+${statusValue})`;
+      }
+    }
+  };
+
+  updateStatus("HP");
+  updateStatus("MP");
+  updateStatus("atk");
+  updateStatus("def");
+  updateStatus("spd");
+  updateStatus("int");
 }
 
 //タブ処理
