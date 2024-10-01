@@ -49,7 +49,7 @@ function confirmparty() {
     }
     switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
     //現在の仮partyを対戦用partiesにcopy
-    parties[0] = structuredClone(selectingParty);
+    parties[0] = structuredClone(selectingParty).filter((element) => element.length !== 0);
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 5;
     switchParty();
@@ -63,7 +63,7 @@ function confirmparty() {
     }
     switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
     // 対戦用partiesにcopy
-    parties[1] = structuredClone(selectingParty);
+    parties[1] = structuredClone(selectingParty).filter((element) => element.length !== 0);
     // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 0;
     switchParty();
