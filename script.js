@@ -1785,9 +1785,9 @@ async function processMonsterAction(skillUser) {
   }
 
   // 5. 消費MP確認
-  const MPcost = calculateMPcost(skillUser, executingSkill);
-  if (skillUser.currentstatus.MP >= MPcost) {
-    skillUser.currentstatus.MP -= executingSkill.MPcost;
+  const calcMPcost = calculateMPcost(skillUser, executingSkill);
+  if (skillUser.currentstatus.MP >= calcMPcost) {
+    skillUser.currentstatus.MP -= calcMPcost;
     updateMonsterBar(skillUser);
   } else {
     console.log("しかし、MPが足りなかった！");
