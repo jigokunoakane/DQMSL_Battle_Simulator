@@ -130,10 +130,15 @@ function preparebattle() {
       monster.confirmedcommandtarget = "";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [] };
-      monster.abilities = {}; //削除
       monster.attribute.additionalPermanentBuffs = {};
-      monster.additionalPermanentAbilities = {};
-      monster.nextTurnAbilities = {};
+      // monsterAbilitiesの内容をmonsterDataにコピー
+      monster.abilities = getMonsterAbilities(monster.id);
+      monster.abilities.supportAbilities = monster.abilities.supportAbilities || {};
+      monster.abilities.supportAbilities.additionalPermanentAbilities = [];
+      monster.abilities.supportAbilities.nextTurnAbilities = [];
+      monster.abilities.attackAbilities = monster.abilities.attackAbilities || {};
+      monster.abilities.attackAbilities.additionalPermanentAbilities = [];
+      monster.abilities.attackAbilities.nextTurnAbilities = [];
 
       // バフ表示の更新
       updateMonsterBar(monster);
@@ -699,6 +704,13 @@ async function startTurn() {
     count: 1,
     isValid: false,
   };
+  if (!fieldState.isPermanentReverse) {
+    delete fieldState.isReverse;
+  }
+  if (!fieldState.isPermanentDistorted) {
+    delete fieldState.isDistorted;
+  }
+
   //ターン開始時loop
   for (const party of parties) {
     for (const monster of party) {
@@ -739,8 +751,8 @@ async function startTurn() {
         await applyBuffsAsync(monster, initialBuffs, true, true);
 
         // 戦闘開始時発動特性
-        if (monster.initialAbilities) {
-          const allInitialAbilities = [...(monster.initialAbilities || [])];
+        if (monster.abilities && monster.abilities.initialAbilities) {
+          const allInitialAbilities = [...(monster.abilities.initialAbilities || [])];
           for (const ability of allInitialAbilities) {
             await ability.act(monster);
           }
@@ -839,21 +851,38 @@ async function startTurn() {
 
   // 1モンスターのabilityを連続的に実行する関数
   async function executeAbility(monster, isSupportOrAttack) {
-    if (monster.flags.isDead || !monster[isSupportOrAttack]) {
+    if (monster.flags.isDead || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
       return;
     }
-    // すべてのabilityをまとめる
-    const allAbilities = [
-      ...(monster[isSupportOrAttack][turnNum] || []),
-      ...(monster[isSupportOrAttack].additionalPermanentAbilities || []),
-      ...(monster[isSupportOrAttack].permanentAbilities || []),
-      ...(turnNum % 2 === 0 && monster[isSupportOrAttack].evenTurnAbilities ? monster[isSupportOrAttack].evenTurnAbilities : []),
-      ...(turnNum % 2 !== 0 && monster[isSupportOrAttack].oddTurnAbilities ? monster[isSupportOrAttack].oddTurnAbilities : []),
-      ...(turnNum >= 2 && monster[isSupportOrAttack].abilitiesFromTurn2 ? monster[isSupportOrAttack].abilitiesFromTurn2 : []),
-      ...(monster[isSupportOrAttack].nextTurnAbilities || []),
-    ];
+
+    const currentAbilities = monster.abilities?.[isSupportOrAttack];
+    const allAbilities = [];
+
+    // 各ability配列が存在し、かつ空でない場合のみ追加
+    if (currentAbilities?.[turnNum]?.length) {
+      allAbilities.push(...currentAbilities[turnNum]);
+    }
+    if (currentAbilities?.additionalPermanentAbilities?.length) {
+      allAbilities.push(...currentAbilities.additionalPermanentAbilities);
+    }
+    if (currentAbilities?.permanentAbilities?.length) {
+      allAbilities.push(...currentAbilities.permanentAbilities);
+    }
+    if (currentAbilities?.[turnNum % 2 === 0 ? "evenTurnAbilities" : "oddTurnAbilities"]?.length) {
+      allAbilities.push(...currentAbilities[turnNum % 2 === 0 ? "evenTurnAbilities" : "oddTurnAbilities"]);
+    }
+    if (turnNum >= 2 && currentAbilities?.abilitiesFromTurn2?.length) {
+      allAbilities.push(...currentAbilities.abilitiesFromTurn2);
+    }
+    if (currentAbilities?.nextTurnAbilities?.length) {
+      allAbilities.push(...currentAbilities.nextTurnAbilities);
+    }
+
     for (const ability of allAbilities) {
-      if (ability.name) {
+      if (ability.hasOwnProperty("message")) {
+        ability.message(monster);
+        await sleep(150);
+      } else if (ability.hasOwnProperty("name")) {
         displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
         await sleep(150);
       }
@@ -1910,6 +1939,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
 
   // 7-4. 行動後発動特性の処理
+  /*
   if (!skillUser.flags.hasDiedThisAction) {
     for (const ability of Object.values(skillUser.abilities)) {
       if (ability.trigger === "afterAction" && typeof ability.act === "function") {
@@ -1918,6 +1948,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       }
     }
   }
+    */
 
   // 7-5. 属性断罪の刻印処理
   if (!skillUser.flags.hasDiedThisAction) {
@@ -3003,7 +3034,7 @@ async function executeDeathAbilities(monster) {
 
   // 復活とタグ変化が予定されているか判定
   let isReviving = monster.buffs.revive || monster.buffs.tagTransformation;
-
+  /*
   for (const ability of Object.values(monster.abilities)) {
     if (ability.left === undefined || ability.left > 0) {
       if (ability.triggerDeathType === "exceptRevive" && isReviving) {
@@ -3021,6 +3052,7 @@ async function executeDeathAbilities(monster) {
     await ability.act(monster);
     await sleep(350);
   }
+    */
 }
 
 // モンスターを蘇生させる関数
@@ -3830,6 +3862,99 @@ const monsters = [
   },
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
+
+function getMonsterAbilities(monsterId) {
+  const monsterAbilities = {
+    nerugeru: {
+      initialAbilities: [
+        {
+          act: function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.id === skillUser.id) continue;
+              monster.skill[3] = "供物をささげる";
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "自然治癒",
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+    },
+    erugi: {
+      initialAbilities: [
+        {
+          act: function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              //monster.buffs.angelMark
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "自然治癒",
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+    },
+    omudo: {
+      supportAbilities: {
+        2: [
+          {
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の`, "まわりの時間が巻き戻る！");
+            },
+            act: function (skillUser) {
+              applyDamage(skillUser, skillUser.defaultstatus.HP, -1);
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            name: "自然治癒",
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+          {
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の特性により`, "リバースが 発動！");
+            },
+            act: function (skillUser) {
+              displayMessage("全員の 行動順と素早さが", "逆転した！");
+              fieldState.isReverse = true;
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            act: async function (skillUser) {
+              if (skillUser.flags.willTransformOmudo) {
+                delete skillUser.flags.willTransformOmudo;
+                await transformTyoma(skillUser);
+              }
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  return monsterAbilities[monsterId] || {};
+}
 
 const skill = [
   {
@@ -4653,7 +4778,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     order: "preemptive",
     preemptivegroup: 1,
@@ -4675,6 +4800,7 @@ const skill = [
     appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
     act: function (skillUser, skillTarget) {
       fieldState.isReverse = true;
+      fieldState.isPermanentReverse = true;
     },
   },
   {
@@ -6011,6 +6137,12 @@ async function transformTyoma(monster) {
   }
   await sleep(500);
   applyDamage(monster, monster.defaultstatus.MP, -1, true);
+  if (monster.name === "超オムド") {
+    await sleep(400);
+    displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
+    fieldState.isDistorted = true;
+    fieldState.isPermanentDistorted = true;
+  }
   await sleep(400);
   //変身時特性など
 }
