@@ -889,6 +889,8 @@ async function startTurn() {
       await ability.act(monster);
       await sleep(150);
     }
+    // 実行後に削除
+    currentAbilities.nextTurnAbilities = [];
   }
 
   // partiesに逆順でバフ適用・supportAbilities発動
@@ -1212,7 +1214,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "statusLock") {
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
-          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName].type === "familyBuff")) {
+          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName]?.type === "familyBuff")) {
             delete buffTarget.buffs[existingBuffName];
           }
         }
@@ -1236,7 +1238,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "tempted") {
         delete buffTarget.buffs.defUp;
       }
-      //みがわり解除
+      //みがわり解除 みがわられは解除しない
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
         for (const eachMonster of parties.flat()) {
           if (eachMonster.flags.hasSubstitute && eachMonster.flags.hasSubstitute.targetMonsterId === buffTarget.monsterId) {
@@ -1245,25 +1247,29 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
         delete buffTarget.flags.isSubstituting;
       }
-      //石化は防御身代わり解除は実行済
+      //石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
-          //stackableBuffs, keepOnDeat, unDispellableByRadiantWave, undispellable, divineDispellableは残す
+          const existingBuff = buffTarget.buffs[existingBuffName];
+          //stackableBuffs, keepOnDeath, unDispellableByRadiantWave, undispellable, divineDispellableは残す
           if (
             !(
               stackableBuffs.hasOwnProperty(existingBuffName) ||
-              existingBuffName.keepOnDeath ||
-              existingBuffName.unDispellableByRadiantWave ||
-              existingBuffName.unDispellable ||
-              existingBuffName.divineDispellable
+              existingBuff.keepOnDeath ||
+              existingBuff.unDispellableByRadiantWave ||
+              existingBuff.unDispellable ||
+              existingBuff.divineDispellable ||
+              existingBuffName === "stoned"
             )
           ) {
-            delete buffTarget.buffs[existingBuffName];
+            delete existingBuff;
           }
         }
         //reviveは問答無用で削除
         delete buffTarget.buffs.revive;
+        // 防御は解除済なのでみがわりだけ解除
+        deleteSubstitute(buffTarget);
       }
       //マホカンは自動でカンタに
       if (buffName === "spellReflection") {
@@ -2142,29 +2148,7 @@ function handleDeath(target, hideDeathMessage = false) {
     target.skill[3] = target.defaultSkill[3];
   }
 
-  if (target.flags.isSubstituting) {
-    //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
-    for (const monster of parties.flat()) {
-      if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
-        delete monster.flags.hasSubstitute;
-        updateMonsterBuffsDisplay(monster);
-      }
-    }
-    delete target.flags.isSubstituting;
-  } else if (target.flags.hasSubstitute) {
-    //みがわられ中 hasSubstituteのtargetのisSubstitutingをupdate
-    const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
-    if (substitutingMonster) {
-      // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
-      substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
-      //空になったら削除・みがわり表示更新
-      if (substitutingMonster.flags.isSubstituting.targetMonsterId.length === 0) {
-        delete substitutingMonster.flags.isSubstituting;
-        updateMonsterBuffsDisplay(substitutingMonster);
-      }
-    }
-    delete target.flags.hasSubstitute;
-  }
+  deleteSubstitute(target);
 
   // keepOnDeathを持たないバフと異常を削除
   const newBuffs = {};
@@ -2405,6 +2389,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let skillUser = assignedSkillUser;
   let isReflection = false;
   let reflectionType = "yosoku";
+
+  // 石化無効化処理
+  if (skillTarget.buffs.stoned && executingSkill.name !== "いてつくはどう" && executingSkill.name !== "神のはどう") {
+    applyDamage(skillTarget, 0, "");
+    return;
+  }
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
@@ -3863,6 +3853,7 @@ const monsters = [
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
 
+// 必要ならばasyncにするのに注意
 function getMonsterAbilities(monsterId) {
   const monsterAbilities = {
     nerugeru: {
@@ -3898,7 +3889,7 @@ function getMonsterAbilities(monsterId) {
         },
       ],
       supportAbilities: {
-        evenTurnAbilities: [
+        permanentAbilities: [
           {
             name: "自然治癒",
             act: function (skillUser) {
@@ -3920,13 +3911,15 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
-        evenTurnAbilities: [
+        permanentAbilities: [
           {
             name: "自然治癒",
             act: function (skillUser) {
               executeRadiantWave(skillUser);
             },
           },
+        ],
+        evenTurnAbilities: [
           {
             message: function (skillUser) {
               displayMessage(`${skillUser.name}の特性により`, "リバースが 発動！");
@@ -4960,7 +4953,15 @@ const skill = [
     preemptivegroup: 5,
     isOneTimeUse: true,
     appliedEffect: { stoned: { duration: 1 } },
-    //act
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.attackAbilities.nextTurnAbilities.push({
+        act: async function (skillUser) {
+          displayMessage(`${skillUser.name}は 全身から`, `いてつくはどうを はなった！`);
+          await sleep(100);
+          await executeSkill(skillUser, findSkillByName("いてつくはどう"));
+        },
+      });
+    },
   },
   {
     name: "衝撃波",
@@ -5086,13 +5087,21 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 86,
     order: "preemptive",
     preemptivegroup: 1,
     isOneTimeUse: true,
-    //efect
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.attackAbilities.nextTurnAbilities.push({
+        act: function (skillUser) {
+          for (const monster of parties[skillUser.teamID]) {
+            applyBuff(monster, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
+          }
+        },
+      });
+    },
   },
   {
     name: "無双のつるぎ",
@@ -6125,6 +6134,11 @@ async function transformTyoma(monster) {
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   if (monster.name === "超エルギ") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
+    monster.abilities.attackAbilities.nextTurnAbilities.push({
+      act: async function (skillUser) {
+        await executeSkill(skillUser, findSkillByName("堕天使の理"));
+      },
+    });
   }
   if (monster.name === "超ネルゲル") {
     applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
@@ -6145,4 +6159,31 @@ async function transformTyoma(monster) {
   }
   await sleep(400);
   //変身時特性など
+}
+
+function deleteSubstitute(target) {
+  if (target.flags.isSubstituting) {
+    //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
+    for (const monster of parties.flat()) {
+      if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
+        delete monster.flags.hasSubstitute;
+        updateMonsterBuffsDisplay(monster);
+      }
+    }
+    delete target.flags.isSubstituting;
+  }
+  if (target.flags.hasSubstitute) {
+    //みがわられ中 hasSubstituteのtargetのisSubstitutingをupdate
+    const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
+    if (substitutingMonster) {
+      // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
+      substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
+      //空になったら削除・みがわり表示更新
+      if (substitutingMonster.flags.isSubstituting.targetMonsterId.length === 0) {
+        delete substitutingMonster.flags.isSubstituting;
+        updateMonsterBuffsDisplay(substitutingMonster);
+      }
+    }
+    delete target.flags.hasSubstitute;
+  }
 }
