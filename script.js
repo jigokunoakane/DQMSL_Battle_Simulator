@@ -2396,6 +2396,34 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
+  //ザキ処理
+  if (executingSkill.hasOwnProperty("zakiProbability")) {
+    const zakiResistance = calculateResistance(assignedSkillUser, "zaki", assignedSkillTarget);
+    let zakiTarget = assignedSkillTarget;
+    let isZakiReflection = false;
+    //反射処理
+    if (
+      executingSkill.targetTeam === "enemy" &&
+      !executingSkill.ignoreReflection &&
+      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
+    ) {
+      zakiTarget = assignedSkillUser;
+      isZakiReflection = true;
+    }
+    //ザキ成功時、死亡処理とフラグ格納をして終了 失敗時は普通に継続
+    //反射は成功時かつ反射時にエフェクト表示のみ実行、失敗時には何事もなかったように再度通常の処理で反射化
+    if (Math.random() < zakiResistance * executingSkill.zakiProbability) {
+      if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
+      handleDeath(zakiTarget);
+      if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
+      if (!killedThisSkill.has(zakiTarget)) {
+        killedThisSkill.add(zakiTarget);
+      }
+      delete zakiTarget.flags.recentlyKilled;
+      return;
+    }
+  }
+
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
@@ -3632,7 +3660,7 @@ const monsters = [
     type: "tyoma",
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
-    defaultSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "終の流星"],
+    defaultSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 2 },
@@ -3999,6 +4027,7 @@ const skill = [
     },
     followingSkill: "涼風一陣後半",
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
+    zakiProbability: 0.78,
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
@@ -4013,6 +4042,29 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
+  },
+  {
+    name: "通常攻撃ザキ攻撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    zakiProbability: 0.6,
+  },
+  {
+    name: "心砕き",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 0.33,
+    element: "notskill",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 0,
+    //act
   },
   {
     name: "ぼうぎょ",
@@ -4430,7 +4482,7 @@ const skill = [
     MPcost: 52,
     SubstituteBreaker: 3,
     ignoreEvasion: true,
-    //即死
+    zakiProbability: 0.78,
   },
   {
     name: "終の流星",
