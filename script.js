@@ -5251,6 +5251,7 @@ function displayDamage(monster, damage, resistance, isMPdamage = false) {
       effectImage.style.height = monsterIcon.offsetHeight + "px";
       effectImage.style.top = monsterIcon.offsetTop + "px";
       effectImage.style.left = monsterIcon.offsetLeft + "px";
+      effectImage.style.scale = "80%";
 
       monsterIcon.parentElement.appendChild(effectImage);
       monsterIcon.parentElement.appendChild(damageContainer);
@@ -5353,6 +5354,8 @@ function displayDamage(monster, damage, resistance, isMPdamage = false) {
     let scale = 1;
     if (resistance > 1.4) {
       scale = 2;
+    } else if (resistance === -1) {
+      scale = 0.8;
     }
     effectImage.style.width = monsterIcon.offsetWidth * scale + "px";
     effectImage.style.height = "auto";
@@ -5972,6 +5975,7 @@ async function transformTyoma(monster) {
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
+  // 各種message
   if (monster.name === "超エルギ") {
     monster.skill[0] = "絶望の天舞";
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
@@ -5991,12 +5995,17 @@ async function transformTyoma(monster) {
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
   }
   await sleep(400);
+  // 各種buff
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   if (monster.name === "超エルギ") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
   }
   if (monster.name === "超ネルゲル") {
     applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
+  }
+  // 回復
+  if (monster.name !== "超ネルゲル") {
+    //ネルのみHP回復を実行しない
     await sleep(400);
     applyDamage(monster, monster.defaultstatus.HP, -1, false);
   }
