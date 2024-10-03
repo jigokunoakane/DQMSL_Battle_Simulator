@@ -27,7 +27,7 @@ function switchParty() {
 function updatePartyIcon(number) {
   const monster = selectingParty[number];
   const iconSrc = monster.length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
-  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear.id + ".jpeg" : "images/gear/ungeared.jpeg";
+  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/ungeared.jpeg";
   document.getElementById(`partyicon${number}`).src = iconSrc;
   document.getElementById(`partygear${number}`).src = gearSrc;
 }
@@ -744,18 +744,23 @@ async function startTurn() {
         if (monster.flags.isDead) {
           continue;
         }
-
         // 戦闘開始時に付与するバフ
-        const initialBuffs = { ...(monster.attribute.initialBuffs || {}) };
+        const initialBuffs = Object.assign(
+          {}, // 空のオブジェクトから始める
+          monster.gear?.initialBuffs || {}, // monster.gear?.initialBuffs を先にマージ
+          monster.attribute.initialBuffs || {} // monster.attribute.initialBuffs を後でマージ（上書き）
+        );
         // バフを適用 (間隔なし、skipMessageとskipSleep: trueを渡すことで付与時messageと付与間隔を削除)
         await applyBuffsAsync(monster, initialBuffs, true, true);
 
+        // 戦闘開始時装備特性
+        if (monster.gear?.initialAbilities) {
+          await gearAbilities[monster.gear.id].initialAbilities(monster);
+        }
         // 戦闘開始時発動特性
-        if (monster.abilities && monster.abilities.initialAbilities) {
-          const allInitialAbilities = [...(monster.abilities.initialAbilities || [])];
-          for (const ability of allInitialAbilities) {
-            await ability.act(monster);
-          }
+        const allInitialAbilities = [...(monster.abilities?.initialAbilities || [])];
+        for (const ability of allInitialAbilities) {
+          await ability.act(monster);
         }
       }
     }
@@ -843,6 +848,7 @@ async function startTurn() {
       ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
       ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
       ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
+      ...(turnNum === 1 && monster.gear?.turn1buffs ? monster.gear.turn1buffs : {}),
     };
 
     // バフを適用
@@ -1938,8 +1944,21 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
         await sleep(500); // 追撃ごとに待機時間
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
+        // 追撃の種類を決定
+        let AIskillName = "通常攻撃";
+        if (skillUser.gear?.name === "心砕き") {
+          AIskillName = "心砕き";
+        } else if (skillUser.gear?.name === "昇天") {
+          AIskillName = "昇天";
+        } else if (skillUser.gear?.name === "aaa系統爪") {
+          AIskillName = "通常攻撃ザキ攻撃";
+        } else if (skillUser.gear?.name === "キラーピアス") {
+          AIskillName = "はやぶさ攻撃弱";
+        } else if (skillUser.type === "beast" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
+          AIskillName = "魔獣の追撃";
+        }
         // 通常攻撃を実行
-        await executeSkill(skillUser, findSkillByName("通常攻撃"), decideNormalAttackTarget(skillUser));
+        await executeSkill(skillUser, findSkillByName(AIskillName), decideNormalAttackTarget(skillUser));
       }
     }
   }
@@ -2913,8 +2932,8 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     //もともと無効や吸収のときは処理せずにそのまま格納 それ以外の場合はバフ等があれば反映した後、最大でも無効止まりにする
     if (normalResistanceIndex !== 0 && normalResistanceIndex !== 1) {
       // 装備効果
-      if (skillTarget.abilities[element + "gearResistance"]) {
-        normalResistanceIndex -= skillTarget.abilities[element + "gearResistance"].strength;
+      if (skillTarget.gear?.[element + "GearResistance"]) {
+        normalResistanceIndex -= skillTarget.gear[element + "GearResistance"];
       }
       // 属性耐性バフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
@@ -2955,8 +2974,8 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     // 装備効果・属性耐性バフ効果 反転後に無効吸収になる弱点普通は変化させない
     if (distortedResistanceIndex !== 5 && distortedResistanceIndex !== 6) {
       // 装備効果
-      if (skillTarget.abilities[element + "gearResistance"]) {
-        distortedResistanceIndex += skillTarget.abilities[element + "gearResistance"].strength;
+      if (skillTarget.gear?.[element + "GearResistance"]) {
+        distortedResistanceIndex += skillTarget.gear[element + "GearResistance"];
       }
       // 属性耐性バフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
@@ -3261,7 +3280,8 @@ function selectgear(gearName) {
   //表示値計算などはcurrentTabを元に情報を取得するため、タブ遷移しておく
   switchTab(selectingGearNum);
   //選択中partyの該当monsterの装備を変更
-  selectingParty[selectingGearNum].gear = structuredClone(gear.find((gear) => gear.id == gearName));
+  const foundGear = gear.find((gear) => gear.id === gearName);
+  selectingParty[selectingGearNum].gear = { ...foundGear };
   //表示更新
   updatePartyIcon(selectingGearNum);
 
@@ -3408,7 +3428,7 @@ function displayGearZoubun() {
     // 初期値 非表示化
     document.getElementById(`status-info-gear-${statusName}`).style.visibility = "hidden";
     document.getElementById(`status-info-gear-${statusName}`).textContent = "0";
-    // 存在してかつ0より大きければ表示
+    // 装備が存在してかつ0より大きければ表示
     if (selectingParty[currentTab].gear) {
       const statusValue = selectingParty[currentTab].gear.status[statusName];
       if (statusValue > 0) {
@@ -3990,8 +4010,9 @@ function getMonsterAbilities(monsterId) {
         {
           act: function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.id === skillUser.id) continue;
-              monster.skill[3] = "供物をささげる";
+              if (monster.id !== skillUser.id && monster.skill[3] !== "プチ神のはどう") {
+                monster.skill[3] = "供物をささげる";
+              }
             }
           },
         },
@@ -4156,6 +4177,16 @@ const skill = [
     zakiProbability: 0.6,
   },
   {
+    name: "昇天",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
     name: "心砕き",
     type: "notskill",
     howToCalculate: "atk",
@@ -4166,6 +4197,17 @@ const skill = [
     hitNum: 3,
     MPcost: 0,
     //act
+  },
+  {
+    name: "はやぶさ攻撃弱",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 0.55,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 2,
+    MPcost: 0,
   },
   {
     name: "魔獣の追撃",
@@ -5479,32 +5521,87 @@ const skill = [
 
 const gear = [
   {
-    name: "メタ爪",
-    id: "metanail",
+    name: "かがやく魔神剣",
+    id: "dreamSword",
+    status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
+    //斬撃5 ?への斬撃10 絶技8
+  },
+  {
+    name: "系統爪",
+    id: "familyNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 60, int: 0 },
+  },
+  {
+    name: "メタルキングの爪",
+    id: "metalNail",
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
-    effect: "none",
+    initialBuffs: { metalKiller: { strength: 1.5, keepOnDeath: true } },
+  },
+  {
+    name: "おうごんのツメ",
+    id: "goldenNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 53, int: 0 },
+  },
+  {
+    name: "源氏の小手",
+    id: "genjiNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
+    //体技5 はやぶさ攻撃
+  },
+  {
+    name: "りゅうおうの杖",
+    id: "dragonCane",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
+    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
   },
   {
     name: "竜神爪",
-    id: "ryujinnail",
+    id: "ryujinNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
-    effect: "none",
   },
   {
-    name: "砕き",
+    name: "はどうのツメ",
+    id: "waveNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
+    initialAbilities: true,
+  },
+  {
+    name: "奮起のツメ",
+    id: "hunkiNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
+    turn1buffs: { powerCharge: { strength: 1.1 } },
+  },
+  {
+    name: "キラーピアス",
+    id: "killerEarrings",
+    status: { HP: 0, MP: 0, atk: 10, def: 0, spd: 40, int: 0 },
+  },
+  {
+    name: "心砕き",
     id: "kudaki",
     status: { HP: 0, MP: 0, atk: 22, def: 0, spd: 15, int: 0 },
-    effect: "none",
   },
   {
     name: "昇天",
     id: "shoten",
     status: { HP: 0, MP: 0, atk: 23, def: 0, spd: 0, int: 28 },
-    effect: "none",
   },
+  {
+    name: "光のおまもり",
+    id: "lightCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    lightGearResistance: 2,
+  },
+];
 
-  {},
-]; //finish gear
+// 必要ならばasyncにするのに注意
+const gearAbilities = {
+  waveNail: {
+    initialAbilities: function (skillUser) {
+      skillUser.skill[3] = "プチ神のはどう";
+    },
+  },
+};
 
 document.getElementById("elementErrorbtn").addEventListener("click", function () {
   const elementErrortext = document.getElementById("elementErrorbtn").textContent;
