@@ -4085,7 +4085,7 @@ function getMonsterAbilities(monsterId) {
         permanentAbilities: [
           {
             act: async function (skillUser) {
-              if (skillUser.flags.willTransformOmudo) {
+              if (skillUser.flags.willTransformOmudo && !skillUser.flags.hasTransformed) {
                 delete skillUser.flags.willTransformOmudo;
                 await transformTyoma(skillUser);
               }
@@ -6390,6 +6390,8 @@ async function transformTyoma(monster) {
   }
   await sleep(200);
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+  updatebattleicons(monster);
+  // 複数回変身に注意
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
   // 各種message
