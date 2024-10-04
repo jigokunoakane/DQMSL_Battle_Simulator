@@ -3239,6 +3239,12 @@ function selectMonster(monsterName) {
 
   // 初期表示状態で種選択が無効化されている場合に解除
   disableSeedSelect(false);
+
+  //デフォ装備選択
+  if (selectingParty[selectingMonsterNum].defaultGear) {
+    selectingGearNum = selectingMonsterNum;
+    selectgear(selectingParty[selectingMonsterNum].defaultGear);
+  }
 }
 
 //装備選択部分
@@ -3251,7 +3257,7 @@ document.querySelectorAll(".partygear").forEach((icon) => {
     //要素idから選択中の装備の数値を生成
     selectingGearNum = Number(selectingGear.replace(/(party|gear)/g, ""));
     // モンスターが空のときはreturn
-    if (selectingParty[selectingGearNum].length === 0) return;
+    if (Object.keys(selectingParty[selectingGearNum]).length === 0) return;
     document.body.style.overflow = "hidden";
     document.getElementById("selectgearoverlay").style.visibility = "visible";
     document.getElementById("selectgearpopupwindow").style.opacity = "1";
@@ -3543,12 +3549,12 @@ const monsters = [
     name: "マスタードラゴン",
     id: "masudora",
     type: "ドラゴン",
-    status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 550, int: 259 },
+    status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 500, int: 259 },
     defaultSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
+    defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
-        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
         mindAndSealBarrier: { keepOnDeath: true },
         allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
       },
@@ -3571,6 +3577,7 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
     defaultSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
+    defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
         mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
@@ -3585,8 +3592,9 @@ const monsters = [
     name: "魔夏姫アンルシア",
     id: "rusia",
     type: "ドラゴン",
-    status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 555, int: 294 },
+    status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 545, int: 294 },
     defaultSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
+    defaultGear: "killerEarrings",
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
@@ -3612,6 +3620,7 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     defaultSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
+    defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 2 },
@@ -3635,6 +3644,7 @@ const monsters = [
     type: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     defaultSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
+    defaultGear: "flute",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75 },
@@ -3657,6 +3667,7 @@ const monsters = [
     weight: "30",
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
     defaultSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
+    defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -3681,6 +3692,7 @@ const monsters = [
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
     defaultSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
+    defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 2 },
@@ -3733,6 +3745,7 @@ const monsters = [
     weight: "25",
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
     defaultSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
+    defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
         tagTransformation: { keepOnDeath: true },
@@ -3753,11 +3766,8 @@ const monsters = [
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     defaultSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
-    attribute: {
-      initialBuffs: {
-        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
-      },
-    },
+    defaultGear: "familyNail",
+    attribute: {},
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
     lstarget: "all",
@@ -3770,6 +3780,7 @@ const monsters = [
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
     defaultSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
+    defaultGear: "dragonCane",
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -3847,10 +3858,10 @@ const monsters = [
     weight: "16",
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     defaultSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
+    defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
         mindBarrier: { duration: 3 },
-        isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" },
       },
       evenTurnBuffs: {
         defUp: { strength: 1 },
@@ -4126,6 +4137,7 @@ const skill = [
     order: "", //preemptive anchor
     preemptivegroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
+    skipDeathCheck: true,
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
     RaceBane: ["slime", "dragon"],
@@ -5530,6 +5542,7 @@ const gear = [
     name: "系統爪",
     id: "familyNail",
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 60, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" } },
   },
   {
     name: "メタルキングの爪",
@@ -5549,14 +5562,13 @@ const gear = [
     //体技5 はやぶさ攻撃
   },
   {
-    name: "りゅうおうの杖",
-    id: "dragonCane",
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
-    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
-  },
-  {
     name: "竜神爪",
     id: "ryujinNail",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+  },
+  {
+    name: "呪われし爪",
+    id: "cursedNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
   },
   {
@@ -5587,10 +5599,58 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 23, def: 0, spd: 0, int: 28 },
   },
   {
-    name: "光のおまもり",
+    name: "りゅうおうの杖",
+    id: "dragonCane",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
+    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
+  },
+  {
+    name: "天空のフルート",
+    id: "flute",
+    status: { HP: 0, MP: 0, atk: 30, def: 60, spd: 0, int: 0 },
+    turn1buffs: { dodgeBuff: { strength: 1 } },
+  },
+  {
+    name: "炎よけのおまもり",
+    id: "fireCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    fireGearResistance: 2,
+  },
+  {
+    name: "氷よけのおまもり",
+    id: "iceCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    iceGearResistance: 2,
+  },
+  {
+    name: "雷よけのおまもり",
+    id: "thunderCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    thunderGearResistance: 2,
+  },
+  {
+    name: "風よけのおまもり",
+    id: "windCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    windGearResistance: 2,
+  },
+  {
+    name: "爆発よけのおまもり",
+    id: "ioCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    ioGearResistance: 2,
+  },
+  {
+    name: "光よけのおまもり",
     id: "lightCharm",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     lightGearResistance: 2,
+  },
+  {
+    name: "闇よけのおまもり",
+    id: "darkCharm",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    darkGearResistance: 2,
   },
 ];
 
