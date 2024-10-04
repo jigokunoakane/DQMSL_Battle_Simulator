@@ -118,10 +118,18 @@ function preparebattle() {
       for (const key in monster.displaystatus) {
         // リーダースキル適用
         let statusValue = monster.displaystatus[key];
-        if (lstarget === "all" || monster.type === lstarget) {
-          statusValue *= leaderSkill[key] || 1; // leaderSkill[key] が存在しない場合は 1 を掛ける
+        let lsMultiplier = 1;
+        if ((lstarget === "all" || monster.type === lstarget) && leaderSkill[key]) {
+          lsMultiplier = leaderSkill[key];
         }
-        monster.defaultstatus[key] = Math.ceil(statusValue);
+        if (monster.gear?.alchemy && !["tyoma", "tyoden", "???"].includes(monster.type)) {
+          lsMultiplier += 0.05;
+        }
+        // HPまたはMPの場合、乗数を0.04加算
+        if (key === "HP" || key === "MP") {
+          lsMultiplier += 0.04;
+        }
+        monster.defaultstatus[key] = Math.ceil(statusValue * lsMultiplier);
       }
       monster.currentstatus = structuredClone(monster.defaultstatus);
 
@@ -5549,11 +5557,13 @@ const gear = [
     id: "metalNail",
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
     initialBuffs: { metalKiller: { strength: 1.5, keepOnDeath: true } },
+    alchemy: true,
   },
   {
     name: "おうごんのツメ",
     id: "goldenNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 53, int: 0 },
+    alchemy: true,
   },
   {
     name: "源氏の小手",
@@ -5565,28 +5575,33 @@ const gear = [
     name: "竜神爪",
     id: "ryujinNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+    alchemy: true,
   },
   {
     name: "呪われし爪",
     id: "cursedNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+    alchemy: true,
   },
   {
     name: "はどうのツメ",
     id: "waveNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
     initialAbilities: true,
+    alchemy: true,
   },
   {
     name: "奮起のツメ",
     id: "hunkiNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
     turn1buffs: { powerCharge: { strength: 1.1 } },
+    alchemy: true,
   },
   {
     name: "キラーピアス",
     id: "killerEarrings",
     status: { HP: 0, MP: 0, atk: 10, def: 0, spd: 40, int: 0 },
+    alchemy: true,
   },
   {
     name: "心砕き",
