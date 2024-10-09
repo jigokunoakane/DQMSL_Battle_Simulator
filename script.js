@@ -2245,8 +2245,15 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       }
     }
 
+    let skillTarget = assignedTarget;
+    // randomのfolowingSkillのみtargetをnull化してランダムにする(暫定的)
+    if (isFollowingSkill && currentSkill.targetType === "random") {
+      skillTarget = null;
+    }
+
     // ヒット処理の実行
-    await processHitSequence(skillUser, currentSkill, assignedTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction);
+    console.log(`${skillUser.name}が${currentSkill.name}を実行`);
+    await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction);
 
     // followingSkillが存在する場合、次のスキルを代入してループ
     if (currentSkill.followingSkill) {
