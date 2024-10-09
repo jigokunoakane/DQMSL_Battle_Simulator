@@ -307,7 +307,7 @@ document.getElementById("commandnormalattackbtn").addEventListener("click", func
   parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "通常攻撃";
   document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-  selectskilltargettoggler(selectingwhichteamscommand === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
+  selectSkillTargetToggler(selectingwhichteamscommand === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
   document.getElementById("designateskilltarget").style.visibility = "visible";
   document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
 });
@@ -350,19 +350,19 @@ function startselectingcommand() {
   displayMessage("とくぎをえらんでください。");
 }
 
-function selectcommand(selectedskillnum) {
+function selectcommand(selectedSkillNum) {
   document.getElementById("selectskillbtns").style.visibility = "hidden";
   const skillUser = parties[selectingwhichteamscommand][selectingwhichmonsterscommand];
-  const selectedskillname = skillUser.skill[selectedskillnum];
-  skillUser.confirmedcommand = selectedskillname;
+  const selectedSkillName = skillUser.skill[selectedSkillNum];
   //confirmedcommandに格納
-  const selectedskill = findSkillByName(selectedskillname);
-  const skilltargetTypedetector = selectedskill.targetType;
-  const skilltargetTeamdetector = selectedskill.targetTeam;
-  const MPcost = calculateMPcost(skillUser, selectedskill);
+  skillUser.confirmedcommand = selectedSkillName;
+  const selectedSkill = findSkillByName(selectedSkillName);
+  const skilltargetTypedetector = selectedSkill.targetType;
+  const skilltargetTeamdetector = selectedSkill.targetTeam;
+  const MPcost = calculateMPcost(skillUser, selectedSkill);
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost}】`);
+    displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
     if (skilltargetTeamdetector === "ally") {
@@ -370,21 +370,21 @@ function selectcommand(selectedskillnum) {
     } else if (skilltargetTypedetector === "dead") {
       document.getElementById("selectcommandpopupwindow-text").textContent = "回復するモンスターをタッチしてください。";
     }
+
     //味方選択中かつskillのtargetTeamがenemyのとき、または敵選択中かつskillのtargetTeamがallyのとき、敵画像を代入
     //逆に味方選択中かつtargetTeamがallyのとき、または敵選択中かつtargetTeamがenemyのとき、味方画像を代入
-
     if ((selectingwhichteamscommand === 0 && skilltargetTeamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetTeamdetector === "ally")) {
-      selectskilltargettoggler(1, skilltargetTypedetector, skilltargetTeamdetector, selectedskill); //敵画像
+      selectSkillTargetToggler(1, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill); //敵画像
     } else {
-      selectskilltargettoggler(0, skilltargetTypedetector, skilltargetTeamdetector, selectedskill); //味方画像
+      selectSkillTargetToggler(0, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill); //味方画像
     }
     document.getElementById("designateskilltarget").style.visibility = "visible";
   } else if (skilltargetTypedetector === "all" || skilltargetTypedetector === "field") {
-    displayMessage(`${selectedskillname}＋3【消費MP：${MPcost}】`);
+    displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
     //targetがallのとき、all(yesno)画面を起動
     document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    document.getElementById("designateskilltarget-all-text").textContent = selectedskillname + "を使用しますか？";
+    document.getElementById("designateskilltarget-all-text").textContent = selectedSkillName + "を使用しますか？";
     document.getElementById("designateskilltarget-all").style.visibility = "visible";
     //parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
     //allとかmeとか保存してもいいけど、結局skillの中身主導で動かすから不要かも
@@ -396,36 +396,38 @@ function selectcommand(selectedskillnum) {
   }
 }
 
-function selectskilltargettoggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedskill) {
+function selectSkillTargetToggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill) {
+  const excludeTarget = selectedSkill.excludeTarget || null;
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
-  document.getElementById("selecttargetmonster0").src = parties[targetTeamnum][0].iconSrc;
-  document.getElementById("selecttargetmonster1").src = parties[targetTeamnum][1].iconSrc;
-  document.getElementById("selecttargetmonster2").src = parties[targetTeamnum][2].iconSrc;
-  document.getElementById("selecttargetmonster3").src = parties[targetTeamnum][3].iconSrc;
-  document.getElementById("selecttargetmonster4").src = parties[targetTeamnum][4].iconSrc;
-
-  // target選択用iconに対して、順番に非表示や暗転&無効化
-  const excludeTarget = selectedskill.excludeTarget || null;
   for (let i = 0; i < 5; i++) {
     const targetMonsterElement = document.getElementById(`selecttargetmonster${i}`);
-    const targetMonster = parties[targetTeamnum][i];
     const targetMonsterWrapper = targetMonsterElement.parentNode; // wrapper要素を取得
-    //初期化で暗転&無効化解除
+
+    // モンスター情報が存在しない場合、枠を非表示にしてcontinue
+    if (parties[targetTeamnum][i]) {
+      targetMonsterElement.src = parties[targetTeamnum][i].iconSrc;
+      targetMonsterElement.style.display = "inline";
+      targetMonsterWrapper.style.display = "flex";
+    } else {
+      targetMonsterElement.style.display = "none";
+      targetMonsterWrapper.style.display = "none";
+      continue; // 次のモンスターの処理へ
+    }
+    const targetMonster = parties[targetTeamnum][i];
+
+    //モンスター情報が存在する場合、初期化で暗転&無効化解除
     toggleDarkenAndClick(targetMonsterElement, false);
-    //初期化表示
-    targetMonsterElement.style.display = "inline";
-    targetMonsterWrapper.style.display = "flex";
 
     if (skilltargetTypedetector === "dead") {
-      // 蘇生などdead対象のskillの場合、死亡モンスターは初期化で表示のまま、生きているモンスターは非表示
-      if (!(targetMonster.flags && targetMonster.flags.isDead)) {
+      // 蘇生などdead対象のskillの場合、対象外の生存モンスターを非表示化
+      if (!targetMonster.flags.isDead) {
         targetMonsterElement.style.display = "none";
         targetMonsterWrapper.style.display = "none";
       }
     } else {
       // dead以外の通常スキルで、skilltargetTeamdetectorがenemyの場合、死亡している敵は非表示
       //skilltargetTeamdetectorがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
-      if (targetMonster.flags && targetMonster.flags.isDead) {
+      if (targetMonster.flags.isDead) {
         if (skilltargetTeamdetector === "enemy") {
           targetMonsterElement.style.display = "none";
           targetMonsterWrapper.style.display = "none";
