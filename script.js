@@ -304,7 +304,7 @@ let selectingwhichteamscommand = 0;
 //////////////通常攻撃
 document.getElementById("commandnormalattackbtn").addEventListener("click", function () {
   disablecommandbtns(true);
-  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "通常攻撃";
+  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = getNormalAttackName(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]);
   document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
   document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
   selectSkillTargetToggler(selectingwhichteamscommand === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
@@ -442,7 +442,7 @@ function selectSkillTargetToggler(targetTeamnum, skilltargetTypedetector, skillt
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわりの場合、覆う中の対象を暗転&無効化
-    if (selectedskill.name === "みがわり" && (targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
+    if (selectedSkill.name === "みがわり" && (targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -1895,10 +1895,10 @@ async function processMonsterAction(skillUser) {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を となえた！`);
   } else if (executingSkill.type === "slash") {
     displayMessage(`${skillUser.name}は`, `${executingSkill.name}を はなった！`);
-  } else if (executingSkill.name === "通常攻撃") {
-    displayMessage(`${skillUser.name}のこうげき！`);
   } else if (executingSkill.name === "ぼうぎょ") {
     displayMessage(`${skillUser.name}は身を守っている！`);
+  } else if (executingSkill.type === "notskill") {
+    displayMessage(`${skillUser.name}のこうげき！`);
   } else {
     displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
   }
@@ -1955,20 +1955,9 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
         // 追撃の種類を決定
-        let AIskillName = "通常攻撃";
-        if (skillUser.gear?.name === "心砕き") {
-          AIskillName = "心砕き";
-        } else if (skillUser.gear?.name === "昇天") {
-          AIskillName = "昇天";
-        } else if (skillUser.gear?.name === "aaa系統爪") {
-          AIskillName = "通常攻撃ザキ攻撃";
-        } else if (skillUser.gear?.name === "キラーピアス") {
-          AIskillName = "はやぶさ攻撃弱";
-        } else if (skillUser.type === "beast" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
-          AIskillName = "魔獣の追撃";
-        }
+        let NormalAttackName = getNormalAttackName(skillUser);
         // 通常攻撃を実行
-        await executeSkill(skillUser, findSkillByName(AIskillName), decideNormalAttackTarget(skillUser));
+        await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser));
       }
     }
   }
@@ -6547,4 +6536,21 @@ function deleteSubstitute(target) {
     }
     delete target.flags.hasSubstitute;
   }
+}
+
+function getNormalAttackName(skillUser) {
+  let NormalAttackName = "通常攻撃";
+  //上から優先的に処理して当てはまったらその時点で確定
+  if (skillUser.gear?.name === "心砕き") {
+    NormalAttackName = "心砕き";
+  } else if (skillUser.gear?.name === "昇天") {
+    NormalAttackName = "昇天";
+  } else if (skillUser.gear?.name === "aaa系統爪") {
+    NormalAttackName = "通常攻撃ザキ攻撃";
+  } else if (skillUser.gear?.name === "キラーピアス") {
+    NormalAttackName = "はやぶさ攻撃弱";
+  } else if (skillUser.type === "beast" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
+    NormalAttackName = "魔獣の追撃";
+  }
+  return NormalAttackName;
 }
