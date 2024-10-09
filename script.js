@@ -180,6 +180,13 @@ function updatebattleicons(monster, reverseDisplay = false) {
   // 対面monsterが存在しないとき、対面のアイコンを非表示に
   if (!parties[monster.enemyTeamID][monster.index]) {
     const enemyTargetElementId = reverseDisplay ? monster.iconElementId : monster.reversedIconElementId;
+    //buffContainerを削除
+    document
+      .getElementById(enemyTargetElementId)
+      .parentNode.querySelectorAll(".buff-container")
+      .forEach((buffContainer) => {
+        buffContainer.remove();
+      });
     document.getElementById(enemyTargetElementId).src = "";
     document.getElementById(enemyTargetElementId).style.display = "none";
   }
