@@ -153,6 +153,8 @@ function preparebattle() {
     }
   }
 
+  //数が不均衡な場合に備えて存在しないbarを削除
+  setMonsterBarDisplay();
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearidから、適切な画像を設定
   preparebattlepageicons();
@@ -207,8 +209,7 @@ function preparebattlepageicons(reverseDisplay = false) {
 }
 
 //HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後applydamage内で起動
-//HPかつdamageがある場合はdamageに代入することで赤いバー表示、isReversedはskill選択時
-function updateMonsterBar(monster, damage = 0, isReversed = false) {
+function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
   // IDのプレフィックスを切り替える
   let prefix = monster.hpBarElementId.startsWith("hpbarally") ? "ally" : "enemy";
   if (isReversed) {
@@ -225,16 +226,16 @@ function updateMonsterBar(monster, damage = 0, isReversed = false) {
   const hpBarElement = document.getElementById(hpBarInnerId.replace("hpbarinner", "hpbar"));
   const hpBarInner = document.getElementById(hpBarInnerId);
   const hpBarTextElement = document.getElementById(hpBarTextElementId);
+  const mpBarElement = document.getElementById(mpBarInnerId.replace("mpbarinner", "mpbar"));
   const mpBarInner = document.getElementById(mpBarInnerId);
   const mpBarTextElement = document.getElementById(mpBarTextElementId);
 
-  // HPバーの表示/非表示制御
+  // prefixが敵かつ死亡している場合は非表示化
   if (prefix === "enemy" && (monster.flags.isDead || monster.flags.isZombie)) {
-    // prefixがenemy enemy側表示かつ、isDeadまたはisZombieの場合は非表示
-    hpBarElement.style.display = "none";
+    hpBarElement.style.visibility = "hidden";
   } else {
-    // それ以外の場合は表示
-    hpBarElement.style.display = "block"; // blockまたは元々のdisplayスタイルに戻す
+    // prefixが味方の場合、または敵かつ生存しているときに、HP表示化処理と更新処理
+    hpBarElement.style.visibility = "visible"; //表示化
 
     // HPバーの更新
     const currentHpPercentage = parseFloat(hpBarInner.style.width); // 現在の幅を取得
@@ -245,7 +246,7 @@ function updateMonsterBar(monster, damage = 0, isReversed = false) {
     const damageDisplayId = `damagedisplay${hpBarInnerId.slice(10)}`;
     const damageDisplay = document.getElementById(damageDisplayId);
 
-    if (damage > 0 && damageDisplay) {
+    if (displayRedBar && damageDisplay) {
       // ダメージがある場合
       damageDisplay.style.width = `${currentHpPercentage}%`; // 赤いバーを現在のHPの長さに設定
       damageDisplay.style.transition = "none"; // 一旦トランジションを無効化
@@ -269,29 +270,24 @@ function updateMonsterBar(monster, damage = 0, isReversed = false) {
     }
   }
 
-  // MPバーの更新 (常に表示)
-  const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
-  mpBarInner.style.width = `${mpPercentage}%`;
-  if (mpBarTextElement) {
+  // prefixが味方の場合のみ、MP表示化処理と更新処理
+  if (prefix === "ally") {
+    mpBarElement.style.visibility = "visible"; //表示化
+    const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
+    mpBarInner.style.width = `${mpPercentage}%`;
     mpBarTextElement.textContent = monster.currentstatus.MP;
   }
 }
 
-//敵skill選択時に起動
-function reverseMonsterBarDisplay() {
+//敵skill選択時や戻す時に起動
+function setMonsterBarDisplay(isReverse = false) {
+  document.querySelectorAll(".bar").forEach((bar) => {
+    bar.style.visibility = "hidden";
+  });
   for (let i = 0; i < parties.length; i++) {
     for (let j = 0; j < parties[i].length; j++) {
-      updateMonsterBar(parties[i][j], "", true); // 逆転フラグをtrueで渡す
-      updateMonsterBuffsDisplay(parties[i][j], true);
-    }
-  }
-}
-//全部元にもどして通常表示
-function restoreMonsterBarDisplay() {
-  for (let i = 0; i < parties.length; i++) {
-    for (let j = 0; j < parties[i].length; j++) {
-      updateMonsterBar(parties[i][j]);
-      updateMonsterBuffsDisplay(parties[i][j]);
+      updateMonsterBar(parties[i][j], false, isReverse); // 逆転フラグを渡す
+      updateMonsterBuffsDisplay(parties[i][j], isReverse);
     }
   }
 }
@@ -549,7 +545,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
       preparebattlepageicons(true);
       adjustmonstericonstickout();
       //barとバフ反転
-      reverseMonsterBarDisplay();
+      setMonsterBarDisplay(true);
     }
   } else {
     // パーティーが全員行動不能の場合の処理
@@ -673,7 +669,7 @@ document.getElementById("askfinishselectingcommandbtnyes").addEventListener("cli
     //popupを閉じ、commandbtnsを無効化
     preparebattlepageicons();
     //barとバフの反転を戻す
-    restoreMonsterBarDisplay();
+    setMonsterBarDisplay(false);
     removeallstickout();
     startbattle();
   } else {
@@ -2133,7 +2129,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
           handleDeath(target);
         }
       } else {
-        updateMonsterBar(target, 1);
+        updateMonsterBar(target, true); //赤いバー表示
         return;
       }
     }
@@ -2142,7 +2138,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
 
 function handleUnbreakable(target) {
   target.currentstatus.HP = 1;
-  updateMonsterBar(target, 1);
+  updateMonsterBar(target, true); //赤いバー表示
   console.log(`${target.name}の特性、${target.buffs.isUnbreakable.name}が発動！`);
   displayMessage(`${target.name}の特性 ${target.buffs.isUnbreakable.name}が発動！`);
   if (target.buffs.isUnbreakable.left > 0) {
@@ -2183,7 +2179,7 @@ function handleDeath(target, hideDeathMessage = false) {
     target.flags.hasDiedThisAction = true;
     //次のhitSequenceも実行しない
   }
-  updateMonsterBar(target, 1); //isDead付与後にupdateでbar非表示化
+  updateMonsterBar(target, true); //isDead付与後にupdateでbar非表示化
   updatebattleicons(target);
   updateCurrentStatus(target);
   // TODO:仮置き ここで明示的に buffContainer を削除する
