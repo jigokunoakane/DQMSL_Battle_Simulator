@@ -8,8 +8,8 @@
   </head>
   <body>
     <h2>GPシミュレーター</h2>
-    <div id="pagecontainer">
-      <div id="adjustpartypage">
+    <div id="pageContainer">
+      <div id="adjustPartyPage">
         <span id="playerAorB"> プレイヤーA</span>&nbsp;
         <select id="switchParty" onchange="switchParty()">
           <option value="0">パーティ1</option>
@@ -19,141 +19,135 @@
           <option value="4">パーティ5</option>
         </select>
         &nbsp;&nbsp;&nbsp;w150&nbsp;&nbsp;
-        <button id="confirmparty" class="normalbutton" onclick="confirmparty()">パテ決定</button>
-        <div class="partyicons-container">
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon0" class="partyicon" />
+        <button id="decideParty" class="normalButton" onclick="decideParty()">パテ決定</button>
+        <div id="partyIconsContainer">
+          <div class="partyIconWrapper">
+            <img src="images/icons/unselected.jpeg" id="partyIcon0" class="partyIcon" />
           </div>
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon1" class="partyicon" />
+          <div class="partyIconWrapper">
+            <img src="images/icons/unselected.jpeg" id="partyIcon1" class="partyIcon" />
           </div>
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon2" class="partyicon" />
+          <div class="partyIconWrapper">
+            <img src="images/icons/unselected.jpeg" id="partyIcon2" class="partyIcon" />
           </div>
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon3" class="partyicon" />
+          <div class="partyIconWrapper">
+            <img src="images/icons/unselected.jpeg" id="partyIcon3" class="partyIcon" />
           </div>
-          <div class="partyicon-wrapper">
-            <img src="images/icons/unselected.jpeg" id="partyicon4" class="partyicon" />
-          </div>
-        </div>
-        <!--finish partyicons-container-->
-
-        <div class="partygears-container">
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear0" class="partygear" />
-          </div>
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear1" class="partygear" />
-          </div>
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear2" class="partygear" />
-          </div>
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear3" class="partygear" />
-          </div>
-          <div class="partygear-wrapper">
-            <img src="images/gear/ungeared.jpeg" id="partygear4" class="partygear" />
+          <div class="partyIconWrapper">
+            <img src="images/icons/unselected.jpeg" id="partyIcon4" class="partyIcon" />
           </div>
         </div>
-        <!--finish partygears-container-->
-
-        <div id="monsterinfo-tabs">
-          <div id="tab0" class="monster-info-tabs" onclick="switchTab(0)">詳細</div>
-          <div id="tab1" class="monster-info-tabs" onclick="switchTab(1)">詳細</div>
-          <div id="tab2" class="monster-info-tabs" onclick="switchTab(2)">詳細</div>
-          <div id="tab3" class="monster-info-tabs" onclick="switchTab(3)">詳細</div>
-          <div id="tab4" class="monster-info-tabs" onclick="switchTab(4)">詳細</div>
-          <span id="tab5" class="monster-info-tabs" style="display: none"></span>
+        <div id="partyGearsContainer">
+          <div class="partyGearWrapper">
+            <img src="images/gear/unGeared.jpeg" id="partyGear0" class="partyGear" />
+          </div>
+          <div class="partyGearWrapper">
+            <img src="images/gear/unGeared.jpeg" id="partyGear1" class="partyGear" />
+          </div>
+          <div class="partyGearWrapper">
+            <img src="images/gear/unGeared.jpeg" id="partyGear2" class="partyGear" />
+          </div>
+          <div class="partyGearWrapper">
+            <img src="images/gear/unGeared.jpeg" id="partyGear3" class="partyGear" />
+          </div>
+          <div class="partyGearWrapper">
+            <img src="images/gear/unGeared.jpeg" id="partyGear4" class="partyGear" />
+          </div>
+        </div>
+        <div id="monsterTabContainer">
+          <div id="tab0" class="eachTab" onclick="switchTab(0)">詳細</div>
+          <div id="tab1" class="eachTab" onclick="switchTab(1)">詳細</div>
+          <div id="tab2" class="eachTab" onclick="switchTab(2)">詳細</div>
+          <div id="tab3" class="eachTab" onclick="switchTab(3)">詳細</div>
+          <div id="tab4" class="eachTab" onclick="switchTab(4)">詳細</div>
         </div>
 
         <!-- ポップアップ部分モンスター選択 -->
-        <div id="selectmonsteroverlay" class="overlay">
-          <div id="selectmonsterbg_gray" class="bg_gray"></div>
+        <div id="selectMonsterOverlay" class="overlay">
+          <div id="selectMonsterBg_gray" class="bg_gray"></div>
           <!-- ウィンドウの外のグレーの領域 -->
-          <div id="selectmonsterpopupwindow" class="popupwindow">
+          <div id="selectMonsterPopupWindow" class="popupWindow">
             <!-- ウィンドウ部分 -->
-            <div id="windowofmonsterselection">
+            <div id="windowOfMonsterSelection">
               <!-- ウィンドウのコンテンツ -->
               <h3>モンスターを選択</h3>
-              <div>ドラゴン&nbsp;&nbsp;&nbsp;<button id="drapa" class="normalbutton">ドラパ一括選択</button></div>
-              <img class="allmonstericons" src="images/icons/masudora.jpeg" />
-              <img class="allmonstericons" src="images/icons/sinri.jpeg" />
-              <img class="allmonstericons" src="images/icons/rusia.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/voruka.jpeg" />
-              <div>ゆずぱ&nbsp;&nbsp;&nbsp;<button id="yuzupa" class="normalbutton">ゆずぱ一括選択</button></div>
-              <img class="allmonstericons" src="images/icons/world.jpeg" />
-              <img class="allmonstericons" src="images/icons/nerugeru.jpeg" />
-              <img class="allmonstericons" src="images/icons/erugi.jpeg" />
-              <img class="allmonstericons" src="images/icons/ifshiba.jpeg" />
-              <img class="allmonstericons" src="images/icons/skull.jpeg" />
-              <div>オムド&nbsp;&nbsp;&nbsp;<button id="omudopa" class="normalbutton">オムド一括選択</button></div>
-              <img class="allmonstericons" src="images/icons/omudo.jpeg" />
-              <img class="allmonstericons" src="images/icons/rapu.jpeg" />
-              <img class="allmonstericons" src="images/icons/esta.jpeg" />
-              <img class="allmonstericons" src="images/icons/dogu.jpeg" />
-              <img class="allmonstericons" src="images/icons/dorunisu.jpeg" />
+              <div>ドラゴン&nbsp;&nbsp;&nbsp;<button id="drapa" class="normalButton">ドラパ一括選択</button></div>
+              <img class="monsterListIcon" src="images/icons/masudora.jpeg" />
+              <img class="monsterListIcon" src="images/icons/sinri.jpeg" />
+              <img class="monsterListIcon" src="images/icons/rusia.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/voruka.jpeg" />
+              <div>ゆずぱ&nbsp;&nbsp;&nbsp;<button id="yuzupa" class="normalButton">ゆずぱ一括選択</button></div>
+              <img class="monsterListIcon" src="images/icons/world.jpeg" />
+              <img class="monsterListIcon" src="images/icons/nerugeru.jpeg" />
+              <img class="monsterListIcon" src="images/icons/erugi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/ifshiba.jpeg" />
+              <img class="monsterListIcon" src="images/icons/skull.jpeg" />
+              <div>オムド&nbsp;&nbsp;&nbsp;<button id="omudopa" class="normalButton">オムド一括選択</button></div>
+              <img class="monsterListIcon" src="images/icons/omudo.jpeg" />
+              <img class="monsterListIcon" src="images/icons/rapu.jpeg" />
+              <img class="monsterListIcon" src="images/icons/esta.jpeg" />
+              <img class="monsterListIcon" src="images/icons/dogu.jpeg" />
+              <img class="monsterListIcon" src="images/icons/dorunisu.jpeg" />
               <div>悪魔系</div>
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
               <div>テスト</div>
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
               <div>テスト</div>
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
               <div>テスト</div>
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
               <div>テスト</div>
-              <img class="allmonstericons" src="images/icons/orochi.jpeg" />
+              <img class="monsterListIcon" src="images/icons/orochi.jpeg" />
             </div>
           </div>
         </div>
 
         <!-- ポップアップ部分装備選択 -->
-        <div id="selectgearoverlay" class="overlay">
-          <div id="selectgearbg_gray" class="bg_gray"></div>
+        <div id="selectGearOverlay" class="overlay">
+          <div id="selectGearBg_gray" class="bg_gray"></div>
           <!-- ウィンドウの外のグレーの領域 -->
-          <div id="selectgearpopupwindow" class="popupwindow">
+          <div id="selectGearPopupWindow" class="popupWindow">
             <!-- ウィンドウ部分 -->
-            <div id="windowofgearselection">
+            <div id="windowOfGearSelection">
               <!-- ウィンドウのコンテンツ -->
               <h3>装備を選択</h3>
               <div>爪</div>
-              <img class="allgear" src="images/gear/familyNail.jpeg" />
-              <img class="allgear" src="images/gear/metalNail.jpeg" />
-              <img class="allgear" src="images/gear/genjiNail.jpeg" />
-              <img class="allgear" src="images/gear/ryujinNail.jpeg" />
-              <img class="allgear" src="images/gear/cursedNail.jpeg" />
-              <img class="allgear" src="images/gear/waveNail.jpeg" />
-              <img class="allgear" src="images/gear/hunkiNail.jpeg" />
+              <img class="gearList" src="images/gear/familyNail.jpeg" />
+              <img class="gearList" src="images/gear/metalNail.jpeg" />
+              <img class="gearList" src="images/gear/genjiNail.jpeg" />
+              <img class="gearList" src="images/gear/ryujinNail.jpeg" />
+              <img class="gearList" src="images/gear/cursedNail.jpeg" />
+              <img class="gearList" src="images/gear/waveNail.jpeg" />
+              <img class="gearList" src="images/gear/hunkiNail.jpeg" />
               <div>ヤリ</div>
-              <img class="allgear" src="images/gear/kudaki.jpeg" />
-              <img class="allgear" src="images/gear/shoten.jpeg" />
-              <img class="allgear" src="images/gear/killerEarrings.jpeg" />
+              <img class="gearList" src="images/gear/kudaki.jpeg" />
+              <img class="gearList" src="images/gear/shoten.jpeg" />
+              <img class="gearList" src="images/gear/killerEarrings.jpeg" />
               <div>杖</div>
-              <img class="allgear" src="images/gear/dragonCane.jpeg" />
+              <img class="gearList" src="images/gear/dragonCane.jpeg" />
               <div>アクセサリー</div>
-              <img class="allgear" src="images/gear/flute.jpeg" />
-              <img class="allgear" src="images/gear/fireCharm.jpeg" />
-              <img class="allgear" src="images/gear/iceCharm.jpeg" />
-              <img class="allgear" src="images/gear/thunderCharm.jpeg" />
-              <img class="allgear" src="images/gear/windCharm.jpeg" />
-              <img class="allgear" src="images/gear/ioCharm.jpeg" />
-              <img class="allgear" src="images/gear/lightCharm.jpeg" />
-              <img class="allgear" src="images/gear/darkCharm.jpeg" />
+              <img class="gearList" src="images/gear/flute.jpeg" />
+              <img class="gearList" src="images/gear/fireCharm.jpeg" />
+              <img class="gearList" src="images/gear/iceCharm.jpeg" />
+              <img class="gearList" src="images/gear/thunderCharm.jpeg" />
+              <img class="gearList" src="images/gear/windCharm.jpeg" />
+              <img class="gearList" src="images/gear/ioCharm.jpeg" />
+              <img class="gearList" src="images/gear/lightCharm.jpeg" />
+              <img class="gearList" src="images/gear/darkCharm.jpeg" />
             </div>
           </div>
         </div>
 
-        <div class="statusandseed-container">
-          <!-- ステータス名と値 -->
-          <div class="status-info-title">
+        <div id="statusInfoContainer">
+          <div id="statusInfoTitle">
             <div>HP</div>
             <div>MP</div>
             <div>攻撃</div>
@@ -161,7 +155,7 @@
             <div>早さ</div>
             <div>賢さ</div>
           </div>
-          <div class="status-info-colon">
+          <div id="statusInfoColon">
             <div>:</div>
             <div>:</div>
             <div>:</div>
@@ -169,45 +163,44 @@
             <div>:</div>
             <div>:</div>
           </div>
-          <div class="status-info-status">
-            <div id="status-info-displayHP" class="status-info-display">0</div>
-            <div id="status-info-displayMP" class="status-info-display">0</div>
-            <div id="status-info-displayatk" class="status-info-display">0</div>
-            <div id="status-info-displaydef" class="status-info-display">0</div>
-            <div id="status-info-displayspd" class="status-info-display">0</div>
-            <div id="status-info-displayint" class="status-info-display">0</div>
+          <div id="statusInfoDisplayStatus">
+            <div id="statusInfoDisplayStatusHP">0</div>
+            <div id="statusInfoDisplayStatusMP">0</div>
+            <div id="statusInfoDisplayStatusatk">0</div>
+            <div id="statusInfoDisplayStatusdef">0</div>
+            <div id="statusInfoDisplayStatusspd">0</div>
+            <div id="statusInfoDisplayStatusint">0</div>
           </div>
-          <div class="status-info-space"></div>
-          <div class="status-info-seedgear">
-            <div id="status-info-seedgear-HP" class="status-info-displayseedgear">(+0)</div>
-            <div id="status-info-seedgear-MP" class="status-info-displayseedgear">(+0)</div>
-            <div id="status-info-seedgear-atk" class="status-info-displayseedgear">(+0)</div>
-            <div id="status-info-seedgear-def" class="status-info-displayseedgear">(+0)</div>
-            <div id="status-info-seedgear-spd" class="status-info-displayseedgear">(+0)</div>
-            <div id="status-info-seedgear-int" class="status-info-displayseedgear">(+0)</div>
+          <div id="statusInfoSpace"></div>
+          <div id="statusInfoSeedIncrement">
+            <div id="statusInfoSeedIncrementHP">(+0)</div>
+            <div id="statusInfoSeedIncrementMP">(+0)</div>
+            <div id="statusInfoSeedIncrementatk">(+0)</div>
+            <div id="statusInfoSeedIncrementdef">(+0)</div>
+            <div id="statusInfoSeedIncrementspd">(+0)</div>
+            <div id="statusInfoSeedIncrementint">(+0)</div>
           </div>
-          <div class="status-info-gear">
-            <div id="status-info-gear-HP" class="status-info-displaygear"></div>
-            <div id="status-info-gear-MP" class="status-info-displaygear"></div>
-            <div id="status-info-gear-atk" class="status-info-displaygear"></div>
-            <div id="status-info-gear-def" class="status-info-displaygear"></div>
-            <div id="status-info-gear-spd" class="status-info-displaygear"></div>
-            <div id="status-info-gear-int" class="status-info-displaygear"></div>
+          <div id="statusInfoGearIncrement">
+            <div id="statusInfoGearIncrementHP"></div>
+            <div id="statusInfoGearIncrementMP"></div>
+            <div id="statusInfoGearIncrementatk"></div>
+            <div id="statusInfoGearIncrementdef"></div>
+            <div id="statusInfoGearIncrementspd"></div>
+            <div id="statusInfoGearIncrementint"></div>
           </div>
-
           <!-- 種振り情報 -->
           <!--
-<button id = "resetseedbtn" class = "normalbutton" onclick = "resetseed()">種リセット</button>
+<button id = "resetSeedBtn" class = "normalButton" onclick = "resetSeed()">種リセット</button>
 -->
-          <div class="status-info-seed-title">
+          <div id="statusInfoSeedTitle">
             <div>攻撃</div>
             <div>防御</div>
             <div>早さ</div>
             <div>賢さ</div>
           </div>
-          <div class="status-info-seed-seed">
+          <div id="statusInfoSeedSelectContainer">
             <div>
-              <select id="selectseed-atk" class="selectseed" onchange="changeSeedSelect()">
+              <select id="selectSeedAtk" class="selectSeed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -232,7 +225,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-def" class="selectseed" onchange="changeSeedSelect()">
+              <select id="selectSeedDef" class="selectSeed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -257,7 +250,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-spd" class="selectseed" onchange="changeSeedSelect()">
+              <select id="selectSeedSpd" class="selectSeed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -282,7 +275,7 @@
               </select>
             </div>
             <div>
-              <select id="selectseed-int" class="selectseed" onchange="changeSeedSelect()">
+              <select id="selectSeedInt" class="selectSeed" onchange="changeSeedSelect()">
                 <option value="0">0</option>
                 <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
                 <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -307,248 +300,243 @@
               </select>
             </div>
           </div>
-          <!-- seedselect -->
+          <!-- statusInfoSeedSelectContainer -->
         </div>
-        <!-- statusandseed-container -->
+        <!-- statusInfoContainer -->
 
         <hr noshade="" />
-        <div class="skill-info-container">
+        <div class="skillInfoContainer">
           <div>特技変更</div>
           <br />
-          <div class="skill-flex-container">
+          <div class="skillFlexContainer">
             <div>
               <div>1 <span id="skill0"></span></div>
               <div>2 <span id="skill1"></span></div>
               <div>3 <span id="skill2"></span></div>
               <div>4 <span id="skill3"></span></div>
             </div>
-            <button id="karidisplaybtn" class="normalbutton" onclick="karitobattlepage()">test用</button>
             <br /><br /><br /><br /><br />
           </div>
-          <!-- skill-flex-container -->
         </div>
-        <!-- skill-info-container -->
+        <!-- skillInfoContainer -->
       </div>
-      <!-- adjustpartypage -->
+      <!-- adjustPartyPage -->
 
-      <div id="battlepage">
+      <div id="battlePage">
         <!-- 戦闘画面 -->
-        <div id="battlepage-above">
-          <button id="Reversebtn" class="normalbutton">リバ化</button>
-          <button id="elementErrorbtn" class="normalbutton">エレエラ</button>
-          <button id="revivebtn" class="normalbutton">戦闘reset</button>
-          <button id="hametsubtn" class="normalbutton">破滅</button>
-          <button id="materialbtn" class="normalbutton">爆発化</button>
-          <button id="rezaobtn" class="normalbutton">リザオ</button>
-          <button id="flobtn" class="normalbutton">frozen</button>
-          <button id="harvestbtn" class="normalbutton">harvest</button>
-          <button id="endbtn" class="normalbutton">エンブレ</button>
+        <div id="battlePageAbove">
+          <button id="ReverseBtn" class="normalButton">リバ化</button>
+          <button id="elementErrorBtn" class="normalButton">エレエラ</button>
+          <button id="resetBtn" class="normalButton">戦闘reset</button>
+          <button id="hametsuBtn" class="normalButton">破滅</button>
+          <button id="materialBtn" class="normalButton">爆発化</button>
+          <button id="rezaoBtn" class="normalButton">リザオ</button>
+          <button id="floBtn" class="normalButton">frozen</button>
+          <button id="harvestBtn" class="normalButton">harvest</button>
+          <button id="endBtn" class="normalButton">エンブレ</button>
 
           <br />
 
-          <div id="enemymonstercontainerbattle" class="monstericons-container">
-            <div class="monstericon-wrapper battlepageenemywrapper">
-              <img id="battleiconenemy0" class="monstericon battlepageenemyicon" />
+          <div id="enemyBattleIconsContainer" class="battleIconsContainer">
+            <div class="battleIconWrapper enemyBattleIconWrapper">
+              <img id="enemyBattleIcon0" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageenemywrapper">
-              <img id="battleiconenemy1" class="monstericon battlepageenemyicon" />
+            <div class="battleIconWrapper enemyBattleIconWrapper">
+              <img id="enemyBattleIcon1" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageenemywrapper">
-              <img id="battleiconenemy2" class="monstericon battlepageenemyicon" />
+            <div class="battleIconWrapper enemyBattleIconWrapper">
+              <img id="enemyBattleIcon2" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageenemywrapper">
-              <img id="battleiconenemy3" class="monstericon battlepageenemyicon" />
+            <div class="battleIconWrapper enemyBattleIconWrapper">
+              <img id="enemyBattleIcon3" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageenemywrapper">
-              <img id="battleiconenemy4" class="monstericon battlepageenemyicon" />
+            <div class="battleIconWrapper enemyBattleIconWrapper">
+              <img id="enemyBattleIcon4" class="battleIcon" />
             </div>
           </div>
-          <!-- finish enemymonstercontainerbattle -->
-          <!-- todo:class名の最適化-->
-          <div id="enemybars" class="monster-bar-container">
-            <div class="eachbarcontainer">
-              <div id="hpbarenemy0" class="bar">
-                <div id="hpbarinnerenemy0" class="barinner"></div>
-                <div id="damagedisplayenemy0" class="damagedisplay"></div>
+          <div id="enemyBars" class="barContainer">
+            <div class="eachBarContainer">
+              <div id="enemyHpBar0" class="bar">
+                <div id="enemyHpBarInner0" class="barInner"></div>
+                <div id="enemyDamageDisplay0" class="damageDisplay"></div>
               </div>
             </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarenemy1" class="bar">
-                <div id="hpbarinnerenemy1" class="barinner"></div>
-                <div id="damagedisplayenemy1" class="damagedisplay"></div>
+            <div class="eachBarContainer">
+              <div id="enemyHpBar1" class="bar">
+                <div id="enemyHpBarInner1" class="barInner"></div>
+                <div id="enemyDamageDisplay1" class="damageDisplay"></div>
               </div>
             </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarenemy2" class="bar">
-                <div id="hpbarinnerenemy2" class="barinner"></div>
-                <div id="damagedisplayenemy2" class="damagedisplay"></div>
+            <div class="eachBarContainer">
+              <div id="enemyHpBar2" class="bar">
+                <div id="enemyHpBarInner2" class="barInner"></div>
+                <div id="enemyDamageDisplay2" class="damageDisplay"></div>
               </div>
             </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarenemy3" class="bar">
-                <div id="hpbarinnerenemy3" class="barinner"></div>
-                <div id="damagedisplayenemy3" class="damagedisplay"></div>
+            <div class="eachBarContainer">
+              <div id="enemyHpBar3" class="bar">
+                <div id="enemyHpBarInner3" class="barInner"></div>
+                <div id="enemyDamageDisplay3" class="damageDisplay"></div>
               </div>
             </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarenemy4" class="bar">
-                <div id="hpbarinnerenemy4" class="barinner"></div>
-                <div id="damagedisplayenemy4" class="damagedisplay"></div>
+            <div class="eachBarContainer">
+              <div id="enemyHpBar4" class="bar">
+                <div id="enemyHpBarInner4" class="barInner"></div>
+                <div id="enemyDamageDisplay4" class="damageDisplay"></div>
               </div>
             </div>
           </div>
         </div>
-        <!-- finish battlepage-above -->
-        <div id="battlepage-below">
-          <div id="consolescreen-container">
-            <div id="consolescreen">
+        <!-- finish battlePageAbove -->
+        <div id="battlePageBelow">
+          <div id="consoleScreenContainer">
+            <div id="consoleScreen">
               <p id="message-line1"></p>
               <p id="message-line2"></p>
             </div>
           </div>
 
-          <div id="allymonstercontainerbattle" class="monstericons-container">
-            <div class="monstericon-wrapper battlepageallywrapper">
-              <img id="battleiconally0" class="monstericon battlepageallyicon" />
+          <div id="allyBattleIconsContainer" class="battleIconsContainer">
+            <div class="battleIconWrapper allyBattleIconWrapper">
+              <img id="allyBattleIcon0" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageallywrapper">
-              <img id="battleiconally1" class="monstericon battlepageallyicon" />
+            <div class="battleIconWrapper allyBattleIconWrapper">
+              <img id="allyBattleIcon1" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageallywrapper">
-              <img id="battleiconally2" class="monstericon battlepageallyicon" />
+            <div class="battleIconWrapper allyBattleIconWrapper">
+              <img id="allyBattleIcon2" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageallywrapper">
-              <img id="battleiconally3" class="monstericon battlepageallyicon" />
+            <div class="battleIconWrapper allyBattleIconWrapper">
+              <img id="allyBattleIcon3" class="battleIcon" />
             </div>
-            <div class="monstericon-wrapper battlepageallywrapper">
-              <img id="battleiconally4" class="monstericon battlepageallyicon" />
-            </div>
-          </div>
-          <!-- finish allymonstercontainerbattle -->
-          <div id="monster-bar-container-ally" class="monster-bar-container">
-            <div class="eachbarcontainer">
-              <div id="hpbarally0" class="bar">
-                <div id="hpbartextally0" class="bartext">0</div>
-                <div id="hpbarinnerally0" class="barinner"></div>
-                <div id="damagedisplayally0" class="damagedisplay"></div>
-              </div>
-              <div id="mpbarally0" class="bar">
-                <div id="mpbartextally0" class="bartext">0</div>
-                <div id="mpbarinnerally0" class="barinner mpbarinner"></div>
-              </div>
-            </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarally1" class="bar">
-                <div id="hpbartextally1" class="bartext">0</div>
-                <div id="hpbarinnerally1" class="barinner"></div>
-                <div id="damagedisplayally1" class="damagedisplay"></div>
-              </div>
-              <div id="mpbarally1" class="bar">
-                <div id="mpbartextally1" class="bartext">0</div>
-                <div id="mpbarinnerally1" class="barinner mpbarinner"></div>
-              </div>
-            </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarally2" class="bar">
-                <div id="hpbartextally2" class="bartext">0</div>
-                <div id="hpbarinnerally2" class="barinner"></div>
-                <div id="damagedisplayally2" class="damagedisplay"></div>
-              </div>
-              <div id="mpbarally2" class="bar">
-                <div id="mpbartextally2" class="bartext">0</div>
-                <div id="mpbarinnerally2" class="barinner mpbarinner"></div>
-              </div>
-            </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarally3" class="bar">
-                <div id="hpbartextally3" class="bartext">0</div>
-                <div id="hpbarinnerally3" class="barinner"></div>
-                <div id="damagedisplayally3" class="damagedisplay"></div>
-              </div>
-              <div id="mpbarally3" class="bar">
-                <div id="mpbartextally3" class="bartext">0</div>
-                <div id="mpbarinnerally3" class="barinner mpbarinner"></div>
-              </div>
-            </div>
-            <div class="eachbarcontainer">
-              <div id="hpbarally4" class="bar">
-                <div id="hpbartextally4" class="bartext">0</div>
-                <div id="hpbarinnerally4" class="barinner"></div>
-                <div id="damagedisplayally4" class="damagedisplay"></div>
-              </div>
-              <div id="mpbarally4" class="bar">
-                <div id="mpbartextally4" class="bartext">0</div>
-                <div id="mpbarinnerally4" class="barinner mpbarinner"></div>
-              </div>
+            <div class="battleIconWrapper allyBattleIconWrapper">
+              <img id="allyBattleIcon4" class="battleIcon" />
             </div>
           </div>
-          <!-- finish monster-bar-container -->
+          <div id="allyBars" class="barContainer">
+            <div class="eachBarContainer">
+              <div id="allyHpBar0" class="bar">
+                <div id="allyHpBarText0" class="barText">0</div>
+                <div id="allyHpBarInner0" class="barInner"></div>
+                <div id="allyDamageDisplay0" class="damageDisplay"></div>
+              </div>
+              <div id="allyMpBar0" class="bar">
+                <div id="allyMpBarText0" class="barText">0</div>
+                <div id="allyMpBarInner0" class="barInner mpBarInner"></div>
+              </div>
+            </div>
+            <div class="eachBarContainer">
+              <div id="allyHpBar1" class="bar">
+                <div id="allyHpBarText1" class="barText">0</div>
+                <div id="allyHpBarInner1" class="barInner"></div>
+                <div id="allyDamageDisplay1" class="damageDisplay"></div>
+              </div>
+              <div id="allyMpBar1" class="bar">
+                <div id="allyMpBarText1" class="barText">0</div>
+                <div id="allyMpBarInner1" class="barInner mpBarInner"></div>
+              </div>
+            </div>
+            <div class="eachBarContainer">
+              <div id="allyHpBar2" class="bar">
+                <div id="allyHpBarText2" class="barText">0</div>
+                <div id="allyHpBarInner2" class="barInner"></div>
+                <div id="allyDamageDisplay2" class="damageDisplay"></div>
+              </div>
+              <div id="allyMpBar2" class="bar">
+                <div id="allyMpBarText2" class="barText">0</div>
+                <div id="allyMpBarInner2" class="barInner mpBarInner"></div>
+              </div>
+            </div>
+            <div class="eachBarContainer">
+              <div id="allyHpBar3" class="bar">
+                <div id="allyHpBarText3" class="barText">0</div>
+                <div id="allyHpBarInner3" class="barInner"></div>
+                <div id="allyDamageDisplay3" class="damageDisplay"></div>
+              </div>
+              <div id="allyMpBar3" class="bar">
+                <div id="allyMpBarText3" class="barText">0</div>
+                <div id="allyMpBarInner3" class="barInner mpBarInner"></div>
+              </div>
+            </div>
+            <div class="eachBarContainer">
+              <div id="allyHpBar4" class="bar">
+                <div id="allyHpBarText4" class="barText">0</div>
+                <div id="allyHpBarInner4" class="barInner"></div>
+                <div id="allyDamageDisplay4" class="damageDisplay"></div>
+              </div>
+              <div id="allyMpBar4" class="bar">
+                <div id="allyMpBarText4" class="barText">0</div>
+                <div id="allyMpBarInner4" class="barInner mpBarInner"></div>
+              </div>
+            </div>
+          </div>
+          <!-- finish barContainer -->
 
-          <div id="commandbtns-container">
-            <button class="normalbutton commandbtn" id="commandnormalattackbtn">たたかう</button>
-            <button class="normalbutton commandbtn" id="commandselectskillbtn" onclick="startselectingcommand()">とくぎ</button>
-            <button class="normalbutton commandbtn" id="commandAIbtn">AI</button>
-            <button class="normalbutton commandbtn" id="commandguardbtn">ぼうぎょ</button>
-            <button class="normalbutton commandbtn" id="commandbackbtn" onclick="backbtn()">もどる</button>
-            <button class="normalbutton commandbtn" id="commandadjustAIbtn">AI調整</button>
+          <div id="commandBtnContainer">
+            <button class="normalButton commandBtn" id="commandNormalAttackBtn">たたかう</button>
+            <button class="normalButton commandBtn" id="commandSelectSkillBtn" onclick="startSelectingCommand()">とくぎ</button>
+            <button class="normalButton commandBtn" id="commandAIBtn">AI</button>
+            <button class="normalButton commandBtn" id="commandGuardBtn">ぼうぎょ</button>
+            <button class="normalButton commandBtn" id="commandBackBtn" onclick="backBtn()">もどる</button>
+            <button class="normalButton commandBtn" id="commandAdjustAIBtn">AI調整</button>
 
-            <div id="selectcommandpopupwindow">
-              <div id="selectcommandpopupwindow-contents">
-                <div id="selectcommandpopupwindow-text"></div>
-                <div id="selectskillbtns">
-                  <button id="selectskillbtn0" class="normalbutton selectskillbtn" onclick="selectcommand(0)">特技1</button>
-                  <button id="selectskillbtn1" class="normalbutton selectskillbtn" onclick="selectcommand(1)">特技2</button>
-                  <button id="selectskillbtn2" class="normalbutton selectskillbtn" onclick="selectcommand(2)">特技3</button>
-                  <button id="selectskillbtn3" class="normalbutton selectskillbtn" onclick="selectcommand(3)">特技4</button>
+            <div id="commandPopupWindow">
+              <div id="commandPopupWindowContents">
+                <div id="commandPopupWindowText"></div>
+                <div id="selectSkillBtnContainer">
+                  <button id="selectSkillBtn0" class="normalButton selectSkillBtn" onclick="selectCommand(0)">特技1</button>
+                  <button id="selectSkillBtn1" class="normalButton selectSkillBtn" onclick="selectCommand(1)">特技2</button>
+                  <button id="selectSkillBtn2" class="normalButton selectSkillBtn" onclick="selectCommand(2)">特技3</button>
+                  <button id="selectSkillBtn3" class="normalButton selectSkillBtn" onclick="selectCommand(3)">特技4</button>
                 </div>
-                <div id="designateskilltarget-all">
-                  <div id="designateskilltarget-all-text"></div>
-                  <button id="designateskilltargetbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
-                  <button id="designateskilltargetbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
+                <div id="selectSkillTargetAll">
+                  <div id="selectSkillTargetAllText"></div>
+                  <button id="selectSkillTargetBtnNo" class="normalButton selectSkillTargetAllBtn">いいえ</button>
+                  <button id="selectSkillTargetBtnYes" class="normalButton selectSkillTargetAllBtn">はい</button>
                 </div>
-                <div id="askfinishselectingcommand">
-                  <div id="askfinishselectingcommand-text">コマンド選択を終了しますか？</div>
-                  <button id="askfinishselectingcommandbtnno" class="normalbutton designateskilltargetallbtn">いいえ</button>
-                  <button id="askfinishselectingcommandbtnyes" class="normalbutton designateskilltargetallbtn">はい</button>
+                <div id="askFinishCommand">
+                  <div id="askFinishCommandText">コマンド選択を終了しますか？</div>
+                  <button id="askFinishCommandBtnNo" class="normalButton selectSkillTargetAllBtn">いいえ</button>
+                  <button id="askFinishCommandBtnYes" class="normalButton selectSkillTargetAllBtn">はい</button>
                 </div>
-                <div id="designateskilltarget">
-                  <div class="selecttargetmonster-wrapper">
-                    <img class="selecttargetmonster" id="selecttargetmonster0" />
+                <div id="selectSkillTargetContainer">
+                  <div class="selectSkillTargetWrapper">
+                    <img class="selectSkillTarget" id="selectSkillTarget0" />
                   </div>
-                  <div class="selecttargetmonster-wrapper">
-                    <img class="selecttargetmonster" id="selecttargetmonster1" />
+                  <div class="selectSkillTargetWrapper">
+                    <img class="selectSkillTarget" id="selectSkillTarget1" />
                   </div>
-                  <div class="selecttargetmonster-wrapper">
-                    <img class="selecttargetmonster" id="selecttargetmonster2" />
+                  <div class="selectSkillTargetWrapper">
+                    <img class="selectSkillTarget" id="selectSkillTarget2" />
                   </div>
-                  <div class="selecttargetmonster-wrapper">
-                    <img class="selecttargetmonster" id="selecttargetmonster3" />
+                  <div class="selectSkillTargetWrapper">
+                    <img class="selectSkillTarget" id="selectSkillTarget3" />
                   </div>
-                  <div class="selecttargetmonster-wrapper">
-                    <img class="selecttargetmonster" id="selecttargetmonster4" />
+                  <div class="selectSkillTargetWrapper">
+                    <img class="selectSkillTarget" id="selectSkillTarget4" />
                   </div>
                 </div>
-                <div id="howtoselectenemyscommand">
-                  <div id="howtoselectenemyscommand-text">敵のコマンド選択方法</div>
-                  <button id="howtoselectenemyscommandbtn-player" class="normalbutton howtoselectenemyscommandbtn">選択する</button>
-                  <button disabled id="howtoselectenemyscommandbtn-improvedAI" class="normalbutton howtoselectenemyscommandbtn">強いAI</button>
-                  <button disabled id="howtoselectenemyscommandbtn-takoAI" class="normalbutton howtoselectenemyscommandbtn">たこAI</button>
+                <div id="howToCommandEnemy">
+                  <div id="howToCommandEnemyText">敵のコマンド選択方法</div>
+                  <button id="howToCommandEnemyBtnPlayer" class="normalButton howToCommandEnemyBtn">選択する</button>
+                  <button disabled id="howToCommandEnemyBtnImprovedAI" class="normalButton howToCommandEnemyBtn">強いAI</button>
+                  <button disabled id="howToCommandEnemyBtnFixedAI" class="normalButton howToCommandEnemyBtn">固定AI</button>
                 </div>
-                <div id="closeselectcommandpopupwindowbtn-container">
-                  <div id="closeselectcommandpopupwindowbtn"></div>
+                <div id="closeCommandPopupWindowBtnContainer">
+                  <div id="closeCommandPopupWindowBtn"></div>
                 </div>
               </div>
-              <!--selectcommandpopupwindow-contents-->
+              <!--commandPopupWindowContents-->
             </div>
-            <!--selectcommandpopupwindow-->
+            <!--commandPopupWindow-->
           </div>
-          <!-- finish commandbtns-container -->
+          <!-- finish commandBtnContainer -->
         </div>
-        <!-- finish battlepage-below -->
+        <!-- finish battlePageBelow -->
       </div>
-      <!--finish battlepage-->
+      <!--finish battlePage-->
     </div>
-    <!--finish pagecontainer-->
+    <!--finish pageContainer-->
 
     <script src="script.js"></script>
   </body>

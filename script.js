@@ -23,22 +23,19 @@ function switchParty() {
   }
 }
 
-// selectingPartyのうちn番目のpartyiconを更新する関数
+// selectingPartyのうちn番目のpartyIconを更新する関数
 function updatePartyIcon(number) {
   const monster = selectingParty[number];
   const iconSrc = monster.length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
-  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/ungeared.jpeg";
-  document.getElementById(`partyicon${number}`).src = iconSrc;
-  document.getElementById(`partygear${number}`).src = gearSrc;
+  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/unGeared.jpeg";
+  document.getElementById(`partyIcon${number}`).src = iconSrc;
+  document.getElementById(`partyGear${number}`).src = gearSrc;
 }
 
 //どちらのプレイヤーがパテ選択中かの関数定義
 let currentPlayer = "A";
-function confirmparty() {
+function decideParty() {
   const switchPartyElement = document.getElementById("switchParty");
-
-  //todo:もしpartyの中にunselectedやungearedが入っていたらalertしてesc
-
   if (currentPlayer === "A") {
     // playerBの選択に移行
     currentPlayer = "B";
@@ -69,15 +66,15 @@ function confirmparty() {
     switchParty();
 
     //displayで全体切り替え、battle画面へ
-    document.getElementById("adjustpartypage").style.display = "none";
-    document.getElementById("battlepage").style.display = "block";
-    preparebattle();
+    document.getElementById("adjustPartyPage").style.display = "none";
+    document.getElementById("battlePage").style.display = "block";
+    prepareBattle();
     preloadImages();
   }
 }
 
 //パテ設定画面の確定で起動
-function preparebattle() {
+function prepareBattle() {
   // 初期化
   fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 } };
 
@@ -90,7 +87,7 @@ function preparebattle() {
 
     // リーダースキルの取得
     const leaderSkill = party[0].ls;
-    const lstarget = party[0].lstarget;
+    const lsTarget = party[0].lsTarget;
 
     for (let j = 0; j < party.length; j++) {
       const monster = party[j];
@@ -102,24 +99,20 @@ function preparebattle() {
       // 各要素のIDを作成
       monster.index = j;
       monster.monsterId = `parties[${i}][${j}]`;
-      monster.iconElementId = `battleicon${prefix}${j}`;
-      monster.reversedIconElementId = `battleicon${reversedPrefix}${j}`;
-      monster.hpBarElementId = `hpbar${prefix}${j}`;
-      monster.mpBarElementId = `mpbar${prefix}${j}`;
-      monster.hpBarTextElementId = `hpbartext${prefix}${j}`;
-      monster.mpBarTextElementId = `mpbartext${prefix}${j}`;
+      monster.iconElementId = `${prefix}BattleIcon${j}`;
+      monster.reversedIconElementId = `${reversedPrefix}BattleIcon${j}`;
       monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
 
       // skill生成
       monster.skill = [...monster.defaultSkill];
 
       // ステータス処理
-      monster.defaultstatus = {};
-      for (const key in monster.displaystatus) {
+      monster.defaultStatus = {};
+      for (const key in monster.displayStatus) {
         // リーダースキル適用
-        let statusValue = monster.displaystatus[key];
+        let statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
-        if ((lstarget === "all" || monster.type === lstarget) && leaderSkill[key]) {
+        if ((lsTarget === "all" || monster.type === lsTarget) && leaderSkill[key]) {
           lsMultiplier = leaderSkill[key];
         }
         if (monster.gear?.alchemy && !["tyoma", "tyoden", "???"].includes(monster.type)) {
@@ -129,13 +122,13 @@ function preparebattle() {
         if (key === "HP" || key === "MP") {
           lsMultiplier += 0.04;
         }
-        monster.defaultstatus[key] = Math.ceil(statusValue * lsMultiplier);
+        monster.defaultStatus[key] = Math.ceil(statusValue * lsMultiplier);
       }
-      monster.currentstatus = structuredClone(monster.defaultstatus);
+      monster.currentStatus = structuredClone(monster.defaultStatus);
 
       // 初期化
-      monster.confirmedcommand = "";
-      monster.confirmedcommandtarget = "";
+      monster.commandInput = "";
+      monster.commandTargetInput = "";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [] };
       monster.attribute.additionalPermanentBuffs = {};
@@ -147,32 +140,29 @@ function preparebattle() {
       monster.abilities.attackAbilities = monster.abilities.attackAbilities || {};
       monster.abilities.attackAbilities.additionalPermanentAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
-
-      // バフ表示の更新
-      updateMonsterBar(monster);
     }
   }
 
-  //数が不均衡な場合に備えて存在しないbarを削除
+  //数が不均衡な場合に備えて存在しないbarを削除しつつ全体のbarを更新
   setMonsterBarDisplay();
   //戦闘画面の10のimgのsrcを設定
-  //partyの中身のidとgearidから、適切な画像を設定
-  preparebattlepageicons();
+  //partyの中身のidとgearIdから、適切な画像を設定
+  prepareBattlePageIcons();
   //最初に全てのpopupを閉じる
   closeAllPopupContents();
   //コマンドボタン無効化 特性演出終了後に有効化
-  disablecommandbtns(true);
-  removeallstickout();
+  disableCommandBtn(true);
+  removeAllStickOut();
   //field管理用変数の導入はglobalで
   startTurn();
 }
-//finish preparebattle 開始時処理終了
+//finish prepareBattle 開始時処理終了
 
 let fieldState = { turnNum: 0 };
 
-//死亡処理で起動、死亡時や亡者化のicon変化処理、preparebattlepageiconsでも起動して敵skill選択時の反転にそれを反映する
+//死亡処理で起動、死亡時や亡者化のicon変化処理、prepareBattlePageIconsでも起動して敵skill選択時の反転にそれを反映する
 //状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
-function updatebattleicons(monster, reverseDisplay = false) {
+function updateBattleIcons(monster, reverseDisplay = false) {
   const upperTeamId = reverseDisplay ? 0 : 1;
   const targetElementId = reverseDisplay ? monster.reversedIconElementId : monster.iconElementId;
   const targetElement = document.getElementById(targetElementId);
@@ -183,7 +173,7 @@ function updatebattleicons(monster, reverseDisplay = false) {
     //buffContainerを削除
     document
       .getElementById(enemyTargetElementId)
-      .parentNode.querySelectorAll(".buff-container")
+      .parentNode.querySelectorAll(".buffContainer")
       .forEach((buffContainer) => {
         buffContainer.remove();
       });
@@ -207,34 +197,36 @@ function updatebattleicons(monster, reverseDisplay = false) {
 }
 
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
-function preparebattlepageicons(reverseDisplay = false) {
+function prepareBattlePageIcons(reverseDisplay = false) {
   for (const party of parties) {
     for (const monster of party) {
-      updatebattleicons(monster, reverseDisplay);
+      updateBattleIcons(monster, reverseDisplay);
     }
   }
 }
 
-//HPMPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後applydamage内で起動
+//HP,MPのテキスト表示とバーを更新する これは戦闘開始時と毎ダメージ処理後applyDamage内で起動
 function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
   // IDのプレフィックスを切り替える
-  let prefix = monster.hpBarElementId.startsWith("hpbarally") ? "ally" : "enemy";
+  let prefix = monster.teamID === 0 ? "ally" : "enemy";
   if (isReversed) {
     prefix = prefix === "ally" ? "enemy" : "ally"; // 逆転フラグがtrueならプレフィックスを反転
   }
 
   // IDを生成
-  const hpBarInnerId = `hpbarinner${prefix}${monster.hpBarElementId.slice(monster.hpBarElementId.length - 1)}`;
-  const mpBarInnerId = `mpbarinner${prefix}${monster.mpBarElementId.slice(monster.mpBarElementId.length - 1)}`;
-  const hpBarTextElementId = `hpbartext${prefix}${monster.hpBarTextElementId.slice(monster.hpBarTextElementId.length - 1)}`;
-  const mpBarTextElementId = `mpbartext${prefix}${monster.mpBarTextElementId.slice(monster.mpBarTextElementId.length - 1)}`;
+  const hpBarElementId = `${prefix}HpBar${monster.index}`;
+  const mpBarElementId = `${prefix}MpBar${monster.index}`;
+  const hpBarInnerId = `${prefix}HpBarInner${monster.index}`;
+  const mpBarInnerId = `${prefix}MpBarInner${monster.index}`;
+  const hpBarTextElementId = `${prefix}HpBarText${monster.index}`;
+  const mpBarTextElementId = `${prefix}MpBarText${monster.index}`;
 
   // 表示対象の要素を取得
-  const hpBarElement = document.getElementById(hpBarInnerId.replace("hpbarinner", "hpbar"));
+  const hpBarElement = document.getElementById(hpBarElementId);
+  const mpBarElement = document.getElementById(mpBarElementId);
   const hpBarInner = document.getElementById(hpBarInnerId);
-  const hpBarTextElement = document.getElementById(hpBarTextElementId);
-  const mpBarElement = document.getElementById(mpBarInnerId.replace("mpbarinner", "mpbar"));
   const mpBarInner = document.getElementById(mpBarInnerId);
+  const hpBarTextElement = document.getElementById(hpBarTextElementId);
   const mpBarTextElement = document.getElementById(mpBarTextElementId);
 
   // prefixが敵かつ死亡している場合は非表示化
@@ -246,11 +238,11 @@ function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
 
     // HPバーの更新
     const currentHpPercentage = parseFloat(hpBarInner.style.width); // 現在の幅を取得
-    const hpPercentage = (monster.currentstatus.HP / monster.defaultstatus.HP) * 100;
+    const hpPercentage = (monster.currentStatus.HP / monster.defaultStatus.HP) * 100;
     hpBarInner.style.width = `${hpPercentage}%`; // 即座に幅を更新
 
     // ダメージ表示
-    const damageDisplayId = `damagedisplay${hpBarInnerId.slice(10)}`;
+    const damageDisplayId = `${prefix}DamageDisplay${monster.index}`;
     const damageDisplay = document.getElementById(damageDisplayId);
 
     if (displayRedBar && damageDisplay) {
@@ -271,18 +263,18 @@ function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
       damageDisplay.style.transition = "none"; // トランジションを無効化
     }
 
-    // テキストの更新 敵monsterはtext存在しないのでnullcheck
+    // テキストの更新 敵monsterはtext存在しないのでnullならば操作しない
     if (hpBarTextElement) {
-      hpBarTextElement.textContent = monster.currentstatus.HP;
+      hpBarTextElement.textContent = monster.currentStatus.HP;
     }
   }
 
   // prefixが味方の場合のみ、MP表示化処理と更新処理
   if (prefix === "ally") {
     mpBarElement.style.visibility = "visible"; //表示化
-    const mpPercentage = (monster.currentstatus.MP / monster.defaultstatus.MP) * 100;
+    const mpPercentage = (monster.currentStatus.MP / monster.defaultStatus.MP) * 100;
     mpBarInner.style.width = `${mpPercentage}%`;
-    mpBarTextElement.textContent = monster.currentstatus.MP;
+    mpBarTextElement.textContent = monster.currentStatus.MP;
   }
 }
 
@@ -301,39 +293,39 @@ function setMonsterBarDisplay(isReverse = false) {
 
 //////////////////////////////////////////////////////////////コマンド選択フロー
 
-let selectingwhichmonsterscommand = 0;
-let selectingwhichteamscommand = 0;
+let currentMonsterIndex = 0;
+let currentTeamIndex = 0;
 
 //////////////通常攻撃
-document.getElementById("commandnormalattackbtn").addEventListener("click", function () {
-  disablecommandbtns(true);
-  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = getNormalAttackName(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]);
-  document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
-  document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-  selectSkillTargetToggler(selectingwhichteamscommand === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
-  document.getElementById("designateskilltarget").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
+document.getElementById("commandNormalAttackBtn").addEventListener("click", function () {
+  disableCommandBtn(true);
+  parties[currentTeamIndex][currentMonsterIndex].commandInput = getNormalAttackName(parties[currentTeamIndex][currentMonsterIndex]);
+  document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
+  document.getElementById("commandPopupWindowText").style.visibility = "visible";
+  selectSkillTargetToggler(currentTeamIndex === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
+  document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
+  document.getElementById("commandPopupWindow").style.visibility = "visible";
 });
 
 /////////////ぼうぎょ
-document.getElementById("commandguardbtn").addEventListener("click", function () {
-  parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "ぼうぎょ";
+document.getElementById("commandGuardBtn").addEventListener("click", function () {
+  parties[currentTeamIndex][currentMonsterIndex].commandInput = "ぼうぎょ";
   finishSelectingEachMonstersCommand();
 });
 
-function startselectingcommand() {
-  disablecommandbtns(true);
+function startSelectingCommand() {
+  disableCommandBtn(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
-  const skillUser = parties[selectingwhichteamscommand][selectingwhichmonsterscommand];
+  const skillUser = parties[currentTeamIndex][currentMonsterIndex];
   for (let i = 0; i < 4; i++) {
-    const selectSkillBtn = document.getElementById(`selectskillbtn${i}`);
+    const selectSkillBtn = document.getElementById(`selectSkillBtn${i}`);
     selectSkillBtn.textContent = skillUser.skill[i];
     // スキル情報を取得
     const skillInfo = findSkillByName(skillUser.skill[i]);
     const MPcost = calculateMPcost(skillUser, skillInfo);
     if (
       skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) ||
-      skillUser.currentstatus.MP < MPcost ||
+      skillUser.currentStatus.MP < MPcost ||
       (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser)) ||
       skillUser.buffs[skillInfo.type + "Seal"]
     ) {
@@ -344,71 +336,68 @@ function startselectingcommand() {
       selectSkillBtn.style.opacity = "";
     }
   }
-  document.getElementById("selectskillbtns").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow-text").textContent = skillUser.name;
-  document.getElementById("selectcommandpopupwindow-text").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "visible";
+  document.getElementById("selectSkillBtnContainer").style.visibility = "visible";
+  document.getElementById("commandPopupWindowText").textContent = skillUser.name;
+  document.getElementById("commandPopupWindowText").style.visibility = "visible";
+  document.getElementById("commandPopupWindow").style.visibility = "visible";
   //monster名表示に戻す
   //todo:inline?block?
   displayMessage("とくぎをえらんでください。");
 }
 
-function selectcommand(selectedSkillNum) {
-  document.getElementById("selectskillbtns").style.visibility = "hidden";
-  const skillUser = parties[selectingwhichteamscommand][selectingwhichmonsterscommand];
+function selectCommand(selectedSkillNum) {
+  document.getElementById("selectSkillBtnContainer").style.visibility = "hidden";
+  const skillUser = parties[currentTeamIndex][currentMonsterIndex];
   const selectedSkillName = skillUser.skill[selectedSkillNum];
-  //confirmedcommandに格納
-  skillUser.confirmedcommand = selectedSkillName;
+  //commandInputに格納
+  skillUser.commandInput = selectedSkillName;
   const selectedSkill = findSkillByName(selectedSkillName);
-  const skilltargetTypedetector = selectedSkill.targetType;
-  const skilltargetTeamdetector = selectedSkill.targetTeam;
+  const selectedSkillTargetType = selectedSkill.targetType;
+  const selectedSkillTargetTeam = selectedSkill.targetTeam;
   const MPcost = calculateMPcost(skillUser, selectedSkill);
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
-  if (skilltargetTypedetector === "random" || skilltargetTypedetector === "single" || skilltargetTypedetector === "dead") {
+  if (selectedSkillTargetType === "random" || selectedSkillTargetType === "single" || selectedSkillTargetType === "dead") {
     displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
-    document.getElementById("selectcommandpopupwindow-text").textContent = "たたかう敵モンスターをタッチしてください。";
-    if (skilltargetTeamdetector === "ally") {
-      document.getElementById("selectcommandpopupwindow-text").textContent = "モンスターをタッチしてください。";
-    } else if (skilltargetTypedetector === "dead") {
-      document.getElementById("selectcommandpopupwindow-text").textContent = "回復するモンスターをタッチしてください。";
+    document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
+    if (selectedSkillTargetTeam === "ally") {
+      document.getElementById("commandPopupWindowText").textContent = "モンスターをタッチしてください。";
+    } else if (selectedSkillTargetType === "dead") {
+      document.getElementById("commandPopupWindowText").textContent = "回復するモンスターをタッチしてください。";
     }
 
     //味方選択中かつskillのtargetTeamがenemyのとき、または敵選択中かつskillのtargetTeamがallyのとき、敵画像を代入
     //逆に味方選択中かつtargetTeamがallyのとき、または敵選択中かつtargetTeamがenemyのとき、味方画像を代入
-    if ((selectingwhichteamscommand === 0 && skilltargetTeamdetector === "enemy") || (selectingwhichteamscommand === 1 && skilltargetTeamdetector === "ally")) {
-      selectSkillTargetToggler(1, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill); //敵画像
+    if ((currentTeamIndex === 0 && selectedSkillTargetTeam === "enemy") || (currentTeamIndex === 1 && selectedSkillTargetTeam === "ally")) {
+      selectSkillTargetToggler(1, selectedSkillTargetType, selectedSkillTargetTeam, selectedSkill); //敵画像
     } else {
-      selectSkillTargetToggler(0, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill); //味方画像
+      selectSkillTargetToggler(0, selectedSkillTargetType, selectedSkillTargetTeam, selectedSkill); //味方画像
     }
-    document.getElementById("designateskilltarget").style.visibility = "visible";
-  } else if (skilltargetTypedetector === "all" || skilltargetTypedetector === "field") {
+    document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
+  } else if (selectedSkillTargetType === "all" || selectedSkillTargetType === "field") {
     displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
-    //targetがallのとき、all(yesno)画面を起動
-    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+    //targetがallのとき、all(yes,no)画面を起動
+    document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    document.getElementById("designateskilltarget-all-text").textContent = selectedSkillName + "を使用しますか？";
-    document.getElementById("designateskilltarget-all").style.visibility = "visible";
-    //parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = "all";
-    //allとかmeとか保存してもいいけど、結局skillの中身主導で動かすから不要かも
-    //処理上まずはskillのtarget属性で分類、その後randomやsingleの場合はここで保存された相手に撃つ処理
+    document.getElementById("selectSkillTargetAllText").textContent = selectedSkillName + "を使用しますか？";
+    document.getElementById("selectSkillTargetAll").style.visibility = "visible";
   } else {
     //targetがmeのとき、そのまま終了
-    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+    document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     finishSelectingEachMonstersCommand();
   }
 }
 
-function selectSkillTargetToggler(targetTeamnum, skilltargetTypedetector, skilltargetTeamdetector, selectedSkill) {
+function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, selectedSkillTargetTeam, selectedSkill) {
   const excludeTarget = selectedSkill.excludeTarget || null;
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
   for (let i = 0; i < 5; i++) {
-    const targetMonsterElement = document.getElementById(`selecttargetmonster${i}`);
+    const targetMonsterElement = document.getElementById(`selectSkillTarget${i}`);
     const targetMonsterWrapper = targetMonsterElement.parentNode; // wrapper要素を取得
 
     // モンスター情報が存在しない場合、枠を非表示にしてcontinue
-    if (parties[targetTeamnum][i]) {
-      targetMonsterElement.src = parties[targetTeamnum][i].iconSrc;
+    if (parties[targetTeamNum][i]) {
+      targetMonsterElement.src = parties[targetTeamNum][i].iconSrc;
       targetMonsterElement.style.display = "inline";
       targetMonsterWrapper.style.display = "flex";
     } else {
@@ -416,32 +405,32 @@ function selectSkillTargetToggler(targetTeamnum, skilltargetTypedetector, skillt
       targetMonsterWrapper.style.display = "none";
       continue; // 次のモンスターの処理へ
     }
-    const targetMonster = parties[targetTeamnum][i];
+    const targetMonster = parties[targetTeamNum][i];
 
     //モンスター情報が存在する場合、初期化で暗転&無効化解除
     toggleDarkenAndClick(targetMonsterElement, false);
 
-    if (skilltargetTypedetector === "dead") {
+    if (selectedSkillTargetType === "dead") {
       // 蘇生などdead対象のskillの場合、対象外の生存モンスターを非表示化
       if (!targetMonster.flags.isDead) {
         targetMonsterElement.style.display = "none";
         targetMonsterWrapper.style.display = "none";
       }
     } else {
-      // dead以外の通常スキルで、skilltargetTeamdetectorがenemyの場合、死亡している敵は非表示
-      //skilltargetTeamdetectorがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
+      // dead以外の通常スキルで、selectedSkillTargetTeamがenemyの場合、死亡している敵は非表示
+      //selectedSkillTargetTeamがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
       if (targetMonster.flags.isDead) {
-        if (skilltargetTeamdetector === "enemy") {
+        if (selectedSkillTargetTeam === "enemy") {
           targetMonsterElement.style.display = "none";
           targetMonsterWrapper.style.display = "none";
-        } else if (skilltargetTeamdetector === "ally") {
+        } else if (selectedSkillTargetTeam === "ally") {
           toggleDarkenAndClick(targetMonsterElement, true);
         }
       }
     }
 
     // スキルが自分を対象外にする場合、自分の画像を暗転&無効化
-    if (excludeTarget && excludeTarget === "me" && selectingwhichmonsterscommand === i) {
+    if (excludeTarget && excludeTarget === "me" && currentMonsterIndex === i) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわりの場合、覆う中の対象を暗転&無効化
@@ -451,69 +440,66 @@ function selectSkillTargetToggler(targetTeamnum, skilltargetTypedetector, skillt
   }
 }
 
-//all-yesbtnの場合、そのmonsterのコマンド選択終了
-document.getElementById("designateskilltargetbtnyes").addEventListener("click", finishSelectingEachMonstersCommand);
+//all-yesBtnの場合、そのmonsterのコマンド選択終了
+document.getElementById("selectSkillTargetBtnYes").addEventListener("click", finishSelectingEachMonstersCommand);
 
-//all-nobtn処理
-document.getElementById("designateskilltargetbtnno").addEventListener("click", function () {
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  disablecommandbtns(false);
-  //yesno画面とpopup全体を閉じる、選択済のconfirmedcommandとtarget:allは後で新規選択されたら上書き
-  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
+//all-noBtn処理
+document.getElementById("selectSkillTargetBtnNo").addEventListener("click", function () {
+  document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
+  document.getElementById("commandPopupWindow").style.visibility = "hidden";
+  disableCommandBtn(false);
+  //yes,no画面とpopup全体を閉じる、選択済のcommandInputとtarget:allは後で新規選択されたら上書き
+  displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
 });
 
-//skilltarget選択画面
-document.querySelectorAll(".selecttargetmonster").forEach((img) => {
+//skillTarget選択画面
+document.querySelectorAll(".selectSkillTarget").forEach((img) => {
   img.addEventListener("click", () => {
     const imgId = img.getAttribute("id");
-    parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommandtarget = imgId.replace("selecttargetmonster", "");
-    document.getElementById("designateskilltarget").style.visibility = "hidden";
-    document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
+    parties[currentTeamIndex][currentMonsterIndex].commandTargetInput = imgId.replace("selectSkillTarget", "");
+    document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
+    document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //テキストとtarget選択iconを閉じる
     finishSelectingEachMonstersCommand();
   });
 });
 
-//allでyes選択時、skilltarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmonsterのskill選択に移行する
+//allでyes選択時、skillTarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmonsterのskill選択に移行する
 function finishSelectingEachMonstersCommand() {
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
+  document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
 
-  // 一時的にselectingwhichmonsterscommandを保持
-  let tempSelectingMonsterIndex = selectingwhichmonsterscommand;
+  // 一時的にcurrentMonsterIndexを保持
+  let tempSelectingMonsterIndex = currentMonsterIndex;
 
   // 次のモンスターの選択処理に移動
-  selectingwhichmonsterscommand += 1;
+  currentMonsterIndex += 1;
 
   // 次の行動可能なモンスターが見つかるまでループ
-  while (
-    selectingwhichmonsterscommand < parties[selectingwhichteamscommand].length &&
-    (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]) || hasAbnormality(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]))
-  ) {
-    // 行動不能なモンスターのconfirmedcommandを設定
-    if (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand])) {
-      parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "skipThisTurn";
+  while (currentMonsterIndex < parties[currentTeamIndex].length && (isDead(parties[currentTeamIndex][currentMonsterIndex]) || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))) {
+    // 行動不能なモンスターのcommandInputを設定
+    if (isDead(parties[currentTeamIndex][currentMonsterIndex])) {
+      parties[currentTeamIndex][currentMonsterIndex].commandInput = "skipThisTurn";
     } else {
-      parties[selectingwhichteamscommand][selectingwhichmonsterscommand].confirmedcommand = "normalAICommand";
+      parties[currentTeamIndex][currentMonsterIndex].commandInput = "normalAICommand";
     }
 
-    selectingwhichmonsterscommand += 1;
+    currentMonsterIndex += 1;
   }
 
   // すべてのモンスターの選択が終了したか、行動可能なモンスターが見つかった場合
-  if (selectingwhichmonsterscommand >= parties[selectingwhichteamscommand].length) {
+  if (currentMonsterIndex >= parties[currentTeamIndex].length) {
     // すべてのモンスターの選択が終了した場合
-    // selectingwhichmonsterscommand を最後に選択されたモンスターに戻す
-    selectingwhichmonsterscommand = tempSelectingMonsterIndex;
-    askfinishselectingcommand();
+    // currentMonsterIndex を最後に選択されたモンスターに戻す
+    currentMonsterIndex = tempSelectingMonsterIndex;
+    askFinishCommand();
   } else {
     // 行動可能なモンスターが見つかった場合
-    adjustmonstericonstickout();
-    displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
+    adjustMonsterIconStickOut();
+    displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
     // スキル選択ポップアップを閉じる
-    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+    document.getElementById("commandPopupWindow").style.visibility = "hidden";
     // コマンドボタンを有効化
-    disablecommandbtns(false);
+    disableCommandBtn(false);
   }
 }
 
@@ -521,81 +507,81 @@ function finishSelectingEachMonstersCommand() {
 function startSelectingCommandForFirstMonster(teamNum) {
   //行動不能monsterのコマンドを入れる
   parties[teamNum].forEach((monster) => {
-    monster.confirmedcommand = "";
-    monster.confirmedcommandtarget = "";
+    monster.commandInput = "";
+    monster.commandTargetInput = "";
     if (isDead(monster)) {
-      monster.confirmedcommand = "skipThisTurn";
+      monster.commandInput = "skipThisTurn";
     } else if (hasAbnormality(monster)) {
-      monster.confirmedcommand = "normalAICommand";
+      monster.commandInput = "normalAICommand";
     }
   });
 
-  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustmonstericonstickoutにdisplaymessage
+  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustMonsterIconStickOutにdisplayMessage
 
   // parties[teamNum]の先頭から、行動可能なモンスターを探す
-  selectingwhichteamscommand = teamNum;
-  selectingwhichmonsterscommand = 0;
-  while (selectingwhichmonsterscommand < parties[teamNum].length && (isDead(parties[teamNum][selectingwhichmonsterscommand]) || hasAbnormality(parties[teamNum][selectingwhichmonsterscommand]))) {
-    selectingwhichmonsterscommand++;
+  currentTeamIndex = teamNum;
+  currentMonsterIndex = 0;
+  while (currentMonsterIndex < parties[teamNum].length && (isDead(parties[teamNum][currentMonsterIndex]) || hasAbnormality(parties[teamNum][currentMonsterIndex]))) {
+    currentMonsterIndex++;
   }
 
   // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
-  if (selectingwhichmonsterscommand < parties[0].length) {
-    adjustmonstericonstickout();
-    displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
-    disablecommandbtns(false);
+  if (currentMonsterIndex < parties[0].length) {
+    adjustMonsterIconStickOut();
+    displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
+    disableCommandBtn(false);
     if (teamNum === 1) {
       //敵コマンド選択でplayerを選んだ場合用
-      document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-      document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+      document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+      document.getElementById("commandPopupWindow").style.visibility = "hidden";
       //アイコン反転
-      preparebattlepageicons(true);
-      adjustmonstericonstickout();
+      prepareBattlePageIcons(true);
+      adjustMonsterIconStickOut();
       //barとバフ反転
       setMonsterBarDisplay(true);
     }
   } else {
     // パーティーが全員行動不能の場合の処理
-    askfinishselectingcommand();
-    disablecommandbtns(true);
-    document.getElementById("askfinishselectingcommandbtnno").disabled = true;
-    document.getElementById("closeselectcommandpopupwindowbtn").disabled = true;
+    askFinishCommand();
+    disableCommandBtn(true);
+    document.getElementById("askFinishCommandBtnNo").disabled = true;
+    document.getElementById("closeCommandPopupWindowBtn").disabled = true;
   }
 }
 
-//allのyesbtnと、skilltarget選択後に起動する場合、+=1された次のモンスターをstickout
-//backbtnとpreparebattleで起動する場合、-1された相手もしくは0の状態でstickout
+//allのyes btnと、skillTarget選択後に起動する場合、+=1された次のモンスターをstickOut
+//backBtnとprepareBattleで起動する場合、-1された相手もしくは0の状態でstickOut
 //一旦全削除用function、コマンド選択終了時にも起動
-function removeallstickout() {
-  const allmonstericonsstickout = document.querySelectorAll(".monstericon-wrapper");
-  allmonstericonsstickout.forEach((monstericon) => {
-    monstericon.classList.remove("stickout");
+function removeAllStickOut() {
+  const allMonsterIconsToStickOut = document.querySelectorAll(".battleIconWrapper");
+  allMonsterIconsToStickOut.forEach((monsterIcon) => {
+    monsterIcon.classList.remove("stickOut");
   });
 }
 //防御の引っ込みを消す ターン終了時に起動 死亡時は個別に削除
-function removeallrecede() {
-  const allmonstericonsrecede = document.querySelectorAll(".monstericon-wrapper");
-  allmonstericonsrecede.forEach((monstericon) => {
-    monstericon.classList.remove("recede");
+function removeAllRecede() {
+  const allMonsterIconsToRecede = document.querySelectorAll(".battleIconWrapper");
+  allMonsterIconsToRecede.forEach((monsterIcon) => {
+    monsterIcon.classList.remove("recede");
   });
 }
-//現在選択中のmonster imgにclass:stickoutを付与
-function adjustmonstericonstickout() {
-  removeallstickout();
-  const targetmonstericonstickout = document.getElementById(`battleiconally${selectingwhichmonsterscommand}`);
-  targetmonstericonstickout.parentNode.classList.add("stickout");
+//現在選択中のmonster imgにclass:stickOutを付与
+function adjustMonsterIconStickOut() {
+  removeAllStickOut();
+  const targetBattleIconToStickOut = document.getElementById(`allyBattleIcon${currentMonsterIndex}`);
+  targetBattleIconToStickOut.parentNode.classList.add("stickOut");
 }
 
-function backbtn() {
-  //preparebattleでも起動
+function backBtn() {
+  //prepareBattleでも起動
   // 現在選択中のモンスターより前に行動可能なモンスターがいるか確認
-  let previousActionableMonsterIndex = selectingwhichmonsterscommand - 1;
+  let previousActionableMonsterIndex = currentMonsterIndex - 1;
   while (previousActionableMonsterIndex >= 0) {
-    if (!isDead(parties[selectingwhichteamscommand][previousActionableMonsterIndex]) && !hasAbnormality(parties[selectingwhichteamscommand][previousActionableMonsterIndex])) {
+    if (!isDead(parties[currentTeamIndex][previousActionableMonsterIndex]) && !hasAbnormality(parties[currentTeamIndex][previousActionableMonsterIndex])) {
       // 行動可能なモンスターが見つかった場合、そのモンスターを選択
-      selectingwhichmonsterscommand = previousActionableMonsterIndex;
-      adjustmonstericonstickout();
-      displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
+      currentMonsterIndex = previousActionableMonsterIndex;
+      adjustMonsterIconStickOut();
+      displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
       return;
     }
     previousActionableMonsterIndex--;
@@ -603,29 +589,29 @@ function backbtn() {
 }
 
 function closeAllPopupContents() {
-  document.getElementById("designateskilltarget").style.visibility = "hidden";
-  document.getElementById("designateskilltarget-all").style.visibility = "hidden";
-  document.getElementById("selectskillbtns").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow-text").style.visibility = "hidden";
-  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
+  document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
+  document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
+  document.getElementById("selectSkillBtnContainer").style.visibility = "hidden";
+  document.getElementById("commandPopupWindow").style.visibility = "hidden";
+  document.getElementById("commandPopupWindowText").style.visibility = "hidden";
+  document.getElementById("askFinishCommand").style.visibility = "hidden";
+  document.getElementById("howToCommandEnemy").style.visibility = "hidden";
 }
 
-//全て閉じてcommandbtnを有効化する関数
+//全て閉じてcommandBtnを有効化する関数
 function closeSelectCommandPopupWindowContents() {
   closeAllPopupContents();
-  disablecommandbtns(false);
-  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
+  disableCommandBtn(false);
+  displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
 }
 
 // 閉じるボタンにイベントリスナー追加
-document.getElementById("closeselectcommandpopupwindowbtn").addEventListener("click", closeSelectCommandPopupWindowContents);
+document.getElementById("closeCommandPopupWindowBtn").addEventListener("click", closeSelectCommandPopupWindowContents);
 
-function disablecommandbtns(trueorfalse) {
-  document.querySelectorAll(".commandbtn").forEach((button) => {
-    button.disabled = trueorfalse;
-    if (trueorfalse) {
+function disableCommandBtn(boolean) {
+  document.querySelectorAll(".commandBtn").forEach((button) => {
+    button.disabled = boolean;
+    if (boolean) {
       button.style.opacity = "0.2";
     } else {
       button.style.opacity = "";
@@ -634,79 +620,76 @@ function disablecommandbtns(trueorfalse) {
 }
 
 //コマンド選択を終了しますか
-function askfinishselectingcommand() {
-  document.getElementById("askfinishselectingcommand").style.visibility = "visible";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
+function askFinishCommand() {
+  document.getElementById("askFinishCommand").style.visibility = "visible";
+  document.getElementById("commandPopupWindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
   displayMessage("モンスターたちはやる気だ！");
 }
 
-//コマンド選択終了画面でno選択時、yesno選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
-document.getElementById("askfinishselectingcommandbtnno").addEventListener("click", function () {
-  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-  disablecommandbtns(false);
+//コマンド選択終了画面でno選択時、yes,no選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
+document.getElementById("askFinishCommandBtnNo").addEventListener("click", function () {
+  document.getElementById("askFinishCommand").style.visibility = "hidden";
+  document.getElementById("commandPopupWindow").style.visibility = "hidden";
+  disableCommandBtn(false);
 
   // 最後尾の行動可能なモンスターのインデックスを取得
-  selectingwhichmonsterscommand = parties[selectingwhichteamscommand].length - 1;
-  while (
-    selectingwhichmonsterscommand >= 0 &&
-    (isDead(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]) || hasAbnormality(parties[selectingwhichteamscommand][selectingwhichmonsterscommand]))
-  ) {
-    selectingwhichmonsterscommand--;
+  currentMonsterIndex = parties[currentTeamIndex].length - 1;
+  while (currentMonsterIndex >= 0 && (isDead(parties[currentTeamIndex][currentMonsterIndex]) || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))) {
+    currentMonsterIndex--;
   }
 
   // 選択中のモンスターを強調表示
-  adjustmonstericonstickout();
-  displayMessage(`${parties[selectingwhichteamscommand][selectingwhichmonsterscommand].name}のこうどう`, "コマンド？");
+  adjustMonsterIconStickOut();
+  displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
 });
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
-document.getElementById("askfinishselectingcommandbtnyes").addEventListener("click", function () {
-  document.getElementById("askfinishselectingcommandbtnno").disabled = false;
-  document.getElementById("closeselectcommandpopupwindowbtn").disabled = false;
+document.getElementById("askFinishCommandBtnYes").addEventListener("click", function () {
+  document.getElementById("askFinishCommandBtnNo").disabled = false;
+  document.getElementById("closeCommandPopupWindowBtn").disabled = false;
   //全員選択不能の場合のdisable化解除
-  document.getElementById("askfinishselectingcommand").style.visibility = "hidden";
-  if (selectingwhichteamscommand == "1") {
-    //敵も選択終了後は、startbattleへ
-    selectingwhichmonsterscommand = 0;
-    selectingwhichteamscommand = 0;
+  document.getElementById("askFinishCommand").style.visibility = "hidden";
+  if (currentTeamIndex == "1") {
+    //敵も選択終了後は、startBattleへ
+    currentMonsterIndex = 0;
+    currentTeamIndex = 0;
     //初期化
-    document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
-    disablecommandbtns(true);
-    //popupを閉じ、commandbtnsを無効化
-    preparebattlepageicons();
+    document.getElementById("commandPopupWindow").style.visibility = "hidden";
+    disableCommandBtn(true);
+    //popupを閉じ、commandBtnを無効化
+    prepareBattlePageIcons();
     //barとバフの反転を戻す
     setMonsterBarDisplay(false);
-    removeallstickout();
-    startbattle();
+    removeAllStickOut();
+    startBattle();
   } else {
-    //味方選択のみ終了時はyesno選択画面を閉じ、敵のコマンド選択方法選択画面を表示
-    document.getElementById("howtoselectenemyscommand").style.visibility = "visible";
+    //味方選択のみ終了時はyes,no選択画面を閉じ、敵のコマンド選択方法選択画面を表示
+    document.getElementById("howToCommandEnemy").style.visibility = "visible";
   }
 });
 
 //敵のコマンド選択方法-player
-document.getElementById("howtoselectenemyscommandbtn-player").addEventListener("click", function () {
+document.getElementById("howToCommandEnemyBtnPlayer").addEventListener("click", function () {
   startSelectingCommandForFirstMonster(1);
 });
 
 //敵のコマンド選択方法-improvedAI
-document.getElementById("howtoselectenemyscommandbtn-improvedAI").addEventListener("click", function () {
-  selectingwhichmonsterscommand = 0;
-  selectingwhichteamscommand = 1;
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+document.getElementById("howToCommandEnemyBtnImprovedAI").addEventListener("click", function () {
+  currentMonsterIndex = 0;
+  currentTeamIndex = 1;
+  document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+  document.getElementById("commandPopupWindow").style.visibility = "hidden";
 });
-//敵のコマンド選択方法-takoAI
-document.getElementById("howtoselectenemyscommandbtn-takoAI").addEventListener("click", function () {
-  selectingwhichmonsterscommand = 0;
-  selectingwhichteamscommand = 1;
-  document.getElementById("howtoselectenemyscommand").style.visibility = "hidden";
-  document.getElementById("selectcommandpopupwindow").style.visibility = "hidden";
+//敵のコマンド選択方法-fixedAI
+document.getElementById("howToCommandEnemyBtnFixedAI").addEventListener("click", function () {
+  currentMonsterIndex = 0;
+  currentTeamIndex = 1;
+  document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+  document.getElementById("commandPopupWindow").style.visibility = "hidden";
 });
 //ここは最大ダメージ検知AIなども含めて統合処理
 
-//ターン開始時処理、毎ラウンド移行時とpreparebattleから起動
+//ターン開始時処理、毎ラウンド移行時とprepareBattleから起動
 async function startTurn() {
   fieldState.turnNum++;
   console.log(`ラウンド${fieldState.turnNum}`);
@@ -728,7 +711,7 @@ async function startTurn() {
   for (const party of parties) {
     for (const monster of party) {
       //calculateModifiedSpeed ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
-      monster.modifiedSpeed = monster.currentstatus.spd * (0.975 + Math.random() * 0.05);
+      monster.modifiedSpeed = monster.currentStatus.spd * (0.975 + Math.random() * 0.05);
       //flag削除 ぼうぎょ・覆い隠す以外の身代わり
       delete monster.flags.guard;
       if (monster.flags.isSubstituting && !monster.flags.isSubstituting.cover) {
@@ -740,7 +723,7 @@ async function startTurn() {
     }
   }
   // ぼうぎょタグを削除
-  removeallrecede();
+  removeAllRecede();
 
   //ターン経過で一律にデクリメントタイプの実行 バフ付与前に
   decreaseAllBuffDurations();
@@ -944,9 +927,9 @@ async function startTurn() {
       }
     });
 
-    // currentstatus.spd でソートし、同速の場合はランダムに並び替える関数
+    // currentStatus.spd でソートし、同速の場合はランダムに並び替える関数
     const sortBySpeedAndRandomize = (a, b) => {
-      const speedDiff = (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0);
+      const speedDiff = (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0);
       return speedDiff !== 0 ? speedDiff : Math.random() - 0.5;
     };
 
@@ -975,7 +958,7 @@ async function startTurn() {
 }
 
 //毎ラウンドコマンド選択後処理
-async function startbattle() {
+async function startBattle() {
   await sleep(1000);
   //1round目なら戦闘開始時flagを持つ特性等を発動
   //ラウンド開始時flagを持つ特性を発動 多分awaitする
@@ -1213,11 +1196,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     } else {
       // 3-3. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
-        //// 3-2-1. currentbuffにremoveAtTurnStartがあり、newbuffにないときはcontinue (予測系は上書きしない)
+        //// 3-2-1. currentBuffにremoveAtTurnStartがあり、newBuffにないときはcontinue (予測系は上書きしない)
         //if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
         //  continue;
         //}
-        // 3-2-2. currentbuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
+        // 3-2-2. currentBuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
         //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
         //if (!currentBuff.duration && buffData.duration) {
         //  continue;
@@ -1271,7 +1254,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
-          //stackableBuffs, keepOnDeath, unDispellableByRadiantWave, undispellable, divineDispellableは残す
+          //stackableBuffs, keepOnDeath, unDispellableByRadiantWave, unDispellable, divineDispellableは残す
           if (
             !(
               stackableBuffs.hasOwnProperty(existingBuffName) ||
@@ -1499,7 +1482,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       displayBuffMessage(buffTarget, buffName, buffData);
     }
   }
-  updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentstatusを更新
+  updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentStatusを更新
   updateMonsterBuffsDisplay(buffTarget);
 }
 
@@ -1562,14 +1545,14 @@ function removeExpiredBuffsAtTurnStart() {
   }
 }
 
-// currentstatusを更新する関数
+// currentStatusを更新する関数
 // applyBuffの追加時および持続時間切れ、解除時に起動
 function updateCurrentStatus(monster) {
-  // currentstatus を defaultstatus の値で初期化
-  monster.currentstatus.atk = monster.defaultstatus.atk;
-  monster.currentstatus.def = monster.defaultstatus.def;
-  monster.currentstatus.spd = monster.defaultstatus.spd;
-  monster.currentstatus.int = monster.defaultstatus.int;
+  // currentStatus を defaultStatus の値で初期化
+  monster.currentStatus.atk = monster.defaultStatus.atk;
+  monster.currentStatus.def = monster.defaultStatus.def;
+  monster.currentStatus.spd = monster.defaultStatus.spd;
+  monster.currentStatus.int = monster.defaultStatus.int;
 
   const strengthMultipliersForDef = {
     0: 0.6, // -2 + 2
@@ -1588,41 +1571,41 @@ function updateCurrentStatus(monster) {
   if (monster.buffs.defUp) {
     const strengthKey = monster.buffs.defUp.strength + 2;
     const Multiplier = strengthMultipliersForDef[strengthKey];
-    monster.currentstatus.def *= Multiplier;
+    monster.currentStatus.def *= Multiplier;
   }
   if (monster.buffs.spdUp) {
     const strengthKey = monster.buffs.spdUp.strength + 2;
     const Multiplier = strengthMultipliersForSpdInt[strengthKey];
-    monster.currentstatus.spd *= Multiplier;
+    monster.currentStatus.spd *= Multiplier;
   }
   if (monster.buffs.intUp) {
     const strengthKey = monster.buffs.intUp.strength + 2;
     const Multiplier = strengthMultipliersForSpdInt[strengthKey];
-    monster.currentstatus.int *= Multiplier;
+    monster.currentStatus.int *= Multiplier;
   }
 
   //内部バフ
   if (monster.buffs.internalAtkUp) {
     const Multiplier = monster.buffs.internalAtkUp.strength + 1;
-    monster.currentstatus.def *= Multiplier;
+    monster.currentStatus.def *= Multiplier;
   }
   if (monster.buffs.internalDefUp) {
     const Multiplier = monster.buffs.internalDefUp.strength + 1;
-    monster.currentstatus.def *= Multiplier;
+    monster.currentStatus.def *= Multiplier;
   }
   if (monster.buffs.internalSpdUp) {
     const Multiplier = monster.buffs.internalSpdUp.strength + 1;
-    monster.currentstatus.spd *= Multiplier;
+    monster.currentStatus.spd *= Multiplier;
   }
   if (monster.buffs.internalIntUp) {
     const Multiplier = monster.buffs.internalIntUp.strength + 1;
-    monster.currentstatus.int *= Multiplier;
+    monster.currentStatus.int *= Multiplier;
   }
 
   //系統バフは直接strengthをかける
 }
 
-// 行動順を決定する関数 コマンド決定後にstartbattleで起動
+// 行動順を決定する関数 コマンド決定後にstartBattleで起動
 let turnOrder = [];
 function decideTurnOrder(parties, skills) {
   // 全てのモンスターを1つの配列にまとめる
@@ -1637,11 +1620,11 @@ function decideTurnOrder(parties, skills) {
 
   // 各モンスターの行動順を分類 (skillのorderと特性の複数所持時はskillのorder優先で分類)
   allMonsters.forEach((monster) => {
-    const confirmedSkilldetector = skills.find((skill) => skill.name === monster.confirmedcommand);
+    const selectedSkillInfo = skills.find((skill) => skill.name === monster.commandInput);
 
-    if (confirmedSkilldetector?.order === "preemptive") {
+    if (selectedSkillInfo?.order === "preemptive") {
       preemptiveMonsters.push(monster);
-    } else if (confirmedSkilldetector?.order === "anchor") {
+    } else if (selectedSkillInfo?.order === "anchor") {
       anchorMonsters.push(monster);
     } else if (monster.buffs.preemptiveAction) {
       preemptiveActionMonsters.push(monster);
@@ -1661,21 +1644,21 @@ function decideTurnOrder(parties, skills) {
     // --- リバース状態の処理 ---
     // 各グループのソート処理を関数化
     const sortByPreemptiveGroupAndSpeed = (a, b) => {
-      const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
-      const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
-      if (skillA?.preemptivegroup !== skillB?.preemptivegroup) {
-        return skillA?.preemptivegroup - skillB?.preemptivegroup;
+      const skillA = skills.find((skill) => skill.name === a.commandInput);
+      const skillB = skills.find((skill) => skill.name === b.commandInput);
+      if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
+        return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
       } else {
         return a.modifiedSpeed - b.modifiedSpeed;
       }
     };
 
-    // 1. preemptivegroup 1-6 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 1. preemptiveGroup 1-6 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 6;
+          const skill = skills.find((s) => s.name === monster.commandInput);
+          return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
     );
@@ -1683,26 +1666,26 @@ function decideTurnOrder(parties, skills) {
     // 2. アンカー技を使うモンスターを追加 (anchorAction所持, 特性未所持, preemptiveAction所持の順、
     //    各グループ内ではmodifiedSpeedの遅い順)
     turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)),
       ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => a.modifiedSpeed - b.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0))
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0))
     );
 
-    // 3. anchorActionを持つモンスターを追加 (currentstatus.spdの遅い順)
-    turnOrder.push(...anchorActionMonsters.sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)));
+    // 3. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...anchorActionMonsters.sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)));
 
     // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
     turnOrder.push(...normalMonsters.sort((a, b) => a.modifiedSpeed - b.modifiedSpeed));
 
-    // 5. preemptiveActionを持つモンスターを追加 (currentstatus.spdの遅い順)
-    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (a?.currentstatus?.spd || 0) - (b?.currentstatus?.spd || 0)));
+    // 5. preemptiveActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)));
 
-    // 6. preemptivegroup 7-8 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 6. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 7 && skill.preemptivegroup <= 8;
+          const skill = skills.find((s) => s.name === monster.commandInput);
+          return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
     );
@@ -1710,49 +1693,49 @@ function decideTurnOrder(parties, skills) {
     // --- 通常状態の処理 ---
     // 各グループのソート処理を関数化
     const sortByPreemptiveGroupAndReverseSpeed = (a, b) => {
-      const skillA = skills.find((skill) => skill.name === a.confirmedcommand);
-      const skillB = skills.find((skill) => skill.name === b.confirmedcommand);
-      if (skillA?.preemptivegroup !== skillB?.preemptivegroup) {
-        return skillA?.preemptivegroup - skillB?.preemptivegroup;
+      const skillA = skills.find((skill) => skill.name === a.commandInput);
+      const skillB = skills.find((skill) => skill.name === b.commandInput);
+      if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
+        return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
       } else {
         return b.modifiedSpeed - a.modifiedSpeed;
       }
     };
 
-    // 1. preemptivegroup 1-5 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 1. preemptiveGroup 1-5 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 1 && skill.preemptivegroup <= 6;
+          const skill = skills.find((s) => s.name === monster.commandInput);
+          return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
     );
 
-    // 2. preemptivegroup 7-8 を追加 (preemptivegroupの小さい順、modifiedSpeedの遅い順)
+    // 2. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.confirmedcommand);
-          return skill && skill.preemptivegroup >= 7 && skill.preemptivegroup <= 8;
+          const skill = skills.find((s) => s.name === monster.commandInput);
+          return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
     );
 
-    // 3. preemptiveActionを持つモンスターを追加 (currentstatus.spdの遅い順)
-    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)));
+    // 3. preemptiveActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)));
 
     // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
     turnOrder.push(...normalMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed));
 
-    // 5. anchorActionを持つモンスターを追加 (currentstatus.spdの遅い順)
-    turnOrder.push(...anchorActionMonsters.sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)));
+    // 5. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...anchorActionMonsters.sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)));
 
     // 6. アンカー技を使うモンスターを追加 (preemptiveAction持ち-> 通常行動 -> anchorAction持ち)
     turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0)),
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)),
       ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => b.modifiedSpeed - a.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (b?.currentstatus?.spd || 0) - (a?.currentstatus?.spd || 0))
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0))
     );
   }
 
@@ -1768,21 +1751,21 @@ async function processMonsterAction(skillUser) {
   // durationが0になったバフを消去 行動直前に削除(通常タイプ)
   removeExpiredBuffs(skillUser);
 
-  removeallstickout();
+  removeAllStickOut();
 
   // 2. 死亡確認
-  if (skillUser.confirmedcommand === "skipThisTurn") {
+  if (skillUser.commandInput === "skipThisTurn") {
     return; // 行動前に一回でも死んでいたら処理をスキップ
   }
 
   // 状態異常確認
 
   // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
-  if (skillUser.confirmedcommand === "normalAICommand") {
-    skillUser.confirmedcommand = "通常攻撃";
+  if (skillUser.commandInput === "normalAICommand") {
+    skillUser.commandInput = "通常攻撃";
     //decideNormalAICommand(skillUser);
   }
-  let executingSkill = findSkillByName(skillUser.confirmedcommand);
+  let executingSkill = findSkillByName(skillUser.commandInput);
 
   if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
@@ -1805,7 +1788,7 @@ async function processMonsterAction(skillUser) {
         unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
-        skillUser.currentstatus.MP < MPcost ||
+        skillUser.currentStatus.MP < MPcost ||
         skillInfo.howToCalculate === "none" ||
         //仮で敵対象skillのみ
         skillInfo.targetTeam !== "enemy" ||
@@ -1828,7 +1811,7 @@ async function processMonsterAction(skillUser) {
   if (executingSkill.name === "ぼうぎょ") {
     document.getElementById(skillUser.iconElementId).parentNode.classList.add("recede");
   } else {
-    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickout");
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
   }
 
   // 4. 特技封じ確認
@@ -1848,8 +1831,8 @@ async function processMonsterAction(skillUser) {
 
   // 5. 消費MP確認
   const calcMPcost = calculateMPcost(skillUser, executingSkill);
-  if (skillUser.currentstatus.MP >= calcMPcost) {
-    skillUser.currentstatus.MP -= calcMPcost;
+  if (skillUser.currentStatus.MP >= calcMPcost) {
+    skillUser.currentStatus.MP -= calcMPcost;
     updateMonsterBar(skillUser);
   } else {
     console.log("しかし、MPが足りなかった！");
@@ -1908,10 +1891,10 @@ async function processMonsterAction(skillUser) {
   const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
-  if (skillUser.confirmedcommandtarget === "") {
+  if (skillUser.commandTargetInput === "") {
     executedSkills = await executeSkill(skillUser, executingSkill, null, true);
   } else {
-    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.confirmedcommandtarget, 10)], true);
+    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.commandTargetInput, 10)], true);
   }
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
@@ -1980,7 +1963,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   // 7-5. 属性断罪の刻印処理
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
-      const damage = Math.floor(skillUser.defaultstatus.HP * 0.7);
+      const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
       console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
       await sleep(400); // 属性断罪の刻印処理後に待機時間を設ける
@@ -1991,7 +1974,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.poisoned) {
       const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
+      const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
       console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
       await sleep(400); // 毒ダメージ処理後に待機時間を設ける
@@ -1999,7 +1982,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.dotDamage) {
-      const damage = Math.floor(skillUser.defaultstatus.HP * skillUser.buffs.dotDamage.strength);
+      const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
       console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
       await sleep(400); // 継続ダメージ処理後に待機時間を設ける
@@ -2058,15 +2041,15 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
     }
     if (isMPdamage) {
       // MP回復
-      healAmount = Math.min(healAmount, target.defaultstatus.MP - target.currentstatus.MP);
-      target.currentstatus.MP += healAmount;
+      healAmount = Math.min(healAmount, target.defaultStatus.MP - target.currentStatus.MP);
+      target.currentStatus.MP += healAmount;
       console.log(`${target.name}のMPが${healAmount}回復！`);
       displayMessage(`${target.name}の`, `MPが ${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1, true); // MP回復は負の数で表示
     } else {
       // HP回復
-      healAmount = Math.min(healAmount, target.defaultstatus.HP - target.currentstatus.HP);
-      target.currentstatus.HP += healAmount;
+      healAmount = Math.min(healAmount, target.defaultStatus.HP - target.currentStatus.HP);
+      target.currentStatus.HP += healAmount;
       console.log(`${target.name}のHPが${healAmount}回復！`);
       displayMessage(`${target.name}の`, `HPが ${healAmount}回復した！`);
       displayDamage(target, -healAmount, -1); // HP回復は負の数で表示
@@ -2078,8 +2061,8 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
     // ダメージ処理
     if (isMPdamage) {
       // MPダメージ 現状値が最大ダメージ
-      let mpDamage = Math.min(target.currentstatus.MP, Math.floor(damage));
-      target.currentstatus.MP -= mpDamage;
+      let mpDamage = Math.min(target.currentStatus.MP, Math.floor(damage));
+      target.currentStatus.MP -= mpDamage;
       console.log(`${target.name}はMPダメージを受けている！`);
       displayDamage(`${target.name}は　MPダメージを受けている！`);
       displayDamage(target, mpDamage, resistance, true);
@@ -2088,7 +2071,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
     } else {
       // HPダメージ 表示はオーバーフロー可
       const hpDamage = Math.floor(damage); // 小数点以下切り捨て
-      target.currentstatus.HP = Math.max(target.currentstatus.HP - hpDamage, 0);
+      target.currentStatus.HP = Math.max(target.currentStatus.HP - hpDamage, 0);
       console.log(`${target.name}に${hpDamage}のダメージ！`);
       if (hpDamage === 0) {
         displayMessage(`ミス！ダメージをあたえられない！`);
@@ -2098,7 +2081,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
       displayDamage(target, hpDamage, resistance);
       //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
 
-      if (target.currentstatus.HP === 0 && !target.flags.isDead) {
+      if (target.currentStatus.HP === 0 && !target.flags.isDead) {
         // くじけぬ処理
         if (target.buffs.isUnbreakable) {
           if (target.buffs.isUnbreakable.type === "toukon") {
@@ -2144,7 +2127,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
 }
 
 function handleUnbreakable(target) {
-  target.currentstatus.HP = 1;
+  target.currentStatus.HP = 1;
   updateMonsterBar(target, true); //赤いバー表示
   console.log(`${target.name}の特性、${target.buffs.isUnbreakable.name}が発動！`);
   displayMessage(`${target.name}の特性 ${target.buffs.isUnbreakable.name}が発動！`);
@@ -2155,7 +2138,7 @@ function handleUnbreakable(target) {
 }
 
 function handleDeath(target, hideDeathMessage = false) {
-  target.currentstatus.HP = 0;
+  target.currentStatus.HP = 0;
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
@@ -2182,21 +2165,21 @@ function handleDeath(target, hideDeathMessage = false) {
 
   // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
   if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
-    target.confirmedcommand = "skipThisTurn";
+    target.commandInput = "skipThisTurn";
     target.flags.hasDiedThisAction = true;
     //次のhitSequenceも実行しない
   }
   updateMonsterBar(target, true); //isDead付与後にupdateでbar非表示化
-  updatebattleicons(target);
+  updateBattleIcons(target);
   updateCurrentStatus(target);
   // TODO:仮置き ここで明示的に buffContainer を削除する
   let wrapper = document.getElementById(target.iconElementId).parentElement;
-  const buffContainer = wrapper.querySelector(".buff-container");
+  const buffContainer = wrapper.querySelector(".buffContainer");
   if (buffContainer) {
     buffContainer.remove();
   }
   updateMonsterBuffsDisplay(target);
-  document.getElementById(target.iconElementId).parentNode.classList.remove("stickout");
+  document.getElementById(target.iconElementId).parentNode.classList.remove("stickOut");
   document.getElementById(target.iconElementId).parentNode.classList.remove("recede");
   if (!hideDeathMessage) {
     if (target.teamID === 0) {
@@ -2215,7 +2198,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let executedSkills = [];
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
-  while (currentSkill && (skillUser.confirmedcommand !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
+  while (currentSkill && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
@@ -2246,7 +2229,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     }
 
     let skillTarget = assignedTarget;
-    // randomのfolowingSkillのみtargetをnull化してランダムにする(暫定的)
+    // randomのfollowingSkillのみtargetをnull化してランダムにする(暫定的)
     if (isFollowingSkill && currentSkill.targetType === "random") {
       skillTarget = null;
     }
@@ -2272,7 +2255,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
-  //毎回deathactionはしているので、停止時はreturnかけてOK
+  //毎回deathActionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
   //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
   if (skillUser.flags.hasDiedThisAction && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) && !executingSkill.skipDeathCheck) {
@@ -2351,7 +2334,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       break;
     case "dead":
       // 蘇生特技
-      skillTarget = parties[skillUser.teamID][skillUser.confimredskilltarget];
+      skillTarget = parties[skillUser.teamID][skillUser.commandTargetInput];
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
     default:
@@ -2474,7 +2457,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       skillUser = skillTarget;
       skillTarget = assignedSkillUser;
     }
-    // isDamageExsistingはfalseで送る
+    // isDamageExistingはfalseで送る
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // actで死亡時も死亡時発動等を実行するため
     // 追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
@@ -2487,8 +2470,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
-  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExsisting, isReflection) {
-    // AppliedEffect指定されてたら、規定値による波動処理またはapplybuff
+  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
+    // AppliedEffect指定されてたら、規定値による波動処理またはapplyBuff
     if (executingSkill.appliedEffect) {
       if (executingSkill.appliedEffect === "radiantWave") {
         executeRadiantWave(buffTarget);
@@ -2567,14 +2550,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   } else if (executingSkill.ratio) {
     const status = {
-      atk: skillUser.currentstatus.atk,
-      def: skillUser.currentstatus.def,
-      spd: skillUser.currentstatus.spd,
-      int: skillUser.currentstatus.int,
+      atk: skillUser.currentStatus.atk,
+      def: skillUser.currentStatus.def,
+      spd: skillUser.currentStatus.spd,
+      int: skillUser.currentStatus.int,
     }[executingSkill.howToCalculate];
 
     //魅了判定と超ドレアム判定 以下targetDefを用いる
-    let targetDef = skillTarget.currentstatus.def;
+    let targetDef = skillTarget.currentStatus.def;
     if (skillTarget.buffs.tempted) {
       targetDef = 1;
     } else if (skillUser.name === "超ドレアム") {
@@ -2619,7 +2602,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     baseDamage *= executingSkill.ratio;
   } else if (executingSkill.howToCalculate === "int") {
     const { minInt, maxInt, minIntDamage, maxIntDamage } = executingSkill;
-    const int = skillUser.currentstatus.int;
+    const int = skillUser.currentStatus.int;
     if (int <= minInt) {
       baseDamage = minIntDamage;
     } else if (int >= maxInt) {
@@ -2628,7 +2611,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       baseDamage = Math.floor(((int - minInt) * (maxIntDamage - minIntDamage)) / (maxInt - minInt)) + Number(minIntDamage);
     }
     // 特技プラスと賢さ差ボーナスを乗算
-    const intDiff = skillUser.currentstatus.int - skillTarget.currentstatus.int;
+    const intDiff = skillUser.currentStatus.int - skillTarget.currentStatus.int;
     const intBonus =
       intDiff >= 150
         ? 1.25
@@ -2822,7 +2805,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const laterMonsters = turnOrder.slice(skillUserIndex + 1);
 
     // 後の要素が存在しない、または存在したとしても全てが行動予定にないとき
-    if (laterMonsters.length === 0 || laterMonsters.every((element) => element.confirmedcommand === "skipThisTurn")) {
+    if (laterMonsters.length === 0 || laterMonsters.every((element) => element.commandInput === "skipThisTurn")) {
       damage *= executingSkill.anchorBonus;
     }
   }
@@ -2837,8 +2820,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   //軽減系
   //全ダメージ軽減
-  if (skillTarget.buffs.shinriReduction) {
-    damageModifier += skillTarget.buffs.shinriReduction.strength;
+  if (skillTarget.buffs.sinriReduction) {
+    damageModifier += skillTarget.buffs.sinriReduction.strength;
   }
 
   damage *= damageModifier;
@@ -2884,7 +2867,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
     }
     // 素早さによる回避
     else {
-      const speedRatio = skillTarget.currentstatus.spd / skillUser.currentstatus.spd;
+      const speedRatio = skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
       let evasionRate = 0;
       if (speedRatio >= 1 && speedRatio < 1.5) {
         evasionRate = 0.01; //下方修正
@@ -3108,13 +3091,13 @@ async function reviveMonster(monster) {
 
   delete monster.flags.isDead;
   if (reviveSource === monster.buffs.revive) {
-    monster.currentstatus.HP = Math.ceil(monster.defaultstatus.HP * reviveSource.strength);
+    monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * reviveSource.strength);
   } else {
     //タッグ変化時はHPmaxで復活
-    monster.currentstatus.HP = monster.defaultstatus.HP;
+    monster.currentStatus.HP = monster.defaultStatus.HP;
   }
   updateMonsterBar(monster);
-  updatebattleicons(monster);
+  updateBattleIcons(monster);
   console.log(`なんと${monster.name}が生き返った！`);
   displayMessage(`なんと${monster.name}が生き返った！`);
   if (reviveSource.act) {
@@ -3130,7 +3113,7 @@ async function zombifyMonster(monster) {
     await sleep(600);
     delete monster.flags.isDead;
     monster.flags.isZombie = true;
-    updatebattleicons(monster);
+    updateBattleIcons(monster);
     await sleep(400);
     return true;
   }
@@ -3150,13 +3133,13 @@ function decideNormalAttackTarget(skillUser) {
   const aliveEnemies = enemyParty.filter((monster) => !monster.flags.isDead);
 
   // #1: 状態異常・反射のどちらも持っていない敵を探す
-  let candidates = aliveEnemies.filter((monster) => !hasAbnormalityofAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
+  let candidates = aliveEnemies.filter((monster) => !hasAbnormalityOfAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
   if (candidates.length > 0) {
     return findLowestHPRateTarget(candidates);
   }
 
   // #2: 状態異常は持っているが、反射は持っていない敵を探す
-  candidates = aliveEnemies.filter((monster) => hasAbnormalityofAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
+  candidates = aliveEnemies.filter((monster) => hasAbnormalityOfAINormalAttack(monster) && !(monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta));
   if (candidates.length > 0) {
     return findLowestHPRateTarget(candidates);
   }
@@ -3174,10 +3157,10 @@ function decideNormalAttackTarget(skillUser) {
 // 最もHP割合が低いモンスターを探すヘルパー関数
 function findLowestHPRateTarget(candidates) {
   let target = candidates[0];
-  let lowestHPRate = target.currentstatus.HP / target.defaultstatus.HP;
+  let lowestHPRate = target.currentStatus.HP / target.defaultStatus.HP;
 
   for (let i = 1; i < candidates.length; i++) {
-    const currentHPRate = candidates[i].currentstatus.HP / candidates[i].defaultstatus.HP;
+    const currentHPRate = candidates[i].currentStatus.HP / candidates[i].defaultStatus.HP;
     if (currentHPRate < lowestHPRate) {
       target = candidates[i];
       lowestHPRate = currentHPRate;
@@ -3187,7 +3170,7 @@ function findLowestHPRateTarget(candidates) {
   return target;
 }
 
-function hasAbnormalityofAINormalAttack(monster) {
+function hasAbnormalityOfAINormalAttack(monster) {
   const abnormalityKeys = ["confused", "paralyzed", "asleep"];
   //Todo: 麻痺どうだっけ
   for (const key of abnormalityKeys) {
@@ -3197,36 +3180,35 @@ function hasAbnormalityofAINormalAttack(monster) {
   }
   return false;
 }
-//partyicon
 
 //monster選択部分
-//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyicon0-4)、selectingMonsterNum(0-4)
+//枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyIcon0-4)、selectingMonsterNum(0-4)
 let selectingMonsterNum = 0;
-document.querySelectorAll(".partyicon").forEach((icon) => {
+document.querySelectorAll(".partyIcon").forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden"; //todo:?
-    document.getElementById("selectmonsteroverlay").style.visibility = "visible";
-    document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
+    document.getElementById("selectMonsterOverlay").style.visibility = "visible";
+    document.getElementById("selectMonsterPopupWindow").style.opacity = "1";
     //どの要素をクリックして選択中か格納
     const selectingMonsterIcon = icon.id;
     //要素idから選択中のモンスターの数値を生成
-    selectingMonsterNum = Number(selectingMonsterIcon.replace(/(party|icon)/g, ""));
+    selectingMonsterNum = Number(selectingMonsterIcon.replace(/(party|Icon)/g, ""));
   });
 });
 
 //まわりクリックで閉じる
-document.getElementById("selectmonsteroverlay").addEventListener("click", function () {
-  //ここselectmonsterbg_grayではなくselectmonsteroverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
-  document.getElementById("selectmonsteroverlay").style.visibility = "hidden";
-  document.getElementById("selectmonsterpopupwindow").style.opacity = "0";
+document.getElementById("selectMonsterOverlay").addEventListener("click", function () {
+  //ここselectMonsterBg_grayではなくselectMonsterOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
+  document.getElementById("selectMonsterOverlay").style.visibility = "hidden";
+  document.getElementById("selectMonsterPopupWindow").style.opacity = "0";
   document.body.style.overflow = "";
 });
 
 //window内の各画像クリックで、選択処理を起動
-document.querySelectorAll(".allmonstericons").forEach((img) => {
+document.querySelectorAll(".monsterListIcon").forEach((img) => {
   img.addEventListener("click", () => {
-    const imgsrc = img.getAttribute("src");
-    const selectedMonsterName = imgsrc.replace("images/icons/", "").replace(".jpeg", "");
+    const imgSrc = img.getAttribute("src");
+    const selectedMonsterName = imgSrc.replace("images/icons/", "").replace(".jpeg", "");
     selectMonster(selectedMonsterName);
   });
 });
@@ -3242,8 +3224,8 @@ function selectMonster(monsterName) {
   switchTab(selectingMonsterNum);
 
   // ポップアップウィンドウを閉じる
-  document.getElementById("selectmonsteroverlay").style.visibility = "hidden";
-  document.getElementById("selectmonsterpopupwindow").style.opacity = "0";
+  document.getElementById("selectMonsterOverlay").style.visibility = "hidden";
+  document.getElementById("selectMonsterPopupWindow").style.opacity = "0";
   document.body.style.overflow = "";
 
   // 初期表示状態で種選択が無効化されている場合に解除
@@ -3252,46 +3234,46 @@ function selectMonster(monsterName) {
   //デフォ装備選択
   if (selectingParty[selectingMonsterNum].defaultGear) {
     selectingGearNum = selectingMonsterNum;
-    selectgear(selectingParty[selectingMonsterNum].defaultGear);
+    selectGear(selectingParty[selectingMonsterNum].defaultGear);
   }
 }
 
 //装備選択部分
 //装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得
 let selectingGearNum = 0;
-document.querySelectorAll(".partygear").forEach((icon) => {
+document.querySelectorAll(".partyGear").forEach((icon) => {
   icon.addEventListener("click", function () {
     //どの装備をクリックして選択中か格納
     const selectingGear = icon.id;
     //要素idから選択中の装備の数値を生成
-    selectingGearNum = Number(selectingGear.replace(/(party|gear)/g, ""));
+    selectingGearNum = Number(selectingGear.replace(/(party|Gear)/g, ""));
     // モンスターが空のときはreturn
     if (Object.keys(selectingParty[selectingGearNum]).length === 0) return;
     document.body.style.overflow = "hidden";
-    document.getElementById("selectgearoverlay").style.visibility = "visible";
-    document.getElementById("selectgearpopupwindow").style.opacity = "1";
+    document.getElementById("selectGearOverlay").style.visibility = "visible";
+    document.getElementById("selectGearPopupWindow").style.opacity = "1";
   });
 });
 
 //まわりクリックで閉じる
-document.getElementById("selectgearoverlay").addEventListener("click", function () {
-  //ここselectgearbg_grayではなくselectgearoverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
-  document.getElementById("selectgearoverlay").style.visibility = "hidden";
-  document.getElementById("selectgearpopupwindow").style.opacity = "0";
+document.getElementById("selectGearOverlay").addEventListener("click", function () {
+  //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.getElementById("selectGearOverlay").style.visibility = "hidden";
+  document.getElementById("selectGearPopupWindow").style.opacity = "0";
   document.body.style.overflow = "";
 });
 
 //window内の各画像クリックで、選択処理を起動
-document.querySelectorAll(".allgear").forEach((img) => {
+document.querySelectorAll(".gearList").forEach((img) => {
   img.addEventListener("click", () => {
-    const imgsrc = img.getAttribute("src");
-    const selectedgearName = imgsrc.replace("images/gear/", "").replace(".jpeg", "");
-    selectgear(selectedgearName);
+    const imgSrc = img.getAttribute("src");
+    const selectedGearName = imgSrc.replace("images/gear/", "").replace(".jpeg", "");
+    selectGear(selectedGearName);
   });
 });
 
 //ポップアップ内各画像クリックで、その装備を代入してウィンドウを閉じる
-function selectgear(gearName) {
+function selectGear(gearName) {
   //表示値計算などはcurrentTabを元に情報を取得するため、タブ遷移しておく
   switchTab(selectingGearNum);
   //選択中partyの該当monsterの装備を変更
@@ -3303,11 +3285,11 @@ function selectgear(gearName) {
   //currentTabや種も不変のため、display再計算と表示変更のみ
   calcAndAdjustDisplayStatus();
   //装備増分表示はreset
-  displayGearZoubun();
+  displayGearIncrement();
 
   // ポップアップウィンドウを閉じる
-  document.getElementById("selectgearoverlay").style.visibility = "hidden";
-  document.getElementById("selectgearpopupwindow").style.opacity = "0";
+  document.getElementById("selectGearOverlay").style.visibility = "hidden";
+  document.getElementById("selectGearPopupWindow").style.opacity = "0";
   document.body.style.overflow = "";
 }
 //装備選択部分終了
@@ -3321,42 +3303,42 @@ function adjustStatusAndSkillDisplay() {
   document.getElementById("skill2").textContent = selectingParty[currentTab].defaultSkill[2];
   document.getElementById("skill3").textContent = selectingParty[currentTab].defaultSkill[3];
   //種表示変更
-  document.getElementById("selectseed-atk").value = selectingParty[currentTab].seed.atk;
-  document.getElementById("selectseed-def").value = selectingParty[currentTab].seed.def;
-  document.getElementById("selectseed-spd").value = selectingParty[currentTab].seed.spd;
-  document.getElementById("selectseed-int").value = selectingParty[currentTab].seed.int;
-  displayGearZoubun();
+  document.getElementById("selectSeedAtk").value = selectingParty[currentTab].seed.atk;
+  document.getElementById("selectSeedDef").value = selectingParty[currentTab].seed.def;
+  document.getElementById("selectSeedSpd").value = selectingParty[currentTab].seed.spd;
+  document.getElementById("selectSeedInt").value = selectingParty[currentTab].seed.int;
+  displayGearIncrement();
   changeSeedSelect();
 }
 
-//種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedZoubunCalcによる増分計算、格納、表示
-//tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedZoubunCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
+//種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedIncrementCalcによる増分計算、格納、表示
+//tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedIncrementCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
 function changeSeedSelect() {
   // 選択された数値を取得
-  const selectseedatk = document.getElementById("selectseed-atk").value;
-  const selectseeddef = document.getElementById("selectseed-def").value;
-  const selectseedspd = document.getElementById("selectseed-spd").value;
-  const selectseedint = document.getElementById("selectseed-int").value;
+  const selectSeedAtk = document.getElementById("selectSeedAtk").value;
+  const selectSeedDef = document.getElementById("selectSeedDef").value;
+  const selectSeedSpd = document.getElementById("selectSeedSpd").value;
+  const selectSeedInt = document.getElementById("selectSeedInt").value;
 
   //この新たな値を、selectingParty内の表示中のタブのseed情報に格納
-  selectingParty[currentTab].seed.atk = selectseedatk;
-  selectingParty[currentTab].seed.def = selectseeddef;
-  selectingParty[currentTab].seed.spd = selectseedspd;
-  selectingParty[currentTab].seed.int = selectseedint;
-  seedZoubunCalc(selectseedatk, selectseeddef, selectseedspd, selectseedint);
+  selectingParty[currentTab].seed.atk = selectSeedAtk;
+  selectingParty[currentTab].seed.def = selectSeedDef;
+  selectingParty[currentTab].seed.spd = selectSeedSpd;
+  selectingParty[currentTab].seed.int = selectSeedInt;
+  seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSeedInt);
 
   // 120上限種無効化処理
   //select変化時、全部の合計値を算出、120-その合計値を算出 = remain
-  const remainingselectseedsum = 120 - Number(selectseedatk) - Number(selectseeddef) - Number(selectseedspd) - Number(selectseedint);
+  const remainingSelectSeedSum = 120 - Number(selectSeedAtk) - Number(selectSeedDef) - Number(selectSeedSpd) - Number(selectSeedInt);
   //すべてのselectで、現状の値+remainを超える選択肢をdisable化
-  document.querySelectorAll(".selectseed").forEach(function (element) {
+  document.querySelectorAll(".selectSeed").forEach(function (element) {
     const selectedValue = parseInt(element.value);
-    const newlimit = remainingselectseedsum + selectedValue;
+    const newLimit = remainingSelectSeedSum + selectedValue;
 
     const options = element.options;
     for (let i = 0; i < options.length; i++) {
       const optionValue = parseInt(options[i].value);
-      if (optionValue > newlimit) {
+      if (optionValue > newLimit) {
         options[i].disabled = true;
       } else {
         options[i].disabled = false;
@@ -3365,90 +3347,90 @@ function changeSeedSelect() {
   });
 }
 
-//増分計算fun selectseedatkを元に、増分計算、増分格納、増分表示更新  さらに表示値を更新
-function seedZoubunCalc(selectseedatk, selectseeddef, selectseedspd, selectseedint) {
+//増分計算fun selectSeedAtkを元に、増分計算、増分格納、増分表示更新  さらに表示値を更新
+function seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSeedInt) {
   //事前定義
-  function seedcalc(limit, targetarray) {
+  function seedCalc(limit, targetArray) {
     let sum = 0;
     for (let i = 0; i < limit; i++) {
-      sum += targetarray[i];
+      sum += targetArray[i];
     }
     return sum;
   }
   //種を5で割った数値までの配列内の項をすべて足す
-  const atkseedarrayatk = [4, 0, 10, 0, 10, 0, 10, 0, 6, 0, 6, 0, 6, 0, 4, 0, 2, 0, 2, 0];
-  const atkseedarrayHP = [0, 4, 0, 4, 0, 4, 0, 3, 0, 3, 0, 2, 0, 2, 0, 2, 0, 1, 0, 1];
-  const defseedarraydef = [8, 0, 20, 0, 20, 0, 20, 0, 12, 0, 12, 0, 12, 0, 8, 0, 4, 0, 4, 0];
-  const defseedarrayHP = [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2];
-  const defseedarrayMP = [0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0];
+  const atkSeedArrayAtk = [4, 0, 10, 0, 10, 0, 10, 0, 6, 0, 6, 0, 6, 0, 4, 0, 2, 0, 2, 0];
+  const atkSeedArrayHP = [0, 4, 0, 4, 0, 4, 0, 3, 0, 3, 0, 2, 0, 2, 0, 2, 0, 1, 0, 1];
+  const defSeedArrayDef = [8, 0, 20, 0, 20, 0, 20, 0, 12, 0, 12, 0, 12, 0, 8, 0, 4, 0, 4, 0];
+  const defSeedArrayHP = [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2];
+  const defSeedArrayMP = [0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0];
 
-  const atkseedlimit = selectseedatk / 5;
-  const defseedlimit = selectseeddef / 5;
-  const spdseedlimit = selectseedspd / 5;
-  const intseedlimit = selectseedint / 5;
+  const atkSeedLimit = selectSeedAtk / 5;
+  const defSeedLimit = selectSeedDef / 5;
+  const spdSeedLimit = selectSeedSpd / 5;
+  const intSeedLimit = selectSeedInt / 5;
 
-  const HPzoubun = seedcalc(atkseedlimit, atkseedarrayHP) + seedcalc(defseedlimit, defseedarrayHP) + seedcalc(spdseedlimit, defseedarrayMP);
-  const MPzoubun = seedcalc(defseedlimit, defseedarrayMP) + seedcalc(spdseedlimit, defseedarrayHP) + seedcalc(intseedlimit, atkseedarrayHP);
-  const atkzoubun = seedcalc(atkseedlimit, atkseedarrayatk);
-  const defzoubun = seedcalc(defseedlimit, defseedarraydef);
-  const spdzoubun = seedcalc(spdseedlimit, atkseedarrayatk);
-  const intzoubun = seedcalc(intseedlimit, defseedarraydef);
+  const HPIncrement = seedCalc(atkSeedLimit, atkSeedArrayHP) + seedCalc(defSeedLimit, defSeedArrayHP) + seedCalc(spdSeedLimit, defSeedArrayMP);
+  const MPIncrement = seedCalc(defSeedLimit, defSeedArrayMP) + seedCalc(spdSeedLimit, defSeedArrayHP) + seedCalc(intSeedLimit, atkSeedArrayHP);
+  const atkIncrement = seedCalc(atkSeedLimit, atkSeedArrayAtk);
+  const defIncrement = seedCalc(defSeedLimit, defSeedArrayDef);
+  const spdIncrement = seedCalc(spdSeedLimit, atkSeedArrayAtk);
+  const intIncrement = seedCalc(intSeedLimit, defSeedArrayDef);
 
   //格納
-  if (!selectingParty[currentTab].hasOwnProperty("seedzoubun")) {
-    selectingParty[currentTab].seedzoubun = {};
+  if (!selectingParty[currentTab].hasOwnProperty("seedIncrement")) {
+    selectingParty[currentTab].seedIncrement = {};
   }
-  selectingParty[currentTab].seedzoubun.HP = HPzoubun;
-  selectingParty[currentTab].seedzoubun.MP = MPzoubun;
-  selectingParty[currentTab].seedzoubun.atk = atkzoubun;
-  selectingParty[currentTab].seedzoubun.def = defzoubun;
-  selectingParty[currentTab].seedzoubun.spd = spdzoubun;
-  selectingParty[currentTab].seedzoubun.int = intzoubun;
+  selectingParty[currentTab].seedIncrement.HP = HPIncrement;
+  selectingParty[currentTab].seedIncrement.MP = MPIncrement;
+  selectingParty[currentTab].seedIncrement.atk = atkIncrement;
+  selectingParty[currentTab].seedIncrement.def = defIncrement;
+  selectingParty[currentTab].seedIncrement.spd = spdIncrement;
+  selectingParty[currentTab].seedIncrement.int = intIncrement;
 
   //増分表示
-  document.getElementById("status-info-seedgear-HP").textContent = `(+${HPzoubun})`;
-  document.getElementById("status-info-seedgear-MP").textContent = `(+${MPzoubun})`;
-  document.getElementById("status-info-seedgear-atk").textContent = `(+${atkzoubun})`;
-  document.getElementById("status-info-seedgear-def").textContent = `(+${defzoubun})`;
-  document.getElementById("status-info-seedgear-spd").textContent = `(+${spdzoubun})`;
-  document.getElementById("status-info-seedgear-int").textContent = `(+${intzoubun})`;
+  document.getElementById("statusInfoSeedIncrementHP").textContent = `(+${HPIncrement})`;
+  document.getElementById("statusInfoSeedIncrementMP").textContent = `(+${MPIncrement})`;
+  document.getElementById("statusInfoSeedIncrementatk").textContent = `(+${atkIncrement})`;
+  document.getElementById("statusInfoSeedIncrementdef").textContent = `(+${defIncrement})`;
+  document.getElementById("statusInfoSeedIncrementspd").textContent = `(+${spdIncrement})`;
+  document.getElementById("statusInfoSeedIncrementint").textContent = `(+${intIncrement})`;
 
   calcAndAdjustDisplayStatus();
 }
 
 function calcAndAdjustDisplayStatus() {
-  //statusとseedzoubunとgearzoubunを足して、displaystatusを計算、表示値を更新
+  //statusとseedIncrementとgearIncrementを足して、displayStatusを計算、表示値を更新
   const gearStatus = selectingParty[currentTab].gear?.status || {};
 
-  selectingParty[currentTab].displaystatus = {
-    HP: selectingParty[currentTab].status.HP + selectingParty[currentTab].seedzoubun.HP + (gearStatus.HP || 0),
-    MP: selectingParty[currentTab].status.MP + selectingParty[currentTab].seedzoubun.MP + (gearStatus.MP || 0),
-    atk: selectingParty[currentTab].status.atk + selectingParty[currentTab].seedzoubun.atk + (gearStatus.atk || 0),
-    def: selectingParty[currentTab].status.def + selectingParty[currentTab].seedzoubun.def + (gearStatus.def || 0),
-    spd: selectingParty[currentTab].status.spd + selectingParty[currentTab].seedzoubun.spd + (gearStatus.spd || 0),
-    int: selectingParty[currentTab].status.int + selectingParty[currentTab].seedzoubun.int + (gearStatus.int || 0),
+  selectingParty[currentTab].displayStatus = {
+    HP: selectingParty[currentTab].status.HP + selectingParty[currentTab].seedIncrement.HP + (gearStatus.HP || 0),
+    MP: selectingParty[currentTab].status.MP + selectingParty[currentTab].seedIncrement.MP + (gearStatus.MP || 0),
+    atk: selectingParty[currentTab].status.atk + selectingParty[currentTab].seedIncrement.atk + (gearStatus.atk || 0),
+    def: selectingParty[currentTab].status.def + selectingParty[currentTab].seedIncrement.def + (gearStatus.def || 0),
+    spd: selectingParty[currentTab].status.spd + selectingParty[currentTab].seedIncrement.spd + (gearStatus.spd || 0),
+    int: selectingParty[currentTab].status.int + selectingParty[currentTab].seedIncrement.int + (gearStatus.int || 0),
   };
 
-  document.getElementById("status-info-displayHP").textContent = selectingParty[currentTab].displaystatus.HP;
-  document.getElementById("status-info-displayMP").textContent = selectingParty[currentTab].displaystatus.MP;
-  document.getElementById("status-info-displayatk").textContent = selectingParty[currentTab].displaystatus.atk;
-  document.getElementById("status-info-displaydef").textContent = selectingParty[currentTab].displaystatus.def;
-  document.getElementById("status-info-displayspd").textContent = selectingParty[currentTab].displaystatus.spd;
-  document.getElementById("status-info-displayint").textContent = selectingParty[currentTab].displaystatus.int;
+  document.getElementById("statusInfoDisplayStatusHP").textContent = selectingParty[currentTab].displayStatus.HP;
+  document.getElementById("statusInfoDisplayStatusMP").textContent = selectingParty[currentTab].displayStatus.MP;
+  document.getElementById("statusInfoDisplayStatusatk").textContent = selectingParty[currentTab].displayStatus.atk;
+  document.getElementById("statusInfoDisplayStatusdef").textContent = selectingParty[currentTab].displayStatus.def;
+  document.getElementById("statusInfoDisplayStatusspd").textContent = selectingParty[currentTab].displayStatus.spd;
+  document.getElementById("statusInfoDisplayStatusint").textContent = selectingParty[currentTab].displayStatus.int;
 }
 
-function displayGearZoubun() {
+function displayGearIncrement() {
   // 各ステータスごとに表示を更新
   const updateStatus = (statusName) => {
     // 初期値 非表示化
-    document.getElementById(`status-info-gear-${statusName}`).style.visibility = "hidden";
-    document.getElementById(`status-info-gear-${statusName}`).textContent = "0";
+    document.getElementById(`statusInfoGearIncrement${statusName}`).style.visibility = "hidden";
+    document.getElementById(`statusInfoGearIncrement${statusName}`).textContent = "0";
     // 装備が存在してかつ0より大きければ表示
     if (selectingParty[currentTab].gear) {
       const statusValue = selectingParty[currentTab].gear.status[statusName];
       if (statusValue > 0) {
-        document.getElementById(`status-info-gear-${statusName}`).style.visibility = "visible";
-        document.getElementById(`status-info-gear-${statusName}`).textContent = `(+${statusValue})`;
+        document.getElementById(`statusInfoGearIncrement${statusName}`).style.visibility = "visible";
+        document.getElementById(`statusInfoGearIncrement${statusName}`).textContent = `(+${statusValue})`;
       }
     }
   };
@@ -3468,10 +3450,10 @@ function addTabClass(targetTabNum) {
   const tabButtons = document.querySelectorAll(".monster-info-tabs");
   const targetTabButton = document.getElementById(`tab${targetTabNum}`);
   tabButtons.forEach((tabButton) => {
-    tabButton.classList.remove("selectedtab");
+    tabButton.classList.remove("selectedTab");
     tabButton.textContent = "詳細";
   });
-  targetTabButton.classList.add("selectedtab");
+  targetTabButton.classList.add("selectedTab");
   targetTabButton.textContent = "表示中";
 }
 
@@ -3497,33 +3479,33 @@ function switchTab(tabNumber) {
     document.getElementById("skill2").textContent = "";
     document.getElementById("skill3").textContent = "";
     // 種表示reset
-    document.getElementById("selectseed-atk").value = 0;
-    document.getElementById("selectseed-def").value = 0;
-    document.getElementById("selectseed-spd").value = 0;
-    document.getElementById("selectseed-int").value = 0;
+    document.getElementById("selectSeedAtk").value = 0;
+    document.getElementById("selectSeedDef").value = 0;
+    document.getElementById("selectSeedSpd").value = 0;
+    document.getElementById("selectSeedInt").value = 0;
     // 増分表示reset
-    document.getElementById("status-info-seedgear-HP").textContent = "(+0)";
-    document.getElementById("status-info-seedgear-MP").textContent = "(+0)";
-    document.getElementById("status-info-seedgear-atk").textContent = "(+0)";
-    document.getElementById("status-info-seedgear-def").textContent = "(+0)";
-    document.getElementById("status-info-seedgear-spd").textContent = "(+0)";
-    document.getElementById("status-info-seedgear-int").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementHP").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementMP").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementatk").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementdef").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementspd").textContent = "(+0)";
+    document.getElementById("statusInfoSeedIncrementint").textContent = "(+0)";
     // 表示値reset
-    document.getElementById("status-info-displayHP").textContent = "0";
-    document.getElementById("status-info-displayMP").textContent = "0";
-    document.getElementById("status-info-displayatk").textContent = "0";
-    document.getElementById("status-info-displaydef").textContent = "0";
-    document.getElementById("status-info-displayspd").textContent = "0";
-    document.getElementById("status-info-displayint").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusHP").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusMP").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusatk").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusdef").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusspd").textContent = "0";
+    document.getElementById("statusInfoDisplayStatusint").textContent = "0";
     //種選択無効化
     disableSeedSelect(true);
   }
 }
 switchTab(0);
 
-function disableSeedSelect(trueOrFlase) {
-  document.querySelectorAll(".selectseed").forEach((button) => {
-    button.disabled = trueOrFlase;
+function disableSeedSelect(boolean) {
+  document.querySelectorAll(".selectSeed").forEach((button) => {
+    button.disabled = boolean;
   });
 }
 
@@ -3543,12 +3525,12 @@ async function selectAllPartyMembers(monsters) {
   for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
     selectMonster(monsters[selectingMonsterNum]);
   }
-  confirmparty();
+  decideParty();
   await sleep(9);
   if (currentPlayer === "B") {
     document.body.style.overflow = "hidden";
-    document.getElementById("selectmonsteroverlay").style.visibility = "visible";
-    document.getElementById("selectmonsterpopupwindow").style.opacity = "1";
+    document.getElementById("selectMonsterOverlay").style.visibility = "visible";
+    document.getElementById("selectMonsterPopupWindow").style.opacity = "1";
     selectingMonsterNum = 0;
   }
 }
@@ -3576,7 +3558,7 @@ const monsters = [
     },
     seed: { atk: 15, def: 35, spd: 70, int: 0 },
     ls: { HP: 1.15, spd: 1.3 },
-    lstarget: "ドラゴン",
+    lsTarget: "ドラゴン",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
@@ -3594,7 +3576,7 @@ const monsters = [
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, spd: 1 },
-    lstarget: "ドラゴン",
+    lsTarget: "ドラゴン",
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0.5 },
   },
   {
@@ -3619,7 +3601,7 @@ const monsters = [
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 0.1, spd: 0.1 },
-    lstarget: "スライム",
+    lsTarget: "スライム",
     AINormalAttack: [2],
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
@@ -3643,7 +3625,7 @@ const monsters = [
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 100, spd: 100 },
-    lstarget: "スライム",
+    lsTarget: "スライム",
     AINormalAttack: [2, 3],
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 0.5 },
   },
@@ -3666,7 +3648,7 @@ const monsters = [
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 10, MP: 10 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3690,7 +3672,7 @@ const monsters = [
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1.13, spd: 1.13, atk: 1.05 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
@@ -3717,7 +3699,7 @@ const monsters = [
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
@@ -3743,7 +3725,7 @@ const monsters = [
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
@@ -3765,7 +3747,7 @@ const monsters = [
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3779,7 +3761,7 @@ const monsters = [
     attribute: {},
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3803,7 +3785,7 @@ const monsters = [
     },
     seed: { atk: 30, def: 70, spd: 0, int: 20 },
     ls: { HP: 1.4, spd: 0.8 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
@@ -3831,7 +3813,7 @@ const monsters = [
     },
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
     ls: { HP: 1.35, int: 1.15 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
@@ -3856,7 +3838,7 @@ const monsters = [
     },
     seed: { atk: 100, def: 10, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [3, 4],
     resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 1 },
   },
@@ -3883,7 +3865,7 @@ const monsters = [
     },
     seed: { atk: 40, def: 80, spd: 0, int: 0 },
     ls: { HP: 1.15 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3902,7 +3884,7 @@ const monsters = [
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3921,7 +3903,7 @@ const monsters = [
     },
     seed: { atk: 0, def: 0, spd: 55, int: 65 },
     ls: { HP: 1.3, spd: 1.25 },
-    lstarget: "demon",
+    lsTarget: "demon",
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3934,7 +3916,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { atk: 1.12, spd: 1.18 },
-    lstarget: "demon",
+    lsTarget: "demon",
     AINormalAttack: [2, 3],
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 0.5, io: 1, light: 0.5, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
@@ -3948,7 +3930,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { HP: 1.15, spd: 1.15 },
-    lstarget: "demon",
+    lsTarget: "demon",
     AINormalAttack: [2, 3],
     resistance: { fire: 1, ice: 0, thunder: 0, wind: 0, io: 1, light: 1, dark: -1, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 0.5, breathSeal: 1 },
   },
@@ -3962,7 +3944,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { spd: 1.2 },
-    lstarget: "demon",
+    lsTarget: "demon",
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -3975,7 +3957,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 10, def: 55, spd: 30, int: 25 },
     ls: { spd: 1.18 },
-    lstarget: "demon",
+    lsTarget: "demon",
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 0.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
@@ -3988,7 +3970,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { HP: 1.15, def: 1.15 },
-    lstarget: "all",
+    lsTarget: "all",
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 0.5, io: 0, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
@@ -4001,7 +3983,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1.3 },
-    lstarget: "demon",
+    lsTarget: "demon",
     AINormalAttack: [2],
     resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
@@ -4015,7 +3997,7 @@ const monsters = [
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
-    lstarget: "all",
+    lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
@@ -4077,7 +4059,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の`, "まわりの時間が巻き戻る！");
             },
             act: function (skillUser) {
-              applyDamage(skillUser, skillUser.defaultstatus.HP, -1);
+              applyDamage(skillUser, skillUser.defaultStatus.HP, -1);
             },
           },
         ],
@@ -4144,7 +4126,7 @@ const skill = [
     hitNum: 3,
     MPcost: 76,
     order: "", //preemptive anchor
-    preemptivegroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
+    preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
     skipDeathCheck: true,
     weakness18: true,
@@ -4161,7 +4143,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
     ignoreDazzle: true,
-    penetrateIronize: true,
+    penetrateStoned: true,
     ignoreBaiki: true,
     ignoreManaBoost: true,
     ignorePowerCharge: true,
@@ -4249,7 +4231,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 0,
     order: "preemptive",
-    preemptivegroup: 6,
+    preemptiveGroup: 6,
     act: function (skillUser, skillTarget) {
       skillUser.flags.guard = true;
     },
@@ -4318,7 +4300,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 30,
     order: "preemptive",
-    preemptivegroup: 2,
+    preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 0.5 } },
   },
   {
@@ -4482,7 +4464,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 54,
     order: "preemptive",
-    preemptivegroup: 2,
+    preemptiveGroup: 2,
     appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
   },
   {
@@ -4508,7 +4490,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 14,
     order: "preemptive",
-    preemptivegroup: 3,
+    preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, true);
     },
@@ -4522,7 +4504,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 79,
     order: "preemptive",
-    preemptivegroup: 2,
+    preemptiveGroup: 2,
     isOneTimeUse: true,
     appliedEffect: { protection: { strength: 0.5, duration: 2, removeAtTurnStart: true } },
   },
@@ -4536,7 +4518,7 @@ const skill = [
     excludeTarget: "me",
     MPcost: 5,
     order: "preemptive",
-    preemptivegroup: 4,
+    preemptiveGroup: 4,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
     },
@@ -4579,7 +4561,7 @@ const skill = [
     hitNum: 6,
     MPcost: 71,
     order: "preemptive",
-    preemptivegroup: 8,
+    preemptiveGroup: 8,
     criticalHitProbability: 0,
     ignoreDazzle: true,
   },
@@ -4605,7 +4587,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 5,
     order: "preemptive",
-    preemptivegroup: 5,
+    preemptiveGroup: 5,
     appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
   },
   {
@@ -4642,7 +4624,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 43,
     order: "preemptive",
-    preemptivegroup: 8,
+    preemptiveGroup: 8,
     ignoreEvasion: true,
   },
   {
@@ -4752,9 +4734,9 @@ const skill = [
         }
         await sleep(200);
         delete nerugeru.flags.isDead;
-        nerugeru.currentstatus.HP = nerugeru.defaultstatus.HP;
+        nerugeru.currentStatus.HP = nerugeru.defaultStatus.HP;
         updateMonsterBar(nerugeru);
-        updatebattleicons(nerugeru);
+        updateBattleIcons(nerugeru);
         await transformTyoma(nerugeru);
       }
     },
@@ -4820,7 +4802,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 50,
     order: "preemptive",
-    preemptivegroup: 2,
+    preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 1 }, spdUp: { strength: 1 } },
   },
   {
@@ -4870,7 +4852,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 30,
     order: "preemptive",
-    preemptivegroup: 8,
+    preemptiveGroup: 8,
     RaceBane: ["dragon", "???"],
     RaceBaneValue: 2,
     followingSkill: "アイスエイジ",
@@ -4942,7 +4924,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     order: "preemptive",
-    preemptivegroup: 7,
+    preemptiveGroup: 7,
     MPcost: 120,
     followingSkill: "零時の儀式後半",
   },
@@ -4988,7 +4970,7 @@ const skill = [
     hitNum: 6,
     MPcost: 85,
     order: "preemptive",
-    preemptivegroup: 8,
+    preemptiveGroup: 8,
     ignoreReflection: true,
     //effect
   },
@@ -5000,7 +4982,7 @@ const skill = [
     targetType: "field",
     targetTeam: "ally",
     order: "preemptive",
-    preemptivegroup: 1,
+    preemptiveGroup: 1,
     MPcost: 39,
     act: function (skillUser, skillTarget) {
       fieldState.isDistorted = true;
@@ -5100,7 +5082,7 @@ const skill = [
     targetType: "me",
     targetTeam: "ally",
     order: "preemptive",
-    preemptivegroup: 5,
+    preemptiveGroup: 5,
     MPcost: 38,
     appliedEffect: { slashReflection: { strength: 1, duration: 1, removeAtTurnStart: true, isKanta: true }, martialReflection: { strength: 1, duration: 1, removeAtTurnStart: true } },
   },
@@ -5145,7 +5127,7 @@ const skill = [
     targetType: "me",
     targetTeam: "ally",
     order: "preemptive",
-    preemptivegroup: 5,
+    preemptiveGroup: 5,
     MPcost: 37,
     appliedEffect: {
       powerCharge: { strength: 2, duration: 3 },
@@ -5176,7 +5158,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 52,
     order: "preemptive",
-    preemptivegroup: 5,
+    preemptiveGroup: 5,
     isOneTimeUse: true,
     appliedEffect: { stoned: { duration: 1 } },
     act: function (skillUser, skillTarget) {
@@ -5211,7 +5193,7 @@ const skill = [
     excludeTarget: "me",
     MPcost: 16,
     order: "preemptive",
-    preemptivegroup: 3,
+    preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
@@ -5327,7 +5309,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 74,
     order: "preemptive",
-    preemptivegroup: 1,
+    preemptiveGroup: 1,
     appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { strength: 0.33 } },
   },
   {
@@ -5339,7 +5321,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 86,
     order: "preemptive",
-    preemptivegroup: 1,
+    preemptiveGroup: 1,
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
       skillUser.abilities.attackAbilities.nextTurnAbilities.push({
@@ -5472,7 +5454,7 @@ const skill = [
     hitNum: 5,
     MPcost: 61,
     order: "preemptive",
-    preemptivegroup: 8,
+    preemptiveGroup: 8,
     RaceBane: ["dragon"],
     RaceBaneValue: 2,
     //呪文減少
@@ -5530,7 +5512,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 69,
     order: "preemptive",
-    preemptivegroup: 5,
+    preemptiveGroup: 5,
     appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true } },
     act: function (skillUser, skillTarget) {
       applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
@@ -5679,24 +5661,24 @@ const gearAbilities = {
   },
 };
 
-document.getElementById("elementErrorbtn").addEventListener("click", function () {
-  const elementErrortext = document.getElementById("elementErrorbtn").textContent;
-  if (elementErrortext === "エレエラ") {
-    document.getElementById("elementErrorbtn").textContent = "エラ解除";
+document.getElementById("elementErrorBtn").addEventListener("click", function () {
+  const elementErrorText = document.getElementById("elementErrorBtn").textContent;
+  if (elementErrorText === "エレエラ") {
+    document.getElementById("elementErrorBtn").textContent = "エラ解除";
     fieldState.isDistorted = true;
   } else {
-    document.getElementById("elementErrorbtn").textContent = "エレエラ";
+    document.getElementById("elementErrorBtn").textContent = "エレエラ";
     delete fieldState.isDistorted;
   }
 });
 
-document.getElementById("Reversebtn").addEventListener("click", function () {
-  const reversedetector = document.getElementById("Reversebtn").textContent;
-  if (reversedetector === "リバ化") {
-    document.getElementById("Reversebtn").textContent = "リバ解除";
+document.getElementById("ReverseBtn").addEventListener("click", function () {
+  const reverseText = document.getElementById("ReverseBtn").textContent;
+  if (reverseText === "リバ化") {
+    document.getElementById("ReverseBtn").textContent = "リバ解除";
     fieldState.isReverse = true;
   } else {
-    document.getElementById("Reversebtn").textContent = "リバ化";
+    document.getElementById("ReverseBtn").textContent = "リバ化";
     fieldState.isReverse = false;
   }
 });
@@ -5917,29 +5899,29 @@ function displayDamage(monster, damage, resistance, isMPdamage = false) {
   }
 }
 
-document.getElementById("revivebtn").addEventListener("click", function () {
+document.getElementById("resetBtn").addEventListener("click", function () {
   for (const party of parties) {
     for (const monster of party) {
-      monster.currentstatus.HP = 200;
+      monster.currentStatus.HP = 200;
       delete monster.flags.beforeDeathActionCheck;
       delete monster.flags.hasDiedThisAction;
       delete monster.flags.isDead;
       delete monster.flags.isZombie;
       applyDamage(monster, -1500, -1);
       applyDamage(monster, -1500, -1, true);
-      updatebattleicons(monster);
+      updateBattleIcons(monster);
       displayMessage("戦闘リセット");
     }
   }
-  preparebattle();
+  prepareBattle();
 });
 
-document.getElementById("hametsubtn").addEventListener("click", function () {
+document.getElementById("hametsuBtn").addEventListener("click", function () {
   for (const party of parties) {
     for (const monster of party) {
-      monster.currentstatus.HP = 100;
+      monster.currentStatus.HP = 100;
       applyDamage(monster, 5, 1);
-      updatebattleicons(monster);
+      updateBattleIcons(monster);
       monster.buffs.isUnbreakable = { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" };
     }
   }
@@ -5947,11 +5929,11 @@ document.getElementById("hametsubtn").addEventListener("click", function () {
   displayMessage("とうこんを付与したよ");
 });
 
-document.getElementById("flobtn").addEventListener("click", function () {
+document.getElementById("floBtn").addEventListener("click", function () {
   executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
 });
 
-document.getElementById("materialbtn").addEventListener("click", function () {
+document.getElementById("materialBtn").addEventListener("click", function () {
   for (const party of parties) {
     for (const monster of party) {
       monster.abilities.explode = {
@@ -5969,23 +5951,24 @@ document.getElementById("materialbtn").addEventListener("click", function () {
   displayMessage("爆発するよ");
 });
 
-document.getElementById("rezaobtn").addEventListener("click", function () {
+document.getElementById("rezaoBtn").addEventListener("click", function () {
   for (const monster of parties[1]) {
     monster.buffs.revive = { keepOnDeath: true, strength: 0.5 };
     updateMonsterBuffsDisplay(monster);
   }
   displayMessage("リザオ付与");
 });
-document.getElementById("harvestbtn").addEventListener("click", function () {
+document.getElementById("harvestBtn").addEventListener("click", function () {
   executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
 });
-document.getElementById("endbtn").addEventListener("click", function () {
+document.getElementById("endBtn").addEventListener("click", function () {
   executeSkill(parties[0][1], findSkillByName("エンドブレス"), parties[1][0]);
 });
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
   const messageLine2 = document.getElementById("message-line2");
+  const consoleScreen = document.getElementById("consoleScreen");
   // 空白を挿入 全角スペース
   if (line1Text) line1Text = line1Text.replace(/ /g, "　");
   if (line2Text) line2Text = line2Text.replace(/ /g, "　");
@@ -5993,11 +5976,11 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
   messageLine2.textContent = line2Text;
   if (centerText) {
     // 第三引数がtrueの場合、中央揃えのスタイルを適用し、文字を大きくする
-    consolescreen.style.justifyContent = "center";
+    consoleScreen.style.justifyContent = "center";
     messageLine1.style.textAlign = "center";
     messageLine1.style.fontSize = "1.05rem";
   } else {
-    consolescreen.style.justifyContent = "space-between";
+    consoleScreen.style.justifyContent = "space-between";
     messageLine1.style.textAlign = "";
     messageLine1.style.fontSize = "0.9rem";
   }
@@ -6091,21 +6074,21 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   // buffContainerを初回のみ生成
-  let buffContainer = wrapper.querySelector(".buff-container");
+  let buffContainer = wrapper.querySelector(".buffContainer");
   if (!buffContainer) {
     buffContainer = document.createElement("div");
-    buffContainer.classList.add("buff-container");
+    buffContainer.classList.add("buffContainer");
     wrapper.appendChild(buffContainer);
   }
 
   // buffIconを初回のみ生成
-  let buffIcons = buffContainer.querySelectorAll(".buff-icon");
+  let buffIcons = buffContainer.querySelectorAll(".buffIcon");
   if (buffIcons.length === 0) {
     for (let i = 0; i < 3; i++) {
       const buffIcon = document.createElement("img");
-      buffIcon.classList.add("buff-icon");
+      buffIcon.classList.add("buffIcon");
       buffContainer.appendChild(buffIcon);
-      buffIcons = buffContainer.querySelectorAll(".buff-icon"); // 再取得
+      buffIcons = buffContainer.querySelectorAll(".buffIcon"); // 再取得
     }
   }
 
@@ -6265,7 +6248,7 @@ function preloadImages() {
 //MPcostを返す スキル選択時と実行時
 function calculateMPcost(skillUser, executingSkill) {
   if (executingSkill.MPcost === "all") {
-    return skillUser.currentstatus.MP;
+    return skillUser.currentStatus.MP;
   }
   let calcMPcost = executingSkill.MPcost;
   //メタル
@@ -6466,7 +6449,7 @@ async function transformTyoma(monster) {
   }
   await sleep(200);
   monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
-  updatebattleicons(monster);
+  updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
@@ -6507,10 +6490,10 @@ async function transformTyoma(monster) {
   if (monster.name !== "超ネルゲル") {
     //ネルのみHP回復を実行しない
     await sleep(400);
-    applyDamage(monster, monster.defaultstatus.HP, -1, false);
+    applyDamage(monster, monster.defaultStatus.HP, -1, false);
   }
   await sleep(500);
-  applyDamage(monster, monster.defaultstatus.MP, -1, true);
+  applyDamage(monster, monster.defaultStatus.MP, -1, true);
   if (monster.name === "超オムド") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
@@ -6563,4 +6546,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "魔獣の追撃";
   }
   return NormalAttackName;
+}
+
+function col(argument) {
+  console.log(argument);
 }

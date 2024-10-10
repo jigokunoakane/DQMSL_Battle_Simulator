@@ -35,18 +35,17 @@ body {
   box-sizing: border-box; /*paddingも含めてwidth指定*/
 }
 
-#pagecontainer {
+#pageContainer {
   display: flex;
   justify-content: center;
 }
 
-#adjustpartypage {
+#adjustPartyPage {
   width: 96%;
-  /*containerの中心を起点に幅96%で余白を用意*/
 }
 
 /*いつもの*/
-.normalbutton {
+.normalButton {
   height: 1.6rem;
   width: max-content;
   padding: 0rem 0.6rem;
@@ -103,7 +102,7 @@ select {
 }
 
 /* ウィンドウ部分 */
-.popupwindow {
+.popupWindow {
   width: 90%;
   padding-left: 15px;
   padding-bottom: 15px;
@@ -126,8 +125,8 @@ select {
 }
 
 /*ポップアップウィンドウ内*/
-.allmonstericons,
-.allgear {
+.monsterListIcon,
+.gearList {
   width: calc(20% - 10px); /* ボタン5つ横並びにするために幅調整 */
   max-width: 70px; /* 画像の最大幅pc */
   margin-right: 0.05rem;
@@ -138,152 +137,69 @@ select {
 
 /* パテ画像部分 */
 
-.partyicons-container,
-.partygears-container,
-.monstericons-container {
+#partyIconsContainer,
+#partyGearsContainer,
+.battleIconsContainer {
   display: flex;
 }
-
-.monstericons-container {
+#partyIconsContainer {
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
+#partyGearsContainer {
+  margin-bottom: 6px;
+}
+.battleIconsContainer {
   margin-bottom: 10px;
   justify-content: space-evenly;
   align-items: center;
 }
 
-.partyicons-container {
-  margin-bottom: 2px;
-  margin-top: 2px;
-}
-
-.partygears-container {
-  margin-bottom: 6px;
-}
-
-.partyicon-wrapper,
-.partygear-wrapper,
-.monstericon-wrapper {
+.partyIconWrapper,
+.partyGearWrapper,
+.battleIconWrapper {
   flex-basis: 20%;
   display: flex;
   justify-content: center; /*親要素に指定して中央に*/
 }
-
-.monstericon-wrapper {
+.battleIconWrapper {
   position: relative; /*ダメージ表示用*/
   flex-basis: 15%;
 }
 
-.partyicon {
+.allyBattleIconWrapper.stickOut {
+  transform: translate(0%, -15%);
+}
+.enemyBattleIconWrapper.stickOut {
+  transform: translate(0%, 10%);
+}
+.allyBattleIconWrapper.recede {
+  transform: translate(0%, 10%);
+}
+
+.partyIcon {
   width: 80%;
   height: auto;
 }
-
-.partygear {
+.partyGear {
   width: 55%;
   height: auto;
 }
-
-.monstericon {
+.battleIcon {
   width: 100%;
   height: auto;
 }
 
-.battlepageallywrapper.stickout {
-  transform: translate(0%, -15%);
-}
-
-.battlepageenemywrapper.stickout {
-  transform: translate(0%, 10%);
-}
-
-.battlepageallywrapper.recede {
-  transform: translate(0%, 10%);
-}
-
-#monsterinfo-tabs {
+/*tab*/
+#monsterTabContainer {
   display: flex;
 }
 
-#monsterinfo-tabs div {
+#monsterTabContainer div {
   flex: 1; /* 各要素を均等に幅を分配 */
 }
 
-/*ステータス種詳細部分*/
-
-.statusandseed-container {
-  padding-left: 0.4rem;
-  display: flex; /*横並び*/
-  /*背景*/
-
-  padding-top: 0.7rem;
-  padding-bottom: 0.4rem;
-}
-
-.status-info-title,
-.status-info-colon,
-.status-info-status,
-.status-info-seedgear,
-.status-info-gear,
-.status-info-seed-title,
-.status-info-seed-seed {
-  line-height: 1.3; /* テキストの高さをリセットして均等にする */
-}
-
-.status-info-status {
-  text-align: right; /* テキストを右揃えにする */
-}
-
-.status-info-title {
-  width: 15%;
-}
-.status-info-colon {
-  width: 6%;
-}
-.status-info-status {
-  width: 10%;
-}
-.status-info-space {
-  width: 8%;
-}
-.status-info-seedgear {
-  width: 12%;
-}
-.status-info-gear {
-  width: 20%;
-}
-
-.status-info-seed-title {
-  margin-top: 2.5rem; /* 2行分のマージンを設定 */
-  width: 12%;
-}
-.status-info-seed-seed {
-  margin-top: 2.5rem; /* 2行分のマージンを設定 */
-  width: 12%;
-}
-
-#resetseedbtn {
-  font-size: 0.8rem; /* 他よりも少し小さめに設定 */
-  height: 1.4rem;
-  padding: 0rem 0.4rem;
-}
-
-#resetseedbtn {
-  position: absolute;
-  right: 28rem;
-  bottom: 31rem;
-}
-
-.selectseed {
-  height: 1.1rem;
-  padding: 0rem 0.4rem;
-  margin-right: 0rem;
-  width: 2.5rem;
-}
-
-#skill-flex-container {
-  display: flex; /*横並び*/
-}
-
-.monster-info-tabs {
+.eachTab {
   display: block;
   /*width: 93%;*/
   text-align: center;
@@ -296,6 +212,11 @@ select {
   /*button時height: 1.5rem;*/
 }
 
+.eachTab.selectedTab {
+  background-color: rgba(0, 191, 255, 0.1);
+  border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
+}
+
 #tab1,
 #tab2,
 #tab3,
@@ -303,26 +224,110 @@ select {
   margin-right: -1px;
 }
 
-.statusandseed-container {
+/*ステータス種詳細部分*/
+
+#statusInfoContainer {
+  padding-left: 0.4rem;
+  display: flex; /*横並び*/
+  /*背景*/
+
+  padding-top: 0.7rem;
+  padding-bottom: 0.4rem;
   background-color: rgba(0, 191, 255, 0.1);
   /*border-left: 1px solid #ccc;
   border-right: 1px solid #ccc;*/
 }
 
-.monster-info-tabs.selectedtab {
-  background-color: rgba(0, 191, 255, 0.1);
-  border-bottom-color: rgba(0, 191, 255, 0.1); /* 枠線下なし */
+#statusInfoTitle,
+#statusInfoColon,
+#statusInfoDisplayStatus,
+#statusInfoSeedIncrement,
+#statusInfoGearIncrement,
+#statusInfoSeedTitle,
+#statusInfoSeedSelectContainer {
+  line-height: 1.3; /* テキストの高さをリセットして均等にする */
 }
 
-.monster-bar-container {
+#statusInfoTitle {
+  width: 15%;
+}
+#statusInfoColon {
+  width: 6%;
+}
+#statusInfoDisplayStatus {
+  text-align: right; /* テキストを右揃えにする */
+  width: 10%;
+}
+#statusInfoSpace {
+  width: 8%;
+}
+#statusInfoSeedIncrement {
+  width: 12%;
+}
+#statusInfoGearIncrement {
+  width: 20%;
+}
+
+#statusInfoSeedTitle {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+#statusInfoSeedSelectContainer {
+  margin-top: 2.5rem; /* 2行分のマージンを設定 */
+  width: 12%;
+}
+
+#resetSeedBtn {
+  font-size: 0.8rem; /* 他よりも少し小さめに設定 */
+  height: 1.4rem;
+  padding: 0rem 0.4rem;
+  position: absolute;
+  right: 28rem;
+  bottom: 31rem;
+}
+
+.selectSeed {
+  height: 1.1rem;
+  padding: 0rem 0.4rem;
+  margin-right: 0rem;
+  width: 2.5rem;
+}
+
+#skillFlexContainer {
+  display: flex; /*横並び*/
+}
+
+/*戦闘画面 icon以外*/
+#battlePage {
+  width: 100%;
+  display: none;
+}
+
+#battlePageAbove {
+  width: 100%;
+  background-color: #dfcb80;
+}
+#battlePageBelow {
+  width: 100%;
+  background-color: black;
+}
+
+#enemyBattleIconsContainer {
+  padding-top: 2rem;
+}
+#allyBattleIconsContainer {
+  padding-bottom: 0.5rem;
+}
+
+/*bar*/
+
+.barContainer {
   display: flex;
   justify-content: space-evenly;
   /*align-items: center;*/
 }
 
-/*戦闘画面*/
-
-.eachbarcontainer {
+.eachBarContainer {
   flex-basis: 15%;
   display: flex;
   flex-direction: column;
@@ -342,7 +347,7 @@ select {
   box-shadow: 0 0 0 1.7px white;
   z-index: 1; /* bar を damageDisplay よりも手前に表示 */
 }
-.barinner {
+.barInner {
   position: absolute;
   width: 100%; /* 現在のHP割合に応じて調整 */
   height: 100%;
@@ -351,7 +356,11 @@ select {
   /*transition: width 0.5s ease-in-out;*/
   z-index: 2; /* 重なり順を上げる */
 }
-.bartext {
+.mpBarInner {
+  background-color: #07c0fd;
+}
+
+.barText {
   position: absolute;
   z-index: 3; /* 重なり順を上げる */
   transform: translate(0%, -60%);
@@ -367,7 +376,7 @@ select {
     black -0.3px -0.3px 0.7px;
 }
 
-.damagedisplay {
+.damageDisplay {
   position: absolute;
   top: 0;
   left: 0;
@@ -378,46 +387,21 @@ select {
   z-index: 1; /* 重なり順を下げる */
 }
 
-.mpbarinner {
-  background-color: #07c0fd;
-}
-
-#battlepage {
-  width: 100%;
-  display: none;
-}
-
-#battlepage-above {
-  width: 100%;
-  background-color: #dfcb80;
-}
-#battlepage-below {
-  width: 100%;
-  background-color: black;
-}
-
-#enemymonstercontainerbattle {
-  padding-top: 2rem;
-}
-
-#enemybars {
+#enemyBars {
   padding-bottom: 6rem;
 }
 
-#allymonstercontainerbattle {
-  padding-bottom: 0.5rem;
-}
-.monster-bar-container {
+.barContainer {
   padding-bottom: 1rem;
 }
 
-#consolescreen-container {
+#consoleScreenContainer {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-#consolescreen {
+#consoleScreen {
   position: relative; /* 文字を絶対配置するため */
   transform: translate(0%, -50%);
   width: 96%;
@@ -441,7 +425,7 @@ select {
   font-size: 0.9rem; /* 文字サイズを調整 */
 }
 
-#commandbtns-container {
+#commandBtnContainer {
   display: flex;
   justify-content: center;
   align-items: center; /* 交差軸方向に中央寄せ */
@@ -450,7 +434,7 @@ select {
   /*padding-bottom: 2rem;*/
 }
 
-.commandbtn {
+.commandBtn {
   width: 30%;
   height: 3.3rem;
   padding: 0rem;
@@ -467,7 +451,7 @@ select {
 }
 
 /* ウィンドウ部分 */
-#selectcommandpopupwindow {
+#commandPopupWindow {
   visibility: hidden;
   width: 96%;
   height: 94%;
@@ -483,14 +467,14 @@ select {
   padding: 4px 4px;
 }
 
-#selectcommandpopupwindow-contents {
+#commandPopupWindowContents {
   position: relative;
   display: flex;
   width: 100%;
   height: 100%;
 }
 
-#selectcommandpopupwindow-text {
+#commandPopupWindowText {
   position: absolute;
   margin-left: 5px;
   width: 100%;
@@ -499,7 +483,7 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#selectskillbtns {
+#selectSkillBtnContainer {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -507,7 +491,7 @@ select {
   align-items: flex-end; /*下揃え*/
 }
 
-.selectskillbtn {
+.selectSkillBtn {
   width: 20%;
   height: 60%;
   padding: 0;
@@ -523,9 +507,9 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#designateskilltarget-all,
-#askfinishselectingcommand,
-#howtoselectenemyscommand {
+#selectSkillTargetAll,
+#askFinishCommand,
+#howToCommandEnemy {
   position: absolute;
   display: flex;
   width: 100%;
@@ -535,9 +519,9 @@ select {
   flex-wrap: wrap; /*簡略的に2行に*/
 }
 
-#designateskilltarget-all-text,
-#askfinishselectingcommand-text,
-#howtoselectenemyscommand-text {
+#selectSkillTargetAllText,
+#askFinishCommandText,
+#howToCommandEnemyText {
   width: 100%;
   text-align: center;
   color: white;
@@ -546,8 +530,8 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-.designateskilltargetallbtn,
-.howtoselectenemyscommandbtn {
+.selectSkillTargetAllBtn,
+.howToCommandEnemyBtn {
   /*transform: translate(0%, 200%);*/
   width: 30%;
   height: 1.7rem;
@@ -564,17 +548,17 @@ select {
   font-family: "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
 }
 
-#designateskilltargetbtnyes,
-#askfinishselectingcommandbtnyes {
+#selectSkillTargetBtnYes,
+#askFinishCommandBtnYes {
   background-color: red;
 }
 
-.howtoselectenemyscommandbtn {
+.howToCommandEnemyBtn {
   width: 25%; /*3選択肢のため幅調整*/
   background-color: red;
 }
 
-#designateskilltarget {
+#selectSkillTargetContainer {
   position: absolute;
   display: flex;
   width: 90%;
@@ -583,7 +567,7 @@ select {
   align-items: center;
 }
 
-.selecttargetmonster-wrapper {
+.selectSkillTargetWrapper {
   width: 20%;
   height: 100%;
   display: flex;
@@ -591,19 +575,19 @@ select {
   align-items: flex-end;
 }
 
-.selecttargetmonster {
+.selectSkillTarget {
   width: 83%;
   height: auto;
 }
 
-#closeselectcommandpopupwindowbtn-container {
+#closeCommandPopupWindowBtnContainer {
   display: flex;
   justify-content: flex-end;
   width: 100%;
   height: 100%;
 }
 
-#closeselectcommandpopupwindowbtn {
+#closeCommandPopupWindowBtn {
   position: relative;
   width: 1.5rem;
   height: 1.5rem;
@@ -612,8 +596,8 @@ select {
   background: blue; /* ボタンの背景色 */
 }
 
-#closeselectcommandpopupwindowbtn::before,
-#closeselectcommandpopupwindowbtn::after {
+#closeCommandPopupWindowBtn::before,
+#closeCommandPopupWindowBtn::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -622,16 +606,14 @@ select {
   height: 1rem; /* 棒の高さ */
   background: white; /* バツ印の色 */
 }
-
-#closeselectcommandpopupwindowbtn::before {
+#closeCommandPopupWindowBtn::before {
   transform: translate(-50%, -50%) rotate(45deg);
 }
-
-#closeselectcommandpopupwindowbtn::after {
+#closeCommandPopupWindowBtn::after {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-.buff-container {
+.buffContainer {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -641,7 +623,7 @@ select {
   justify-content: flex-start; /* バフアイコンを左詰めに変更 */
 }
 
-.buff-icon {
+.buffIcon {
   width: 33.33%;
   padding-top: 33.33%; /* アスペクト比を維持するためにパディングトップを使用 */
   background-size: contain;
