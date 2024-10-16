@@ -45,7 +45,7 @@ function decideParty() {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
-    //現在の仮partyを対戦用partiesにcopy
+    //現在の仮partyを対戦用partiesにcopy 空monsterは削除
     parties[0] = structuredClone(selectingParty).filter((element) => element.length !== 0);
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 5;
@@ -59,7 +59,7 @@ function decideParty() {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
-    // 対戦用partiesにcopy
+    // 対戦用partiesにcopy 空monsterは削除
     parties[1] = structuredClone(selectingParty).filter((element) => element.length !== 0);
     // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 0;
@@ -124,7 +124,7 @@ function prepareBattle() {
         }
         monster.defaultStatus[key] = Math.ceil(statusValue * lsMultiplier);
       }
-      monster.currentStatus = structuredClone(monster.defaultStatus);
+      monster.currentStatus = { ...monster.defaultStatus };
 
       // 初期化
       monster.commandInput = "";
@@ -881,6 +881,7 @@ async function startTurn() {
     }
 
     for (const ability of allAbilities) {
+      await sleep(150);
       if (ability.hasOwnProperty("message")) {
         ability.message(monster);
         await sleep(150);
@@ -889,8 +890,8 @@ async function startTurn() {
         await sleep(150);
       }
       await ability.act(monster);
-      await sleep(150);
     }
+    await sleep(150);
     // 実行後に削除
     currentAbilities.nextTurnAbilities = [];
   }
@@ -1033,7 +1034,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
     const currentBuff = buffTarget.buffs[buffName];
-    const buffData = newBuff[buffName];
+    const buffData = { ...newBuff[buffName] };
 
     // 1. バフ非上書き条件の処理
     // 1-1. 石化には付与しない
@@ -2030,7 +2031,7 @@ function hasAbnormality(monster) {
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance, isMPdamage = false) {
+function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
   if (resistance === -1) {
     // 回復処理
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
@@ -2064,7 +2065,7 @@ function applyDamage(target, damage, resistance, isMPdamage = false) {
       let mpDamage = Math.min(target.currentStatus.MP, Math.floor(damage));
       target.currentStatus.MP -= mpDamage;
       console.log(`${target.name}はMPダメージを受けている！`);
-      displayDamage(`${target.name}は　MPダメージを受けている！`);
+      displayMessage(`${target.name}は MPダメージを受けている！`);
       displayDamage(target, mpDamage, resistance, true);
       updateMonsterBar(target);
       return;
@@ -2403,7 +2404,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 石化無効化処理
   if (skillTarget.buffs.stoned && executingSkill.name !== "いてつくはどう" && executingSkill.name !== "神のはどう" && executingSkill.name !== "プチ神のはどう") {
-    applyDamage(skillTarget, 0, "");
+    applyDamage(skillTarget, 0);
     return;
   }
 
@@ -2439,7 +2440,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (executingSkill.howToCalculate === "none") {
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
-      applyDamage(skillTarget, 0, "");
+      applyDamage(skillTarget, 0);
       return;
     }
     // 反射持ちかつ反射無視でない、かつ敵対象で、かつ波動系ではないならば反射化
@@ -2497,7 +2498,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (["atk", "def", "spd"].includes(executingSkill.howToCalculate)) {
     const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
-      applyDamage(skillTarget, 0, "");
+      applyDamage(skillTarget, 0);
       return;
     }
   }
@@ -2510,7 +2511,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (resistance !== -1) {
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
-      applyDamage(skillTarget, 0, "");
+      applyDamage(skillTarget, 0);
       return;
     }
     //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
@@ -3939,7 +3940,7 @@ const monsters = [
     id: "tseru",
     type: "demon",
     weight: "25",
-    status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
+    status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
     defaultSkill: ["蟲惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
@@ -4091,6 +4092,19 @@ function getMonsterAbilities(monsterId) {
                 delete skillUser.flags.willTransformOmudo;
                 await transformTyoma(skillUser);
               }
+            },
+          },
+        ],
+      },
+    },
+    esta: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            act: async function (skillUser) {
+              applyDamage(skillUser, skillUser.defaultStatus.HP * 0.4, -1);
+              await sleep(400);
+              applyDamage(skillUser, skillUser.defaultStatus.MP * 0.13, -1, true);
             },
           },
         ],
@@ -5532,7 +5546,7 @@ const gear = [
   {
     name: "系統爪",
     id: "familyNail",
-    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 60, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" } },
   },
   {
@@ -5703,7 +5717,7 @@ function findSkillByName(skillName) {
   return skill.find((skill) => skill.name === skillName);
 }
 
-function displayDamage(monster, damage, resistance, isMPdamage = false) {
+function displayDamage(monster, damage, resistance = 1, isMPdamage = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
   if (damage === 0) {
@@ -6490,7 +6504,7 @@ async function transformTyoma(monster) {
   if (monster.name !== "超ネルゲル") {
     //ネルのみHP回復を実行しない
     await sleep(400);
-    applyDamage(monster, monster.defaultStatus.HP, -1, false);
+    applyDamage(monster, monster.defaultStatus.HP, -1);
   }
   await sleep(500);
   applyDamage(monster, monster.defaultStatus.MP, -1, true);
