@@ -2030,6 +2030,15 @@ function hasAbnormality(monster) {
   return false;
 }
 
+//吸収以外の錬金が乗る回復
+function applyHeal(target, healAmount, isMPheal = false) {
+  let calculatedHealAmount = healAmount;
+  if (target.gear && target.gear.healBoost) {
+    calculatedHealAmount *= target.gear.healBoost;
+  }
+  applyDamage(target, calculatedHealAmount, -1, isMPheal);
+}
+
 // ダメージを適用する関数
 function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
   if (resistance === -1) {
@@ -4102,9 +4111,9 @@ function getMonsterAbilities(monsterId) {
         evenTurnAbilities: [
           {
             act: async function (skillUser) {
-              applyDamage(skillUser, skillUser.defaultStatus.HP * 0.4, -1);
+              applyHeal(skillUser, skillUser.defaultStatus.HP * 0.4);
               await sleep(400);
-              applyDamage(skillUser, skillUser.defaultStatus.MP * 0.13, -1, true);
+              applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
             },
           },
         ],
