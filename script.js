@@ -3932,7 +3932,14 @@ const monsters = [
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     defaultSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
     defaultGear: "shoten",
-    attribute: "", //体技斬撃
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+      evenTurnBuffs: {
+        powerCharge: { strength: 2 },
+      },
+    },
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { atk: 1.12, spd: 1.18 },
     lsTarget: "demon",
@@ -4137,6 +4144,24 @@ function getMonsterAbilities(monsterId) {
               applyHeal(skillUser, skillUser.defaultStatus.HP * 0.4);
               await sleep(400);
               applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
+            },
+          },
+        ],
+      },
+    },
+    dhuran: {
+      supportAbilities: {
+        1: [
+          {
+            name: "強者のいげん",
+            act: async function (skillUser) {
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { martialBarrier: { strength: 1, targetType: "ally" }, slashBarrier: { strength: 1, targetType: "ally" } });
+                } else {
+                  displayMiss(target);
+                }
+              }
             },
           },
         ],
