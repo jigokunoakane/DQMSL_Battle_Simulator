@@ -3535,6 +3535,10 @@ document.getElementById("omudopa").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
 });
 
+document.getElementById("akumapa").addEventListener("click", function () {
+  selectAllPartyMembers(["tanisu", "dhuran", "rogos", "magesu", "zuisho"]);
+});
+
 async function selectAllPartyMembers(monsters) {
   for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
     selectMonster(monsters[selectingMonsterNum]);
@@ -3927,6 +3931,7 @@ const monsters = [
     weight: "28",
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     defaultSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
+    defaultGear: "shoten",
     attribute: "",
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { atk: 1.12, spd: 1.18 },
@@ -3941,6 +3946,7 @@ const monsters = [
     weight: "32",
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     defaultSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "メラゾロス"],
+    defaultGear: "familyNail",
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { HP: 1.15, spd: 1.15 },
@@ -3968,6 +3974,7 @@ const monsters = [
     weight: "25",
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     defaultSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
+    defaultGear: "waveNail",
     attribute: "",
     seed: { atk: 10, def: 55, spd: 30, int: 25 },
     ls: { spd: 1.18 },
@@ -3994,6 +4001,7 @@ const monsters = [
     weight: "25",
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     defaultSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
+    defaultGear: "flute",
     attribute: "",
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1.3 },
