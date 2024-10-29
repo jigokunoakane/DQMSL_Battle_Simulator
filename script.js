@@ -1451,14 +1451,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs[buffName].hasOwnProperty("duration")) {
       //decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
       //うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
-      const decreaseTurnEnd = ["skillTurn", "hogeReflection"];
+      const decreaseTurnEndBuffs = ["skillTurn", "hogeReflection"];
       //うち、removeAtTurnStart付与： ターン最初に削除  付与されたnターン後のターン最初に切れる
       const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction", "stoned", "damageLimit", "dodgeBuff"];
       if (removeAtTurnStartBuffs.includes(buffName)) {
         buffTarget.buffs[buffName].removeAtTurnStart = true;
       }
-      //stackableBuffs または decreaseTurnEnd または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与)
-      if (buffName in stackableBuffs || decreaseTurnEnd.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart) {
+      //stackableBuffs または decreaseTurnEndBuffs内 または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与)
+      if (buffName in stackableBuffs || decreaseTurnEndBuffs.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart) {
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
         //decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
@@ -3932,7 +3932,7 @@ const monsters = [
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     defaultSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
     defaultGear: "shoten",
-    attribute: "",
+    attribute: "", //体技斬撃
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { atk: 1.12, spd: 1.18 },
     lsTarget: "demon",
@@ -3947,7 +3947,18 @@ const monsters = [
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     defaultSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "メラゾロス"],
     defaultGear: "familyNail",
-    attribute: "",
+    attribute: {
+      initialBuffs: {
+        thunderBreak: { keepOnDeath: true, strength: 2 },
+        windBreak: { keepOnDeath: true, strength: 2 },
+        darkBreak: { keepOnDeath: true, strength: 2 },
+      },
+      evenTurnBuffs: {
+        thunderBreakBoost: { strength: 1, maxStrength: 3 },
+        windBreakBoost: { strength: 1, maxStrength: 3 },
+        darkBreakBoost: { strength: 1, maxStrength: 3 },
+      },
+    },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { HP: 1.15, spd: 1.15 },
     lsTarget: "demon",
@@ -4126,6 +4137,22 @@ function getMonsterAbilities(monsterId) {
               applyHeal(skillUser, skillUser.defaultStatus.HP * 0.4);
               await sleep(400);
               applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
+            },
+          },
+        ],
+      },
+    },
+    rogos: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "奈落の衣",
+            act: async function (skillUser) {
+              if (hasAbnormality(skillUser)) {
+                displayMiss(skillUser);
+              } else {
+                applyBuff(skillUser, { protection: { removeAtTurnStart: true, divineDispellable: true, strength: 0.5, duration: 1 } });
+              }
             },
           },
         ],
@@ -5472,6 +5499,64 @@ const skill = [
     appliedEffect: { darkResistance: { strength: -1, probability: 0.57 } },
   },
   {
+    name: "メゾラゴン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 110,
+    maxInt: 500,
+    maxIntDamage: 300,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 72,
+    followingSkill: "メゾラゴン後半",
+  },
+  {
+    name: "メゾラゴン後半",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 105,
+    maxInt: 600,
+    maxIntDamage: 240,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
+    name: "メラゾロス",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 110,
+    maxInt: 500,
+    maxIntDamage: 300,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 72,
+    followingSkill: "メラゾロス後半",
+  },
+  {
+    name: "メラゾロス後半",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 90,
+    maxInt: 500,
+    maxIntDamage: 200,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
     name: "蠱惑の舞い",
     type: "dance",
     howToCalculate: "fix",
@@ -6599,4 +6684,9 @@ function getNormalAttackName(skillUser) {
 
 function col(argument) {
   console.log(argument);
+}
+
+function displayMiss(skillTarget) {
+  displayMessage("しかし なにも おこらなかった！");
+  displayDamage(skillTarget, 0);
 }
