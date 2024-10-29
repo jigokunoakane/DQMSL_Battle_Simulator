@@ -2095,28 +2095,23 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
         // くじけぬ処理
         if (target.buffs.isUnbreakable) {
           if (target.buffs.isUnbreakable.isToukon) {
-            target.buffs.isUnbreakable.left--;
             if (Math.random() < 0.75) {
+              target.buffs.isUnbreakable.left--;
               handleUnbreakable(target);
+              //とうこんの場合のみ、確定枠を消費したら削除
+              if (target.buffs.isUnbreakable.left <= 0) {
+                delete target.buffs.isUnbreakable;
+              }
             } else {
               handleDeath(target);
             }
-            if (target.buffs.isUnbreakable.left <= 0) {
-              delete target.buffs.isUnbreakable;
-            }
           } else {
-            if (target.buffs.isUnbreakable.left > 0) {
-              if (target.buffs.revive) {
-                if (Math.random() < 0.75) {
-                  handleUnbreakable(target);
-                } else {
-                  handleDeath(target);
-                }
-              } else {
-                target.buffs.isUnbreakable.left--;
-                handleUnbreakable(target);
-              }
+            if (target.buffs.isUnbreakable.left > 0 && !target.buffs.revive) {
+              //確定枠がありかつリザオがない場合、確定枠を消費して耐える
+              target.buffs.isUnbreakable.left--;
+              handleUnbreakable(target);
             } else {
+              //確定枠がないまたはリザオありの場合、確定枠は無視
               if (Math.random() < 0.75) {
                 handleUnbreakable(target);
               } else {
@@ -2125,7 +2120,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
             }
           }
         } else {
-          // 死亡処理
+          // くじけぬなしは確定死亡
           handleDeath(target);
         }
       } else {
