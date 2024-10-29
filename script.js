@@ -2094,7 +2094,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
       if (target.currentStatus.HP === 0 && !target.flags.isDead) {
         // くじけぬ処理
         if (target.buffs.isUnbreakable) {
-          if (target.buffs.isUnbreakable.type === "toukon") {
+          if (target.buffs.isUnbreakable.isToukon) {
             target.buffs.isUnbreakable.left--;
             if (Math.random() < 0.75) {
               handleUnbreakable(target);
@@ -3681,7 +3681,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
-        isUnbreakable: { keepOnDeath: true, left: 1, type: "hukutsu", name: "不屈の闘志" },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
         mindBarrier: { divineDispellable: true, duration: 3 },
         martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
       },
@@ -4231,8 +4231,16 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 0,
-    //act
-    //"そうびの特性により", "くじけぬ心が ゆらいだ！"
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.isUnbreakable && !skillTarget.buffs.isUnbreakable.isToukon) {
+        //防壁などによる失敗はないので、通常攻撃成功時はactも100%実行
+        displayMessage("そうびの特性により", "くじけぬ心が ゆらいだ！");
+        skillTarget.buffs.isUnbreakable.left = 1;
+        skillTarget.buffs.isUnbreakable.isToukon = true;
+        skillTarget.buffs.isUnbreakable.isBroken = true;
+        updateMonsterBuffsDisplay(skillTarget);
+      }
+    },
   },
   {
     name: "はやぶさ攻撃弱",
@@ -5566,7 +5574,7 @@ const gear = [
     name: "系統爪",
     id: "familyNail",
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
-    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" } },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
     name: "メタルキングの爪",
@@ -5955,7 +5963,7 @@ document.getElementById("hametsuBtn").addEventListener("click", function () {
       monster.currentStatus.HP = 100;
       applyDamage(monster, 5, 1);
       updateBattleIcons(monster);
-      monster.buffs.isUnbreakable = { keepOnDeath: true, left: 3, type: "toukon", name: "とうこん" };
+      monster.buffs.isUnbreakable = { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" };
     }
   }
   parties[0][0].buffs.isUnbreakable = { keepOnDeath: true, left: 3, name: "ラストスタンド" };
@@ -6150,8 +6158,12 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
       }
     }
     //アタカン処理
-    if (buffKey === "slashReflection" && monster.buffs[buffKey].isKanta) {
+    if (buffKey === "slashReflection" && monster.buffs.slashReflection.isKanta) {
       iconSrc = "images/buffIcons/atakan.png";
+    }
+    //アタカン処理
+    if (buffKey === "isUnbreakable" && monster.buffs.isUnbreakable.isBroken) {
+      iconSrc = "images/buffIcons/brokenHeart.png";
     }
 
     // 画像が存在する場合は、activeBuffsにバフデータを追加
