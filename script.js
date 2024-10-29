@@ -3466,7 +3466,7 @@ function displayGearIncrement() {
 
 //tab選択時の詳細や表示中の切り替えだけ
 function addTabClass(targetTabNum) {
-  const tabButtons = document.querySelectorAll(".monster-info-tabs");
+  const tabButtons = document.querySelectorAll(".eachTab");
   const targetTabButton = document.getElementById(`tab${targetTabNum}`);
   tabButtons.forEach((tabButton) => {
     tabButton.classList.remove("selectedTab");
@@ -3487,7 +3487,7 @@ function switchTab(tabNumber) {
     addTabClass(tabNumber);
     disableSeedSelect(false);
   } else if (tabNumber == 0) {
-    // 0は例外的に空tab選択可能にして、初期表示
+    // 中身が空かつ0は例外的に空tab選択可能にして、初期表示
     currentTab = tabNumber;
     // タブ自体の詳細/表示中を切り替え
     addTabClass(tabNumber);
