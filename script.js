@@ -2832,6 +2832,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   //種別錬金
 
+  //デュラン
+  if (skillUser.name ==="デュラン" && (skillTarget.type ==="tyoma" || skillTarget.type ==="tyoden")) {
+    damageModifier += 0.5;
+  }
+
   //Target対象バフ
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
