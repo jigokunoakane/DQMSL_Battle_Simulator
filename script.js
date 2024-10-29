@@ -2824,11 +2824,20 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
 
+  //User対象バフ
   //全属性バフ
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
   }
-  //軽減系
+  //特技錬金
+  if (skillUser.gear?.skillAlchemy) {
+    if (skillUser.gear?.skillAlchemy === executingSkill.name || (skillUser.gear?.skillAlchemy === "必殺の双撃" && executingSkill.name === "必殺の双撃後半")) {
+      damageModifier += skillUser.gear.skillAlchemyStrength;
+    }
+  }
+  //種別錬金
+
+  //Target対象バフ
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
     damageModifier += skillTarget.buffs.sinriReduction.strength;
@@ -4223,6 +4232,7 @@ const skill = [
     hitNum: 3,
     MPcost: 0,
     //act
+    //"そうびの特性により", "くじけぬ心が ゆらいだ！"
   },
   {
     name: "はやぶさ攻撃弱",
@@ -6214,8 +6224,9 @@ function executeWave(monster, isDivine = false) {
 
 //みがわり付与
 function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false) {
+  //石化へのみがわり失敗はprocessHit内の石化無効化で判定
   if (isAll) {
-    //自分以外に身代わりisSubstitutingがあるときはreturn hasだと仁王連続処理が初回で止まる
+    //自分以外に身代わりisSubstitutingがあるときは仁王立ち失敗で毎回return (hasだと初回付与したらそれ以降引っかかり連続処理が止まるのでこう処理)
     for (const monster of parties[skillUser.teamID]) {
       if (monster.flags.isSubstituting && monster.index !== skillUser.index) {
         return;
