@@ -2406,8 +2406,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let isReflection = false;
   let reflectionType = "yosoku";
 
-  // 石化無効化処理
-  if (skillTarget.buffs.stoned && executingSkill.name !== "いてつくはどう" && executingSkill.name !== "神のはどう" && executingSkill.name !== "プチ神のはどう") {
+  // 対象が石化かつダメージなしいてはでなければ無効化
+  if (skillTarget.buffs.stoned && !(executingSkill.howToCalculate === "none" && (executingSkill.appliedEffect === "divineWave" || executingSkill.appliedEffect === "disruptiveWave"))) {
     applyDamage(skillTarget, 0);
     return;
   }
@@ -2833,7 +2833,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //種別錬金
 
   //デュラン
-  if (skillUser.name ==="デュラン" && (skillTarget.type ==="tyoma" || skillTarget.type ==="tyoden")) {
+  if (skillUser.name === "デュラン" && (skillTarget.type === "tyoma" || skillTarget.type === "tyoden")) {
     damageModifier += 0.5;
   }
 
@@ -3983,8 +3983,15 @@ const monsters = [
     type: "demon",
     weight: "25",
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
-    defaultSkill: ["蟲惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
-    attribute: "",
+    defaultSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
+    attribute: {
+      initialBuffs: {
+        windBreak: { keepOnDeath: true, strength: 1 },
+      },
+      permanentBuffs: {
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
+      },
+    },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { spd: 1.2 },
     lsTarget: "demon",
@@ -3998,7 +4005,14 @@ const monsters = [
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     defaultSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
     defaultGear: "waveNail",
-    attribute: "",
+    attribute: {
+      initialBuffs: {
+        spdUp: { strength: 2 },
+      },
+      evenTurnBuffs: {
+        manaBoost: { strength: 1.5 },
+      },
+    },
     seed: { atk: 10, def: 55, spd: 30, int: 25 },
     ls: { spd: 1.18 },
     lsTarget: "demon",
@@ -4011,7 +4025,14 @@ const monsters = [
     weight: "28",
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
     defaultSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
-    attribute: "",
+    attribute: {
+      initialBuffs: {
+        thunderBreak: { keepOnDeath: true, strength: 1 },
+        asleepBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { keepOnDeath: true },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, slashBarrier: { strength: 1 } },
+    },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { HP: 1.15, def: 1.15 },
     lsTarget: "all",
@@ -4025,7 +4046,13 @@ const monsters = [
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     defaultSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
     defaultGear: "flute",
-    attribute: "",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        breathReflection: { strength: 1, keepOnDeath: true },
+      },
+    },
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1.3 },
     lsTarget: "demon",
@@ -4162,7 +4189,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const target of parties[skillUser.teamID]) {
                 if (target.type === "demon") {
-                  applyBuff(target, { martialBarrier: { strength: 1, targetType: "ally" }, slashBarrier: { strength: 1, targetType: "ally" } });
+                  applyBuff(target, { martialBarrier: { strength: 1 }, slashBarrier: { strength: 1 } });
                 } else {
                   displayMiss(target);
                 }
@@ -4188,6 +4215,68 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    magesu: {
+      supportAbilities: {
+        1: [
+          {
+            name: "道化の舞踏",
+            act: async function (skillUser) {
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { lightResistance: { strength: 1 } });
+                } else {
+                  displayMiss(target);
+                }
+              }
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { dodgeBuff: { strength: 0.5 } });
+                } else {
+                  displayMiss(target);
+                }
+              }
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { intUp: { strength: 1 } });
+                } else {
+                  displayMiss(target);
+                }
+              }
+            },
+          },
+          {
+            name: "デビルバーハ",
+            act: async function (skillUser) {
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { breathBarrier: { strength: 2 } });
+                } else {
+                  displayMiss(target);
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
+    tseru: {
+      supportAbilities: {
+        1: [
+          {
+            name: "魔女のベール",
+            act: async function (skillUser) {
+              for (const target of parties[skillUser.teamID]) {
+                if (target.type === "demon") {
+                  applyBuff(target, { slashBarrier: { strength: 1 }, paralyzeBarrier: { duration: 3 } });
+                } else {
+                  displayMiss(target);
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
   };
 
   return monsterAbilities[monsterId] || {};
@@ -4200,7 +4289,7 @@ const skill = [
     element: "",
   },
   {
-    name: "",
+    name: "sample",
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd
@@ -5674,8 +5763,176 @@ const skill = [
     preemptiveGroup: 5,
     appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true } },
     act: function (skillUser, skillTarget) {
-      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+      if (skillTarget.type === "demon") {
+        applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+      } else {
+        displayMiss(target);
+      }
     },
+  },
+  {
+    name: "秘術イオマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 90,
+    maxInt: 600,
+    maxIntDamage: 200,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 48,
+  },
+  {
+    name: "狂気のいあつ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 287,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    SubstituteBreaker: 3,
+    damageByLevel: true,
+    followingSkill: "狂気のいあつ魅了",
+  },
+  {
+    name: "狂気のいあつ魅了",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { tempted: { probability: 0.39 } },
+    followingSkill: "狂気のいあつルカニ",
+  },
+  {
+    name: "狂気のいあつルカニ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { defUp: { strength: -1, probability: 0.4 } },
+  },
+  {
+    name: "マインドバリア",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 27,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { mindBarrier: { duration: 4 } },
+  },
+  {
+    name: "あんこくのはばたき",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 56,
+    appliedEffect: "disruptiveWave",
+    followingSkill: "あんこくのはばたき後半",
+  },
+  {
+    name: "あんこくのはばたき後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { spellBarrier: { strength: -1, probability: 0.55 } },
+  },
+  {
+    name: "催眠の邪弾",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 600,
+    maxIntDamage: 162,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 72,
+    appliedEffect: { asleep: { probability: 0.53 } },
+  },
+  {
+    name: "夢の世界",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 39,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    isOneTimeUse: true,
+    appliedEffect: { protection: { strength: 0.9, duration: 2, removeAtTurnStart: true }, manaBoost: { strength: 2 }, asleepBreakBoost: { strength: 1, duration: 2, removeAtTurnStart: true } },
+    //本来は2R行動後にブレイクは消失
+  },
+  {
+    name: "ギラマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 38,
+  },
+  {
+    name: "幻術のひとみ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 48,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    appliedEffect: { asleep: { probability: 0.76 } },
+  },
+  {
+    name: "だいぼうぎょ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "me",
+    targetTeam: "ally",
+    MPcost: 37,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    isOneTimeUse: true,
+    appliedEffect: { protection: { strength: 0.9, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "精霊の守り・強",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 84,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { protection: { strength: 0.33, duration: 2, removeAtTurnStart: true } },
   },
 
   {},
