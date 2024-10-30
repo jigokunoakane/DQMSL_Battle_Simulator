@@ -1779,7 +1779,7 @@ async function processMonsterAction(skillUser) {
 
   function decideNormalAICommand(skillUser) {
     const availableSkills = [];
-    const unavailableSkillsOnAI = ["黄泉の封印", "超魔滅光", "神獣の封印", "エンドブレス", "涼風一陣", "昇天斬り", "誇りのつるぎ", "狂気のいあつ"];
+    const unavailableSkillsOnAI = ["黄泉の封印", "超魔滅光", "神獣の封印", "エンドブレス", "涼風一陣", "昇天斬り", "誇りのつるぎ", "狂気のいあつ", "メゾラゴン", "メラゾロス"];
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
@@ -1892,11 +1892,8 @@ async function processMonsterAction(skillUser) {
   const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
   await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
-  if (skillUser.commandTargetInput === "") {
-    executedSkills = await executeSkill(skillUser, executingSkill, null, true);
-  } else {
-    executedSkills = await executeSkill(skillUser, executingSkill, skillTargetTeam[parseInt(skillUser.commandTargetInput, 10)], true);
-  }
+  const commandTarget = skillUser.commandTargetInput === "" ? null : skillTargetTeam[parseInt(skillUser.commandTargetInput)];
+  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true);
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
   if (executingSkill.isOneTimeUse) {
