@@ -2795,7 +2795,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= skillTarget.buffs.metal.strength;
     //メタルキラー処理
     if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
-      damage *= 1 - skillUser.buffs.metalKiller.strength;
+      damage *= skillUser.buffs.metalKiller.strength;
     }
   }
 
