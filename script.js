@@ -1,4 +1,4 @@
-//初期処理
+//初期処理とglobal変数群
 const allParties = Array(10)
   .fill(null)
   .map(() => Array(5).fill([]));
@@ -6,6 +6,28 @@ const parties = [];
 
 let selectingPartyNum = 0;
 let selectingParty = allParties[0];
+let currentPlayer = "A";
+//モンスター装備変更用
+let selectingMonsterNum = 0;
+let selectingGearNum = 0;
+let currentTab = 0;
+
+//コマンド選択
+let currentMonsterIndex = 0;
+let currentTeamIndex = 0;
+
+//戦闘中に使用
+let fieldState = { turnNum: 0 };
+let turnOrder = [];
+// 死亡時発動能力のキュー
+let deathActionQueue = [];
+// processDeathActionの実行中かどうかを示すフラグ
+let isProcessingDeathAction = false;
+
+const imageCache = {};
+// 各モンスターのバフ表示を管理するオブジェクト
+let buffDisplayTimers = {};
+//あとはmonster dataとskill dataと装備data および各種特性関数
 
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
@@ -33,7 +55,6 @@ function updatePartyIcon(number) {
 }
 
 //どちらのプレイヤーがパテ選択中かの関数定義
-let currentPlayer = "A";
 function decideParty() {
   const switchPartyElement = document.getElementById("switchParty");
   if (currentPlayer === "A") {
@@ -157,8 +178,6 @@ function prepareBattle() {
   startTurn();
 }
 //finish prepareBattle 開始時処理終了
-
-let fieldState = { turnNum: 0 };
 
 //死亡処理で起動、死亡時や亡者化のicon変化処理、prepareBattlePageIconsでも起動して敵skill選択時の反転にそれを反映する
 //状態を変化させてから配列を渡せば、状態に合わせて自動的に更新
@@ -292,10 +311,6 @@ function setMonsterBarDisplay(isReverse = false) {
 }
 
 //////////////////////////////////////////////////////////////コマンド選択フロー
-
-let currentMonsterIndex = 0;
-let currentTeamIndex = 0;
-
 //////////////通常攻撃
 document.getElementById("commandNormalAttackBtn").addEventListener("click", function () {
   disableCommandBtn(true);
@@ -1607,7 +1622,6 @@ function updateCurrentStatus(monster) {
 }
 
 // 行動順を決定する関数 コマンド決定後にstartBattleで起動
-let turnOrder = [];
 function decideTurnOrder(parties, skills) {
   // 全てのモンスターを1つの配列にまとめる
   let allMonsters = parties.flat();
@@ -3022,12 +3036,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
   }
 }
 
-// 死亡時発動能力のキュー
-let deathActionQueue = [];
-
-// processDeathActionの実行中かどうかを示すフラグ
-let isProcessingDeathAction = false;
-
+// deathActionQueue および processDeathActionの実行中かどうかを示すフラグ: isProcessingDeathActionを使用
 // 死亡時発動能力の処理
 async function processDeathAction(skillUser, killedThisSkill) {
   // キューに死亡時発動能力を持つモンスターを追加する関数
@@ -3199,7 +3208,7 @@ function hasAbnormalityOfAINormalAttack(monster) {
 
 //monster選択部分
 //枠をクリック時、ウィンドウを開き、どの枠を選択中か取得、selectingMonsterIcon(partyIcon0-4)、selectingMonsterNum(0-4)
-let selectingMonsterNum = 0;
+//global: selectingMonsterNumを使用
 document.querySelectorAll(".partyIcon").forEach((icon) => {
   icon.addEventListener("click", function () {
     document.body.style.overflow = "hidden"; //todo:?
@@ -3256,7 +3265,7 @@ function selectMonster(monsterName) {
 
 //装備選択部分
 //装備枠クリック時、ウィンドウを開き、どの装備枠を選択中か取得
-let selectingGearNum = 0;
+//global: selectingGearNumを使用
 document.querySelectorAll(".partyGear").forEach((icon) => {
   icon.addEventListener("click", function () {
     //どの装備をクリックして選択中か格納
@@ -3473,7 +3482,7 @@ function addTabClass(targetTabNum) {
   targetTabButton.textContent = "表示中";
 }
 
-let currentTab = 0;
+//global: currentTabを使用
 function switchTab(tabNumber) {
   // tab button押した時または新規モンスター選択時に起動、currentTab更新、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
   // tabの中身が存在するとき
@@ -6453,7 +6462,7 @@ function addMirrorEffect(targetImageId) {
   }, 300);
 }
 
-const imageCache = {};
+//global: imageCache = {};を使用
 async function imageExists(imageUrl) {
   // 画像のURLごとにキャッシュを保持
   if (!(imageUrl in imageCache)) {
@@ -6467,9 +6476,7 @@ async function imageExists(imageUrl) {
   return await imageCache[imageUrl];
 }
 
-// 各モンスターのバフ表示を管理するオブジェクト
-let buffDisplayTimers = {};
-
+//global: buffDisplayTimers = {};を使用
 async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 前回のタイマーをクリア
   if (buffDisplayTimers[monster.monsterId]) {
