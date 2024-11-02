@@ -3533,6 +3533,8 @@ function switchTab(tabNumber) {
     document.getElementById("statusInfoDisplayStatusdef").textContent = "0";
     document.getElementById("statusInfoDisplayStatusspd").textContent = "0";
     document.getElementById("statusInfoDisplayStatusint").textContent = "0";
+    // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
+    displayGearIncrement();
     //種選択無効化
     disableSeedSelect(true);
   }
