@@ -165,6 +165,9 @@ function prepareBattle() {
       // 死亡時abilityを生成
       monster.abilities.deathAbilities = monster.abilities.deathAbilities || [];
       monster.abilities.additionalDeathAbilities = [];
+      // 行動後abilityを生成
+      monster.abilities.afterActionAbilities = monster.abilities.afterActionAbilities || [];
+      monster.abilities.additionalAfterActionAbilities = [];
     }
   }
 
@@ -1968,16 +1971,35 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
 
   // 7-4. 行動後発動特性の処理
-  /*
-  if (!skillUser.flags.hasDiedThisAction) {
-    for (const ability of Object.values(skillUser.abilities)) {
-      if (ability.trigger === "afterAction" && typeof ability.act === "function") {
-        await ability.act(skillUser, executingSkill, executedSkills);
-        await sleep(400); // 特性発動ごとに待機時間を設ける
+  async function executeAfterActionAbilities(monster) {
+    const abilitiesToExecute = [];
+    // 各ability配列の中身を展開して追加
+    abilitiesToExecute.push(...(monster.abilities.afterActionAbilities ?? []));
+    abilitiesToExecute.push(...(monster.abilities.additionalAfterActionAbilities ?? []));
+    for (const ability of abilitiesToExecute) {
+      // oneTimeUseで実行済 または発動不可能条件に当てはまった場合次のabilityへ
+      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(skillUser, executingSkill, executedSkills))) {
+        continue;
       }
+      if (ability.hasOwnProperty("message")) {
+        ability.message(monster);
+        await sleep(150);
+      } else if (ability.hasOwnProperty("name")) {
+        displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+        await sleep(150);
+      }
+      //実行済skillを渡す 最初の要素が選択したskill
+      await ability.act(skillUser, executingSkill, executedSkills);
+      //実行後の記録
+      if (ability.isOneTimeUse) {
+        monster.flags.executedAbilities.push(ability.name);
+      }
+      await sleep(200);
     }
   }
-    */
+  if (!skillUser.flags.killedThisTurn) {
+    await executeAfterActionAbilities(skillUser);
+  }
 
   // 7-5. 属性断罪の刻印処理
   if (!skillUser.flags.hasDiedThisAction) {
@@ -4249,6 +4271,22 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+      afterActionAbilities: [
+        {
+          name: "魔の心臓",
+          isOneTimeUse: true,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.type !== "martial",
+          act: async function (skillUser, executingSkill, executedSkills) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.type === "demon") {
+                applyBuff(monster, { revive: { keepOnDeath: true, strength: 0.5 } });
+              } else {
+                displayMiss(skillUser);
+              }
+            }
+          },
+        },
+      ],
     },
     rogos: {
       supportAbilities: {
