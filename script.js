@@ -1981,14 +1981,17 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(skillUser, executingSkill, executedSkills))) {
         continue;
       }
-      if (ability.hasOwnProperty("message")) {
-        ability.message(monster);
-        await sleep(150);
-      } else if (ability.hasOwnProperty("name")) {
-        displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-        await sleep(150);
+      if (!ability.disableMessage) {
+        if (ability.hasOwnProperty("message")) {
+          ability.message(monster);
+          await sleep(150);
+        } else if (ability.hasOwnProperty("name")) {
+          displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+          await sleep(150);
+        }
       }
-      //実行済skillを渡す 最初の要素が選択したskill
+      await sleep(150);
+      //実行済skillを渡して実行 最初の要素が選択したskill
       await ability.act(skillUser, executingSkill, executedSkills);
       //実行後の記録
       if (ability.isOneTimeUse) {
@@ -3125,12 +3128,14 @@ async function executeDeathAbilities(monster) {
       continue;
     }
     await sleep(500);
-    if (ability.hasOwnProperty("message")) {
-      ability.message(monster);
-      await sleep(150);
-    } else if (ability.hasOwnProperty("name")) {
-      displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-      await sleep(150);
+    if (!ability.disableMessage) {
+      if (ability.hasOwnProperty("message")) {
+        ability.message(monster);
+        await sleep(150);
+      } else if (ability.hasOwnProperty("name")) {
+        displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+        await sleep(150);
+      }
     }
     await ability.act(monster);
     //実行後の記録
@@ -4284,6 +4289,14 @@ function getMonsterAbilities(monsterId) {
                 displayMiss(skillUser);
               }
             }
+          },
+        },
+        {
+          name: "超回復",
+          isOneTimeUse: true,
+          disableMessage: true,
+          act: async function (skillUser, executingSkill, executedSkills) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
           },
         },
       ],
