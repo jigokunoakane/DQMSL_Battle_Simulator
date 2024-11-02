@@ -151,16 +151,20 @@ function prepareBattle() {
       monster.commandInput = "";
       monster.commandTargetInput = "";
       monster.buffs = {};
-      monster.flags = { unavailableSkills: [] };
+      monster.flags = { unavailableSkills: [], executedAbilities: [] };
       monster.attribute.additionalPermanentBuffs = {};
       // monsterAbilitiesの内容をmonsterDataにコピー
       monster.abilities = getMonsterAbilities(monster.id);
+      //supportAbilitiesまたはattackAbilitiesオブジェクトを生成、additionalPermanentとnextTurn配列を初期化
       monster.abilities.supportAbilities = monster.abilities.supportAbilities || {};
       monster.abilities.supportAbilities.additionalPermanentAbilities = [];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities = monster.abilities.attackAbilities || {};
       monster.abilities.attackAbilities.additionalPermanentAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
+      // 死亡時abilityを生成
+      monster.abilities.deathAbilities = monster.abilities.deathAbilities || [];
+      monster.abilities.additionalDeathAbilities = [];
     }
   }
 
@@ -896,13 +900,13 @@ async function startTurn() {
     }
 
     for (const ability of allAbilities) {
-      await sleep(150);
+      await sleep(300);
       if (ability.hasOwnProperty("message")) {
         ability.message(monster);
-        await sleep(150);
+        await sleep(200);
       } else if (ability.hasOwnProperty("name")) {
         displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-        await sleep(150);
+        await sleep(200);
       }
       await ability.act(monster);
     }
@@ -989,6 +993,9 @@ async function startBattle() {
 
 // バフ追加用関数
 function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, skipMessage = false) {
+  if (buffTarget.flags.isDead) {
+    return;
+  }
   // 重ねがけ可能なバフ
   const stackableBuffs = {
     baiki: { max: 2, min: -2 },
@@ -3085,28 +3092,32 @@ async function processDeathAction(skillUser, killedThisSkill) {
 // 死亡時発動能力を実行する関数
 async function executeDeathAbilities(monster) {
   const abilitiesToExecute = [];
-
   // 復活とタグ変化が予定されているか判定
   let isReviving = monster.buffs.revive || monster.buffs.tagTransformation;
-  /*
-  for (const ability of Object.values(monster.abilities)) {
-    if (ability.left === undefined || ability.left > 0) {
-      if (ability.triggerDeathType === "exceptRevive" && isReviving) {
-        continue;
-      }
-      abilitiesToExecute.push(ability);
-      if (ability.left !== undefined) {
-        ability.left--;
-      }
-    }
-  }
-
+  // 各ability配列の中身を展開して追加
+  abilitiesToExecute.push(...(monster.abilities.deathAbilities ?? []));
+  abilitiesToExecute.push(...(monster.abilities.additionalDeathAbilities ?? []));
   for (const ability of abilitiesToExecute) {
-    await sleep(350);
+    //実行済 または 蘇生かつ常に実行ではない能力の場合はcontinue
+    if (monster.flags.executedAbilities.includes(ability.name) || (isReviving && !ability.alwaysExecute)) {
+      continue;
+    }
+    await sleep(500);
+    if (ability.hasOwnProperty("message")) {
+      ability.message(monster);
+      await sleep(150);
+    } else if (ability.hasOwnProperty("name")) {
+      displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+      await sleep(150);
+    }
     await ability.act(monster);
-    await sleep(350);
+    //実行後の記録
+    if (ability.isOneTimeUse) {
+      monster.flags.executedAbilities.push(ability.name);
+    }
+    await sleep(200);
   }
-    */
+  await sleep(150);
 }
 
 // モンスターを蘇生させる関数
@@ -4205,6 +4216,38 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    tanisu: {
+      supportAbilities: {
+        1: [
+          {
+            name: "一族のいかり",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.type === "demon") {
+                  monster.abilities.additionalDeathAbilities.push({
+                    name: "一族のいかり",
+                    message: function (skillUser) {
+                      displayMessage(`${skillUser.name} がチカラつき`, " 一族のいかり の効果が発動！");
+                    },
+                    act: async function (skillUser) {
+                      for (const monster of parties[skillUser.teamID]) {
+                        if (monster.type === "demon") {
+                          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+                        } else {
+                          displayMiss(skillUser);
+                        }
+                      }
+                    },
+                  });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
     rogos: {
       supportAbilities: {
         permanentAbilities: [
@@ -4264,6 +4307,16 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+      deathAbilities: [
+        {
+          name: "道化のさいご",
+          act: async function (skillUser) {
+            for (const target of parties[skillUser.enemyTeamID]) {
+              applyBuff(target, { spellBarrier: { strength: -1, probability: 0.55 } });
+            }
+          },
+        },
+      ],
     },
     tseru: {
       supportAbilities: {
