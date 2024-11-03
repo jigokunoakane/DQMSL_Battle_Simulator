@@ -1073,7 +1073,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       continue;
     }
     // 1-2. statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
-    if (buffTarget.buffs.statusLock && (stackableBuffs.hasOwnProperty(buffName) || (buffData.hasOwnProperty("type") && buffData.type === "familyBuff"))) {
+    if (buffTarget.buffs.hasOwnProperty("statusLock") && (stackableBuffs.hasOwnProperty(buffName) || (buffData.hasOwnProperty("type") && buffData.type === "familyBuff"))) {
       continue;
     }
     // 1-3. 解除不可状態異常を上書きしない
@@ -5900,13 +5900,13 @@ const skill = [
     MPcost: 69,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true } },
     act: function (skillUser, skillTarget) {
       if (skillTarget.type === "demon") {
-        applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+        applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
       } else {
         displayMiss(target);
       }
+      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
     },
   },
   {
@@ -5923,6 +5923,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 48,
+    ignoreReflection: true,
   },
   {
     name: "狂気のいあつ",
