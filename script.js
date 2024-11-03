@@ -2007,29 +2007,29 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   // 7-5. 属性断罪の刻印処理
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
+      await sleep(400);
       const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
       console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
-      await sleep(400); // 属性断罪の刻印処理後に待機時間を設ける
     }
   }
 
   // 7-6. 毒・継続ダメージ処理
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.poisoned) {
+      await sleep(400);
       const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
       const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
       console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
-      await sleep(400); // 毒ダメージ処理後に待機時間を設ける
     }
   }
   if (!skillUser.flags.hasDiedThisAction) {
     if (skillUser.buffs.dotDamage) {
+      await sleep(400);
       const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
       console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
       applyDamage(skillUser, damage);
-      await sleep(400); // 継続ダメージ処理後に待機時間を設ける
     }
   }
 
@@ -6634,7 +6634,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     // 対応するアイコンが存在すればパスを更新
     const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
     for (const prop of buffAttributes) {
-      if (monster.buffs[buffKey][prop] !== undefined) {
+      if (monster.buffs[buffKey]?.[prop] !== undefined) {
         const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
         if (await imageExists(tempSrc)) {
           iconSrc = tempSrc;
