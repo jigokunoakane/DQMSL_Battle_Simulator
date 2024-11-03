@@ -4016,6 +4016,7 @@ const monsters = [
         thunderBreak: { keepOnDeath: true, strength: 2 },
         windBreak: { keepOnDeath: true, strength: 2 },
         darkBreak: { keepOnDeath: true, strength: 2 },
+        autoRadiantWave: { removeAtTurnStart: true, duration: 3, targetType: "ally" },
       },
       evenTurnBuffs: {
         thunderBreakBoost: { strength: 1, maxStrength: 3 },
