@@ -452,7 +452,7 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
     }
 
     // スキルが自分を対象外にする場合、自分の画像を暗転&無効化
-    if (excludeTarget && excludeTarget === "me" && currentMonsterIndex === i) {
+    if (excludeTarget && excludeTarget === "self" && currentMonsterIndex === i) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわりの場合、覆う中の対象を暗転&無効化
@@ -2370,7 +2370,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
       }
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
       break;
-    case "me":
+    case "self":
       // 自分自身をターゲット
       skillTarget = skillUser;
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction);
@@ -4415,7 +4415,7 @@ const skill = [
     element: "", //fire ice thunder io wind light dark
     targetType: "", //single random all me field
     targetTeam: "enemy", //ally enemy
-    excludeTarget: "me",
+    excludeTarget: "self",
     hitNum: 3,
     MPcost: 76,
     order: "", //preemptive anchor
@@ -4529,7 +4529,7 @@ const skill = [
     type: "notskill",
     howToCalculate: "none",
     element: "notskill",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 0,
     order: "preemptive",
@@ -4817,7 +4817,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "me",
+    excludeTarget: "self",
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 4,
@@ -4885,7 +4885,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 5,
     order: "preemptive",
@@ -4974,7 +4974,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 0,
     appliedEffect: { martialEvasion: { duration: 1, removeAtTurnStart: true } },
@@ -5001,7 +5001,7 @@ const skill = [
     type: "ritual",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 0,
     skipDeathCheck: true,
@@ -5023,7 +5023,7 @@ const skill = [
     type: "ritual",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 0,
     skipDeathCheck: true,
@@ -5295,7 +5295,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 60,
     order: "anchor",
@@ -5381,7 +5381,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     order: "preemptive",
     preemptiveGroup: 5,
@@ -5426,7 +5426,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     order: "preemptive",
     preemptiveGroup: 5,
@@ -5456,7 +5456,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 52,
     order: "preemptive",
@@ -5492,7 +5492,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "me",
+    excludeTarget: "self",
     MPcost: 16,
     order: "preemptive",
     preemptiveGroup: 3,
@@ -5985,7 +5985,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 39,
     order: "preemptive",
@@ -6026,7 +6026,7 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "me",
+    targetType: "self",
     targetTeam: "ally",
     MPcost: 37,
     order: "preemptive",
