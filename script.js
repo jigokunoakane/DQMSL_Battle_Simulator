@@ -2882,7 +2882,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //種別錬金
 
   //デュラン
-  if (skillUser.name === "デュラン" && (skillTarget.type === "tyoma" || skillTarget.type === "tyoden")) {
+  if (skillUser.id === "dhuran" && (skillTarget.type === "tyoma" || skillTarget.type === "tyoden") && hasEnoughMonstersOfType(parties[skillUser.teamID], "demon", 5)) {
     damageModifier += 0.5;
   }
 
@@ -5653,7 +5653,7 @@ const skill = [
     preemptiveGroup: 1,
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      if (parties[skillUser.teamID].length === 5 && parties[skillUser.teamID].every((monster) => monster.type === "demon")) {
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "demon", 5)) {
         skillUser.abilities.attackAbilities.nextTurnAbilities.push({
           act: function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
@@ -7116,4 +7116,18 @@ function col(argument) {
 function displayMiss(skillTarget) {
   displayMessage("しかし なにも おこらなかった！");
   displayDamage(skillTarget, 0);
+}
+
+// 自分を含めた数
+function hasEnoughMonstersOfType(party, targetType, requiredCount) {
+  if (requiredCount <= 0) {
+    return true; // requiredCountが0以下の場合はtrue
+  }
+  let count = 0;
+  for (const monster of party) {
+    if (monster && monster.type === targetType) {
+      count++;
+    }
+  }
+  return count >= requiredCount;
 }
