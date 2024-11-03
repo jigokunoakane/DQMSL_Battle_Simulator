@@ -3129,8 +3129,8 @@ async function executeDeathAbilities(monster) {
   abilitiesToExecute.push(...(monster.abilities.deathAbilities ?? []));
   abilitiesToExecute.push(...(monster.abilities.additionalDeathAbilities ?? []));
   for (const ability of abilitiesToExecute) {
-    //実行済 または 蘇生かつ常に実行ではない能力の場合はcontinue
-    if (monster.flags.executedAbilities.includes(ability.name) || (isReviving && !ability.alwaysExecute)) {
+    //実行済 または 蘇生かつ常に実行ではない能力 または使用不可能条件に引っかかった場合はcontinue
+    if (monster.flags.executedAbilities.includes(ability.name) || (isReviving && !ability.alwaysExecute) || (ability.unavailableIf && ability.unavailableIf(monster))) {
       continue;
     }
     await sleep(500);
