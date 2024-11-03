@@ -903,13 +903,19 @@ async function startTurn() {
     }
 
     for (const ability of allAbilities) {
+      // 発動不可能条件に当てはまった場合次のabilityへ
+      if (ability.unavailableIf && ability.unavailableIf(monster)) {
+        continue;
+      }
       await sleep(300);
-      if (ability.hasOwnProperty("message")) {
-        ability.message(monster);
-        await sleep(200);
-      } else if (ability.hasOwnProperty("name")) {
-        displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-        await sleep(200);
+      if (!ability.disableMessage) {
+        if (ability.hasOwnProperty("message")) {
+          ability.message(monster);
+          await sleep(200);
+        } else if (ability.hasOwnProperty("name")) {
+          displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+          await sleep(200);
+        }
       }
       await ability.act(monster);
     }
@@ -4302,6 +4308,26 @@ function getMonsterAbilities(monsterId) {
       ],
     },
     rogos: {
+      initialAbilities: [
+        {
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.type === "demon") {
+                monster.abilities.supportAbilities.additionalPermanentAbilities.push({
+                  name: "偽神の威光",
+                  message: function (skillUser) {
+                    displayMessage("偽神の威光の", "効果が発動！");
+                  },
+                  unavailableIf: (skillUser, executingSkill, executedSkills) => !skillUser.buffs.hasOwnProperty("autoRadiantWave"),
+                  act: async function (skillUser) {
+                    executeRadiantWave(skillUser);
+                  },
+                });
+              }
+            }
+          },
+        },
+      ],
       supportAbilities: {
         permanentAbilities: [
           {
