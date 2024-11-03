@@ -2868,7 +2868,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
 
-  //User対象バフ
+  //skillUser対象バフ
   //全属性バフ
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
@@ -2886,10 +2886,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damageModifier += 0.5;
   }
 
-  //Target対象バフ
+  //skillTarget対象バフ
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
-    damageModifier += skillTarget.buffs.sinriReduction.strength;
+    damageModifier -= skillTarget.buffs.sinriReduction.strength;
+  }
+  if (skillTarget.buffs.fireGuard && executingSkill.element === "fire") {
+    damageModifier -= skillTarget.buffs.fireGuard.strength;
   }
 
   damage *= damageModifier;
@@ -3671,7 +3674,7 @@ const monsters = [
       1: {
         powerCharge: { strength: 2 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
-        fireGuard: { strength: 50, duration: 4, targetType: "ally" },
+        fireGuard: { strength: 0.5, duration: 4, targetType: "ally" },
       },
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
