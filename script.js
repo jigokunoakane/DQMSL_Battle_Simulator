@@ -2864,6 +2864,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
+  // HP割合依存
+  if (executingSkill.damageByHpPercent) {
+    damage *= skillUser.currentStatus.HP / skillUser.defaultStatus.HP;
+  }
+
   //以下加算処理
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
@@ -3877,6 +3882,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
+        ioBreak: { keepOnDeath: true, strength: 2 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
@@ -4470,6 +4476,7 @@ const skill = [
     ignoreBaiki: true,
     ignoreManaBoost: true,
     ignorePowerCharge: true,
+    damageByHpPercent: true,
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}は闇に身をささげた！`);
     },
@@ -5368,12 +5375,17 @@ const skill = [
     name: "はめつの流星",
     type: "spell",
     howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 95,
+    maxInt: 1000,
+    maxIntDamage: 230,
+    skillPlus: 1.15,
     element: "io",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 88,
-    //damage
+    damageByHpPercent: true,
   },
   {
     name: "暗黒神の連撃",
@@ -5405,6 +5417,22 @@ const skill = [
     act: function (skillUser, skillTarget) {
       delete skillTarget.buffs.isUnbreakable;
     },
+  },
+  {
+    name: "爆炎の儀式",
+    type: "ritual",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 225,
+    maxInt: 600,
+    maxIntDamage: 365,
+    skillPlus: 1,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 65,
+    weakness18: true,
   },
   {
     name: "真・闇の結界",
