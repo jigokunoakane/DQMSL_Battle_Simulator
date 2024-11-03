@@ -5653,13 +5653,15 @@ const skill = [
     preemptiveGroup: 1,
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      skillUser.abilities.attackAbilities.nextTurnAbilities.push({
-        act: function (skillUser) {
-          for (const monster of parties[skillUser.teamID]) {
-            applyBuff(monster, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
-          }
-        },
-      });
+      if (parties[skillUser.teamID].length === 5 && parties[skillUser.teamID].every((monster) => monster.type === "demon")) {
+        skillUser.abilities.attackAbilities.nextTurnAbilities.push({
+          act: function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
+            }
+          },
+        });
+      }
     },
   },
   {
