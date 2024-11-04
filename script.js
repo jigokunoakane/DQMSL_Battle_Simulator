@@ -904,7 +904,7 @@ async function startTurn() {
 
     for (const ability of allAbilities) {
       // 発動不可能条件に当てはまった場合次のabilityへ
-      if (ability.unavailableIf && ability.unavailableIf(monster)) {
+      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
         continue;
       }
       await sleep(300);
@@ -918,6 +918,10 @@ async function startTurn() {
         }
       }
       await ability.act(monster);
+      //実行後の記録
+      if (ability.isOneTimeUse) {
+        monster.flags.executedAbilities.push(ability.name);
+      }
     }
     await sleep(150);
     // 実行後に削除
@@ -1984,7 +1988,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     abilitiesToExecute.push(...(monster.abilities.additionalAfterActionAbilities ?? []));
     for (const ability of abilitiesToExecute) {
       // oneTimeUseで実行済 または発動不可能条件に当てはまった場合次のabilityへ
-      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(skillUser, executingSkill, executedSkills))) {
+      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster, executingSkill, executedSkills))) {
         continue;
       }
       if (!ability.disableMessage) {
@@ -1998,7 +2002,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       }
       await sleep(150);
       //実行済skillを渡して実行 最初の要素が選択したskill
-      await ability.act(skillUser, executingSkill, executedSkills);
+      await ability.act(monster, executingSkill, executedSkills);
       //実行後の記録
       if (ability.isOneTimeUse) {
         monster.flags.executedAbilities.push(ability.name);
@@ -4141,6 +4145,57 @@ const monsters = [
 // 必要ならばasyncにするのに注意
 function getMonsterAbilities(monsterId) {
   const monsterAbilities = {
+    masudora: {
+      initialAbilities: [
+        {
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.type === "ドラゴン") {
+                monster.abilities.additionalAfterActionAbilities.push({
+                  name: "天の竜気上昇",
+                  disableMessage: true,
+                  unavailableIf: (skillUser, executingSkill, executedSkills) => {
+                    // 生存しているマスドラがいる場合は実行
+                    const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
+                    if (aliveMasudora.length < 1) {
+                      return true;
+                    } else {
+                      if (executingSkill.type === "breath") {
+                        return false;
+                      } else if (executingSkill.type === "martial") {
+                        return Math.random() < 0.576; //0.424
+                      } else {
+                        return true;
+                      }
+                    }
+                  },
+                  act: async function (skillUser) {
+                    applyDragonPreemptiveAction(skillUser);
+                  },
+                });
+              }
+            }
+          },
+        },
+      ],
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "天の竜気発動",
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => !skillUser.buffs.dragonPreemptiveAction || skillUser.buffs.dragonPreemptiveAction.strength < 3,
+            act: async function (skillUser) {
+              const aliveDragons = parties[skillUser.teamID].filter((member) => member.type === "ドラゴン" && !member.flags.isDead);
+              for (const member of aliveDragons) {
+                displayMessage("天の竜気の", "効果が発動！");
+                applyBuff(member, { preemptiveAction: {} });
+                await sleep(150);
+              }
+            },
+          },
+        ],
+      },
+    },
     nerugeru: {
       initialAbilities: [
         {
@@ -7161,4 +7216,15 @@ function hasEnoughMonstersOfType(party, targetType, requiredCount) {
     }
   }
   return count >= requiredCount;
+}
+
+// 竜気 行動後に上げる
+function applyDragonPreemptiveAction(skillUser) {
+  const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
+  const firstMasudora = aliveMasudora?.[0];
+  const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
+  for (const member of aliveMasudora) {
+    member.buffs.dragonPreemptiveAction = { strength: newStrength };
+  }
+  displayMessage("マスタードラゴンの", `天の竜気レベルが ${newStrength}に上がった！`);
 }
