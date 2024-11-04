@@ -744,6 +744,11 @@ async function startTurn() {
       if (monster.flags.hasSubstitute && !monster.flags.hasSubstitute.cover) {
         delete monster.flags.hasSubstitute;
       }
+      // ターン開始時時点のnextTurnAbilitiesを移管して初期化 これ以降にattackAbilities等の影響でnextTurnAbilitiesに追加されたものは次ターン実行
+      monster.abilities.supportAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.supportAbilities.nextTurnAbilities];
+      monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
+      monster.abilities.supportAbilities.nextTurnAbilities = [];
+      monster.abilities.attackAbilities.nextTurnAbilities = [];
     }
   }
   // ぼうぎょタグを削除
@@ -900,8 +905,8 @@ async function startTurn() {
     if (turnNum >= 2 && currentAbilities?.abilitiesFromTurn2?.length) {
       allAbilities.push(...currentAbilities.abilitiesFromTurn2);
     }
-    if (currentAbilities?.nextTurnAbilities?.length) {
-      allAbilities.push(...currentAbilities.nextTurnAbilities);
+    if (currentAbilities?.nextTurnAbilitiesToExecute?.length) {
+      allAbilities.push(...currentAbilities.nextTurnAbilitiesToExecute);
     }
 
     for (const ability of allAbilities) {
@@ -926,8 +931,6 @@ async function startTurn() {
       }
     }
     await sleep(150);
-    // 実行後に削除
-    currentAbilities.nextTurnAbilities = [];
   }
 
   // partiesに順番にバフ適用・supportAbilities発動
