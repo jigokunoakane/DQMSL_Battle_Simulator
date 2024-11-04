@@ -151,7 +151,7 @@ function prepareBattle() {
       monster.commandInput = "";
       monster.commandTargetInput = "";
       monster.buffs = {};
-      monster.flags = { unavailableSkills: [], executedAbilities: [] };
+      monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
       monster.attribute.additionalPermanentBuffs = {};
       // monsterAbilitiesの内容をmonsterDataにコピー
       monster.abilities = getMonsterAbilities(monster.id);
@@ -736,6 +736,8 @@ async function startTurn() {
       monster.modifiedSpeed = monster.currentStatus.spd * (0.975 + Math.random() * 0.05);
       //flag削除 ぼうぎょ・覆い隠す以外の身代わり
       delete monster.flags.guard;
+      //ターン限定flagsを初期化
+      monster.flags.thisTurn = {};
       if (monster.flags.isSubstituting && !monster.flags.isSubstituting.cover) {
         delete monster.flags.isSubstituting;
       }
@@ -2903,6 +2905,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damageModifier -= skillTarget.buffs.fireGuard.strength;
   }
 
+  //skill特有の特殊計算
+  if (executingSkill.damageModifier) {
+    damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
+  }
+
   damage *= damageModifier;
 
   // ダメージ付与処理
@@ -2913,8 +2920,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   applyDamage(skillTarget, damage, resistance);
 
-  //target生存かつdamageが0超えのときに、追加効果付与を実行
-  if (!skillTarget.flags.recentlyKilled && damage > 0) {
+  //常に実行 または target生存かつdamageが0超えのときに、追加効果付与を実行
+  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && damage > 0)) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
@@ -4542,6 +4549,10 @@ const skill = [
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
+    alwaysAct: true,
+    damageModifier: function (skillUser, skillTarget) {
+      return Math.pow(1.6, power) - 1;
+    },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
   {
@@ -4767,7 +4778,7 @@ const skill = [
     name: "エンドブレス",
     type: "breath",
     howToCalculate: "fix",
-    damage: 2000,
+    damage: 100,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -4775,6 +4786,18 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
+    act: function (skillUser, skillTarget) {
+      // バフ存在時は格納して削除、初撃はbuffsを、以降はflagsを参照して計算 毎ターン削除されるので安全
+      if (skillUser.buffs.dragonPreemptiveAction) {
+        skillUser.flags.thisTurn.dragonPreemptiveActionStr = skillUser.buffs.dragonPreemptiveAction.strength;
+        delete skillUser.buffs.dragonPreemptiveAction;
+      }
+    },
+    alwaysAct: true,
+    damageModifier: function (skillUser, skillTarget) {
+      const power = skillUser.buffs.dragonPreemptiveAction?.strength ?? skillUser.flags.thisTurn.dragonPreemptiveActionStr ?? 0;
+      return Math.pow(1.6, power) - 1;
+    },
   },
   {
     name: "テンペストブレス",
@@ -6163,7 +6186,19 @@ const skill = [
     preemptiveGroup: 2,
     appliedEffect: { protection: { strength: 0.33, duration: 2, removeAtTurnStart: true } },
   },
-
+  {
+    name: "debugbreath",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 2000,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 524,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreGuard: true,
+  },
   {},
 ];
 
@@ -6607,7 +6642,7 @@ document.getElementById("harvestBtn").addEventListener("click", function () {
   executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
 });
 document.getElementById("endBtn").addEventListener("click", function () {
-  executeSkill(parties[0][1], findSkillByName("エンドブレス"), parties[1][0]);
+  executeSkill(parties[0][1], findSkillByName("debugbreath"), parties[1][0]);
 });
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
