@@ -4159,7 +4159,9 @@ function getMonsterAbilities(monsterId) {
                     if (aliveMasudora.length < 1) {
                       return true;
                     } else {
-                      if (executingSkill.type === "breath") {
+                      if (executingSkill.name === "涼風一陣") {
+                        return false;
+                      } else if (executingSkill.type === "breath") {
                         return false;
                       } else if (executingSkill.type === "martial") {
                         return Math.random() < 0.576; //0.424
@@ -4168,8 +4170,8 @@ function getMonsterAbilities(monsterId) {
                       }
                     }
                   },
-                  act: async function (skillUser) {
-                    applyDragonPreemptiveAction(skillUser);
+                  act: async function (skillUser, executingSkill) {
+                    await applyDragonPreemptiveAction(skillUser, executingSkill);
                   },
                 });
               }
@@ -7218,7 +7220,7 @@ function hasEnoughMonstersOfType(party, targetType, requiredCount) {
 }
 
 // 竜気 行動後に上げる
-function applyDragonPreemptiveAction(skillUser) {
+async function applyDragonPreemptiveAction(skillUser, executingSkill) {
   const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
   const firstMasudora = aliveMasudora?.[0];
   const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
@@ -7226,4 +7228,13 @@ function applyDragonPreemptiveAction(skillUser) {
     member.buffs.dragonPreemptiveAction = { strength: newStrength };
   }
   displayMessage("マスタードラゴンの", `天の竜気レベルが ${newStrength}に上がった！`);
+  // 涼風の場合はさらに増加可能性
+  if (executingSkill.name === "涼風一陣" && Math.random() < 0.424) {
+    await sleep(150);
+    const ryouhuStrength = Math.min(newStrength + 1, 9);
+    for (const member of aliveMasudora) {
+      member.buffs.dragonPreemptiveAction = { strength: ryouhuStrength };
+    }
+    displayMessage("マスタードラゴンの", `天の竜気レベルが ${ryouhuStrength}に上がった！`);
+  }
 }
