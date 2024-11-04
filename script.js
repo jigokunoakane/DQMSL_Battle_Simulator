@@ -928,10 +928,9 @@ async function startTurn() {
     currentAbilities.nextTurnAbilities = [];
   }
 
-  // partiesに逆順でバフ適用・supportAbilities発動
+  // partiesに順番にバフ適用・supportAbilities発動
   await sleep(700);
-  for (let i = parties.length - 1; i >= 0; i--) {
-    const party = parties[i];
+  for (const party of parties) {
     for (const monster of party) {
       await applyBuffsForMonster(monster);
       await executeAbility(monster, "supportAbilities");
