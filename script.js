@@ -2300,6 +2300,11 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
     await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction);
 
+    //currentSkill実行後、生存している場合はselfAppliedEffect付与
+    if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
+      await currentSkill.selfAppliedEffect(skillUser);
+    }
+
     // followingSkillが存在する場合、次のスキルを代入してループ
     if (currentSkill.followingSkill) {
       currentSkill = findSkillByName(currentSkill.followingSkill);
@@ -4553,6 +4558,9 @@ const skill = [
       console.log("hoge");
     },
     alwaysAct: true,
+    selfAppliedEffect: async function (skillUser) {
+      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact
+    },
     damageModifier: function (skillUser, skillTarget) {
       return Math.pow(1.6, power) - 1;
     },
@@ -4789,17 +4797,12 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
-    act: function (skillUser, skillTarget) {
-      // バフ存在時は格納して削除、初撃はbuffsを、以降はflagsを参照して計算 毎ターン削除されるので安全
-      if (skillUser.buffs.dragonPreemptiveAction) {
-        skillUser.flags.thisTurn.dragonPreemptiveActionStr = skillUser.buffs.dragonPreemptiveAction.strength;
-        delete skillUser.buffs.dragonPreemptiveAction;
-      }
-    },
-    alwaysAct: true,
     damageModifier: function (skillUser, skillTarget) {
-      const power = skillUser.buffs.dragonPreemptiveAction?.strength ?? skillUser.flags.thisTurn.dragonPreemptiveActionStr ?? 0;
+      const power = skillUser.buffs.dragonPreemptiveAction?.strength ?? 0;
       return Math.pow(1.6, power) - 1;
+    },
+    selfAppliedEffect: async function (skillUser) {
+      delete skillUser.buffs.dragonPreemptiveAction;
     },
   },
   {
@@ -4985,6 +4988,10 @@ const skill = [
     preemptiveGroup: 8,
     criticalHitProbability: 0,
     ignoreDazzle: true,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    },
   },
   {
     name: "神獣の封印",
@@ -5414,15 +5421,15 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "self",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 60,
     order: "anchor",
     isOneTimeUse: true,
-    appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
     act: function (skillUser, skillTarget) {
       fieldState.isReverse = true;
       fieldState.isPermanentReverse = true;
+      applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } });
     },
   },
   {
