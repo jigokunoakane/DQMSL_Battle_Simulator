@@ -7270,7 +7270,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
   const firstMasudora = aliveMasudora?.[0];
   const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
   for (const member of aliveMasudora) {
-    member.buffs.dragonPreemptiveAction = { strength: newStrength };
+    member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: newStrength };
   }
   displayMessage("マスタードラゴンの", `天の竜気レベルが ${newStrength}に上がった！`);
   // 涼風の場合はさらに増加可能性
@@ -7278,7 +7278,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
     await sleep(150);
     const ryouhuStrength = Math.min(newStrength + 1, 9);
     for (const member of aliveMasudora) {
-      member.buffs.dragonPreemptiveAction = { strength: ryouhuStrength };
+      member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: ryouhuStrength };
     }
     displayMessage("マスタードラゴンの", `天の竜気レベルが ${ryouhuStrength}に上がった！`);
   }
