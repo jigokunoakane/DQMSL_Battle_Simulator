@@ -2912,6 +2912,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillUser.id === "dhuran" && (skillTarget.race === "超魔王" || skillTarget.race === "超伝説") && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
     damageModifier += 0.5;
   }
+  // world反撃ののろし
+  if (skillUser.buffs.worldBuff) {
+    damageModifier += skillUser.buffs.worldBuff.strength;
+  }
 
   //skillTarget対象バフ
   //全ダメージ軽減
@@ -4221,7 +4225,52 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    voruka: {
+      deathAbilities: [
+        {
+          name: "最後に祝福",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+            }
+          },
+        },
+      ],
+    },
     world: {
+      initialAbilities: [
+        {
+          name: "反撃ののろし",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              monster.abilities.additionalDeathAbilities.push({
+                name: "反撃ののろしダメージバフ",
+                message: function (skillUser) {
+                  displayMessage(`${skillUser.name} がチカラつき`, "反撃ののろし の効果が発動！");
+                },
+                act: async function (skillUser) {
+                  for (const monster of parties[skillUser.teamID]) {
+                    //直接挿入
+                    if (!monster.buffs.worldBuff) {
+                      monster.buffs.worldBuff = { keepOnDeath: true, strength: 0.05 };
+                    } else if (monster.buffs.worldBuff.strength === 0.05) {
+                      monster.buffs.worldBuff.strength = 0.1;
+                    } else {
+                      monster.buffs.worldBuff.strength = 0.15;
+                    }
+                    if (!monster.flags.isDead) {
+                      displayMessage(`${monster.name}の`, "与えるダメージが 上がった！");
+                      updateMonsterBuffsDisplay(monster);
+                      await sleep(150);
+                    }
+                  }
+                },
+              });
+            }
+          },
+        },
+      ],
       deathAbilities: [
         {
           name: "反撃ののろし回復",
@@ -4232,16 +4281,6 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
-            }
-          },
-        },
-        {
-          name: "反撃ののろしダメージバフ",
-          message: function (skillUser) {
-            displayMessage(`${skillUser.name} がチカラつき`, "反撃ののろし の効果が発動！");
-          },
-          act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
             }
           },
         },
@@ -7111,10 +7150,6 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     revive: {
       start: `${buffTarget.name}は`,
       message: "自動で復活する状態になった！",
-    },
-    worldBuff: {
-      start: `${buffTarget.name}の`,
-      message: "与えるダメージが 上がった！",
     },
     spellEvasion: {
       start: `${buffTarget.name}は`,
