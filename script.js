@@ -882,6 +882,7 @@ async function startTurn() {
 
   // 1モンスターのabilityを連続的に実行する関数
   async function executeAbility(monster, isSupportOrAttack) {
+    //他attackAbilitiesで死亡した場合はreturn todo: killedThisTurn化
     if (monster.flags.isDead || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
       return;
     }
@@ -4301,7 +4302,8 @@ function getMonsterAbilities(monsterId) {
       supportAbilities: {
         evenTurnAbilities: [
           {
-            name: "自然治癒",
+            name: "死の化身",
+            disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
             },
@@ -4322,7 +4324,8 @@ function getMonsterAbilities(monsterId) {
       supportAbilities: {
         permanentAbilities: [
           {
-            name: "自然治癒",
+            name: "堕天の化身",
+            disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
             },
@@ -4344,7 +4347,8 @@ function getMonsterAbilities(monsterId) {
         ],
         permanentAbilities: [
           {
-            name: "自然治癒",
+            name: "遡る時",
+            disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
             },
@@ -7150,6 +7154,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     revive: {
       start: `${buffTarget.name}は`,
       message: "自動で復活する状態になった！",
+    },
+    controlOfRapu: {
+      start: `${buffTarget.name}は`,
+      message: "暗黒神の支配状態になった",
     },
     spellEvasion: {
       start: `${buffTarget.name}は`,
