@@ -939,6 +939,7 @@ async function startTurn() {
     for (const monster of party) {
       await applyBuffsForMonster(monster);
       await executeAbility(monster, "supportAbilities");
+      await executeContinuousHealing(monster);
     }
   }
 
@@ -4220,6 +4221,32 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    world: {
+      deathAbilities: [
+        {
+          name: "反撃ののろし回復",
+          isOneTimeUse: true,
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}が チカラつき`, "反撃ののろしがあがった！");
+          },
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+            }
+          },
+        },
+        {
+          name: "反撃ののろしダメージバフ",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name} がチカラつき`, "反撃ののろし の効果が発動！");
+          },
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+            }
+          },
+        },
+      ],
+    },
     nerugeru: {
       initialAbilities: [
         {
@@ -4328,11 +4355,11 @@ function getMonsterAbilities(monsterId) {
           {
             name: "強者のいげん",
             act: async function (skillUser) {
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { martialBarrier: { strength: 1 }, slashBarrier: { strength: 1 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { martialBarrier: { strength: 1 }, slashBarrier: { strength: 1 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
             },
@@ -4388,7 +4415,6 @@ function getMonsterAbilities(monsterId) {
         },
         {
           name: "超回復",
-          isOneTimeUse: true,
           disableMessage: true,
           act: async function (skillUser, executingSkill, executedSkills) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
@@ -4438,25 +4464,25 @@ function getMonsterAbilities(monsterId) {
           {
             name: "道化の舞踏",
             act: async function (skillUser) {
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { lightResistance: { strength: 1 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { lightResistance: { strength: 1 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { dodgeBuff: { strength: 0.5 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { intUp: { strength: 1 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { intUp: { strength: 1 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
             },
@@ -4464,11 +4490,11 @@ function getMonsterAbilities(monsterId) {
           {
             name: "デビルバーハ",
             act: async function (skillUser) {
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { breathBarrier: { strength: 2 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { breathBarrier: { strength: 2 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
             },
@@ -4478,9 +4504,10 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "道化のさいご",
+          isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const target of parties[skillUser.enemyTeamID]) {
-              applyBuff(target, { spellBarrier: { strength: -1, probability: 0.55 } });
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { spellBarrier: { strength: -1, probability: 0.55 } });
             }
           },
         },
@@ -4492,11 +4519,11 @@ function getMonsterAbilities(monsterId) {
           {
             name: "魔女のベール",
             act: async function (skillUser) {
-              for (const target of parties[skillUser.teamID]) {
-                if (target.race === "悪魔") {
-                  applyBuff(target, { slashBarrier: { strength: 1 }, paralyzeBarrier: { duration: 3 } });
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  applyBuff(monster, { slashBarrier: { strength: 1 }, paralyzeBarrier: { duration: 3 } });
                 } else {
-                  displayMiss(target);
+                  displayMiss(monster);
                 }
               }
             },
@@ -7077,6 +7104,18 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}の`,
       message: "回避率が あがった！",
     },
+    continuousHealing: {
+      start: `${buffTarget.name}は`,
+      message: "HPが 回復する状態になった！",
+    },
+    revive: {
+      start: `${buffTarget.name}は`,
+      message: "自動で復活する状態になった！",
+    },
+    worldBuff: {
+      start: `${buffTarget.name}の`,
+      message: "与えるダメージが 上がった！",
+    },
     spellEvasion: {
       start: `${buffTarget.name}は`,
       message: "呪文攻撃を うけなくなった！",
@@ -7289,5 +7328,14 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
       member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: ryouhuStrength };
     }
     displayMessage("マスタードラゴンの", `天の竜気レベルが ${ryouhuStrength}に上がった！`);
+  }
+}
+
+// 継続回復
+async function executeContinuousHealing(monster) {
+  if (monster.buffs.continuousHealing) {
+    await sleep(200);
+    applyHeal(monster, 275);
+    await sleep(200);
   }
 }
