@@ -989,6 +989,14 @@ async function startTurn() {
     await executeAbility(monster, "attackAbilities");
   }
 
+  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
+      delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
+    }
+  }
+
   //popupを全て閉じてコマンドボタンを有効化、メッセージ表示
   closeSelectCommandPopupWindowContents();
   startSelectingCommandForFirstMonster(0);
