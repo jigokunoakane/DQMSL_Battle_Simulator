@@ -883,7 +883,7 @@ async function startTurn() {
 
   // 1モンスターのabilityを連続的に実行する関数
   async function executeAbility(monster, isSupportOrAttack) {
-    //他attackAbilitiesで死亡した場合はreturn todo: killedThisTurn化
+    //他attackAbilitiesで死亡した場合もreturnしない
     if (monster.flags.isDead || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
       return;
     }
@@ -2025,7 +2025,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       await sleep(200);
     }
   }
-  if (!skillUser.flags.killedThisTurn) {
+  if (!skillUser.commandInput === "skipThisTurn") {
     await executeAfterActionAbilities(skillUser);
   }
 
@@ -2311,6 +2311,10 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
     await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction);
 
+    //currentSkill実行後、生存にかかわらず実行するact
+    if (currentSkill.afterActionAct) {
+      await currentSkill.afterActionAct(skillUser);
+    }
     //currentSkill実行後、生存している場合はselfAppliedEffect付与
     if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
       await currentSkill.selfAppliedEffect(skillUser);
@@ -4696,6 +4700,9 @@ const skill = [
       console.log("hoge");
     },
     alwaysAct: true,
+    afterActionAct: async function (skillUser) {
+      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 死亡していても実行
+    },
     selfAppliedEffect: async function (skillUser) {
       console.log("hoge"); //missとかにかかわらず、一回だけ実行するact
     },
@@ -4939,7 +4946,7 @@ const skill = [
       const power = skillUser.buffs.dragonPreemptiveAction?.strength ?? 0;
       return Math.pow(1.6, power) - 1;
     },
-    selfAppliedEffect: async function (skillUser) {
+    afterActionAct: async function (skillUser) {
       delete skillUser.buffs.dragonPreemptiveAction;
     },
   },
