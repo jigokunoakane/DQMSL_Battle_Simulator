@@ -2035,31 +2035,40 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
 
   // 7-5. 属性断罪の刻印処理
-  if (skillUser.commandInput !== "skipThisTurn") {
-    if (skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
-      await sleep(400);
-      const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
-      console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
-      applyDamage(skillUser, damage);
-    }
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
+    await sleep(400);
+    const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
+    console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
+    applyDamage(skillUser, damage);
+    await checkRecentlyKilledFlag(skillUser);
   }
 
   // 7-6. 毒・継続ダメージ処理
-  if (skillUser.commandInput !== "skipThisTurn") {
-    if (skillUser.buffs.poisoned) {
-      await sleep(400);
-      const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-      const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
-      console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
-      applyDamage(skillUser, damage);
-    }
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
+    await sleep(400);
+    const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
+    const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
+    console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
+    displayMessage(`${skillUser.name}は`, "もうどくにおかされている！");
+    applyDamage(skillUser, damage);
+    await checkRecentlyKilledFlag(skillUser);
   }
-  if (skillUser.commandInput !== "skipThisTurn") {
-    if (skillUser.buffs.dotDamage) {
-      await sleep(400);
-      const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
-      console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
-      applyDamage(skillUser, damage);
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
+    await sleep(400);
+    const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
+    console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
+    displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
+    applyDamage(skillUser, damage);
+    await checkRecentlyKilledFlag(skillUser);
+  }
+
+  // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
+  async function checkRecentlyKilledFlag(monster) {
+    if (monster.flags.recentlyKilled) {
+      delete monster.flags.recentlyKilled;
+      const killedThisSkill = new Set();
+      killedThisSkill.add(monster);
+      await processDeathAction(monster, killedThisSkill);
     }
   }
 
