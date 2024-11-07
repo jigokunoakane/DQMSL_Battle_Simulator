@@ -3216,13 +3216,19 @@ async function reviveMonster(monster) {
   await sleep(400);
   let reviveSource = monster.buffs.tagTransformation || monster.buffs.revive;
 
-  delete monster.flags.isDead;
   if (reviveSource === monster.buffs.revive) {
+    // リザオ時、蘇生封じ持ちの場合はreturn
+    if (monster.buffs.reviveBlock) {
+      displayMiss(monster);
+      return;
+    }
+    // 蘇生封じなしの場合は蘇生
     monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * reviveSource.strength);
   } else {
-    //タッグ変化時はHPmaxで復活
+    // タッグ変化時はHPmaxで復活
     monster.currentStatus.HP = monster.defaultStatus.HP;
   }
+  delete monster.flags.isDead;
   updateMonsterBar(monster);
   updateBattleIcons(monster);
   console.log(`なんと${monster.name}が生き返った！`);
