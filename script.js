@@ -1963,10 +1963,14 @@ async function processMonsterAction(skillUser) {
 
 // 行動後処理
 async function postActionProcess(skillUser, executingSkill, executedSkills = null) {
+  // 各処理の前にskipThisTurn所持確認を行う
+  if (skillUser.commandInput === "skipThisTurn") {
+    return;
+  }
   // 7-2. flag付与
 
   // 7-3. AI追撃処理
-  if (!skillUser.flags.hasDiedThisAction && skillUser.AINormalAttack) {
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack) {
     const noAIskills = ["黄泉の封印", "神獣の封印"];
     if (
       !isDead(skillUser) &&
@@ -2025,12 +2029,13 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       await sleep(200);
     }
   }
-  if (!skillUser.commandInput === "skipThisTurn") {
+  // 行動後特性実行
+  if (skillUser.commandInput !== "skipThisTurn") {
     await executeAfterActionAbilities(skillUser);
   }
 
   // 7-5. 属性断罪の刻印処理
-  if (!skillUser.flags.hasDiedThisAction) {
+  if (skillUser.commandInput !== "skipThisTurn") {
     if (skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
       await sleep(400);
       const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
@@ -2040,7 +2045,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
 
   // 7-6. 毒・継続ダメージ処理
-  if (!skillUser.flags.hasDiedThisAction) {
+  if (skillUser.commandInput !== "skipThisTurn") {
     if (skillUser.buffs.poisoned) {
       await sleep(400);
       const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
@@ -2049,7 +2054,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       applyDamage(skillUser, damage);
     }
   }
-  if (!skillUser.flags.hasDiedThisAction) {
+  if (skillUser.commandInput !== "skipThisTurn") {
     if (skillUser.buffs.dotDamage) {
       await sleep(400);
       const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
@@ -2058,7 +2063,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     }
   }
 
-  // 7-7. 被ダメージ時発動skill処理 反撃のみisDead判定
+  // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するのでisDeadで判定
   if (!skillUser.flags.isDead) {
     for (const enemy of parties[skillUser.enemyTeamID]) {
       if (enemy.flags.isRecentlyDamaged && !enemy.flags.isDead) {
@@ -2239,7 +2244,6 @@ function handleDeath(target, hideDeathMessage = false) {
   // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
   if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
     target.commandInput = "skipThisTurn";
-    target.flags.hasDiedThisAction = true;
     //次のhitSequenceも実行しない
   }
   updateMonsterBar(target, true); //isDead付与後にupdateでbar非表示化
@@ -2288,15 +2292,6 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       for (const monster of party) {
         if (monster.flags.isDead) {
           killedThisSkill.add(monster);
-        }
-      }
-    }
-
-    //コマンドによるskill実行時にまず全てのskillUser死亡検知フラグをリセット
-    if (isProcessMonsterAction) {
-      for (const party of parties) {
-        for (const monster of party) {
-          delete monster.flags.hasDiedThisAction;
         }
       }
     }
@@ -6739,7 +6734,6 @@ document.getElementById("resetBtn").addEventListener("click", function () {
     for (const monster of party) {
       monster.currentStatus.HP = 200;
       delete monster.flags.beforeDeathActionCheck;
-      delete monster.flags.hasDiedThisAction;
       delete monster.flags.isDead;
       delete monster.flags.isZombie;
       applyDamage(monster, -1500, -1);
