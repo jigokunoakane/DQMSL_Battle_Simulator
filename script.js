@@ -7313,6 +7313,7 @@ async function transformTyoma(monster) {
     monster.skill[2] = "永劫の闇冥";
     displayMessage("＊「くだらぬ希望など", "  すべて消し去ってやろう。");
   } else if (monster.name === "超ラプ") {
+    monster.buffs.ioBreak.strength = 3;
     monster.skill[0] = "真・神々の怒り";
     monster.skill[1] = "爆炎の儀式";
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
@@ -7353,8 +7354,10 @@ async function transformTyoma(monster) {
     displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
     for (const party of parties) {
       for (const monster of party) {
-        delete monster.buffs.nonElementalResistance;
-        updateMonsterBuffsDisplay(monster);
+        if (monster.buffs.nonElementalResistance && monster.name !== "超ラプ") {
+          delete monster.buffs.nonElementalResistance;
+          updateMonsterBuffsDisplay(monster);
+        }
       }
     }
   }
