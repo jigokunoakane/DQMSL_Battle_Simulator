@@ -728,6 +728,7 @@ async function startTurn() {
   if (!fieldState.isPermanentDistorted) {
     delete fieldState.isDistorted;
   }
+  removeAllStickOut();
 
   //ターン開始時loop
   for (const party of parties) {
