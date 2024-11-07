@@ -2034,6 +2034,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     await executeAfterActionAbilities(skillUser);
   }
 
+  // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行するcheckRecentlyKilledFlag
   // 7-5. 属性断罪の刻印処理
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
     await sleep(400);
@@ -2062,16 +2063,6 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     await checkRecentlyKilledFlag(skillUser);
   }
 
-  // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
-  async function checkRecentlyKilledFlag(monster) {
-    if (monster.flags.recentlyKilled) {
-      delete monster.flags.recentlyKilled;
-      const killedThisSkill = new Set();
-      killedThisSkill.add(monster);
-      await processDeathAction(monster, killedThisSkill);
-    }
-  }
-
   // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するのでisDeadで判定
   if (!skillUser.flags.isDead) {
     for (const enemy of parties[skillUser.enemyTeamID]) {
@@ -2084,6 +2075,16 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
         }
       }
     }
+  }
+}
+
+// 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
+async function checkRecentlyKilledFlag(monster) {
+  if (monster.flags.recentlyKilled) {
+    delete monster.flags.recentlyKilled;
+    const killedThisSkill = new Set();
+    killedThisSkill.add(monster);
+    await processDeathAction(monster, killedThisSkill);
   }
 }
 
@@ -2960,7 +2961,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
-  //ダメージ処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
+  //ダメージとact処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
   if (skillTarget.flags.recentlyKilled) {
     if (!killedThisSkill.has(skillTarget)) {
       killedThisSkill.add(skillTarget);
@@ -3161,7 +3162,11 @@ async function processDeathAction(skillUser, killedThisSkill) {
     delete monster.flags.beforeDeathActionCheck;
 
     // 死亡時発動能力の実行
-    await executeDeathAbilities(monster);
+    if (monster.flags.skipDeathAbility) {
+      delete monster.flags.skipDeathAbility;
+    } else {
+      await executeDeathAbilities(monster);
+    }
 
     // 復活処理
     if (monster.buffs.revive || monster.buffs.tagTransformation) {
@@ -5267,6 +5272,7 @@ const skill = [
     },
     act: function (skillUser, skillTarget) {
       handleDeath(skillUser, true);
+      skillUser.flags.skipDeathAbility = true;
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
     followingSkill: "供物をささげる死亡",
@@ -5285,6 +5291,7 @@ const skill = [
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
         handleDeath(nerugeru, true);
+        skillUser.flags.skipDeathAbility = true;
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
           nerugeru.flags.willTransform = true;
