@@ -2335,7 +2335,7 @@ async function processHitSequence(skillUser, executingSkill, assignedTarget, kil
   //毎回deathActionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
   //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
-  if (skillUser.flags.hasDiedThisAction && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) && !executingSkill.skipDeathCheck) {
+  if (skillUser.commandInput === "skipThisTurn" && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) && !executingSkill.skipDeathCheck) {
     return;
   }
 
