@@ -1953,7 +1953,7 @@ async function processMonsterAction(skillUser) {
       delete monster.flags.willTransformOmudo;
     }
   }
-  if (skillUser.name === "超オムド") {
+  if (skillUser.name === "超オムド" && executingSkill.type !== "notskill") {
     skillUser.flags.willTransformOmudo = true;
   }
 
@@ -2925,6 +2925,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   if (skillTarget.buffs.fireGuard && executingSkill.element === "fire") {
     damageModifier -= skillTarget.buffs.fireGuard.strength;
+  }
+  //被ダメージ増加
+  if (skillTarget.buffs.controlOfRapu) {
+    damageModifier += 0.2;
   }
 
   //skill特有の特殊計算
@@ -4356,6 +4360,7 @@ function getMonsterAbilities(monsterId) {
         ],
         evenTurnAbilities: [
           {
+            name: "偶数ラウンドリバース",
             message: function (skillUser) {
               displayMessage(`${skillUser.name}の特性により`, "リバースが 発動！");
             },
@@ -4369,11 +4374,65 @@ function getMonsterAbilities(monsterId) {
       attackAbilities: {
         permanentAbilities: [
           {
+            name: "オムド変身",
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => !skillUser.flags.willTransformOmudo || skillUser.flags.hasTransformed,
             act: async function (skillUser) {
-              if (skillUser.flags.willTransformOmudo && !skillUser.flags.hasTransformed) {
-                delete skillUser.flags.willTransformOmudo;
-                await transformTyoma(skillUser);
+              delete skillUser.flags.willTransformOmudo;
+              await transformTyoma(skillUser);
+            },
+          },
+        ],
+      },
+    },
+    rapu: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "混沌の化身",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "ラプ変身",
+            disableMessage: true,
+            unavailableIf: (skillUser) => {
+              // turnNum管理で直前のtargetのみを指定、支配更新による旧flag削除がラプ死亡により行われなくてもそれは対象にしない
+              const previousTarget = parties[skillUser.enemyTeamID].find((member) => member.flags.rapuFlag === fieldState.turnNum);
+              if (skillUser.flags.hasTransformed) {
+                return true;
+              } else if (previousTarget && previousTarget.flags.isDead) {
+                //未変身かつ対象が死亡していたら変身処理へ
+                return false;
+              } else {
+                return true;
               }
+            },
+            act: async function (skillUser) {
+              await transformTyoma(skillUser);
+            },
+          },
+          {
+            name: "暗黒神の支配",
+            act: async function (skillUser) {
+              // 一応既存のflagをすべて削除
+              for (const party of parties) {
+                for (const monster of party) {
+                  delete monster.flags.rapuFlag;
+                }
+              }
+              // デバフ付与: 自動解除  flag付与: 判定される次ターンを格納
+              const aliveEnemies = parties[skillUser.enemyTeamID].filter((member) => !member.flags.isDead);
+              const newTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+              //TODO: newTargetが存在しない=全滅時にはerror
+              applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+              newTarget.flags.rapuFlag = fieldState.turnNum + 1;
             },
           },
         ],
@@ -7236,7 +7295,8 @@ async function transformTyoma(monster) {
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
   delete monster.buffs.stoned;
-  // 各種message
+
+  // skill変更と、各種message
   if (monster.name === "超エルギ") {
     monster.skill[0] = "絶望の天舞";
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
@@ -7253,11 +7313,14 @@ async function transformTyoma(monster) {
     displayMessage("＊「くだらぬ希望など", "  すべて消し去ってやろう。");
   } else if (monster.name === "超ラプ") {
     monster.skill[0] = "真・神々の怒り";
+    monster.skill[1] = "爆炎の儀式";
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
   }
   await sleep(400);
-  // 各種buff
+
+  // 共通バフ
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+  // 各種buff
   if (monster.name === "超エルギ") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
@@ -7265,10 +7328,10 @@ async function transformTyoma(monster) {
         await executeSkill(skillUser, findSkillByName("堕天使の理"));
       },
     });
-  }
-  if (monster.name === "超ネルゲル") {
+  } else if (monster.name === "超ネルゲル") {
     applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
   }
+
   // 回復
   if (monster.name !== "超ネルゲル") {
     //ネルのみHP回復を実行しない
@@ -7276,15 +7339,25 @@ async function transformTyoma(monster) {
     applyDamage(monster, monster.defaultStatus.HP, -1);
   }
   await sleep(500);
-  applyDamage(monster, monster.defaultStatus.MP, -1, true);
+  applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
+
+  // 回復後発動する変身時特性など
   if (monster.name === "超オムド") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
     fieldState.isDistorted = true;
     fieldState.isPermanentDistorted = true;
+  } else if (monster.name === "超ラプ") {
+    await sleep(400);
+    displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
+    for (const party of parties) {
+      for (const monster of party) {
+        delete monster.buffs.nonElementalResistance;
+        updateMonsterBuffsDisplay(monster);
+      }
+    }
   }
   await sleep(400);
-  //変身時特性など
 }
 
 function deleteSubstitute(target) {
