@@ -29,6 +29,9 @@ const imageCache = {};
 let buffDisplayTimers = {};
 //あとはmonster dataとskill dataと装備data および各種特性関数
 
+// 元のsleep関数を保存
+const originalSleep = sleep;
+
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
   //switchPartyに変更
@@ -6513,28 +6516,6 @@ const gearAbilities = {
   },
 };
 
-document.getElementById("elementErrorBtn").addEventListener("click", function () {
-  const elementErrorText = document.getElementById("elementErrorBtn").textContent;
-  if (elementErrorText === "エレエラ") {
-    document.getElementById("elementErrorBtn").textContent = "エラ解除";
-    fieldState.isDistorted = true;
-  } else {
-    document.getElementById("elementErrorBtn").textContent = "エレエラ";
-    delete fieldState.isDistorted;
-  }
-});
-
-document.getElementById("ReverseBtn").addEventListener("click", function () {
-  const reverseText = document.getElementById("ReverseBtn").textContent;
-  if (reverseText === "リバ化") {
-    document.getElementById("ReverseBtn").textContent = "リバ解除";
-    fieldState.isReverse = true;
-  } else {
-    document.getElementById("ReverseBtn").textContent = "リバ化";
-    fieldState.isReverse = false;
-  }
-});
-
 //画像の暗転と無効化 trueで暗転
 function toggleDarkenAndClick(imgElement, enable) {
   if (enable) {
@@ -6751,7 +6732,11 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false) {
   }
 }
 
-document.getElementById("resetBtn").addEventListener("click", function () {
+document.getElementById("resetBtn").addEventListener("click", async function () {
+  toggleSleep();
+  //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
+  await originalSleep(700);
+  toggleSleep();
   for (const party of parties) {
     for (const monster of party) {
       monster.currentStatus.HP = 200;
@@ -6765,6 +6750,28 @@ document.getElementById("resetBtn").addEventListener("click", function () {
     }
   }
   prepareBattle();
+});
+
+document.getElementById("elementErrorBtn").addEventListener("click", function () {
+  const elementErrorText = document.getElementById("elementErrorBtn").textContent;
+  if (elementErrorText === "エレエラ") {
+    document.getElementById("elementErrorBtn").textContent = "エラ解除";
+    fieldState.isDistorted = true;
+  } else {
+    document.getElementById("elementErrorBtn").textContent = "エレエラ";
+    delete fieldState.isDistorted;
+  }
+});
+
+document.getElementById("ReverseBtn").addEventListener("click", function () {
+  const reverseText = document.getElementById("ReverseBtn").textContent;
+  if (reverseText === "リバ化") {
+    document.getElementById("ReverseBtn").textContent = "リバ解除";
+    fieldState.isReverse = true;
+  } else {
+    document.getElementById("ReverseBtn").textContent = "リバ化";
+    fieldState.isReverse = false;
+  }
 });
 
 document.getElementById("hametsuBtn").addEventListener("click", function () {
@@ -6815,6 +6822,23 @@ document.getElementById("harvestBtn").addEventListener("click", function () {
 document.getElementById("endBtn").addEventListener("click", function () {
   executeSkill(parties[0][1], findSkillByName("debugbreath"), parties[1][0]);
 });
+
+document.getElementById("skipBtn").addEventListener("click", function () {
+  toggleSleep();
+});
+
+function toggleSleep() {
+  if (originalSleep === sleep) {
+    document.getElementById("skipBtn").textContent = "skip解除";
+    sleep = function (milliseconds) {
+      return Promise.resolve(); // 即時解決するPromiseを返す
+    };
+  } else {
+    document.getElementById("skipBtn").textContent = "skip";
+    // 元のsleep関数に戻す
+    sleep = originalSleep;
+  }
+}
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
