@@ -1120,6 +1120,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffName === "nonElementalResistance") {
       buffData.unDispellable = true;
     }
+    //蘇生封じをkeepOnDeath化
+    if (buffName === "reviveBlock") {
+      buffData.keepOnDeath = true;
+    }
     //breakBoostの追加付与を可能に
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
@@ -5203,7 +5207,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 39,
     isOneTimeUse: true,
-    appliedEffect: { sealed: {}, reviveBlock: { keepOnDeath: true } },
+    appliedEffect: { sealed: {}, reviveBlock: { unDispellableByRadiantWave: true } },
   },
   {
     name: "暗黒閃",
@@ -6811,8 +6815,7 @@ document.getElementById("materialBtn").addEventListener("click", function () {
 
 document.getElementById("rezaoBtn").addEventListener("click", function () {
   for (const monster of parties[1]) {
-    monster.buffs.revive = { keepOnDeath: true, strength: 0.5 };
-    updateMonsterBuffsDisplay(monster);
+    applyBuff(monster, { revive: { keepOnDeath: true, strength: 0.5 } });
   }
   displayMessage("リザオ付与");
 });
