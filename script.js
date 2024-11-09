@@ -171,6 +171,9 @@ function prepareBattle() {
       // 行動後abilityを生成
       monster.abilities.afterActionAbilities = monster.abilities.afterActionAbilities || [];
       monster.abilities.additionalAfterActionAbilities = [];
+      // 反撃abilityを生成
+      monster.abilities.counterAbilities = monster.abilities.counterAbilities || [];
+      monster.abilities.additionalCounterAbilities = [];
     }
   }
 
@@ -2068,16 +2071,19 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     await checkRecentlyKilledFlag(skillUser);
   }
 
-  // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するのでisDeadで判定
+  // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   col(damagedMonsters);
-  if (!skillUser.flags.isDead) {
-    for (const monster of parties[skillUser.enemyTeamID]) {
-      if (damagedMonsters.includes(monster.monsterId)) {
-        await executeCounterAbilities(monster);
-      }
+  for (const monster of parties[skillUser.enemyTeamID]) {
+    if (damagedMonsters.includes(monster.monsterId)) {
+      await executeCounterAbilities(monster);
     }
   }
   async function executeCounterAbilities(monster) {
+    // 反撃者が死亡時は反撃しない リザオなどで蘇生してたら反撃  被反撃者の生死は考慮しない(リザオ等で蘇生しても発動,反射や死亡時で死んでも他に飛んでいくので制限なし)
+    if (monster.flags.isDead) {
+      return;
+    }
+    await sleep(300);
     const abilitiesToExecute = [];
     // 各ability配列の中身を展開して追加
     abilitiesToExecute.push(...(monster.abilities.counterAbilities ?? []));
@@ -2103,7 +2109,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
       if (ability.isOneTimeUse) {
         monster.flags.executedAbilities.push(ability.name);
       }
-      await sleep(300); //多め
+      await sleep(200); //多め
       return; // 1つだけ実行
     }
   }
@@ -4384,6 +4390,18 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+      afterActionAbilities: [
+        {
+          name: "冥王の構え付与",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性により`, "冥王の構え が発動！");
+          },
+          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.type !== "slash",
+          act: async function (skillUser, executingSkill) {
+            await executeSkill(skillUser, findSkillByName("冥王の構え"));
+          },
+        },
+      ],
     },
     erugi: {
       initialAbilities: [
@@ -5380,6 +5398,30 @@ const skill = [
         updateBattleIcons(nerugeru);
         await transformTyoma(nerugeru);
       }
+    },
+  },
+  {
+    name: "冥王の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 22,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}は`, "攻撃に対して 反撃する状態になった！");
+    },
+    appliedEffect: { counterAttack: { keepOnDeath: true, decreaseTurnEnd: true, duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.additionalCounterAbilities.push({
+        name: "冥王の構え反撃状態",
+        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+        act: async function (skillUser, counterTarget) {
+          await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
+        },
+      });
     },
   },
   {
