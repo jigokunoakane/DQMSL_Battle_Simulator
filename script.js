@@ -7167,13 +7167,19 @@ function executeRadiantWave(monster) {
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア
 function executeWave(monster, isDivine = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock ", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock"];
-  monster.buffs = Object.fromEntries(
-    Object.entries(monster.buffs).filter(
-      ([key, value]) =>
-        keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable) // いてはの場合のみdivineDispellableも残す
-    )
-  );
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock"];
+  const newBuffs = {};
+  for (const key in monster.buffs) {
+    const value = monster.buffs[key];
+    // 削除条件 竜王杖のようなunDispellable指定以外は削除
+    if ((key === "counterAttack" || key === "revive") && !value.unDispellable && (!value.divineDispellable || isDivine)) {
+      continue;
+    }
+    if (keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable)) {
+      newBuffs[key] = value;
+    }
+  }
+  monster.buffs = newBuffs;
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
 }
