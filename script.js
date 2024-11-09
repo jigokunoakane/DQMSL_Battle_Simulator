@@ -1530,6 +1530,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           delete buffTarget.buffs[reflection];
         }
       }
+      // 反撃も解除
+      if (buffTarget.buffs.counterAttack) {
+        delete buffTarget.buffs.counterAttack;
+      }
     }
     //反射の場合にエフェクト追加
     if (reflectionMap.includes(buffName)) {
