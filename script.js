@@ -2316,7 +2316,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかで実行
-  while (currentSkill && (commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
+  while (currentSkill && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
@@ -5379,6 +5379,26 @@ const skill = [
         updateBattleIcons(nerugeru);
         await transformTyoma(nerugeru);
       }
+    },
+  },
+  {
+    name: "冥王の構え反撃",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 50,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    isCounterSkill: true,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}の 反撃！`);
+    },
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.isUnbreakable;
     },
   },
   {
