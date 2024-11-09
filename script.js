@@ -2352,7 +2352,10 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
+    col(currentSkill);
     await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
+    console.log(`${skillUser.name}が${currentSkill.name}を実行`);
+    col(currentSkill);
 
     //currentSkill実行後、生存にかかわらず実行するact
     if (currentSkill.afterActionAct) {
@@ -2394,7 +2397,7 @@ async function processHitSequence(
   //毎回deathActionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
   //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
-  if (!(skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
+  if (!(skillUser.commandInput !== "skipThisTurn" || executingSkill.skipDeathCheck || (executingSkill.isCounterSkill && !skillUser.flags.isDead))) {
     return;
   }
 
