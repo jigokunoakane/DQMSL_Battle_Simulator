@@ -4728,6 +4728,16 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    mudo: {
+      counterAbilities: [
+        {
+          name: "ねむりボディ",
+          act: async function (skillUser, counterTarget) {
+            applyBuff(counterTarget, { asleep: { probability: 0.562 } }, skillUser);
+          },
+        },
+      ],
+    },
   };
 
   return monsterAbilities[monsterId] || {};
