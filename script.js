@@ -5369,7 +5369,7 @@ const skill = [
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
         handleDeath(nerugeru, true);
-        skillUser.flags.skipDeathAbility = true;
+        nerugeru.flags.skipDeathAbility = true;
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
           nerugeru.flags.willTransform = true;
