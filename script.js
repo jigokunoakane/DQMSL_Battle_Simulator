@@ -2082,7 +2082,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
     // 各ability配列の中身を展開して追加
     abilitiesToExecute.push(...(monster.abilities.counterAbilities ?? []));
     abilitiesToExecute.push(...(monster.abilities.additionalCounterAbilities ?? []));
-    for (const ability of abilitiesToExecute) {
+    for (const ability of abilitiesToExecute.reverse()) {
       // oneTimeUseで実行済 または発動不可能条件に当てはまった場合次のabilityへ
       if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
         continue;
@@ -2104,6 +2104,7 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
         monster.flags.executedAbilities.push(ability.name);
       }
       await sleep(300); //多め
+      return; // 1つだけ実行
     }
   }
 }
