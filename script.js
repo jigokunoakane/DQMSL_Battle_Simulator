@@ -2315,7 +2315,8 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let executedSkills = [];
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
-  while (currentSkill && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
+  // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかで実行
+  while (currentSkill && (commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
@@ -2351,7 +2352,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       await currentSkill.afterActionAct(skillUser);
     }
     //currentSkill実行後、生存している場合はselfAppliedEffect付与
-    if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck)) {
+    if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
       await currentSkill.selfAppliedEffect(skillUser);
     }
 
@@ -2386,7 +2387,7 @@ async function processHitSequence(
   //毎回deathActionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
   //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
-  if (skillUser.commandInput === "skipThisTurn" && (!executingSkill.trigger || (executingSkill.trigger !== "death" && executingSkill.trigger !== "damageTaken")) && !executingSkill.skipDeathCheck) {
+  if (!(skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
     return;
   }
 
@@ -4733,7 +4734,8 @@ const skill = [
     order: "", //preemptive anchor
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
-    skipDeathCheck: true,
+    skipDeathCheck: true, // 死亡時 isDeadでも常に実行
+    isCounterSkill: true, // 反撃 isDeadでは実行しない　両方ともskipThisTurnは無視
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
     RaceBane: ["スライム", "ドラゴン"],
