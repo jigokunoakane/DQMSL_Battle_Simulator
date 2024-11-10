@@ -3004,7 +3004,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //skillTarget対象バフ
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
-    damageModifier -= skillTarget.buffs.sinriReduction.strength;
+    damageModifier -= 0.3;
   }
   if (skillTarget.buffs.fireGuard && executingSkill.element === "fire") {
     damageModifier -= skillTarget.buffs.fireGuard.strength;
@@ -4358,6 +4358,26 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    sinri: {
+      initialAbilities: [
+        {
+          name: "祭の名残",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "ドラゴン") {
+                monster.abilities.additionalAfterActionAbilities.push({
+                  name: "祭の名残付与",
+                  disableMessage: true,
+                  act: async function (skillUser, executingSkill) {
+                    applyBuff(skillUser, { sinriReduction: { duration: 1, removeAtTurnStart: true, unDispellable: true } });
+                  },
+                });
+              }
+            }
+          },
+        },
+      ],
     },
     voruka: {
       deathAbilities: [
