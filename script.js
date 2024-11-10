@@ -7592,7 +7592,14 @@ async function transformTyoma(monster) {
   applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
 
   // 回復後発動する変身時特性など
-  if (monster.name === "超オムド") {
+  if (monster.name === "超エルギ") {
+    await sleep(400);
+    for (const target of parties[monster.enemyTeamID]) {
+      if (!target.buffs.angelMark) {
+        applyBuff(target, { healBlock: {} });
+      }
+    }
+  } else if (monster.name === "超オムド") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
     fieldState.isDistorted = true;
