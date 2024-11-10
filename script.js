@@ -1964,7 +1964,7 @@ async function processMonsterAction(skillUser) {
   } else {
     displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
   }
-  const skillTargetTeam = executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID];
+  const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === "" ? null : skillTargetTeam[parseInt(skillUser.commandTargetInput)];
@@ -2487,7 +2487,7 @@ async function processHitSequence(
       break;
     case "dead":
       // 蘇生特技
-      skillTarget = parties[skillUser.teamID][skillUser.commandTargetInput];
+      skillTarget = assignedTarget;
       await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     default:
@@ -3301,36 +3301,48 @@ async function executeDeathAbilities(monster) {
 }
 
 // モンスターを蘇生させる関数
-async function reviveMonster(monster) {
+async function reviveMonster(monster, HPratio = 1) {
   await sleep(400);
-  let reviveSource = monster.buffs.tagTransformation || monster.buffs.revive;
-
-  if (reviveSource === monster.buffs.revive) {
-    // リザオ時、蘇生封じ持ちの場合はreturn
+  if (!monster.flags.isDead) {
+    displayMiss(monster);
+    return;
+  }
+  if (monster.buffs.tagTransformation) {
+    // tag変化時
+    monster.currentStatus.HP = monster.defaultStatus.HP;
+    delete monster.flags.isDead;
+    console.log(`なんと${monster.name}が変身した！`);
+    if (monster.buffs.tagTransformation.act) {
+      await monster.abilities.tagTransformationAct(monster, monster.buffs.tagTransformation.act);
+    }
+    delete monster.buffs.tagTransformation;
+  } else {
+    // リザオまたは通常蘇生時、蘇生封じ持ちの場合はreturn
     if (monster.buffs.reviveBlock) {
+      delete monster.buffs.revive;
       displayMiss(monster);
       return;
     }
     // 蘇生封じなしの場合は蘇生
-    monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * reviveSource.strength);
     delete monster.flags.isDead;
-    // abilities.reviveActにmonsterとact: 名前を渡して、abilities内の名前と一致した場合にのみ実行
-    if (monster.buffs.revive.act) {
-      await monster.abilities.reviveAct(monster, monster.buffs.revive.act);
-    }
-  } else {
-    // タッグ変化時はHPmaxで復活
-    monster.currentStatus.HP = monster.defaultStatus.HP;
-    delete monster.flags.isDead;
-    if (monster.buffs.tagTransformation.act) {
-      await monster.abilities.tagTransformationAct(monster, monster.buffs.tagTransformation.act);
+    console.log(`なんと${monster.name}が生き返った！`);
+    displayMessage(`なんと${monster.name}が生き返った！`);
+
+    // リザオの場合の処理
+    if (monster.buffs.revive) {
+      monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * monster.buffs.revive.strength);
+      // abilities.reviveActにmonsterとact: 名前を渡して、abilities内の名前と一致した場合にのみ実行
+      if (monster.buffs.revive.act) {
+        await monster.abilities.reviveAct(monster, monster.buffs.revive.act);
+      }
+      delete monster.buffs.revive;
+    } else {
+      // リザオ以外の通常蘇生の場合の処理
+      monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * HPratio);
     }
   }
-  delete monster.buffs[reviveSource === monster.buffs.revive ? "revive" : "tagTransformation"];
   updateMonsterBar(monster);
   updateBattleIcons(monster);
-  console.log(`なんと${monster.name}が生き返った！`);
-  displayMessage(`なんと${monster.name}が生き返った！`);
   await sleep(300);
 }
 
@@ -5692,7 +5704,9 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 103,
-    //蘇生act
+    act: async function (skillUser, skillTarget) {
+      await reviveMonster(skillTarget);
+    },
   },
   {
     name: "零時の儀式",
