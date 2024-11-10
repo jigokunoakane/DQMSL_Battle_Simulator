@@ -3013,6 +3013,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.buffs.controlOfRapu) {
     damageModifier += 0.2;
   }
+  if (skillTarget.buffs.murakumo && executingSkill.type === "breath") {
+    damageModifier += 0.5;
+  }
   // 特殊系
   // 天使のしるしデフォルト
   if (parties[skillTarget.enemyTeamID].some((monster) => monster.name === "超エルギ") && executingSkill.element === "light") {
@@ -5158,7 +5161,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 70,
-    //息ダウン
+    appliedEffect: { murakumo: { dispellableByRadiantWave: true, duration: 3 } },
   },
   {
     name: "獄炎の息吹",
