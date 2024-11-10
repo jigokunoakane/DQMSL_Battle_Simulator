@@ -3313,19 +3313,24 @@ async function reviveMonster(monster) {
     }
     // 蘇生封じなしの場合は蘇生
     monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * reviveSource.strength);
+    delete monster.flags.isDead;
+    // abilities.reviveActにmonsterとact: 名前を渡して、abilities内の名前と一致した場合にのみ実行
+    if (monster.buffs.revive.act) {
+      await monster.abilities.reviveAct(monster, monster.buffs.revive.act);
+    }
   } else {
     // タッグ変化時はHPmaxで復活
     monster.currentStatus.HP = monster.defaultStatus.HP;
+    delete monster.flags.isDead;
+    if (monster.buffs.tagTransformation.act) {
+      await monster.abilities.tagTransformationAct(monster, monster.buffs.tagTransformation.act);
+    }
   }
-  delete monster.flags.isDead;
+  delete monster.buffs[reviveSource === monster.buffs.revive ? "revive" : "tagTransformation"];
   updateMonsterBar(monster);
   updateBattleIcons(monster);
   console.log(`なんと${monster.name}が生き返った！`);
   displayMessage(`なんと${monster.name}が生き返った！`);
-  if (reviveSource.act) {
-    reviveSource.act();
-  }
-  delete monster.buffs[reviveSource === monster.buffs.revive ? "revive" : "tagTransformation"];
   await sleep(300);
 }
 
@@ -3967,7 +3972,7 @@ const monsters = [
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
-        tagTransformation: { keepOnDeath: true },
+        tagTransformation: { keepOnDeath: true, act: "幻獣のタッグ" },
         fireBreak: { keepOnDeath: true, strength: 2 },
         iceBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { duration: 3 },
@@ -4457,6 +4462,17 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+    },
+    ifshiba: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "幻獣のタッグ") {
+          if (Math.random() < 0.5) {
+            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+          } else {
+            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+          }
+        }
       },
     },
     omudo: {
