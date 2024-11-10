@@ -4602,7 +4602,7 @@ function getMonsterAbilities(monsterId) {
                   monster.abilities.additionalDeathAbilities.push({
                     name: "一族のいかり",
                     message: function (skillUser) {
-                      displayMessage(`${skillUser.name} がチカラつき`, " 一族のいかり の効果が発動！");
+                      displayMessage(`${skillUser.name} がチカラつき`, "一族のいかり の効果が発動！");
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
@@ -6098,7 +6098,11 @@ const skill = [
     MPcost: 74,
     order: "preemptive",
     preemptiveGroup: 1,
-    appliedEffect: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { strength: 0.33 } },
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.race === "悪魔" && skillUser.monsterId !== skillTarget.monsterId) {
+        applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { strength: 0.33 } });
+      }
+    },
   },
   {
     name: "邪道のかくせい",
