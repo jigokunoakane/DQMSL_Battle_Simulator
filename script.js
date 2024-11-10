@@ -5969,7 +5969,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 38,
     order: "anchor",
-    //effect
+    anchorBonus: 3,
+    appliedEffect: { fear: { probability: 0.3287 } },
   },
   {
     name: "おおいかくす",
