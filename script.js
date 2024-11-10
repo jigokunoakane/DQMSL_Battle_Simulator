@@ -1628,7 +1628,7 @@ function updateCurrentStatus(monster) {
     4: 2, //  2 + 2
   };
 
-  // 通常バフ
+  // 通常バフ バイキ除く
   if (monster.buffs.defUp) {
     const strengthKey = monster.buffs.defUp.strength + 2;
     const Multiplier = strengthMultipliersForDef[strengthKey];
@@ -1645,25 +1645,33 @@ function updateCurrentStatus(monster) {
     monster.currentStatus.int *= Multiplier;
   }
 
-  //内部バフ
+  //内部バフと系統バフ
+  let atkMultiplier = 1;
   if (monster.buffs.internalAtkUp) {
-    const Multiplier = monster.buffs.internalAtkUp.strength + 1;
-    monster.currentStatus.def *= Multiplier;
+    atkMultiplier += monster.buffs.internalAtkUp.strength;
   }
-  if (monster.buffs.internalDefUp) {
-    const Multiplier = monster.buffs.internalDefUp.strength + 1;
-    monster.currentStatus.def *= Multiplier;
-  }
-  if (monster.buffs.internalSpdUp) {
-    const Multiplier = monster.buffs.internalSpdUp.strength + 1;
-    monster.currentStatus.spd *= Multiplier;
-  }
-  if (monster.buffs.internalIntUp) {
-    const Multiplier = monster.buffs.internalIntUp.strength + 1;
-    monster.currentStatus.int *= Multiplier;
-  }
+  monster.currentStatus.atk *= atkMultiplier;
 
-  //系統バフは直接strengthをかける
+  let defMultiplier = 1;
+  if (monster.buffs.internalDefUp) {
+    defMultiplier += monster.buffs.internalDefUp.strength;
+  }
+  monster.currentStatus.def *= defMultiplier;
+
+  let spdMultiplier = 1;
+  if (monster.buffs.internalSpdUp) {
+    spdMultiplier += monster.buffs.internalSpdUp.strength;
+    if (monster.buffs.tabooSeal) {
+      spdMultiplier -= 0.5;
+    }
+  }
+  monster.currentStatus.spd *= spdMultiplier;
+
+  let intMultiplier = 1;
+  if (monster.buffs.internalIntUp) {
+    intMultiplier += monster.buffs.internalIntUp.strength;
+  }
+  monster.currentStatus.int *= intMultiplier;
 }
 
 // 行動順を決定する関数 コマンド決定後にstartBattleで起動
@@ -2076,7 +2084,6 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   }
 
   // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
-  col(damagedMonsters);
   for (const monster of parties[skillUser.enemyTeamID]) {
     if (damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
@@ -2356,10 +2363,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    col(currentSkill);
     await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
-    console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    col(currentSkill);
 
     //currentSkill実行後、生存にかかわらず実行するact
     if (currentSkill.afterActionAct) {
@@ -2975,9 +2979,16 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   //種別錬金
 
-  //デュラン
+  // デュラン
   if (skillUser.id === "dhuran" && (skillTarget.race === "超魔王" || skillTarget.race === "超伝説") && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
     damageModifier += 0.5;
+  }
+  // 禁忌の封印
+  if (skillUser.race === "悪魔" && parties[skillUser.teamID].some((monster) => monster.id === "tanisu")) {
+    damageModifier += 0.5;
+  }
+  if (skillUser.buffs.tabooSeal) {
+    damageModifier -= 0.5;
   }
   // world反撃ののろし
   if (skillUser.buffs.worldBuff) {
@@ -4587,6 +4598,26 @@ function getMonsterAbilities(monsterId) {
                       }
                     },
                   });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        1: [
+          {
+            name: "禁忌の封印",
+            message: function (skillUser) {
+              displayMessage("特性により", "禁忌の封印 が発動！");
+            },
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "悪魔") {
+                  // damageには自動的に、spdMultiplierには+0.5  tabooSeal所持時は0.5を引いて無効化
+                  applyBuff(monster, { tabooSeal: { keepOnDeath: true }, internalSpdUp: { keepOnDeath: true, strength: 0.5 } }, false, true);
                 } else {
                   displayMiss(skillUser);
                 }
@@ -7185,8 +7216,8 @@ function executeWave(monster, isDivine = false) {
   const newBuffs = {};
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
-    // 削除条件 竜王杖のようなunDispellable指定以外は削除
-    if ((key === "counterAttack" || key === "revive") && !value.unDispellable && (!value.divineDispellable || isDivine)) {
+    // keepOnDeathでも削除するバフ群 竜王杖のようなunDispellable指定以外は削除
+    if ((key === "counterAttack" || key === "revive" || key === "tabooSeal") && !value.unDispellable && (!value.divineDispellable || isDivine)) {
       continue;
     }
     if (keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable)) {
