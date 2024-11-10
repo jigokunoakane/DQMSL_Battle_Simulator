@@ -5736,7 +5736,7 @@ const skill = [
     hitNum: 6,
     MPcost: 85,
     ignoreReflection: true,
-    //effect
+    appliedEffect: { fear: { probability: 0.3647 } },
   },
   {
     name: "クロノストーム",
@@ -5755,7 +5755,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     ignoreReflection: true,
-    //effect
+    appliedEffect: { sealed: { probability: 0.1912 } },
   },
   {
     name: "エレメントエラー",
