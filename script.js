@@ -773,9 +773,6 @@ async function startTurn() {
     // 戦闘開始時にバフを付与するapplyInitialBuffs
     for (const party of parties) {
       for (const monster of party) {
-        if (monster.flags.isDead) {
-          continue;
-        }
         // 戦闘開始時に付与するバフ
         const initialBuffs = Object.assign(
           {}, // 空のオブジェクトから始める
@@ -792,6 +789,15 @@ async function startTurn() {
         // 戦闘開始時発動特性
         const allInitialAbilities = [...(monster.abilities?.initialAbilities || [])];
         for (const ability of allInitialAbilities) {
+          await ability.act(monster);
+        }
+      }
+    }
+    for (const party of parties) {
+      for (const monster of party) {
+        // 戦闘開始時発動特性 天使のしるしなど敵に付与するもの
+        const allInitialAttackAbilities = [...(monster.abilities?.initialAttackAbilities || [])];
+        for (const ability of allInitialAttackAbilities) {
           await ability.act(monster);
         }
       }
@@ -3007,6 +3013,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.buffs.controlOfRapu) {
     damageModifier += 0.2;
   }
+  // 特殊系
+  // 天使のしるしデフォルト
+  if (parties[skillTarget.enemyTeamID].some((monster) => monster.name === "超エルギ") && executingSkill.element === "light") {
+    damageModifier += 0.3;
+  }
+  // 天使のしるし
+  if (skillTarget.buffs.angelMark && executingSkill.element === "light") {
+    damageModifier -= 0.3;
+  }
 
   //skill特有の特殊計算
   if (executingSkill.damageModifier) {
@@ -4422,11 +4437,12 @@ function getMonsterAbilities(monsterId) {
       ],
     },
     erugi: {
-      initialAbilities: [
+      initialAttackAbilities: [
         {
+          name: "天使のしるし付与",
           act: function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
-              //monster.buffs.angelMark
+              applyBuff(monster, { angelMark: { keepOnDeath: true } });
             }
           },
         },
@@ -7217,7 +7233,8 @@ function executeWave(monster, isDivine = false) {
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
     // keepOnDeathでも削除するバフ群 竜王杖のようなunDispellable指定以外は削除
-    if ((key === "counterAttack" || key === "revive" || key === "tabooSeal") && !value.unDispellable && (!value.divineDispellable || isDivine)) {
+    const deleteKeys = ["counterAttack", "revive", "tabooSeal", "angelMark"];
+    if (deleteKeys.includes(key) && !value.unDispellable && (!value.divineDispellable || isDivine)) {
       continue;
     }
     if (keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable)) {
