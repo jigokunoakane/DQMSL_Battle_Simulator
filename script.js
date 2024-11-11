@@ -100,7 +100,7 @@ function decideParty() {
 //パテ設定画面の確定で起動
 function prepareBattle() {
   // 初期化
-  fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 } };
+  fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 }, completeDeathCount: { 0: 0, 1: 0 } };
 
   // 初期生成
   for (let i = 0; i < parties.length; i++) {
@@ -2286,6 +2286,9 @@ function handleDeath(target, hideDeathMessage = false) {
   target.flags.beforeDeathActionCheck = true;
 
   ++fieldState.deathCount[target.teamID];
+  if (!target.buffs.tagTransformation && !target.buffs.revive) {
+    ++fieldState.completeDeathCount[target.teamID];
+  }
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
   console.log(fieldState.deathCount);
 
@@ -2501,6 +2504,16 @@ async function processHitSequence(
       await transformTyoma(targetErugi);
     }
   }
+
+  // シンリ解除
+  if (fieldState.completeDeathCount[skillUser.enemyTeamID] > 0) {
+    for (const monster of parties[skillUser.enemyTeamID]) {
+      if (monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
+        delete monster.buffs.reviveBlock;
+      }
+    }
+  }
+
   // 死亡時発動能力の処理
   await processDeathAction(skillUser, killedThisSkill);
 
@@ -4378,6 +4391,19 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+      attackAbilities: {
+        1: [
+          {
+            name: "竜衆の鎮魂",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.enemyTeamID]) {
+                applyBuff(monster, { reviveBlock: { name: "竜衆の鎮魂" } });
+              }
+            },
+          },
+        ],
+      },
     },
     voruka: {
       deathAbilities: [
