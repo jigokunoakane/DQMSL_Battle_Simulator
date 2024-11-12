@@ -1542,7 +1542,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
     }
     //反射の場合にエフェクト追加
-    if (reflectionMap.includes(buffName)) {
+    if (reflectionMap.includes(buffName) && buffTarget.buffs[buffName].name !== "幻獣のタッグ反射") {
       addMirrorEffect(buffTarget.iconElementId);
     }
     if (!skipMessage) {
@@ -4529,9 +4529,9 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "幻獣のタッグ") {
           if (Math.random() < 0.5) {
-            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, name: "幻獣のタッグ反射" } });
           } else {
-            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1, name: "幻獣のタッグ反射" } });
           }
         }
       },
