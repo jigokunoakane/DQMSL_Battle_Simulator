@@ -6137,8 +6137,15 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
-    following: "", //敵にも付与
     MPcost: 53,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { darkResistance: { strength: 2 } },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.enemyTeamID]) {
+        applyBuff(monster, { darkResistance: { strength: 2 } });
+      }
+    },
     isOneTimeUse: true,
   },
   {
