@@ -98,7 +98,7 @@ function decideParty() {
 }
 
 //パテ設定画面の確定で起動
-function prepareBattle() {
+async function prepareBattle() {
   // 初期化
   fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 }, completeDeathCount: { 0: 0, 1: 0 } };
 
@@ -188,7 +188,7 @@ function prepareBattle() {
   disableCommandBtn(true);
   removeAllStickOut();
   //field管理用変数の導入はglobalで
-  startTurn();
+  await startTurn();
 }
 //finish prepareBattle 開始時処理終了
 
@@ -1041,7 +1041,7 @@ async function startBattle() {
     await processMonsterAction(monster);
     await sleep(750);
   }
-  startTurn();
+  await startTurn();
 }
 
 // バフ追加用関数
@@ -7054,10 +7054,9 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
 }
 
 document.getElementById("resetBtn").addEventListener("click", async function () {
-  toggleSleep();
+  skipBtn(true);
   //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
   await originalSleep(700);
-  toggleSleep();
   for (const party of parties) {
     for (const monster of party) {
       monster.currentStatus.HP = 200;
@@ -7070,7 +7069,8 @@ document.getElementById("resetBtn").addEventListener("click", async function () 
       displayMessage("戦闘リセット");
     }
   }
-  prepareBattle();
+  await prepareBattle();
+  skipBtn(false);
 });
 
 document.getElementById("elementErrorBtn").addEventListener("click", function () {
@@ -7144,11 +7144,15 @@ document.getElementById("endBtn").addEventListener("click", function () {
 });
 
 document.getElementById("skipBtn").addEventListener("click", function () {
-  toggleSleep();
+  if (document.getElementById("skipBtn").textContent === "skip解除") {
+    skipBtn(false);
+  } else {
+    skipBtn(true);
+  }
 });
 
-function toggleSleep() {
-  if (originalSleep === sleep) {
+function skipBtn(isSkip = false) {
+  if (isSkip) {
     document.getElementById("skipBtn").textContent = "skip解除";
     sleep = function (milliseconds) {
       return Promise.resolve(); // 即時解決するPromiseを返す
