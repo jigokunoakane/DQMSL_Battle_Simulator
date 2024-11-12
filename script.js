@@ -584,7 +584,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
     askFinishCommand();
     disableCommandBtn(true);
     document.getElementById("askFinishCommandBtnNo").disabled = true;
-    document.getElementById("closeCommandPopupWindowBtn").disabled = true;
+    document.getElementById("closeCommandPopupWindowBtn").style.display = "none";
   }
 }
 
@@ -646,7 +646,7 @@ function closeSelectCommandPopupWindowContents() {
 
 // 閉じるボタンにイベントリスナー追加
 document.getElementById("closeCommandPopupWindowBtn").addEventListener("click", function () {
-  closeSelectCommandPopupWindowContents;
+  closeSelectCommandPopupWindowContents();
 });
 
 function disableCommandBtn(boolean) {
@@ -687,8 +687,8 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
 document.getElementById("askFinishCommandBtnYes").addEventListener("click", function () {
   document.getElementById("askFinishCommandBtnNo").disabled = false;
-  document.getElementById("closeCommandPopupWindowBtn").disabled = false;
-  //全員選択不能の場合のdisable化解除
+  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
+  //全員選択不能の場合の非表示解除
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   if (currentTeamIndex == "1") {
     //敵も選択終了後は、startBattleへ
@@ -7902,7 +7902,7 @@ function addHexagonShine(targetElementId, cracked = false) {
   setTimeout(() => {
     hexagon.style.opacity = "0";
     if (cracked) {
-      hexagon.style.transform = "scale(1.2)"; // 少し拡大しながら消える
+      hexagon.style.transform = "scale(1.3)"; // 少し拡大しながら消える
     }
   }, 0);
 
