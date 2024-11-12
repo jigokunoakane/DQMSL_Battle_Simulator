@@ -2286,7 +2286,8 @@ function handleDeath(target, hideDeathMessage = false) {
   target.flags.beforeDeathActionCheck = true;
 
   ++fieldState.deathCount[target.teamID];
-  if (!target.buffs.tagTransformation && !target.buffs.revive) {
+  // 蘇生予定がない場合、完全死亡カウントを増加
+  if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock)) {
     ++fieldState.completeDeathCount[target.teamID];
   }
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
@@ -2506,12 +2507,15 @@ async function processHitSequence(
     }
   }
   // シンリ解除
-  if (fieldState.completeDeathCount[skillUser.enemyTeamID] > 0) {
-    for (const monster of parties[skillUser.enemyTeamID]) {
-      // 生存している敵のみから削除
-      if (!monster.flags.isDead && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
-        delete monster.buffs.reviveBlock;
-        updateMonsterBuffsDisplay(monster);
+  // 全体特技ではskillTargetを毎hit変更していない(eachTarget)上に、反射なども反映されない なので、skillUserやskillTargetで判定するよりかは両方について判定
+  for (let i = 0; i < 2; i++) {
+    if (fieldState.completeDeathCount[i] > 0) {
+      for (const monster of parties[i]) {
+        // 生存している敵のみから削除
+        if (!monster.flags.isDead && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
+          delete monster.buffs.reviveBlock;
+          updateMonsterBuffsDisplay(monster);
+        }
       }
     }
   }
