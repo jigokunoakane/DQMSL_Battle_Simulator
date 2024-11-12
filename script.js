@@ -2177,7 +2177,7 @@ function applyHeal(target, healAmount, isMPheal = false) {
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
+function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
   if (resistance === -1) {
     // 回復処理
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
@@ -2220,12 +2220,13 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false) {
       const hpDamage = Math.floor(damage); // 小数点以下切り捨て
       target.currentStatus.HP = Math.max(target.currentStatus.HP - hpDamage, 0);
       console.log(`${target.name}に${hpDamage}のダメージ！`);
-      if (hpDamage === 0) {
+      if (hpDamage === 0 && !reducedByElementalShield) {
         displayMessage(`ミス！ダメージをあたえられない！`);
       } else {
         displayMessage(`${target.name}に`, `${hpDamage}のダメージ！！`);
       }
-      displayDamage(target, hpDamage, resistance);
+      // HPかつダメージのときのみ、reducedByElementalShieldを渡して0ダメ表示対応
+      displayDamage(target, hpDamage, resistance, false, reducedByElementalShield);
       //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
 
       if (target.currentStatus.HP === 0 && !target.flags.isDead) {
@@ -3058,15 +3059,30 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.buffs.damageLimit && damage > skillTarget.buffs.damageLimit.strength) {
     damage = skillTarget.buffs.damageLimit.strength;
   }
-  applyDamage(skillTarget, damage, resistance);
+
+  // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
+  let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
+  if (!isReflection && damage > 0 && skillTarget.buffs.elementalShield && skillTarget.buffs.elementalShield.targetElement === executingSkill.element) {
+    reducedByElementalShield = true;
+    if (skillTarget.buffs.elementalShield.remain <= damage) {
+      damage -= skillTarget.buffs.elementalShield.remain;
+      delete skillTarget.buffs.elementalShield;
+      updateMonsterBuffsDisplay(skillTarget);
+    } else {
+      skillTarget.buffs.elementalShield.remain -= damage;
+      damage = 0;
+    }
+  }
+
+  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield);
 
   //常に実行 または target生存かつdamageが0超えのときに、追加効果付与を実行
-  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && damage > 0)) {
+  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
   // monsterActionまたはAI追撃のとき、反撃対象にする
-  if ((isProcessMonsterAction || isAIattack) && damage > 0) {
+  if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
     if (!damagedMonsters.includes(skillTarget.monsterId)) {
       damagedMonsters.push(skillTarget.monsterId);
     }
@@ -4147,6 +4163,7 @@ const monsters = [
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        elementalShield: { targetElement: "dark", remain: 250, unDispellable: true, targetType: "ally" },
         damageLimit: { strength: 250 },
       },
     },
@@ -6800,10 +6817,10 @@ function findSkillByName(skillName) {
   return skill.find((skill) => skill.name === skillName);
 }
 
-function displayDamage(monster, damage, resistance = 1, isMPdamage = false) {
+function displayDamage(monster, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
-  if (damage === 0) {
+  if (damage === 0 && !reducedByElementalShield) {
     if (resistance === -1) {
       // 回復でダメージが0の場合は、回復効果画像と数字0を表示
       const damageContainer = document.createElement("div");
