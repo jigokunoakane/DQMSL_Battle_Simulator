@@ -1196,7 +1196,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         reviveBlock: "reviveBlockBarrier",
       };
       // 防壁や魔王バリアで防ぐ
-      if ((buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) && buffName !== "sealed" && buffName !== "stoned") {
+      if ((buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) && buffName !== "sealed" && buffName !== "stoned" && buffName !== "reviveBlock") {
         continue;
       }
       // マインド封じ無効
