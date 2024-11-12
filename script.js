@@ -3062,15 +3062,23 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
   let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
-  if (!isReflection && damage > 0 && skillTarget.buffs.elementalShield && skillTarget.buffs.elementalShield.targetElement === executingSkill.element) {
+  if (
+    !isReflection &&
+    damage > 0 &&
+    skillTarget.buffs.elementalShield &&
+    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && AllElements.includes(executingSkill.element)))
+  ) {
     reducedByElementalShield = true;
     if (skillTarget.buffs.elementalShield.remain <= damage) {
+      // 障壁が割れる場合
       damage -= skillTarget.buffs.elementalShield.remain;
       delete skillTarget.buffs.elementalShield;
       updateMonsterBuffsDisplay(skillTarget);
+      addHexagonShine(skillTarget.iconElementId, true);
     } else {
       skillTarget.buffs.elementalShield.remain -= damage;
       damage = 0;
+      addHexagonShine(skillTarget.iconElementId, false);
     }
   }
 
@@ -7799,4 +7807,74 @@ async function executeContinuousHealing(monster) {
     applyHeal(monster, 275);
     await sleep(200);
   }
+}
+
+function addHexagonShine(targetElementId, cracked = false) {
+  const targetElement = document.getElementById(targetElementId);
+  if (!targetElement) {
+    console.error("Target element not found.");
+    return;
+  }
+
+  const hexagon = document.createElement("div");
+  hexagon.style.position = "absolute";
+  hexagon.style.width = "180%";
+  hexagon.style.height = "180%";
+  hexagon.style.top = "-45%";
+  hexagon.style.clipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+  hexagon.style.backgroundColor = "white";
+  hexagon.style.opacity = "0.8";
+  hexagon.style.mixBlendMode = "screen";
+  hexagon.style.transformOrigin = "center"; // 回転の中心を設定
+
+  targetElement.parentNode.appendChild(hexagon);
+
+  hexagon.style.overflow = "hidden"; // 追加: ひび割れがクリップされないようにする
+
+  if (cracked) {
+    const cracks = document.createElement("div");
+    cracks.style.position = "absolute";
+    cracks.style.width = "100%";
+    cracks.style.height = "100%";
+    cracks.style.top = "0";
+    cracks.style.left = "0";
+    cracks.style.overflow = "visible"; // 追加: ひび割れがクリップされないようにする
+
+    const numCracks = 20;
+    for (let i = 0; i < numCracks; i++) {
+      const crack = document.createElement("div");
+      crack.style.position = "absolute";
+      crack.style.width = "2px";
+      crack.style.height = 50 + Math.random() * 20 + "%"; // ひびの長さを50%~70%でランダムに
+      crack.style.background = "rgba(0, 0, 0, 0.3)";
+      crack.style.transformOrigin = "bottom";
+      crack.style.left = "calc(50% - 1px)";
+      crack.style.bottom = "50%";
+
+      const angle = (360 / numCracks) * i + Math.random() * 5 - 2.5; // ランダムな角度のずれを追加
+      crack.style.transform = `rotate(${angle}deg)`;
+      cracks.appendChild(crack);
+    }
+    hexagon.appendChild(cracks);
+  }
+
+  let timeOutDuration = 0;
+  if (cracked) {
+    hexagon.style.transition = "opacity 0.3s ease-in-out, transform 0.3s ease-in-out";
+    timeOutDuration = 200;
+  } else {
+    hexagon.style.transition = "opacity 0.5s ease-in-out, transform 0.5s ease-in-out"; //もと0.5
+    timeOutDuration = 300;
+  }
+
+  setTimeout(() => {
+    hexagon.style.opacity = "0";
+    if (cracked) {
+      hexagon.style.transform = "scale(1.2)"; // 少し拡大しながら消える
+    }
+  }, 0);
+
+  setTimeout(() => {
+    hexagon.remove();
+  }, timeOutDuration);
 }
