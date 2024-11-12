@@ -2497,6 +2497,7 @@ async function processHitSequence(
       console.error("無効なターゲットタイプ:", executingSkill.targetType);
   }
 
+  // 死亡時発動前なので、リザオ処理やゾンビ処理がまだ行われていないタイミング
   //エルギ変身判定
   for (const party of parties) {
     const targetErugi = party.find((monster) => monster.name === "超エルギ");
@@ -2504,12 +2505,13 @@ async function processHitSequence(
       await transformTyoma(targetErugi);
     }
   }
-
   // シンリ解除
   if (fieldState.completeDeathCount[skillUser.enemyTeamID] > 0) {
     for (const monster of parties[skillUser.enemyTeamID]) {
-      if (monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
+      // 生存している敵のみから削除
+      if (!monster.flags.isDead && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
         delete monster.buffs.reviveBlock;
+        updateMonsterBuffsDisplay(monster);
       }
     }
   }
