@@ -533,7 +533,7 @@ function finishSelectingEachMonstersCommand() {
 
 // コマンド選択開始関数
 function startSelectingCommandForFirstMonster(teamNum) {
-  //行動不能monsterのコマンドを入れる
+  //初期化して行動不能monsterのコマンドを入れる
   parties[teamNum].forEach((monster) => {
     monster.commandInput = "";
     monster.commandTargetInput = "";
@@ -554,7 +554,8 @@ function startSelectingCommandForFirstMonster(teamNum) {
   }
 
   // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
-  if (currentMonsterIndex < parties[0].length) {
+  if (currentMonsterIndex < parties[teamNum].length) {
+    //微修正
     adjustMonsterIconStickOut();
     displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
     disableCommandBtn(false);
@@ -569,6 +570,16 @@ function startSelectingCommandForFirstMonster(teamNum) {
       setMonsterBarDisplay(true);
     }
   } else {
+    // 敵が全員行動不能な場合
+    if (teamNum === 1) {
+      //敵コマンド選択でplayerを選んだ場合用
+      document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+      //アイコン反転
+      prepareBattlePageIcons(true);
+      adjustMonsterIconStickOut();
+      //barとバフ反転
+      setMonsterBarDisplay(true);
+    }
     // パーティーが全員行動不能の場合の処理
     askFinishCommand();
     disableCommandBtn(true);
@@ -634,7 +645,9 @@ function closeSelectCommandPopupWindowContents() {
 }
 
 // 閉じるボタンにイベントリスナー追加
-document.getElementById("closeCommandPopupWindowBtn").addEventListener("click", closeSelectCommandPopupWindowContents);
+document.getElementById("closeCommandPopupWindowBtn").addEventListener("click", function () {
+  closeSelectCommandPopupWindowContents;
+});
 
 function disableCommandBtn(boolean) {
   document.querySelectorAll(".commandBtn").forEach((button) => {
@@ -4327,6 +4340,25 @@ const monsters = [
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1.3 },
     lsTarget: "悪魔",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "魔炎鳥",
+    id: "maen",
+    race: "zombie",
+    weight: "25",
+    status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
+    defaultSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
+    attribute: {
+      initialBuffs: {
+        asleep: { duration: 999 },
+        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
+      },
+    },
+    seed: { atk: 55, def: 0, spd: 65, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "zombie",
     AINormalAttack: [2],
     resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
