@@ -4355,6 +4355,9 @@ const monsters = [
         asleep: { duration: 999 },
         elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
       },
+      permanentBuffs: {
+        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
+      },
     },
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1 },
@@ -7875,6 +7878,7 @@ function addHexagonShine(targetElementId, cracked = false) {
   hexagon.style.overflow = "hidden"; // 追加: ひび割れがクリップされないようにする
 
   if (cracked) {
+    hexagon.style.opacity = "1";
     const cracks = document.createElement("div");
     cracks.style.position = "absolute";
     cracks.style.width = "100%";
