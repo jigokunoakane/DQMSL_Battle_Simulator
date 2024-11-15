@@ -992,7 +992,7 @@ async function startTurn() {
       }
     });
 
-    // currentStatus.spd でソートし、同速の場合はランダムに並び替える関数
+    // currentStatus.spd で遅い順にソートし、同速の場合はランダムに並び替える関数
     const sortBySpeedAndRandomize = (a, b) => {
       const speedDiff = (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0);
       return speedDiff !== 0 ? speedDiff : Math.random() - 0.5;
@@ -1003,7 +1003,7 @@ async function startTurn() {
       // リバース状態
       abilityOrder = [...preemptiveActionMonsters.sort(sortBySpeedAndRandomize), ...normalMonsters.sort(sortBySpeedAndRandomize), ...anchorActionMonsters.sort(sortBySpeedAndRandomize)];
     } else {
-      // 通常状態
+      // 通常状態は反転
       abilityOrder = [
         ...preemptiveActionMonsters.sort(sortBySpeedAndRandomize).reverse(),
         ...normalMonsters.sort(sortBySpeedAndRandomize).reverse(),
@@ -1849,11 +1849,6 @@ async function processMonsterAction(skillUser) {
 
   // 状態異常確認
 
-  // 状態異常判定をクリアしてかつnormalAI所持のコマンドを設定
-  if (skillUser.commandInput === "normalAICommand") {
-    skillUser.commandInput = "通常攻撃";
-    //decideNormalAICommand(skillUser);
-  }
   let executingSkill = findSkillByName(skillUser.commandInput);
 
   if (hasAbnormality(skillUser)) {
@@ -1876,7 +1871,10 @@ async function processMonsterAction(skillUser) {
       if (
         unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
+        skillInfo.followingSkill ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
+        skillUser.flags.unavailableSkills.includes(skillName) ||
+        // unavailableIfは様子見
         skillUser.currentStatus.MP < MPcost ||
         skillInfo.howToCalculate === "none" ||
         //仮で敵対象skillのみ
@@ -1895,6 +1893,96 @@ async function processMonsterAction(skillUser) {
       availableSkills.push(skillInfo);
       //全部だめなら通常攻撃;
     }
+  }
+
+  function decideReviveAICommand(skillUser) {
+    const availableReviveSkills = [];
+    const availableAllHealSkills = [];
+    const availableSingleHealSkills = [];
+    for (const skillName of skillUser.skill) {
+      const skillInfo = findSkillByName(skillName);
+      const MPcost = calculateMPcost(skillUser, skillInfo);
+      // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
+      if (
+        skillInfo.order !== undefined ||
+        skillInfo.followingSkill ||
+        (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
+        skillUser.flags.unavailableSkills.includes(skillName) ||
+        // unavailableIfは様子見
+        skillUser.currentStatus.MP < MPcost
+      ) {
+        continue;
+      }
+      // 分けて格納
+      if (skillInfo.targetType === "dead") {
+        availableReviveSkills.push(skillInfo);
+      } else if (skillInfo.healSkill && skillInfo.targetType === "all") {
+        availableAllHealSkills.push(skillInfo);
+      } else if (skillInfo.healSkill) {
+        availableSingleHealSkills.push(skillInfo); //randomも可能性はある
+      }
+    }
+    // 蘇生技所持時 かつ 蘇生target存在時に蘇生を指定
+    if (availableReviveSkills.length > 0) {
+      const validTargets = parties[skillUser.teamID].filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
+      let fastestTarget = null;
+      if (validTargets.length > 0) {
+        fastestTarget = validTargets[0];
+        for (let i = 1; i < validTargets.length; i++) {
+          // 最高値のmonsterに更新
+          if (validTargets[i].modifiedSpeed > fastestTarget.modifiedSpeed) {
+            fastestTarget = validTargets[i];
+          }
+        }
+      }
+      // target存在時 そのtargetに蘇生技を撃つ commandInputはそのまま
+      if (fastestTarget) {
+        executingSkill = availableReviveSkills[0];
+        skillUser.commandTargetInput = fastestTarget.index;
+        return;
+      }
+    }
+    // 全体回復技所持時
+    if (availableAllHealSkills.length > 0) {
+      executingSkill = availableAllHealSkills[0];
+      return;
+    }
+    // 単体乱打回復技所持時
+    if (availableSingleHealSkills.length > 0) {
+      const validTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie);
+      let lowestTarget = null;
+      if (validTargets.length > 0) {
+        lowestTarget = validTargets[0];
+        for (let i = 1; i < validTargets.length; i++) {
+          const currentTarget = validTargets[i];
+          // 最低値のmonsterに更新
+          if (currentTarget.currentStatus.HP / currentTarget.defaultStatus.HP < lowestTarget.currentStatus.HP / lowestTarget.defaultStatus.HP) {
+            lowestTarget = currentTarget;
+          }
+        }
+      }
+      // target存在時 そのtargetに回復技を撃つ commandInputはそのまま
+      if (lowestTarget) {
+        executingSkill = availableSingleHealSkills[0];
+        skillUser.commandTargetInput = lowestTarget.index;
+        return;
+      }
+    }
+    // 全部だめなら通常攻撃
+    // todo: targetがランダム 反射にうつ可能性を排除する
+    executingSkill = findSkillByName(getNormalAttackName(skillUser));
+  }
+
+  // 状態異常判定をクリア後、AI行動特技設定
+  // 仮で通常攻撃に
+  if (skillUser.commandInput === "normalAICommand") {
+    skillUser.commandInput = "通常攻撃";
+  }
+
+  if (skillUser.commandInput === "reviveAICommand") {
+    //decideReviveAICommand(skillUser);
+  } else if (skillUser.commandInput === "normalAICommand") {
+    //decideNormalAICommand(skillUser);
   }
 
   if (executingSkill.name === "ぼうぎょ") {
@@ -4952,7 +5040,7 @@ const skill = [
     maxIntDamage: 310,
     skillPlus: 1.15,
     element: "", //fire ice thunder io wind light dark
-    targetType: "", //single random all me field
+    targetType: "", //single random all self field dead
     targetTeam: "enemy", //ally enemy
     excludeTarget: "self",
     hitNum: 3,
@@ -4962,6 +5050,7 @@ const skill = [
     isOneTimeUse: true,
     skipDeathCheck: true, // 死亡時 isDeadでも常に実行
     isCounterSkill: true, // 反撃 isDeadでは実行しない　両方ともskipThisTurnは無視
+    skipSkillSealCheck: true,
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
     RaceBane: ["スライム", "ドラゴン"],
@@ -7413,12 +7502,12 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
   if (isAll) {
     //自分以外に身代わりisSubstitutingがあるときは仁王立ち失敗で毎回return (hasだと初回付与したらそれ以降引っかかり連続処理が止まるのでこう処理)
     for (const monster of parties[skillUser.teamID]) {
-      if (monster.flags.isSubstituting && monster.index !== skillUser.index) {
+      if (monster.flags.isSubstituting && monster.monsterId !== skillUser.monsterId) {
         return;
       }
     }
     //自分自身は仁王立ちの対象にしない
-    if (skillTarget.index == skillUser.index) {
+    if (skillTarget.monsterId == skillUser.monsterId) {
       return;
     }
   }
