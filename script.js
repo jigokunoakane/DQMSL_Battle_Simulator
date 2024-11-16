@@ -101,6 +101,8 @@ function decideParty() {
 async function prepareBattle() {
   // 初期化
   fieldState = { turnNum: 0, deathCount: { 0: 0, 1: 0 }, completeDeathCount: { 0: 0, 1: 0 } };
+  currentTeamIndex = 0;
+  currentMonsterIndex = 0;
 
   // 初期生成
   for (let i = 0; i < parties.length; i++) {
