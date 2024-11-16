@@ -341,6 +341,28 @@ document.getElementById("commandGuardBtn").addEventListener("click", function ()
   finishSelectingEachMonstersCommand();
 });
 
+////////////AI
+document.getElementById("commandAIBtn").addEventListener("click", function () {
+  // 最後に戻すため、コマンド可能な最後のmonsterのcurrentMonsterIndexを保持 コマンド可能なときのみ増やす 最初は確定でコマンド可能なので、-1してから+1
+  let tempSelectingMonsterIndex = currentMonsterIndex - 1;
+
+  while (currentMonsterIndex < parties[currentTeamIndex].length) {
+    if (!isDead(parties[currentTeamIndex][currentMonsterIndex]) && !hasAbnormality(parties[currentTeamIndex][currentMonsterIndex])) {
+      parties[currentTeamIndex][currentMonsterIndex].commandInput = "normalAICommand";
+      tempSelectingMonsterIndex += 1;
+    }
+    currentMonsterIndex += 1;
+  }
+
+  // すべてのモンスターについて処理終了時
+  if (currentMonsterIndex === parties[currentTeamIndex].length) {
+    // すべてのモンスターの選択が終了した場合 currentMonsterIndex を最後に選択されたモンスターに戻す
+    currentMonsterIndex = tempSelectingMonsterIndex;
+    adjustMonsterIconStickOut();
+    askFinishCommand();
+  }
+});
+
 function startSelectingCommand() {
   disableCommandBtn(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
@@ -504,17 +526,10 @@ function finishSelectingEachMonstersCommand() {
 
   // 次の行動可能なモンスターが見つかるまでループ
   while (currentMonsterIndex < parties[currentTeamIndex].length && (isDead(parties[currentTeamIndex][currentMonsterIndex]) || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))) {
-    // 行動不能なモンスターのcommandInputを設定
-    if (isDead(parties[currentTeamIndex][currentMonsterIndex])) {
-      parties[currentTeamIndex][currentMonsterIndex].commandInput = "skipThisTurn";
-    } else {
-      parties[currentTeamIndex][currentMonsterIndex].commandInput = "normalAICommand";
-    }
-
+    // 行動不能なモンスターのcommandInputは設定済なので単純に増加
     currentMonsterIndex += 1;
   }
 
-  // すべてのモンスターの選択が終了したか、行動可能なモンスターが見つかった場合
   if (currentMonsterIndex >= parties[currentTeamIndex].length) {
     // すべてのモンスターの選択が終了した場合
     // currentMonsterIndex を最後に選択されたモンスターに戻す
@@ -534,7 +549,7 @@ function finishSelectingEachMonstersCommand() {
 // コマンド選択開始関数
 function startSelectingCommandForFirstMonster(teamNum) {
   //初期化して行動不能monsterのコマンドを入れる
-  parties[teamNum].forEach((monster) => {
+  for (const monster of parties[teamNum]) {
     monster.commandInput = "";
     monster.commandTargetInput = "";
     if (isDead(monster)) {
@@ -542,7 +557,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
     } else if (hasAbnormality(monster)) {
       monster.commandInput = "normalAICommand";
     }
-  });
+  }
 
   //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustMonsterIconStickOutにdisplayMessage
 
