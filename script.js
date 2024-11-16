@@ -1944,8 +1944,10 @@ async function processMonsterAction(skillUser) {
       if (validTargets.length > 0) {
         fastestTarget = validTargets[0];
         for (let i = 1; i < validTargets.length; i++) {
-          // 最高値のmonsterに更新
-          if (validTargets[i].modifiedSpeed > fastestTarget.modifiedSpeed) {
+          // ランクが高い または 同ランクかつ素早さが高い場合更新
+          if (validTargets[i].rank > fastestTarget.rank) {
+            fastestTarget = validTargets[i];
+          } else if (validTargets[i].rank === fastestTarget.rank && validTargets[i].modifiedSpeed > fastestTarget.modifiedSpeed) {
             fastestTarget = validTargets[i];
           }
         }
@@ -3946,6 +3948,7 @@ const monsters = [
   {
     name: "マスタードラゴン",
     id: "masudora",
+    rank: 10,
     race: "ドラゴン",
     status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 500, int: 259 },
     defaultSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
@@ -3972,6 +3975,7 @@ const monsters = [
   {
     name: "宵の華シンリ",
     id: "sinri",
+    rank: 10,
     race: "ドラゴン",
     status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
     defaultSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
@@ -3989,6 +3993,7 @@ const monsters = [
   {
     name: "魔夏姫アンルシア",
     id: "rusia",
+    rank: 10,
     race: "ドラゴン",
     status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 545, int: 294 },
     defaultSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
@@ -4015,6 +4020,7 @@ const monsters = [
   {
     name: "怪竜やまたのおろち",
     id: "orochi",
+    rank: 10,
     race: "ドラゴン",
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     defaultSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
@@ -4039,6 +4045,7 @@ const monsters = [
   {
     name: "ヴォルカドラゴン",
     id: "voruka",
+    rank: 10,
     race: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     defaultSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
@@ -4061,6 +4068,7 @@ const monsters = [
   {
     name: "WORLD",
     id: "world",
+    rank: 10,
     race: "???",
     weight: "30",
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
@@ -4086,6 +4094,7 @@ const monsters = [
   {
     name: "超ネルゲル",
     id: "nerugeru",
+    rank: 10,
     race: "超魔王",
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
@@ -4113,6 +4122,7 @@ const monsters = [
   {
     name: "超エルギ",
     id: "erugi",
+    rank: 10,
     race: "超魔王",
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
@@ -4139,6 +4149,7 @@ const monsters = [
   {
     name: "イフシバ",
     id: "ifshiba",
+    rank: 10,
     race: "???",
     weight: "25",
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
@@ -4160,6 +4171,7 @@ const monsters = [
   {
     name: "スカルナイト",
     id: "skull",
+    rank: 8,
     race: "ゾンビ",
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
@@ -4174,6 +4186,7 @@ const monsters = [
   {
     name: "超オムド",
     id: "omudo",
+    rank: 10,
     race: "超魔王",
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
@@ -4199,6 +4212,7 @@ const monsters = [
   {
     name: "超ラプ",
     id: "rapu",
+    rank: 10,
     race: "超魔王",
     weight: "40",
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
@@ -4228,6 +4242,7 @@ const monsters = [
   {
     name: "エスターク",
     id: "esta",
+    rank: 10,
     race: "???",
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
@@ -4253,6 +4268,7 @@ const monsters = [
   {
     name: "ミステリドール",
     id: "dogu",
+    rank: 9,
     race: "物質",
     weight: "16",
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
@@ -4279,6 +4295,7 @@ const monsters = [
   {
     name: "ティトス",
     id: "dorunisu",
+    rank: 9,
     race: "???",
     weight: "14",
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
@@ -4299,6 +4316,7 @@ const monsters = [
   {
     name: "タイタニス",
     id: "tanisu",
+    rank: 10,
     race: "悪魔",
     weight: "30",
     status: { HP: 772, MP: 458, atk: 329, def: 495, spd: 462, int: 501 },
@@ -4318,6 +4336,7 @@ const monsters = [
   {
     name: "デュラン",
     id: "dhuran",
+    rank: 10,
     race: "悪魔",
     weight: "28",
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
@@ -4340,6 +4359,7 @@ const monsters = [
   {
     name: "ディアロゴス",
     id: "rogos",
+    rank: 10,
     race: "悪魔",
     weight: "32",
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
@@ -4367,6 +4387,7 @@ const monsters = [
   {
     name: "涼風の魔女グレイツェル",
     id: "tseru",
+    rank: 10,
     race: "悪魔",
     weight: "25",
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
@@ -4387,6 +4408,7 @@ const monsters = [
   {
     name: "魔性の道化ドルマゲス",
     id: "magesu",
+    rank: 10,
     race: "悪魔",
     weight: "25",
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
@@ -4408,6 +4430,7 @@ const monsters = [
   {
     name: "幻惑のムドー",
     id: "mudo",
+    rank: 10,
     race: "悪魔",
     weight: "28",
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
@@ -4428,6 +4451,7 @@ const monsters = [
   {
     name: "ズイカク&ショウカク",
     id: "zuisho",
+    rank: 10,
     race: "悪魔",
     weight: "25",
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
@@ -4449,6 +4473,7 @@ const monsters = [
   {
     name: "魔炎鳥",
     id: "maen",
+    rank: 10,
     race: "zombie",
     weight: "25",
     status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
@@ -4471,7 +4496,8 @@ const monsters = [
   {
     name: "sample",
     id: "",
-    race: "", //日本語
+    rank: 10, // SSが10で下げる
+    race: "", // 日本語
     weight: "",
     status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
     defaultSkill: ["", "", "", ""],
