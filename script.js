@@ -531,7 +531,8 @@ function finishSelectingEachMonstersCommand() {
     currentMonsterIndex += 1;
   }
 
-  if (currentMonsterIndex >= parties[currentTeamIndex].length) {
+  // 一瞬5になった場合も終了判定をして最後に戻す
+  if (currentMonsterIndex === parties[currentTeamIndex].length) {
     // すべてのモンスターの選択が終了した場合
     // currentMonsterIndex を最後に選択されたモンスターに戻す
     currentMonsterIndex = tempSelectingMonsterIndex;
@@ -569,11 +570,27 @@ function startSelectingCommandForFirstMonster(teamNum) {
     currentMonsterIndex++;
   }
 
-  // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
-  if (currentMonsterIndex < parties[teamNum].length) {
-    //微修正
+  // 敵が全員行動不能な場合 (一瞬5になった場合も終了判定をして最後に戻す 戻してはいない)
+  if (currentMonsterIndex === parties[teamNum].length) {
+    if (teamNum === 1) {
+      //敵コマンド選択でplayerを選んだ場合用
+      document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+      //アイコン反転
+      prepareBattlePageIcons(true);
+      //barとバフ反転
+      setMonsterBarDisplay(true);
+    }
+    // パーティーが全員行動不能の場合の処理
+    removeAllStickOut(); //adjustではない
+    askFinishCommand();
+    disableCommandBtn(true);
+    document.getElementById("askFinishCommandBtnNo").disabled = true;
+    document.getElementById("closeCommandPopupWindowBtn").style.display = "none";
+  } else {
+    // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
     adjustMonsterIconStickOut();
     displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
+    // コマンドボタンを有効化
     disableCommandBtn(false);
     if (teamNum === 1) {
       //敵コマンド選択でplayerを選んだ場合用
@@ -585,22 +602,6 @@ function startSelectingCommandForFirstMonster(teamNum) {
       //barとバフ反転
       setMonsterBarDisplay(true);
     }
-  } else {
-    // 敵が全員行動不能な場合
-    if (teamNum === 1) {
-      //敵コマンド選択でplayerを選んだ場合用
-      document.getElementById("howToCommandEnemy").style.visibility = "hidden";
-      //アイコン反転
-      prepareBattlePageIcons(true);
-      adjustMonsterIconStickOut();
-      //barとバフ反転
-      setMonsterBarDisplay(true);
-    }
-    // パーティーが全員行動不能の場合の処理
-    askFinishCommand();
-    disableCommandBtn(true);
-    document.getElementById("askFinishCommandBtnNo").disabled = true;
-    document.getElementById("closeCommandPopupWindowBtn").style.display = "none";
   }
 }
 
@@ -1863,9 +1864,6 @@ async function processMonsterAction(skillUser) {
   }
 
   // 状態異常確認
-
-  let executingSkill = findSkillByName(skillUser.commandInput);
-
   if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
     const abnormalityMessage = hasAbnormality(skillUser);
@@ -1874,6 +1872,9 @@ async function processMonsterAction(skillUser) {
     await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
+
+  // AIの場合変更されるのでここで定義
+  let executingSkill = findSkillByName(skillUser.commandInput);
 
   function decideNormalAICommand(skillUser) {
     const availableSkills = [];
@@ -1993,8 +1994,9 @@ async function processMonsterAction(skillUser) {
   // 状態異常判定をクリア後、AI行動特技設定
   // 仮で通常攻撃に
   if (skillUser.commandInput === "normalAICommand") {
-    skillUser.commandInput = "通常攻撃";
+    skillUser.commandInput = getNormalAttackName(skillUser);
   }
+  executingSkill = findSkillByName(getNormalAttackName(skillUser));
 
   if (skillUser.commandInput === "reviveAICommand") {
     //decideReviveAICommand(skillUser);
