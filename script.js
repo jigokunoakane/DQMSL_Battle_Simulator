@@ -704,7 +704,7 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 document.getElementById("askFinishCommandBtnYes").addEventListener("click", function () {
   document.getElementById("askFinishCommandBtnNo").disabled = false;
   document.getElementById("askFinishCommand").style.visibility = "hidden";
-  if (currentTeamIndex == "1") {
+  if (currentTeamIndex === 1) {
     //敵も選択終了後は、startBattleへ
     currentMonsterIndex = 0;
     currentTeamIndex = 0;
@@ -2000,9 +2000,8 @@ async function processMonsterAction(skillUser) {
   // 状態異常判定をクリア後、AI行動特技設定
   // 仮で通常攻撃に
   if (skillUser.commandInput === "normalAICommand") {
-    skillUser.commandInput = getNormalAttackName(skillUser);
+    executingSkill = findSkillByName(getNormalAttackName(skillUser));
   }
-  executingSkill = findSkillByName(getNormalAttackName(skillUser));
 
   if (skillUser.commandInput === "reviveAICommand") {
     //decideReviveAICommand(skillUser);
@@ -2464,6 +2463,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let executedSkills = [];
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
+  let hasExecutedFollowingAbilities = false;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかで実行
   while (currentSkill && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
     // 6. スキル実行処理
@@ -2509,6 +2509,20 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     if (currentSkill.followingSkill) {
       currentSkill = findSkillByName(currentSkill.followingSkill);
       isFollowingSkill = true;
+      await sleep(350);
+    } else if (
+      skillUser.abilities.followingAbilities &&
+      !hasExecutedFollowingAbilities &&
+      !executingSkill.order &&
+      executingSkill.howToCalculate !== "none" &&
+      skillUser.abilities.followingAbilities.availableIf(executingSkill)
+    ) {
+      // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
+      // followingSkillがないかつ追撃特性所持時にそれを実行
+      currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName);
+      isFollowingSkill = true;
+      // 次のloopに入ってability実行後は、ここには入らずnull指定されて終了
+      hasExecutedFollowingAbilities = true;
       await sleep(350);
     } else {
       currentSkill = null; // ループを抜けるためにnullを設定
@@ -4602,6 +4616,30 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    orochi: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "自然治癒",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "自然治癒",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+    },
     voruka: {
       deathAbilities: [
         {
@@ -5047,6 +5085,10 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+      followingAbilities: {
+        availableIf: (executingSkill) => executingSkill.type === "dance",
+        followingSkillName: "ディバインフェザー",
       },
     },
     mudo: {
