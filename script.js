@@ -703,13 +703,13 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
 document.getElementById("askFinishCommandBtnYes").addEventListener("click", function () {
   document.getElementById("askFinishCommandBtnNo").disabled = false;
-  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
-  //全員選択不能の場合の非表示解除
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   if (currentTeamIndex == "1") {
     //敵も選択終了後は、startBattleへ
     currentMonsterIndex = 0;
     currentTeamIndex = 0;
+    //全員選択不能の場合の非表示解除 味方選択のみ終了時は非表示のまま、敵のコマンド選択方法選択時に再表示
+    document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
     //初期化
     document.getElementById("commandPopupWindow").style.visibility = "hidden";
     disableCommandBtn(true);
@@ -727,11 +727,15 @@ document.getElementById("askFinishCommandBtnYes").addEventListener("click", func
 
 //敵のコマンド選択方法-player
 document.getElementById("howToCommandEnemyBtnPlayer").addEventListener("click", function () {
+  //全員選択不能の場合の非表示解除 敵のコマンド選択方法選択時に再表示
+  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
   startSelectingCommandForFirstMonster(1);
 });
 
 //敵のコマンド選択方法-improvedAI
 document.getElementById("howToCommandEnemyBtnImprovedAI").addEventListener("click", function () {
+  //全員選択不能の場合の非表示解除 敵のコマンド選択方法選択時に再表示
+  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
   currentMonsterIndex = 0;
   currentTeamIndex = 1;
   document.getElementById("howToCommandEnemy").style.visibility = "hidden";
@@ -739,6 +743,8 @@ document.getElementById("howToCommandEnemyBtnImprovedAI").addEventListener("clic
 });
 //敵のコマンド選択方法-fixedAI
 document.getElementById("howToCommandEnemyBtnFixedAI").addEventListener("click", function () {
+  //全員選択不能の場合の非表示解除 敵のコマンド選択方法選択時に再表示
+  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
   currentMonsterIndex = 0;
   currentTeamIndex = 1;
   document.getElementById("howToCommandEnemy").style.visibility = "hidden";
