@@ -363,7 +363,8 @@ document.getElementById("commandAIBtn").addEventListener("click", function () {
   }
 });
 
-function startSelectingCommand() {
+// startSelectingCommand() とくぎ選択開始
+document.getElementById("commandSelectSkillBtn").addEventListener("click", function () {
   disableCommandBtn(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
   const skillUser = parties[currentTeamIndex][currentMonsterIndex];
@@ -393,7 +394,7 @@ function startSelectingCommand() {
   //monster名表示に戻す
   //todo:inline?block?
   displayMessage("とくぎをえらんでください。");
-}
+});
 
 function selectCommand(selectedSkillNum) {
   document.getElementById("selectSkillBtnContainer").style.visibility = "hidden";
@@ -626,8 +627,7 @@ function adjustMonsterIconStickOut() {
   targetBattleIconToStickOut.parentNode.classList.add("stickOut");
 }
 
-function backBtn() {
-  //prepareBattleでも起動
+document.getElementById("commandBackBtn").addEventListener("click", function () {
   // 現在選択中のモンスターより前に行動可能なモンスターがいるか確認
   let previousActionableMonsterIndex = currentMonsterIndex - 1;
   while (previousActionableMonsterIndex >= 0) {
@@ -640,7 +640,7 @@ function backBtn() {
     }
     previousActionableMonsterIndex--;
   }
-}
+});
 
 function closeAllPopupContents() {
   document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
