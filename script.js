@@ -4622,7 +4622,7 @@ function getMonsterAbilities(monsterId) {
       supportAbilities: {
         permanentAbilities: [
           {
-            name: "自然治癒",
+            name: "怪竜の竜鱗",
             disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
@@ -4633,10 +4633,11 @@ function getMonsterAbilities(monsterId) {
       attackAbilities: {
         permanentAbilities: [
           {
-            name: "自然治癒",
-            disableMessage: true,
+            name: "紅蓮の炎熱",
             act: function (skillUser) {
-              executeRadiantWave(skillUser);
+              for (const monster of parties[skillUser.enemyTeamID]) {
+                applyBuff(monster, { fireResistance: { strength: -1 } });
+              }
             },
           },
         ],
