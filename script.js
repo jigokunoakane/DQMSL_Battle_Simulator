@@ -1871,7 +1871,7 @@ async function processMonsterAction(skillUser) {
     const abnormalityMessage = hasAbnormality(skillUser);
     console.log(`${skillUser.name}は${abnormalityMessage}`);
     displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
-    await postActionProcess(skillUser, executingSkill, null, damagedMonsters);
+    await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
 
@@ -2019,7 +2019,7 @@ async function processMonsterAction(skillUser) {
     };
     console.log(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
     displayMessage(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
-    await postActionProcess(skillUser, executingSkill, null, damagedMonsters);
+    await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
 
@@ -2032,7 +2032,7 @@ async function processMonsterAction(skillUser) {
     console.log("しかし、MPが足りなかった！");
     displayMessage("しかし、MPが足りなかった！");
     // MP不足の場合は7. 行動後処理にスキップ
-    await postActionProcess(skillUser, executingSkill, null, damagedMonsters);
+    await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
 
@@ -2105,8 +2105,8 @@ async function processMonsterAction(skillUser) {
   await postActionProcess(skillUser, executingSkill, executedSkills, damagedMonsters);
 }
 
-// 行動後処理
-async function postActionProcess(skillUser, executingSkill, executedSkills = null, damagedMonsters) {
+// 行動後処理  正常実行後だけでなく 状態異常 特技封じ MP不足等executingSkill未実行でnullの時にerrorにならないよう注意 特にunavailableIf
+async function postActionProcess(skillUser, executingSkill = null, executedSkills = null, damagedMonsters) {
   // 各処理の前にskipThisTurn所持確認を行う
   if (skillUser.commandInput === "skipThisTurn") {
     return;
@@ -2114,15 +2114,9 @@ async function postActionProcess(skillUser, executingSkill, executedSkills = nul
   // 7-2. flag付与
 
   // 7-3. AI追撃処理
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack) {
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
     const noAIskills = ["黄泉の封印", "神獣の封印"];
-    if (
-      !isDead(skillUser) &&
-      !hasAbnormality(skillUser) &&
-      skillUser.AINormalAttack &&
-      !noAIskills.includes(executingSkill.name) &&
-      !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor"))
-    ) {
+    if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       await sleep(300);
       let attackTimes =
         skillUser.AINormalAttack.length === 1
@@ -2268,13 +2262,13 @@ function isDead(monster) {
 // 状態異常判定を行う関数
 function hasAbnormality(monster) {
   const abnormalityMessages = {
-    stoned: "鉄のようになり  みがまえている！",
+    stoned: "鉄のようになり みがまえている！",
     paralyzed: "からだがしびれて動けない！",
     asleep: "ねむっている！",
     confused: "こんらんしている！",
-    fear: "動きを  ふうじられている！",
-    tempted: "動きを  ふうじられている！",
-    sealed: "動きを  ふうじられている！",
+    fear: "動きを ふうじられている！",
+    tempted: "動きを ふうじられている！",
+    sealed: "動きを ふうじられている！",
   };
 
   for (const key in abnormalityMessages) {
@@ -4524,9 +4518,9 @@ function getMonsterAbilities(monsterId) {
                   name: "天の竜気上昇",
                   disableMessage: true,
                   unavailableIf: (skillUser, executingSkill, executedSkills) => {
-                    // 生存しているマスドラがいる場合は実行
                     const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
-                    if (aliveMasudora.length < 1) {
+                    // 生存しているマスドラがいない または skillが実行されてない時はunavailable
+                    if (aliveMasudora.length < 1 || !executingSkill) {
                       return true;
                     } else {
                       if (executingSkill.name === "涼風一陣") {
@@ -4690,7 +4684,7 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性により`, "冥王の構え が発動！");
           },
-          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.type !== "slash",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "slash",
           act: async function (skillUser, executingSkill) {
             await executeSkill(skillUser, findSkillByName("冥王の構え"));
           },
@@ -4918,7 +4912,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "魔の心臓",
           isOneTimeUse: true,
-          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.type !== "martial",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "martial",
           act: async function (skillUser, executingSkill, executedSkills) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "悪魔") {
