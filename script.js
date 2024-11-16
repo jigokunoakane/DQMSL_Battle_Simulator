@@ -2515,13 +2515,13 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     } else if (
       skillUser.abilities.followingAbilities &&
       !hasExecutedFollowingAbilities &&
-      !executingSkill.order &&
       executingSkill.howToCalculate !== "none" &&
       skillUser.abilities.followingAbilities.availableIf(executingSkill)
     ) {
-      // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
       // followingSkillがないかつ追撃特性所持時にそれを実行
-      currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName);
+      // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
+      // executingSkillを渡してskillNameを返り値でもらう
+      currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName(executingSkill));
       isFollowingSkill = true;
       // 次のloopに入ってability実行後は、ここには入らずnull指定されて終了
       hasExecutedFollowingAbilities = true;
@@ -4773,6 +4773,14 @@ function getMonsterAbilities(monsterId) {
           }
         }
       },
+      followingAbilities: {
+        name: "双璧の幻獣・改",
+        availableIf: (executingSkill) => executingSkill.element === "fire" || executingSkill.element === "ice",
+        followingSkillName: (executingSkill) => {
+          if (executingSkill.element === "fire") return "アイスエイジ";
+          if (executingSkill.element === "ice") return "地獄の火炎";
+        },
+      },
     },
     omudo: {
       supportAbilities: {
@@ -5090,8 +5098,11 @@ function getMonsterAbilities(monsterId) {
         ],
       },
       followingAbilities: {
+        name: "悪魔衆の踊り",
         availableIf: (executingSkill) => executingSkill.type === "dance",
-        followingSkillName: "ディバインフェザー",
+        followingSkillName: (executingSkill) => {
+          return "ディバインフェザー";
+        },
       },
     },
     mudo: {
@@ -5915,7 +5926,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 74,
     ignoreSubstitute: true,
-    followingSkill: "アイスエイジ",
   },
   {
     name: "氷魔のダイヤモンド",
@@ -5927,7 +5937,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 74,
     ignoreSubstitute: true,
-    followingSkill: "地獄の火炎",
   },
   {
     name: "炎獣の爪",
@@ -5942,7 +5951,6 @@ const skill = [
     preemptiveGroup: 8,
     RaceBane: ["ドラゴン", "???"],
     RaceBaneValue: 2,
-    followingSkill: "アイスエイジ",
   },
   {
     name: "アイスエイジ",
@@ -5961,7 +5969,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 230,
-    element: "ice",
+    element: "fire",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
