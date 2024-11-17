@@ -7279,50 +7279,8 @@ document.getElementById("elementErrorBtn").addEventListener("click", function ()
   }
 });
 
-document.getElementById("ReverseBtn").addEventListener("click", function () {
-  const reverseText = document.getElementById("ReverseBtn").textContent;
-  if (reverseText === "リバ化") {
-    document.getElementById("ReverseBtn").textContent = "リバ解除";
-    fieldState.isReverse = true;
-  } else {
-    document.getElementById("ReverseBtn").textContent = "リバ化";
-    fieldState.isReverse = false;
-  }
-});
-
-document.getElementById("hametsuBtn").addEventListener("click", function () {
-  for (const party of parties) {
-    for (const monster of party) {
-      monster.currentStatus.HP = 100;
-      applyDamage(monster, 5, 1);
-      updateBattleIcons(monster);
-      monster.buffs.isUnbreakable = { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" };
-    }
-  }
-  parties[0][0].buffs.isUnbreakable = { keepOnDeath: true, left: 3, name: "ラストスタンド" };
-  displayMessage("とうこんを付与したよ");
-});
-
 document.getElementById("floBtn").addEventListener("click", function () {
   executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
-});
-
-document.getElementById("materialBtn").addEventListener("click", function () {
-  for (const party of parties) {
-    for (const monster of party) {
-      monster.abilities.explode = {
-        trigger: "death",
-        // act 関数を async function として定義
-        act: async function (monster) {
-          console.log(`${monster.name}は爆発した`);
-          displayMessage(`${monster.name}は爆発した！`);
-          await executeSkill(monster, findSkillByName("物質の爆発")); // await を使って executeSkill の完了を待つ
-        },
-      };
-      monster.abilities.explode.act = monster.abilities.explode.act.bind(monster);
-    }
-  }
-  displayMessage("爆発するよ");
 });
 
 document.getElementById("rezaoBtn").addEventListener("click", function () {

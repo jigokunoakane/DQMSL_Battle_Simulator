@@ -333,18 +333,22 @@
       <div id="battlePage">
         <!-- 戦闘画面 -->
         <div id="battlePageAbove">
-          <button id="ReverseBtn" class="normalButton">リバ化</button>
-          <button id="elementErrorBtn" class="normalButton">エレエラ</button>
-          <button id="resetBtn" class="normalButton">戦闘reset</button>
-          <button id="hametsuBtn" class="normalButton">破滅</button>
-          <button id="materialBtn" class="normalButton">爆発化</button>
-          <button id="rezaoBtn" class="normalButton">リザオ</button>
-          <button id="floBtn" class="normalButton">frozen</button>
-          <button id="harvestBtn" class="normalButton">harvest</button>
-          <button id="endBtn" class="normalButton">エンブレ</button>
-          <button id="skipBtn" class="normalButton">skip</button>
-
-          <br />
+          <div id="upperContainer">
+            <div id="fieldStateDisplays">
+              <div id="turnNumDisplay">残りラウンド 10</div>
+              <div id="reverseDisplay" class="fieldStateDisplay">リバース 残り1ラウンド</div>
+              <div id="distortedDisplay" class="fieldStateDisplay">属性歪曲 残り1ラウンド</div>
+            </div>
+            <div id="debugBtnContainer">
+              <button id="elementErrorBtn" class="normalButton debugBtns">エレエラ</button>
+              <button id="resetBtn" class="normalButton debugBtns">戦闘reset</button>
+              <button id="skipBtn" class="normalButton debugBtns">skip</button>
+              <button id="rezaoBtn" class="normalButton debugBtns">リザオ</button>
+              <button id="floBtn" class="normalButton debugBtns">frozen</button>
+              <button id="harvestBtn" class="normalButton debugBtns">harvest</button>
+              <button id="endBtn" class="normalButton debugBtns">エンブレ</button>
+            </div>
+          </div>
 
           <div id="enemyBattleIconsContainer" class="battleIconsContainer">
             <div class="battleIconWrapper enemyBattleIconWrapper">

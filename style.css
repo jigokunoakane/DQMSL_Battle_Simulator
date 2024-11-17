@@ -58,6 +58,12 @@ body {
   color: #0075fb;
   font-size: 1rem;
 }
+.debugBtns {
+  margin-left: 0rem;
+  margin-right: 0rem;
+  padding: 0rem 0.1rem;
+  font-size: 0.9rem;
+}
 select {
   -webkit-appearance: none;
   /* ベンダープレフィックス(Google Chrome、Safari用) */
@@ -629,4 +635,25 @@ select {
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+}
+
+#upperContainer {
+  display: flex;
+}
+
+#fieldStateDisplays {
+  width: 60%;
+  height: 4.7rem;
+  padding: 6px 10px;
+  color: white;
+  text-shadow: black 0.3px 0px 0.7px, black -0.3px 0px 0.7px, black 0px -0.3px 0.7px, black 0px 0.3px 0.7px, black 0.3px 0.3px 0.7px, black -0.3px 0.3px 0.7px, black 0.3px -0.3px 0.7px,
+    black -0.3px -0.3px 0.7px;
+  font-family: "Hiragino Maru Gothic ProN", "M PLUS Rounded 1c", "メイリオ", Meiryo, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+  /*font-size: 0.9rem;  文字サイズを調整 */
+}
+
+.fieldStateDisplay {
+  color: yellow;
+  margin-left: 0.2rem;
+  font-size: 0.7rem; /* 文字サイズを調整 */
 }
