@@ -17,7 +17,7 @@ let currentMonsterIndex = 0;
 let currentTeamIndex = 0;
 
 //戦闘中に使用
-let fieldState = { turnNum: 0 };
+let fieldState = {};
 let turnOrder = [];
 // 死亡時発動能力のキュー
 let deathActionQueue = [];
@@ -771,6 +771,7 @@ async function startTurn() {
   if (!fieldState.isPermanentDistorted) {
     delete fieldState.isDistorted;
   }
+  adjustFieldStateDisplay();
   removeAllStickOut();
 
   //ターン開始時loop
@@ -842,6 +843,7 @@ async function startTurn() {
     await sleep(600);
   }
   displayMessage(`ラウンド${turnNum}`, null, true);
+  document.getElementById("turnNumDisplay").textContent = `残りラウンド ${11 - turnNum}`;
 
   // 非同期処理でバフを適用
   async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
@@ -4812,6 +4814,7 @@ function getMonsterAbilities(monsterId) {
             act: function (skillUser) {
               displayMessage("全員の 行動順と素早さが", "逆転した！");
               fieldState.isReverse = true;
+              adjustFieldStateDisplay();
             },
           },
         ],
@@ -4820,6 +4823,7 @@ function getMonsterAbilities(monsterId) {
         permanentAbilities: [
           {
             name: "オムド変身",
+            disableMessage: true,
             isOneTimeUse: true,
             unavailableIf: (skillUser) => !skillUser.flags.willTransformOmudo || skillUser.flags.hasTransformed,
             act: async function (skillUser) {
@@ -6083,6 +6087,7 @@ const skill = [
     MPcost: 39,
     act: function (skillUser, skillTarget) {
       fieldState.isDistorted = true;
+      adjustFieldStateDisplay();
     },
   },
   {
@@ -6098,6 +6103,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       fieldState.isReverse = true;
       fieldState.isPermanentReverse = true;
+      adjustFieldStateDisplay();
       applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } });
     },
   },
@@ -7277,6 +7283,7 @@ document.getElementById("elementErrorBtn").addEventListener("click", function ()
     document.getElementById("elementErrorBtn").textContent = "エレエラ";
     delete fieldState.isDistorted;
   }
+  adjustFieldStateDisplay();
 });
 
 document.getElementById("floBtn").addEventListener("click", function () {
@@ -7887,6 +7894,7 @@ async function transformTyoma(monster) {
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
     fieldState.isDistorted = true;
     fieldState.isPermanentDistorted = true;
+    adjustFieldStateDisplay();
   } else if (monster.name === "超ラプ") {
     await sleep(400);
     displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
@@ -8067,4 +8075,27 @@ function addHexagonShine(targetElementId, cracked = false) {
   setTimeout(() => {
     hexagon.remove();
   }, timeOutDuration);
+}
+
+function adjustFieldStateDisplay() {
+  if (!fieldState.isReverse) {
+    document.getElementById("reverseDisplay").style.display = "none";
+  } else {
+    document.getElementById("reverseDisplay").style.display = "block";
+    if (fieldState.isPermanentReverse) {
+      document.getElementById("reverseDisplay").textContent = `リバース 残り11ラウンド`;
+    } else {
+      document.getElementById("reverseDisplay").textContent = `リバース 残り1ラウンド`;
+    }
+  }
+  if (!fieldState.isDistorted) {
+    document.getElementById("distortedDisplay").style.display = "none";
+  } else {
+    document.getElementById("distortedDisplay").style.display = "block";
+    if (fieldState.isPermanentDistorted) {
+      document.getElementById("distortedDisplay").textContent = `属性歪曲 残り11ラウンド`;
+    } else {
+      document.getElementById("distortedDisplay").textContent = `属性歪曲 残り1ラウンド`;
+    }
+  }
 }
