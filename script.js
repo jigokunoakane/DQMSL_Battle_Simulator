@@ -1125,6 +1125,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "reviveBlock",
     "dotDamage",
     "healBlock",
+    "manaReduction",
+    "powerWeaken",
   ];
   const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
 
@@ -1159,7 +1161,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
       continue;
     }
-    //順位付け処理の前に自動付与
+
+    // 1-4. 順位付け処理の前に自動付与
     //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与
     if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
       buffData.unDispellable = true;
@@ -1172,7 +1175,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
     }
-    // 1-4. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
+    // 1-5. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
       function getBuffPriority(buff) {
         if (buff.keepOnDeath) return 3;
@@ -1186,6 +1189,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (currentBuffPriority > newBuffPriority) {
         continue;
       }
+    }
+    // 1-6. その他個別の付与不可能条件
+    //力ため魔力覚醒所持時に侵食は付与しない
+    if ((buffName === "powerWeaken" && buffTarget.buffs.powerCharge) || (buffName === "manaReduction" && buffTarget.buffs.manaBoost)) {
+      continue;
     }
 
     // buffData 内に probability が存在するかチェックして用意
@@ -1210,7 +1218,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         continue; // 次のバフへ
       }
     } else if (abnormalityBuffs.includes(buffName)) {
-      // 2-2. //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
+      // 2-2. //状態異常系のうち、耐性判定 バリア判定 上書き不可能判定を行うもの (継続ダメ・回復封じ・マソ・侵食以外)
       const barrierMap = {
         fear: "mindBarrier",
         tempted: "mindBarrier",
@@ -1388,6 +1396,13 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         for (const type of mindAndSealBarrierTargets) {
           delete buffTarget.buffs[type];
         }
+      }
+      //力ため魔力覚醒付与時の侵食解除
+      if (buffName === "powerCharge") {
+        delete buffTarget.buffs.powerWeaken;
+      }
+      if (buffName === "manaBoost") {
+        delete buffTarget.buffs.manaReduction;
       }
     }
     //付与成功時処理 duration設定
@@ -3034,17 +3049,21 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   //力溜め系 カンタ系で反射して撃っているとき無効化
   if (!(isReflection && reflectionType === "kanta")) {
-    //魔力覚醒
-    if (skillUser.buffs.manaBoost && !executingSkill.ignoreManaBoost && executingSkill.howToCalculate === "int" && executingSkill.type === "spell") {
-      damage *= skillUser.buffs.manaBoost.strength;
+    //魔力覚醒 int依存以外も増加
+    if (!executingSkill.ignoreManaBoost && executingSkill.type === "spell") {
+      if (skillUser.buffs.manaBoost) {
+        damage *= skillUser.buffs.manaBoost.strength;
+      } else if (skillUser.buffs.manaReduction) {
+        damage *= skillUser.buffs.manaBoost.strength;
+      }
     }
-    //力ため 斬撃体技踊りまたはatk依存
-    if (
-      skillUser.buffs.powerCharge &&
-      !executingSkill.ignorePowerCharge &&
-      (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")
-    ) {
-      damage *= skillUser.buffs.powerCharge.strength;
+    //力ため 斬撃体技踊りまたはatk依存(通常攻撃)
+    if (!executingSkill.ignorePowerCharge && (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")) {
+      if (skillUser.buffs.powerCharge) {
+        damage *= skillUser.buffs.powerCharge.strength;
+      } else if (skillUser.buffs.powerWeaken) {
+        damage *= skillUser.buffs.powerWeaken.strength;
+      }
     }
     //息を吸い込む
     if (skillUser.buffs.breathCharge && executingSkill.type === "breath") {
@@ -6653,7 +6672,7 @@ const skill = [
     preemptiveGroup: 8,
     RaceBane: ["ドラゴン"],
     RaceBaneValue: 2,
-    //呪文減少
+    appliedEffect: { manaReduction: { strength: 0.5, duration: 2 } },
   },
   {
     name: "妖艶イオマータ",
