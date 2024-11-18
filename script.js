@@ -2488,15 +2488,6 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   deleteSubstitute(target);
 
-  // keepOnDeathを持たないバフと異常を削除
-  const newBuffs = {};
-  for (const buffKey in target.buffs) {
-    if (target.buffs[buffKey].keepOnDeath) {
-      newBuffs[buffKey] = target.buffs[buffKey];
-    }
-  }
-  target.buffs = newBuffs;
-
   // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与
   if (
     !target.buffs.tagTransformation &&
@@ -2513,6 +2504,16 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     target.commandInput = "skipThisTurn";
     //次のhitSequenceも実行しない
   }
+
+  // keepOnDeathを持たないバフと異常を削除 (zombifyBlockの消滅を防ぐため亡者判定後に)
+  const newBuffs = {};
+  for (const buffKey in target.buffs) {
+    if (target.buffs[buffKey].keepOnDeath) {
+      newBuffs[buffKey] = target.buffs[buffKey];
+    }
+  }
+  target.buffs = newBuffs;
+
   updateMonsterBar(target, true); //isDead付与後にupdateでbar非表示化
   updateBattleIcons(target);
   updateCurrentStatus(target);
@@ -5303,7 +5304,7 @@ const skill = [
     zakiProbability: 0.6,
   },
   {
-    name: "昇天",
+    name: "昇天槍",
     type: "notskill",
     howToCalculate: "atk",
     ratio: 1,
@@ -5311,6 +5312,20 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
+    followingSkill: "昇天槍昇天部分",
+  },
+  {
+    name: "昇天槍昇天部分",
+    type: "notskill",
+    howToCalculate: "none",
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      ascension(skillTarget);
+    },
   },
   {
     name: "心砕き",
@@ -5415,13 +5430,26 @@ const skill = [
   {
     name: "昇天斬り",
     type: "slash",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 35,
+    appliedEffect: { zombifyBlock: { dispellableByRadiantWave: true, removeAtTurnStart: true, duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      ascension(skillTarget);
+    },
+    followingSkill: "昇天斬り後半",
+  },
+  {
+    name: "昇天斬り後半",
+    type: "slash",
     howToCalculate: "atk",
     ratio: 1.74,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    MPcost: 35,
-    //執念
+    MPcost: 0,
   },
   {
     name: "タップダンス",
@@ -8054,7 +8082,7 @@ function getNormalAttackName(skillUser) {
   if (skillUser.gear?.name === "心砕き") {
     NormalAttackName = "心砕き";
   } else if (skillUser.gear?.name === "昇天") {
-    NormalAttackName = "昇天";
+    NormalAttackName = "昇天槍";
   } else if (skillUser.gear?.name === "aaa系統爪") {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス") {
