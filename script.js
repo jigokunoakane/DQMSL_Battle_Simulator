@@ -2488,11 +2488,12 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   deleteSubstitute(target);
 
-  // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与
+  // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与 applySkipDeathAbilityがtrue指定(毒等と供物)の場合は付与しない
   if (
     !target.buffs.tagTransformation &&
     (!target.buffs.revive || target.buffs.reviveBlock) &&
     !target.buffs.zombifyBlock &&
+    (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ") &&
     ((target.flags.zombieProbability && Math.random() < target.flags.zombieProbability) ||
       (target.race === "ゾンビ" && target.name !== "ラザマナス" && parties[target.teamID].some((target) => target.name === "ラザマナス")))
   ) {
