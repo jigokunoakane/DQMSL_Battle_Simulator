@@ -1487,9 +1487,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         99: 6,
         100: 7,
       },
-      reviveBlock: {
-        100: 1,
-      },
       preemptiveAction: {
         100: 1,
       },
@@ -5746,7 +5743,7 @@ const skill = [
     hitNum: 9,
     MPcost: 58,
     ignoreReflection: true,
-    appliedEffect: { reviveBlock: {} },
+    appliedEffect: { reviveBlock: { duration: 1 } },
   },
   {
     name: "黄泉の封印",
