@@ -7548,6 +7548,17 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     return;
   }
 
+  // 亡者の場合、すべてのbuffIconを非表示化
+  if (monster.flags.isZombie) {
+    buffIcons.forEach((icon) => (icon.style.display = "none"));
+    // 味方側の場合 亡者だけ表示
+    if (newId.includes("ally")) {
+      buffIcons[0].src = "images/buffIcons/isZombie.png";
+      buffIcons[0].style.display = "block"; // 表示する
+    }
+    return;
+  }
+
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
@@ -7581,13 +7592,17 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     }
   }
 
-  //みがわりアイコンをpush
+  // みがわりアイコンをpush
   if (monster.flags.hasSubstitute) {
     activeBuffs.push({ key: "hasSubstitute", src: "images/buffIcons/hasSubstitute.png" });
   }
   if (monster.flags.isSubstituting) {
     activeBuffs.push({ key: "isSubstituting", src: "images/buffIcons/isSubstituting.png" });
   }
+  // 亡者アイコンをpushはせず、亡者アイコンのみに
+  //if (monster.flags.isZombie && newId.includes("ally")) {
+  //  activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
+  //}
 
   if (activeBuffs.length === 0) {
     // バフがない場合は、すべてのbuffIconを非表示にする
