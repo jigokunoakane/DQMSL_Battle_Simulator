@@ -8213,6 +8213,9 @@ function adjustFieldStateDisplay() {
 
 // 昇天
 function ascension(monster) {
+  if (monster.flags.isUnAscensionable || !monster.flags.isZombie) {
+    return;
+  }
   delete monster.flags.isZombie;
   delete monster.buffs.sealed;
   monster.flags.isDead = true;
