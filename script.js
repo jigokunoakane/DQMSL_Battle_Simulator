@@ -263,7 +263,7 @@ function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
   const hpBarTextElement = document.getElementById(hpBarTextElementId);
   const mpBarTextElement = document.getElementById(mpBarTextElementId);
 
-  // prefixが敵かつ死亡している場合は非表示化
+  // prefixが敵かつ死亡(亡者化)している場合は非表示化
   if (prefix === "enemy" && (monster.flags.isDead || monster.flags.isZombie)) {
     hpBarElement.style.visibility = "hidden";
   } else {
@@ -317,10 +317,10 @@ function setMonsterBarDisplay(isReverse = false) {
   document.querySelectorAll(".bar").forEach((bar) => {
     bar.style.visibility = "hidden";
   });
-  for (let i = 0; i < parties.length; i++) {
-    for (let j = 0; j < parties[i].length; j++) {
-      updateMonsterBar(parties[i][j], false, isReverse); // 逆転フラグを渡す
-      updateMonsterBuffsDisplay(parties[i][j], isReverse);
+  for (const party of parties) {
+    for (const monster of party) {
+      updateMonsterBar(monster, false, isReverse);
+      updateMonsterBuffsDisplay(monster, isReverse);
     }
   }
 }
@@ -349,8 +349,9 @@ document.getElementById("commandAIBtn").addEventListener("click", function () {
   let tempSelectingMonsterIndex = currentMonsterIndex - 1;
 
   while (currentMonsterIndex < parties[currentTeamIndex].length) {
-    if (!isDead(parties[currentTeamIndex][currentMonsterIndex]) && !hasAbnormality(parties[currentTeamIndex][currentMonsterIndex])) {
-      parties[currentTeamIndex][currentMonsterIndex].commandInput = "normalAICommand";
+    const skillUser = parties[currentTeamIndex][currentMonsterIndex];
+    if (!isDead(skillUser) && !skillUser.flags.isZombie && !hasAbnormality(skillUser)) {
+      skillUser.commandInput = "normalAICommand";
       tempSelectingMonsterIndex += 1;
     }
     currentMonsterIndex += 1;
@@ -464,19 +465,19 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
     toggleDarkenAndClick(targetMonsterElement, false);
 
     if (selectedSkillTargetType === "dead") {
-      // 蘇生などdead対象のskillの場合、対象外の生存モンスターを非表示化
+      // 蘇生などdead対象のskillの場合、死亡monsterのみ表示 対象外の生存モンスターを非表示化
       if (!targetMonster.flags.isDead) {
         targetMonsterElement.style.display = "none";
         targetMonsterWrapper.style.display = "none";
       }
     } else {
-      // dead以外の通常スキルで、selectedSkillTargetTeamがenemyの場合、死亡している敵は非表示
-      //selectedSkillTargetTeamがallyの場合、死亡していても非表示ではなく暗転無効化(みがわり等)
+      // dead以外の通常スキルで、敵対象skillの場合、死亡している敵は非表示化
       if (targetMonster.flags.isDead) {
         if (selectedSkillTargetTeam === "enemy") {
           targetMonsterElement.style.display = "none";
           targetMonsterWrapper.style.display = "none";
         } else if (selectedSkillTargetTeam === "ally") {
+          // 味方対象skillは死亡していても非表示ではなく暗転無効化(みがわり等)
           toggleDarkenAndClick(targetMonsterElement, true);
         }
       }
@@ -528,7 +529,10 @@ function finishSelectingEachMonstersCommand() {
   currentMonsterIndex += 1;
 
   // 次の行動可能なモンスターが見つかるまでループ
-  while (currentMonsterIndex < parties[currentTeamIndex].length && (isDead(parties[currentTeamIndex][currentMonsterIndex]) || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))) {
+  while (
+    currentMonsterIndex < parties[currentTeamIndex].length &&
+    (isDead(parties[currentTeamIndex][currentMonsterIndex]) || parties[currentTeamIndex][currentMonsterIndex].flags.isZombie || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))
+  ) {
     // 行動不能なモンスターのcommandInputは設定済なので単純に増加
     currentMonsterIndex += 1;
   }
@@ -558,7 +562,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
     monster.commandTargetInput = "";
     if (isDead(monster)) {
       monster.commandInput = "skipThisTurn";
-    } else if (hasAbnormality(monster)) {
+    } else if (hasAbnormality(monster) || monster.flags.isZombie) {
       monster.commandInput = "normalAICommand";
     }
   }
@@ -568,7 +572,10 @@ function startSelectingCommandForFirstMonster(teamNum) {
   // parties[teamNum]の先頭から、行動可能なモンスターを探す
   currentTeamIndex = teamNum;
   currentMonsterIndex = 0;
-  while (currentMonsterIndex < parties[teamNum].length && (isDead(parties[teamNum][currentMonsterIndex]) || hasAbnormality(parties[teamNum][currentMonsterIndex]))) {
+  while (
+    currentMonsterIndex < parties[teamNum].length &&
+    (isDead(parties[teamNum][currentMonsterIndex]) || parties[currentTeamIndex][currentMonsterIndex].flags.isZombie || hasAbnormality(parties[teamNum][currentMonsterIndex]))
+  ) {
     currentMonsterIndex++;
   }
 
@@ -634,7 +641,11 @@ document.getElementById("commandBackBtn").addEventListener("click", function () 
   // 現在選択中のモンスターより前に行動可能なモンスターがいるか確認
   let previousActionableMonsterIndex = currentMonsterIndex - 1;
   while (previousActionableMonsterIndex >= 0) {
-    if (!isDead(parties[currentTeamIndex][previousActionableMonsterIndex]) && !hasAbnormality(parties[currentTeamIndex][previousActionableMonsterIndex])) {
+    if (
+      !isDead(parties[currentTeamIndex][previousActionableMonsterIndex]) &&
+      !parties[currentTeamIndex][previousActionableMonsterIndex].flags.isZombie &&
+      !hasAbnormality(parties[currentTeamIndex][previousActionableMonsterIndex])
+    ) {
       // 行動可能なモンスターが見つかった場合、そのモンスターを選択
       currentMonsterIndex = previousActionableMonsterIndex;
       adjustMonsterIconStickOut();
@@ -693,7 +704,10 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 
   // 最後尾の行動可能なモンスターのインデックスを取得
   currentMonsterIndex = parties[currentTeamIndex].length - 1;
-  while (currentMonsterIndex >= 0 && (isDead(parties[currentTeamIndex][currentMonsterIndex]) || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))) {
+  while (
+    currentMonsterIndex >= 0 &&
+    (isDead(parties[currentTeamIndex][currentMonsterIndex]) || parties[currentTeamIndex][currentMonsterIndex].flags.isZombie || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))
+  ) {
     currentMonsterIndex--;
   }
 
@@ -756,6 +770,15 @@ document.getElementById("howToCommandEnemyBtnFixedAI").addEventListener("click",
 
 //ターン開始時処理、毎ラウンド移行時とprepareBattleから起動
 async function startTurn() {
+  // ターン終了時loop
+  for (const party of parties) {
+    for (const monster of party) {
+      // 亡者解除
+      if (monster.flags.isZombie) {
+        ascension(monster);
+      }
+    }
+  }
   fieldState.turnNum++;
   console.log(`ラウンド${fieldState.turnNum}`);
   const turnNum = fieldState.turnNum;
@@ -794,6 +817,10 @@ async function startTurn() {
       monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
+      // 亡者解除
+      if (monster.flags.isZombie) {
+        ascension(monster);
+      }
     }
   }
   // ぼうぎょタグを削除
@@ -913,7 +940,7 @@ async function startTurn() {
 
   // バフ適用処理
   const applyBuffsForMonster = async (monster) => {
-    if (monster.flags.isDead) {
+    if (monster.flags.isDead || monster.flags.isZombie) {
       return;
     }
 
@@ -935,7 +962,7 @@ async function startTurn() {
   // 1モンスターのabilityを連続的に実行する関数
   async function executeAbility(monster, isSupportOrAttack) {
     //他attackAbilitiesで死亡した場合もreturnしない
-    if (monster.flags.isDead || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
+    if (monster.flags.isDead || monster.flags.isZombie || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
       return;
     }
 
@@ -1065,7 +1092,7 @@ async function startBattle() {
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
     await processMonsterAction(monster);
-    await sleep(750);
+    await sleep(400);
   }
   await startTurn();
 }
@@ -1144,11 +1171,15 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned) {
       continue;
     }
-    // 1-2. statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
+    // 1-2. 亡者の場合 封印以外は付与しない
+    if (buffTarget.flags.isZombie && buffName !== "sealed") {
+      continue;
+    }
+    // 1-3. statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
     if (buffTarget.buffs.hasOwnProperty("statusLock") && (stackableBuffs.hasOwnProperty(buffName) || (buffData.hasOwnProperty("type") && buffData.type === "familyBuff"))) {
       continue;
     }
-    // 1-3. 解除不可状態異常を上書きしない
+    // 1-4. 解除不可状態異常を上書きしない
     //上位毒・上位回復封じ等以外の、解除不可が設定されていない新規状態異常系バフに対して、光の波動で解除可能なフラグを下処理として付与
     if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
       buffData.dispellableByRadiantWave = true;
@@ -1162,7 +1193,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       continue;
     }
 
-    // 1-4. 順位付け処理の前に自動付与
+    // 1-5. 順位付け処理の前に自動付与
     //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与
     if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
       buffData.unDispellable = true;
@@ -1175,7 +1206,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
     }
-    // 1-5. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
+    // 1-6. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
       function getBuffPriority(buff) {
         if (buff.keepOnDeath) return 3;
@@ -1190,7 +1221,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         continue;
       }
     }
-    // 1-6. その他個別の付与不可能条件
+    // 1-7. その他個別の付与不可能条件
     //力ため魔力覚醒所持時に侵食は付与しない
     if ((buffName === "powerWeaken" && buffTarget.buffs.powerCharge) || (buffName === "manaReduction" && buffTarget.buffs.manaBoost)) {
       continue;
@@ -2234,8 +2265,8 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
   async function executeCounterAbilities(monster) {
-    // 反撃者が死亡時は反撃しない リザオなどで蘇生してたら反撃  被反撃者の生死は考慮しない(リザオ等で蘇生しても発動,反射や死亡時で死んでも他に飛んでいくので制限なし)
-    if (monster.flags.isDead) {
+    // 反撃者が死亡時はまたは亡者は反撃しない リザオなどで蘇生してたら反撃  被反撃者の生死は考慮しない(リザオ等で蘇生しても発動,反射や死亡時で死んでも他に飛んでいくので制限なし)
+    if (monster.flags.isDead || monster.flags.isZombie) {
       return;
     }
     await sleep(300);
@@ -2317,9 +2348,14 @@ function applyHeal(target, healAmount, isMPheal = false) {
 // ダメージを適用する関数
 function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
   if (resistance === -1) {
-    // 回復処理
+    // 回復処理 基礎値を用意
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
-    //回復封じ処理
+    // 亡者はミス表示して終了
+    if (target.flags.isZombie) {
+      displayMiss(target);
+      return;
+    }
+    // 回復封じ処理
     if (target.buffs.healBlock) {
       displayDamage(target, 0, -1, isMPdamage);
       return;
@@ -2345,6 +2381,11 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
   } else {
     // ダメージ処理
     if (isMPdamage) {
+      // 亡者はミス表示して終了
+      if (target.flags.isZombie) {
+        displayMiss(target);
+        return;
+      }
       // MPダメージ 現状値が最大ダメージ
       let mpDamage = Math.min(target.currentStatus.MP, Math.floor(damage));
       target.currentStatus.MP -= mpDamage;
@@ -2365,8 +2406,12 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
       }
       // HPかつダメージのときのみ、reducedByElementalShieldを渡して0ダメ表示対応
       displayDamage(target, hpDamage, resistance, false, reducedByElementalShield);
-      //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で
 
+      // 亡者はダメージ表示(と無意味なcurrentの更新)のみ updateMonsterBarやくじけぬは実行せず終了
+      if (target.flags.isZombie) {
+        return;
+      }
+      //updateMonsterBarはくじけぬ未所持判定後か、くじけぬ処理の分岐内で実行
       if (target.currentStatus.HP === 0 && !target.flags.isDead) {
         // くじけぬ処理
         if (target.buffs.isUnbreakable) {
@@ -2418,11 +2463,18 @@ function handleUnbreakable(target) {
   }
 }
 
-function handleDeath(target, hideDeathMessage = false) {
+function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = false) {
+  if (target.flags.isZombie) {
+    return;
+  }
   target.currentStatus.HP = 0;
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
+  // 供物2種はskipDeathAbilityを付与して死亡時発動を行わない
+  if (applySkipDeathAbility) {
+    target.flags.skipDeathAbility = true;
+  }
 
   ++fieldState.deathCount[target.teamID];
   // 蘇生予定がない場合、完全死亡カウントを増加
@@ -2448,8 +2500,19 @@ function handleDeath(target, hideDeathMessage = false) {
   }
   target.buffs = newBuffs;
 
-  // タグ変化とゾンビ化がない場合のみ、コマンドスキップ
-  if (!target.buffs.tagTransformation && !target.flags.canBeZombie) {
+  // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与
+  if (
+    !target.buffs.tagTransformation &&
+    (!target.buffs.revive || target.buffs.reviveBlock) &&
+    !target.buffs.zombifyBlock &&
+    ((target.flags.zombieProbability && Math.random() < target.flags.zombieProbability) ||
+      (target.race === "ゾンビ" && target.name !== "ラザマナス" && parties[target.teamID].some((target) => target.name === "ラザマナス")))
+  ) {
+    target.flags.willZombify = true;
+  }
+
+  // tag変化もゾンビ化もしない場合のみ、コマンドスキップ
+  if (!target.buffs.tagTransformation && !target.flags.willZombify) {
     target.commandInput = "skipThisTurn";
     //次のhitSequenceも実行しない
   }
@@ -3463,7 +3526,7 @@ async function processDeathAction(skillUser, killedThisSkill) {
     // 復活処理
     if (monster.buffs.revive || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
-    } else {
+    } else if (monster.flags.willZombify) {
       await zombifyMonster(monster);
     }
   }
@@ -3551,15 +3614,12 @@ async function reviveMonster(monster, HPratio = 1) {
 
 // モンスターを亡者化させる関数
 async function zombifyMonster(monster) {
-  if (monster.flags.isDead && monster.flags.canBeZombie && (!monster.flags.canBeZombie.probability || Math.random() < monster.flags.canBeZombie.probability)) {
-    await sleep(600);
-    delete monster.flags.isDead;
-    monster.flags.isZombie = true;
-    updateBattleIcons(monster);
-    await sleep(400);
-    return true;
-  }
-  return false;
+  await sleep(400);
+  delete monster.flags.isDead;
+  delete monster.flags.willZombify;
+  monster.flags.isZombie = true;
+  updateBattleIcons(monster);
+  await sleep(300);
 }
 
 // 指定 milliseconds だけ処理を一時停止する関数
@@ -4513,7 +4573,7 @@ const monsters = [
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
-    race: "zombie",
+    race: "ゾンビ",
     weight: "25",
     status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
     defaultSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
@@ -4528,7 +4588,7 @@ const monsters = [
     },
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1 },
-    lsTarget: "zombie",
+    lsTarget: "ゾンビ",
     AINormalAttack: [2],
     resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
@@ -4802,6 +4862,16 @@ function getMonsterAbilities(monsterId) {
           if (executingSkill.element === "ice") return "地獄の火炎";
         },
       },
+    },
+    skull: {
+      initialAttackAbilities: [
+        {
+          name: "亡者の執念",
+          act: function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+          },
+        },
+      ],
     },
     omudo: {
       supportAbilities: {
@@ -5255,7 +5325,7 @@ const skill = [
     hitNum: 3,
     MPcost: 0,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.isUnbreakable && !skillTarget.buffs.isUnbreakable.isToukon) {
+      if (skillTarget.buffs.isUnbreakable && !skillTarget.buffs.isUnbreakable.isToukon && !skillTarget.flags.isZombie) {
         //防壁などによる失敗はないので、通常攻撃成功時はactも100%実行
         displayMessage("そうびの特性により", "くじけぬ心が ゆらいだ！");
         skillTarget.buffs.isUnbreakable.left = 1;
@@ -5311,7 +5381,7 @@ const skill = [
     MPcost: 96,
     followingSkill: "涼風一陣後半",
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -5325,7 +5395,7 @@ const skill = [
     MPcost: 0,
     ignoreProtection: true,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -5764,8 +5834,8 @@ const skill = [
       displayMessage(`${skillUserName}は闇に身をささげた！`);
     },
     act: function (skillUser, skillTarget) {
-      handleDeath(skillUser, true);
-      skillUser.flags.skipDeathAbility = true;
+      // skipDeathAbilityを付与してhandleDeath
+      handleDeath(skillUser, true, true);
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
     followingSkill: "供物をささげる死亡",
@@ -5783,8 +5853,8 @@ const skill = [
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
-        handleDeath(nerugeru, true);
-        nerugeru.flags.skipDeathAbility = true;
+        // skipDeathAbilityを付与してhandleDeath
+        handleDeath(nerugeru, true, true);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
           nerugeru.flags.willTransform = true;
@@ -5859,7 +5929,7 @@ const skill = [
       displayMessage(`${skillUserName}の 反撃！`);
     },
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -5874,7 +5944,7 @@ const skill = [
     MPcost: 65,
     appliedEffect: "disruptiveWave",
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -5889,7 +5959,7 @@ const skill = [
     MPcost: 75,
     appliedEffect: "divineWave",
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -6198,7 +6268,7 @@ const skill = [
     ignoreReflection: true,
     damageByLevel: true,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -6242,7 +6312,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
     followingSkill: "必殺の双撃後半",
   },
@@ -6259,7 +6329,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -6448,7 +6518,7 @@ const skill = [
     hitNum: 3,
     ignoreReflection: true,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -6689,7 +6759,7 @@ const skill = [
     hitNum: 5,
     MPcost: 45,
     act: function (skillUser, skillTarget) {
-      delete skillTarget.buffs.isUnbreakable;
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -7591,6 +7661,9 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
       return;
     }
   }
+  if (skillTarget.flags.isZombie) {
+    return;
+  }
   skillTarget.flags.hasSubstitute = {};
   skillTarget.flags.hasSubstitute.targetMonsterId = skillUser.monsterId;
   if (!skillUser.flags.hasOwnProperty("isSubstituting")) {
@@ -8116,5 +8189,29 @@ function adjustFieldStateDisplay() {
     } else {
       document.getElementById("distortedDisplay").textContent = `属性歪曲 残り1ラウンド`;
     }
+  }
+}
+
+// 昇天
+function ascension(monster) {
+  delete monster.flags.isZombie;
+  delete monster.buffs.sealed;
+  monster.flags.isDead = true;
+  updateMonsterBar(monster); //isDead付与後にupdateでbar非表示化
+  updateBattleIcons(monster);
+  /*
+  let wrapper = document.getElementById(target.iconElementId).parentElement;
+  const buffContainer = wrapper.querySelector(".buffContainer");
+  if (buffContainer) {
+    buffContainer.remove();
+  }*/
+  updateMonsterBuffsDisplay(monster);
+  document.getElementById(monster.iconElementId).parentNode.classList.remove("stickOut");
+  document.getElementById(monster.iconElementId).parentNode.classList.remove("recede");
+}
+
+function deleteUnbreakable(skillTarget) {
+  if (!skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
+    delete skillTarget.buffs.isUnbreakable;
   }
 }
