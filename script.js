@@ -3606,6 +3606,7 @@ async function reviveMonster(monster, HPratio = 1) {
   }
   updateMonsterBar(monster);
   updateBattleIcons(monster);
+  updateMonsterBuffsDisplay(monster);
   await sleep(300);
 }
 
@@ -7508,9 +7509,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   let wrapper = document.getElementById(monster.iconElementId).parentElement;
+  let newId = monster.iconElementId;
   if (isReversed) {
     // monster.iconElementId を入れ替える
-    const newId = monster.iconElementId.includes("ally") ? monster.iconElementId.replace("ally", "enemy") : monster.iconElementId.replace("enemy", "ally");
+    newId = monster.iconElementId.includes("ally") ? monster.iconElementId.replace("ally", "enemy") : monster.iconElementId.replace("enemy", "ally");
 
     // wrapper を新しい要素の親要素に置き換える
     wrapper = document.getElementById(newId).parentElement;
@@ -7535,9 +7537,14 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     }
   }
 
+  // isDeadの場合、すべてのbuffIconを非表示化
   if (monster.flags.isDead) {
-    // isDeadの場合は、すべてのbuffIconを非表示にする
     buffIcons.forEach((icon) => (icon.style.display = "none"));
+    // 味方側の場合 棺桶だけ表示
+    if (newId.includes("ally")) {
+      buffIcons[0].src = "images/buffIcons/isDead.png";
+      buffIcons[0].style.display = "block"; // 表示する
+    }
     return;
   }
 
