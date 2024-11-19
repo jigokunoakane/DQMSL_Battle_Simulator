@@ -3597,10 +3597,14 @@ async function reviveMonster(monster, HPratio = 1) {
     if (monster.buffs.revive) {
       monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * monster.buffs.revive.strength);
       // abilities.reviveActにmonsterとact: 名前を渡して、abilities内の名前と一致した場合にのみ実行
-      if (monster.buffs.revive.act) {
-        await monster.abilities.reviveAct(monster, monster.buffs.revive.act);
+      if (monster.buffs.revive.act && monster.abilities.reviveAct) {
+        // act実行でreviveを再付与してから削除してしまわないよう、nameを保存、バフ削除してからactで再付与
+        const oldReviveBuffName = monster.buffs.revive.act;
+        delete monster.buffs.revive;
+        await monster.abilities.reviveAct(monster, oldReviveBuffName);
+      } else {
+        delete monster.buffs.revive;
       }
-      delete monster.buffs.revive;
     } else {
       // リザオ以外の通常蘇生の場合の処理
       monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * HPratio);
@@ -4570,6 +4574,28 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ジャハガロス",
+    id: "jaha",
+    rank: 10,
+    race: "悪魔",
+    weight: "28",
+    status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
+    defaultSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
+    attribute: {
+      initialBuffs: {
+        protection: { strength: 0.34, duration: 3 },
+        intUp: { strength: 1 },
+        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" },
+        spellBarrier: { strength: 2 },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
+    },
+    seed: { atk: 30, def: 55, spd: 35, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 0, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
+  },
+  {
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
@@ -5207,6 +5233,16 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    jaha: {
+      reviveAct: async function (monster, buffName) {
+        if (buffName === "復讐の闘志") {
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+          if (Math.random() < 0.72) {
+            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" } });
+          }
+        }
+      },
     },
   };
 
@@ -6997,7 +7033,51 @@ const skill = [
     MPcost: 84,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.33, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "巨岩投げ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 325,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 88,
+    damageByHpPercent: true,
+  },
+  {
+    name: "苛烈な暴風",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    appliedEffect: { windResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
+    name: "魔の忠臣",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 14,
+    order: "preemptive",
+    preemptiveGroup: 3,
+    act: function (skillUser, skillTarget) {
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
+        applySubstitute(skillUser, skillTarget, true);
+      }
+    },
   },
   {
     name: "debugbreath",
