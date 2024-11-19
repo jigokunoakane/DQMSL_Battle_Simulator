@@ -1278,11 +1278,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //耐性を参照して確率判定
       let abnormalityResistance = 1;
-      //氷の王国処理
-      if (buffName === "sealed" && buffData.element) {
-        abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget);
-        if (abnormalityResistance < 0.6) {
-          //使い手込でも半減以上は確定失敗
+      //氷の王国・フロスペ等属性処理
+      if (buffData.element) {
+        abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget, fieldState.isDistorted);
+        if (buffName === "sealed" && abnormalityResistance < 0.6) {
+          // 氷の王国のみ、使い手込でも半減以上は確定失敗
           abnormalityResistance = -1;
         }
       } else {
@@ -3235,6 +3235,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillUser.buffs.tabooSeal) {
     damageModifier -= 0.5;
   }
+  // リズ
+  if (skillUser.buffs.rizuIceBuff && executingSkill.element === "ice") {
+    damageModifier += 0.4;
+  }
+
   // world反撃ののろし
   if (skillUser.buffs.worldBuff) {
     damageModifier += skillUser.buffs.worldBuff.strength;
@@ -4596,6 +4601,25 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 0, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
+    name: "リーズレット",
+    id: "rizu",
+    rank: 10,
+    race: "悪魔",
+    weight: "25",
+    status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
+    defaultSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
+    attribute: {
+      initialBuffs: {
+        breathReflection: { keepOnDeath: true, strength: 1 },
+        dodgeBuff: { keepOnDeath: true, strength: 0.5 },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { spd: 1.15, int: 1.15 },
+    lsTarget: "悪魔",
+    resistance: { fire: 1, ice: -1, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
@@ -5243,6 +5267,18 @@ function getMonsterAbilities(monsterId) {
           }
         }
       },
+    },
+    rizu: {
+      initialAbilities: [
+        {
+          name: "悪魔衆の氷雪",
+          act: async function (skillUser) {
+            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
+              applyBuff(skillUser, { iceBreak: { keepOnDeath: true, strength: 1 }, rizuIceBuff: { duration: 3 } });
+            }
+          },
+        },
+      ],
     },
   };
 
@@ -7078,6 +7114,54 @@ const skill = [
         applySubstitute(skillUser, skillTarget, true);
       }
     },
+  },
+  {
+    name: "フローズンスペル",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 54,
+    appliedEffect: { fear: { element: "ice", probability: 0.7685 } },
+  },
+  {
+    name: "氷の王国",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 53,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533 } },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        // skillUserを渡して使い手反映
+        applyBuff(monster, { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533 } }, skillUser);
+      }
+    },
+    isOneTimeUse: true,
+  },
+  {
+    name: "雪だるま",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 180,
+    element: "ice",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 51,
+    isOneTimeUse: true,
+    appliedEffect: { sealed: {} },
   },
   {
     name: "debugbreath",
