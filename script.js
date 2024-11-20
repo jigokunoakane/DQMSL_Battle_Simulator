@@ -76,7 +76,7 @@ function decideParty() {
     switchParty();
   } else {
     // playerAの選択に戻す
-    currentPlayer = "B";
+    currentPlayer = "A";
     document.getElementById("playerAorB").textContent = "プレイヤーA";
     // selectのoptionを変更
     for (let i = 1; i <= 5; i++) {
@@ -4047,6 +4047,7 @@ async function selectAllPartyMembers(monsters) {
   }
   decideParty();
   await sleep(9);
+  // 選択画面を開く
   if (currentPlayer === "B") {
     document.body.style.overflow = "hidden";
     document.getElementById("selectMonsterOverlay").style.visibility = "visible";
@@ -7606,6 +7607,18 @@ function skipBtn(isSkip = false) {
     sleep = originalSleep;
   }
 }
+
+document.getElementById("finishBtn").addEventListener("click", async function () {
+  //displayで全体切り替え、battle画面へ
+  document.getElementById("pageHeader").style.display = "block";
+  document.getElementById("adjustPartyPage").style.display = "block";
+  document.getElementById("battlePage").style.display = "none";
+  // skipしてコマンド画面に
+  skipBtn(true);
+  //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
+  await originalSleep(1000);
+  skipBtn(false);
+});
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
