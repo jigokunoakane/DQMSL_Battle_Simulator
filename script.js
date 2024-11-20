@@ -5291,11 +5291,6 @@ function getMonsterAbilities(monsterId) {
 
 const skill = [
   {
-    name: "なし",
-    howToCalculate: "",
-    element: "",
-  },
-  {
     name: "sample",
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
@@ -5956,6 +5951,7 @@ const skill = [
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
+        delete nerugeru.buffs.poisonDepth;
         // skipDeathAbilityを付与してhandleDeath
         handleDeath(nerugeru, true, true);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
