@@ -2556,8 +2556,12 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
   let hasExecutedFollowingAbilities = false;
-  // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかで実行
-  while (currentSkill && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
+  // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
+  while (
+    currentSkill &&
+    (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
+    (currentSkill.skipAbnormalityCheck || !hasAbnormality(skillUser))
+  ) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
