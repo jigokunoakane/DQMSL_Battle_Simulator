@@ -1,20 +1,18 @@
 html {
   -ms-touch-action: manipulation;
   touch-action: manipulation;
-  overflow-x: hidden; /*横スクロール禁止*/
   overflow: hidden; /*スクロール禁止*/
   touch-action: manipulation; /*ダブルタップ拡大禁止*/
 }
 
 body {
   user-select: none;
-  /* CSS3 test*/
   -moz-user-select: none;
-  /* Firefox */
   -webkit-user-select: none;
-  /* Safari、Chrome */
   -ms-user-select: none;
-  /* Microsoft */
+  -khtml-user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
   font-family: sans-serif;
   font-weight: 400;
   font-size: 100%;
@@ -35,6 +33,20 @@ body {
 *::before,
 *::after {
   box-sizing: border-box; /*paddingも含めてwidth指定*/
+}
+
+img {
+  /* 長押しによる保存禁止 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-touch-callout: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.buffIcon,
+.battleIcon {
+  pointer-events: none; /*長押しによるドラッグアンドドロップを禁止*/
 }
 
 #pageHeader {
