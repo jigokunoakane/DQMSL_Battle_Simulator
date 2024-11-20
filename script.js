@@ -90,6 +90,7 @@ function decideParty() {
     switchParty();
 
     //displayで全体切り替え、battle画面へ
+    document.getElementById("pageHeader").style.display = "none";
     document.getElementById("adjustPartyPage").style.display = "none";
     document.getElementById("battlePage").style.display = "block";
     prepareBattle();
