@@ -3475,6 +3475,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       if (skillTarget.buffs[element + "Resistance"]) {
         normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
       }
+      // プリズムヴェール
+      if (skillTarget.buffs.prismVeil) {
+        normalResistanceIndex -= skillTarget.buffs.prismVeil.strength;
+      }
       // インデックスの範囲を制限 最大でも無効
       normalResistanceIndex = Math.max(1, Math.min(normalResistanceIndex, 6));
     }
@@ -3516,6 +3520,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       // 属性耐性バフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
         distortedResistanceIndex += skillTarget.buffs[element + "Resistance"].strength;
+      }
+      // プリズムヴェール
+      if (skillTarget.buffs.prismVeil) {
+        normalResistanceIndex += skillTarget.buffs.prismVeil.strength;
       }
     }
     // インデックスの範囲を制限
@@ -6236,7 +6244,9 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 54,
-    //effect
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { prismVeil: { strength: 1, duration: 3 } },
   },
   {
     name: "ルカナン",
