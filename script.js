@@ -1094,11 +1094,11 @@ async function startBattle() {
   decideTurnOrder(parties, skill);
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
-    await processMonsterAction(monster);
-    await sleep(400);
     if (isBattleOver()) {
       break;
     }
+    await processMonsterAction(monster);
+    await sleep(400);
   }
   await startTurn();
 }
@@ -7565,6 +7565,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
 }
 
 document.getElementById("resetBtn").addEventListener("click", async function () {
+  fieldState.isBattleOver = true;
   skipBtn(true);
   //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
   await originalSleep(700);
@@ -7639,7 +7640,8 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
   document.getElementById("pageHeader").style.display = "block";
   document.getElementById("adjustPartyPage").style.display = "block";
   document.getElementById("battlePage").style.display = "none";
-  // skipしてコマンド画面に
+  // 戦闘終了フラグを立て、skipしてコマンド画面に
+  fieldState.isBattleOver = true;
   skipBtn(true);
   //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
   await originalSleep(1000);
@@ -8538,5 +8540,8 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
 
 // 終了時trueを返す
 function isBattleOver() {
-  return parties.some((party) => party.every((monster) => monster.flags.isDead));
+  if (parties.some((party) => party.every((monster) => monster.flags.isDead))) {
+    fieldState.isBattleOver = true;
+  }
+  return fieldState.isBattleOver;
 }
