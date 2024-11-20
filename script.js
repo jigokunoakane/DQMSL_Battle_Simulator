@@ -818,9 +818,11 @@ async function startTurn() {
       monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
-      // 亡者解除
-      if (monster.flags.isZombie) {
-        ascension(monster);
+      // ラザマ等
+      if (monster.flags.isDead && monster.flags.reviveNextTurn) {
+        await sleep(300);
+        delete monster.flags.reviveNextTurn;
+        await reviveMonster(monster, 1, true);
       }
     }
   }
@@ -1094,6 +1096,9 @@ async function startBattle() {
   for (const monster of turnOrder) {
     await processMonsterAction(monster);
     await sleep(400);
+    if (isBattleOver()) {
+      break;
+    }
   }
   await startTurn();
 }
@@ -2158,6 +2163,9 @@ async function processMonsterAction(skillUser) {
   if (skillUser.name === "超オムド" && executingSkill.type !== "notskill") {
     skillUser.flags.willTransformOmudo = true;
   }
+  if (isBattleOver()) {
+    return;
+  }
 
   await postActionProcess(skillUser, executingSkill, executedSkills, damagedMonsters);
 }
@@ -2584,6 +2592,10 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     if (currentSkill.afterActionAct) {
       await currentSkill.afterActionAct(skillUser);
     }
+    // 全滅判定後はafterActionAct実行後にexecuteSkillごと終了
+    if (isBattleOver()) {
+      return;
+    }
     //currentSkill実行後、生存している場合はselfAppliedEffect付与
     if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
       await currentSkill.selfAppliedEffect(skillUser);
@@ -2630,6 +2642,9 @@ async function processHitSequence(
 ) {
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
+  }
+  if (isBattleOver()) {
+    return;
   }
   //毎回deathActionはしているので、停止時はreturnかけてOK
   //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
@@ -3589,7 +3604,7 @@ async function executeDeathAbilities(monster) {
 }
 
 // モンスターを蘇生させる関数
-async function reviveMonster(monster, HPratio = 1) {
+async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false) {
   await sleep(400);
   if (!monster.flags.isDead) {
     displayMiss(monster);
@@ -3606,7 +3621,7 @@ async function reviveMonster(monster, HPratio = 1) {
     delete monster.buffs.tagTransformation;
   } else {
     // リザオまたは通常蘇生時、蘇生封じ持ちの場合はreturn
-    if (monster.buffs.reviveBlock) {
+    if (monster.buffs.reviveBlock && !ignoreReviveBlock) {
       delete monster.buffs.revive;
       displayMiss(monster);
       return;
@@ -8519,4 +8534,9 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
       { once: true }
     );
   }, 500);
+}
+
+// 終了時trueを返す
+function isBattleOver() {
+  return parties.some((party) => party.every((monster) => monster.flags.isDead));
 }
