@@ -142,7 +142,7 @@ async function prepareBattle() {
         if ((lsTarget === "all" || monster.race === lsTarget) && leaderSkill[key]) {
           lsMultiplier = leaderSkill[key];
         }
-        if (monster.gear?.alchemy && !["超魔王", "超伝説", "???"].includes(monster.race)) {
+        if (monster.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(monster.race)) {
           lsMultiplier += 0.05;
         }
         // HPまたはMPの場合、乗数を0.04加算
