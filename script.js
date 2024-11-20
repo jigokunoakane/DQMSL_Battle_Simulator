@@ -3531,7 +3531,7 @@ async function processDeathAction(skillUser, killedThisSkill) {
     }
 
     // 復活処理
-    if (monster.buffs.revive || monster.buffs.tagTransformation) {
+    if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
     } else if (monster.flags.willZombify) {
       await zombifyMonster(monster);
