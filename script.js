@@ -2869,6 +2869,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       skillTarget = assignedSkillUser;
     }
     // isDamageExistingはfalseで送る
+    await processAppliedEffectWave(skillTarget, executingSkill);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // actで死亡時も死亡時発動等を実行するため
     // 追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
@@ -2886,8 +2887,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
-  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
-    // AppliedEffect指定されてたら、規定値による波動処理またはapplyBuff
+  // AppliedEffect指定のうち、規定値による波動処理を定義
+  async function processAppliedEffectWave(buffTarget, executingSkill) {
     if (executingSkill.appliedEffect) {
       if (executingSkill.appliedEffect === "radiantWave") {
         executeRadiantWave(buffTarget);
@@ -2895,9 +2896,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         executeWave(buffTarget, true);
       } else if (executingSkill.appliedEffect === "disruptiveWave") {
         executeWave(buffTarget);
-      } else {
-        applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
       }
+    }
+  }
+  // AppliedEffect指定のうち、applyBuffおよびactを定義
+  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
+    if (executingSkill.appliedEffect && executingSkill.appliedEffect !== "radiantWave" && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
+      applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
     }
     //act処理と、barおよびバフ表示更新
     if (executingSkill.act) {
@@ -3334,9 +3339,26 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
+  // applyDamage実行前に、appliedEffectのいては系によるリザオ解除を実行
+  if (
+    (reducedByElementalShield || damage > 0) &&
+    executingSkill.appliedEffect &&
+    (executingSkill.appliedEffect === "disruptiveWave" || executingSkill.appliedEffect === "divineWave") &&
+    skillTarget.buffs.revive &&
+    !skillTarget.buffs.revive.unDispellable
+  ) {
+    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.revive.divineDispellable) {
+      delete skillTarget.buffs.revive;
+    }
+  }
+
   applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield);
 
-  //常に実行 または target生存かつdamageが0超えのときに、追加効果付与を実行
+  // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
+  if (reducedByElementalShield || damage > 0) {
+    await processAppliedEffectWave(skillTarget, executingSkill);
+  }
+  // それ以外の追加効果は  常に実行 または target生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
   if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
