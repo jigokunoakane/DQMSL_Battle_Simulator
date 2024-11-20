@@ -2820,6 +2820,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
       if (!killedThisSkill.has(zakiTarget)) {
         killedThisSkill.add(zakiTarget);
+        // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
+        if (isZakiReflection && zakiTarget.flags.willZombify) {
+          delete zakiTarget.flags.willZombify;
+          zakiTarget.commandInput = "skipThisTurn";
+        }
       }
       delete zakiTarget.flags.recentlyKilled;
       return;
@@ -2855,6 +2860,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (skillTarget.flags.recentlyKilled) {
       if (!killedThisSkill.has(skillTarget)) {
         killedThisSkill.add(skillTarget);
+        // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
+        if (isReflection && skillTarget.flags.willZombify) {
+          delete skillTarget.flags.willZombify;
+          skillTarget.commandInput = "skipThisTurn";
+        }
       }
       delete skillTarget.flags.recentlyKilled;
     }
@@ -3327,6 +3337,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.flags.recentlyKilled) {
     if (!killedThisSkill.has(skillTarget)) {
       killedThisSkill.add(skillTarget);
+      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
+      if (isReflection && skillTarget.flags.willZombify) {
+        delete skillTarget.flags.willZombify;
+        skillTarget.commandInput = "skipThisTurn";
+      }
     }
     delete skillTarget.flags.recentlyKilled;
   }
