@@ -659,9 +659,11 @@ select {
 }
 
 #cooperationDisplayContainer {
+  z-index: 10; /* 他の要素より上に表示 */
+  visibility: hidden;
   font-style: italic;
   font-size: 1.2rem;
-  color: #ffaf06;
+  color: #ffaf06; /*敵は#e72e2c*/
   text-shadow: black 0.5px 0px 1px, black -0.5px 0px 1px, black 0px -0.5px 1px, black 0px 0.5px 1px, black 0.5px 0.5px 1px, black -0.5px 0.5px 1px, black 0.5px -0.5px 1px, black -0.5px -0.5px 1px;
 }
 #cooperationAmount {

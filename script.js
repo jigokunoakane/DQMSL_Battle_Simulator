@@ -2101,11 +2101,13 @@ async function processMonsterAction(skillUser) {
     fieldState.cooperation.count++;
     console.log("100%の連携継続が発生");
     console.log(`${fieldState.cooperation.count}連携!`);
+    showCooperationEffect(currentTeamID, fieldState.cooperation.count);
   } else if (isCooperationValid && currentTeamID === previousTeamID && executingSkill.type !== "notskill" && executingSkill.howToCalculate !== "none" && Math.random() < 0.33) {
     // 33%の確率で連携継続
     fieldState.cooperation.count++;
     console.log("33%の連携継続が発生");
     console.log(`${fieldState.cooperation.count}連携!`);
+    showCooperationEffect(currentTeamID, fieldState.cooperation.count);
   } else {
     // 連携リセット
     fieldState.cooperation.count = 1;
@@ -8380,30 +8382,42 @@ function addHexagonShine(targetElementId, cracked = false) {
     hexagon.remove();
   }, timeOutDuration);
 }
-
 function adjustFieldStateDisplay() {
-  if (!fieldState.isReverse) {
-    document.getElementById("reverseDisplay").style.display = "none";
-  } else {
-    document.getElementById("reverseDisplay").style.display = "block";
-    if (fieldState.isPermanentReverse) {
-      document.getElementById("reverseDisplay").textContent = `リバース 残り11ラウンド`;
+  const fieldStateDisplay1 = document.getElementById("fieldStateDisplay1");
+  const fieldStateDisplay2 = document.getElementById("fieldStateDisplay2");
+  let display1Content = "";
+  let display2Content = "";
+
+  if (fieldState.isReverse) {
+    display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
+  }
+
+  if (fieldState.isDistorted) {
+    if (display1Content === "") {
+      // display1が空ならdistortedをdisplay1に割り当てる
+      display1Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
     } else {
-      document.getElementById("reverseDisplay").textContent = `リバース 残り1ラウンド`;
+      // display1が埋まっているならdistortedをdisplay2に割り当てる
+      display2Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
     }
   }
-  if (!fieldState.isDistorted) {
-    document.getElementById("distortedDisplay").style.display = "none";
+
+  // display1の表示設定
+  if (display1Content === "") {
+    fieldStateDisplay1.style.visibility = "hidden";
   } else {
-    document.getElementById("distortedDisplay").style.display = "block";
-    if (fieldState.isPermanentDistorted) {
-      document.getElementById("distortedDisplay").textContent = `属性歪曲 残り11ラウンド`;
-    } else {
-      document.getElementById("distortedDisplay").textContent = `属性歪曲 残り1ラウンド`;
-    }
+    fieldStateDisplay1.style.visibility = "visible";
+    fieldStateDisplay1.textContent = display1Content;
+  }
+
+  // display2の表示設定
+  if (display2Content === "") {
+    fieldStateDisplay2.style.visibility = "hidden";
+  } else {
+    fieldStateDisplay2.style.visibility = "visible";
+    fieldStateDisplay2.textContent = display2Content;
   }
 }
-
 // 昇天
 function ascension(monster) {
   if (monster.flags.isUnAscensionable || !monster.flags.isZombie) {
@@ -8429,4 +8443,55 @@ function deleteUnbreakable(skillTarget) {
   if (!skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
     delete skillTarget.buffs.isUnbreakable;
   }
+}
+
+function showCooperationEffect(currentTeamID, cooperationAmount) {
+  const cooperationDisplayContainer = document.getElementById("cooperationDisplayContainer");
+  const cooperationAmountSpan = document.getElementById("cooperationAmount");
+  const cooperationMultiplierSpan = document.getElementById("cooperationMultiplier");
+
+  // 連携数、倍率を設定
+  cooperationAmountSpan.textContent = cooperationAmount;
+  cooperationMultiplierSpan.textContent = {
+    1: 1,
+    2: 1.2,
+    3: 1.3,
+    4: 1.4,
+    5: 1.5,
+    6: 1.5,
+  }[cooperationAmount];
+
+  // 敵の場合色変更
+  if (currentTeamID === 0) {
+    cooperationDisplayContainer.style.color = "#ffaf06";
+  } else {
+    cooperationDisplayContainer.style.color = "#e72e2c";
+  }
+
+  // 初期状態：左に隠れている状態にする
+  cooperationDisplayContainer.style.transform = "translateX(-100%)";
+  cooperationDisplayContainer.style.visibility = "visible"; // 表示化
+
+  // アニメーション開始：左からスライドイン
+  setTimeout(() => {
+    // 少し遅らせてアニメーションを滑らかにする
+    cooperationDisplayContainer.style.transition = "transform 0.1s ease-in-out"; // transitionを追加
+    cooperationDisplayContainer.style.transform = "translateX(0)";
+  }, 10);
+
+  // 一定時間後に非表示にする
+  setTimeout(() => {
+    cooperationDisplayContainer.style.transition = "opacity 0.1s ease-in-out"; // opacityのみtransitionを設定
+    cooperationDisplayContainer.style.opacity = "0";
+
+    cooperationDisplayContainer.addEventListener(
+      "transitionend",
+      function () {
+        cooperationDisplayContainer.style.visibility = "hidden";
+        cooperationDisplayContainer.style.opacity = "1";
+        cooperationDisplayContainer.style.transition = ""; // transitionをリセット
+      },
+      { once: true }
+    );
+  }, 500);
 }
