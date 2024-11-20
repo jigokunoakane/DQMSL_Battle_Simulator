@@ -3249,6 +3249,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let damageModifier = 1;
 
   //skillUser対象バフ
+  // 装備
+  if (skillUser.gear?.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
+    damageModifier += 0.1;
+  }
   //全属性バフ
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
