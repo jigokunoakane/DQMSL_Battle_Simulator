@@ -1739,10 +1739,14 @@ function updateCurrentStatus(monster) {
     monster.currentStatus.int *= Multiplier;
   }
 
-  //内部バフと系統バフ
+  //内部バフと系統バフ 1.5ではなく0.5等と指定することに注意
   let atkMultiplier = 1;
   if (monster.buffs.internalAtkUp) {
     atkMultiplier += monster.buffs.internalAtkUp.strength;
+  }
+  // ゴラゴ
+  if (monster.buffs.goragoAtk) {
+    atkMultiplier += monster.buffs.goragoAtk.strength;
   }
   monster.currentStatus.atk *= atkMultiplier;
 
@@ -1758,6 +1762,10 @@ function updateCurrentStatus(monster) {
     if (monster.buffs.tabooSeal) {
       spdMultiplier -= 0.5;
     }
+  }
+  // ゴラゴ
+  if (monster.buffs.goragoSpd) {
+    spdMultiplier += monster.buffs.goragoSpd.strength;
   }
   monster.currentStatus.spd *= spdMultiplier;
 
@@ -4706,6 +4714,7 @@ const monsters = [
     weight: "30",
     status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
     defaultSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
+    defaultGear: "cursedNail",
     attribute: {
       initialBuffs: {
         breathReflection: { strength: 1, keepOnDeath: true },
@@ -4726,6 +4735,7 @@ const monsters = [
     weight: "30",
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
     defaultSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
+    defaultGear: "familyNailBeast",
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -4745,6 +4755,7 @@ const monsters = [
     weight: "28",
     status: { HP: 865, MP: 396, atk: 506, def: 428, spd: 513, int: 275 },
     defaultSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
@@ -4768,6 +4779,7 @@ const monsters = [
     weight: "28",
     status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
     defaultSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
+    defaultGear: "kanazuchi",
     attribute: {
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" },
@@ -4787,6 +4799,7 @@ const monsters = [
     weight: "28",
     status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
     defaultSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
+    defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
         baiki: { strength: 2, keepOnDeath: true },
@@ -5469,8 +5482,8 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "魔獣") {
-                applyBuff(monster, { goragoAtk: { strength: 1.15, divineDispellable: true, targetType: "ally" } });
-                applyBuff(monster, { goragoSpd: { strength: 1.15, divineDispellable: true, targetType: "ally" } });
+                applyBuff(monster, { goragoAtk: { strength: 0.15, divineDispellable: true } });
+                applyBuff(monster, { goragoSpd: { strength: 0.15, divineDispellable: true } });
               }
             }
           },
@@ -5491,11 +5504,12 @@ function getMonsterAbilities(monsterId) {
     tenkai: {
       initialAbilities: [
         {
-          name: "踊り無効付与",
+          name: "獣衆の保護踊り",
+          disableMessage: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "魔獣") {
-                monster.attribute.additionalPermanentBuffs = { danceEvasion: { unDispellable: true, duration: 0 } };
+                monster.attribute.additionalPermanentBuffs.danceEvasion = { unDispellable: true, duration: 0 };
               }
             }
           },
@@ -7488,7 +7502,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 48,
-    appliedEffect: { asleep: { probability: 0.2 } }, //不明
+    appliedEffect: { asleep: { probability: 0.25 } }, //不明
   },
   {
     name: "火葬のツメ",
