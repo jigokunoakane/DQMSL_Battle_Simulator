@@ -7538,7 +7538,46 @@ const skill = [
     MPcost: 55,
     appliedEffect: { tempted: { probability: 0.78 } },
   },
-
+  {
+    name: "ビーストアイ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 36,
+    order: "preemptive",
+    preemptiveGroup: 7, //防御後
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5)) {
+        for (const monster of parties[skillUser.enemyTeamID]) {
+          //全部削除
+          delete monster.flags.isSubstituting;
+          delete monster.flags.hasSubstitute;
+          skillTarget.flags.thisTurn.substituteSeal = true;
+          updateMonsterBuffsDisplay(monster);
+          displayMessage(`${monster.name}は`, "みがわりを ふうじられた！");
+          await sleep(50);
+        }
+      }
+    },
+  },
+  {
+    name: "無慈悲なきりさき",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 48,
+    ignoreEvasion: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
   {
     name: "debugbreath",
     type: "breath",
@@ -8286,7 +8325,7 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
       return;
     }
   }
-  if (skillTarget.flags.isZombie) {
+  if (skillTarget.flags.isZombie || skillTarget.flags.thisTurn.substituteSeal) {
     return;
   }
   skillTarget.flags.hasSubstitute = {};
