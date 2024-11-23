@@ -1,8 +1,7 @@
 html {
   -ms-touch-action: manipulation;
-  touch-action: manipulation;
+  touch-action: manipulation; /*効いてない*/
   overflow: hidden; /*スクロール禁止*/
-  touch-action: manipulation; /*ダブルタップ拡大禁止*/
 }
 
 body {
