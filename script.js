@@ -4692,6 +4692,109 @@ const monsters = [
     resistance: { fire: 1, ice: -1, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "キングアズライル",
+    id: "azu",
+    rank: 10,
+    race: "魔獣",
+    weight: "30",
+    status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
+    defaultSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
+    attribute: {
+      initialBuffs: {
+        breathReflection: { strength: 1, keepOnDeath: true },
+        aiExtraAttacks: { strength: 1, keepOnDeath: true, targetType: "ally" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { spd: 1.45 },
+    lsTarget: "魔獣",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 0, dark: 1, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
+  },
+  {
+    name: "ヘルゴラゴ",
+    id: "gorago",
+    rank: 10,
+    race: "魔獣",
+    weight: "30",
+    status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
+    defaultSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { keepOnDeath: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.1, spd: 1.3 },
+    lsTarget: "魔獣",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 0.5, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "てんかいじゅう",
+    id: "tenkai",
+    rank: 10,
+    race: "魔獣",
+    weight: "28",
+    status: { HP: 865, MP: 396, atk: 506, def: 428, spd: 513, int: 275 },
+    defaultSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
+    attribute: {
+      initialBuffs: {
+        breathEnhancement: { keepOnDeath: true },
+        windBreak: { keepOnDeath: true, strength: 1 },
+      },
+      1: {
+        spdUp: { keepOnDeath: true, strength: 1, targetType: "ally" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "魔犬レオパルド",
+    id: "reopa",
+    rank: 10,
+    race: "魔獣",
+    weight: "28",
+    status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
+    defaultSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: -1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "百獣の王キングレオ",
+    id: "kingreo",
+    rank: 10,
+    race: "魔獣",
+    weight: "28",
+    status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
+    defaultSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
+    attribute: {
+      initialBuffs: {
+        baiki: { strength: 2, keepOnDeath: true },
+        spdUp: { strength: 2 },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, spdUp: { strength: 1 }, breathBarrier: { strength: 1 } },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.18, atk: 1.15 },
+    lsTarget: "魔獣",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 1, thunder: -1, wind: 0.5, io: 0, light: 1.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 0, spellSeal: 1, breathSeal: 0.5 },
+  },
+  {
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
@@ -5352,6 +5455,59 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
+    gorago: {
+      initialAbilities: [
+        {
+          name: "一族のほこり",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "魔獣") {
+                applyBuff(monster, { goragoAtk: { strength: 1.15, divineDispellable: true, targetType: "ally" } });
+                applyBuff(monster, { goragoSpd: { strength: 1.15, divineDispellable: true, targetType: "ally" } });
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "孤高の獣",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+    },
+    tenkai: {
+      initialAbilities: [
+        {
+          name: "踊り無効付与",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "魔獣") {
+                monster.attribute.additionalPermanentBuffs = { danceEvasion: { unDispellable: true, duration: 0 } };
+              }
+            }
+          },
+        },
+      ],
+    },
+    reopa: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "自然治癒",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+    },
   };
 
   return monsterAbilities[monsterId] || {};
@@ -5986,7 +6142,7 @@ const skill = [
     targetType: "self",
     targetTeam: "ally",
     MPcost: 0,
-    appliedEffect: { martialEvasion: { duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { martialEvasion: { duration: 2 } },
   },
   {
     name: "供物をささげる",
@@ -7233,6 +7389,124 @@ const skill = [
     isOneTimeUse: true,
     appliedEffect: { sealed: {} },
   },
+  {
+    name: "ヘブンリーブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 293,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 71,
+  },
+  {
+    name: "裁きの極光",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 310,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 112,
+    damageByLevel: true,
+    appliedEffect: { fear: { probability: 0.3663 } },
+  },
+  {
+    name: "獣王の猛撃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.8,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 67,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "波状裂き",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 60,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 150,
+  },
+  {
+    name: "ツイスター",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 250,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 72,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "浄化の風",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 144,
+    element: "wind",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 57,
+    RaceBane: ["???", "超魔王"],
+    RaceBaneValue: 4,
+    ignoreProtection: true,
+    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { dispellableByRadiantWave: true, removeAtTurnStart: true, duration: 1 } },
+  },
+  {
+    name: "天翔の舞い",
+    type: "dance",
+    howToCalculate: "spd",
+    ratio: 0.2,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 11,
+    MPcost: 65,
+  },
+  {
+    name: "狂乱のやつざき",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 48,
+    appliedEffect: { asleep: { probability: 0.2 } }, //不明
+  },
+  {
+    name: "火葬のツメ",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.5,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 55,
+    ignoreBaiki: true,
+    criticalHitProbability: 0.75,
+  },
+  {
+    name: "暗黒の誘い",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 55,
+    appliedEffect: { tempted: { probability: 0.78 } },
+  },
+
   {
     name: "debugbreath",
     type: "breath",
