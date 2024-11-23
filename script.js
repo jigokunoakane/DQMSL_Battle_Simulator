@@ -7260,7 +7260,7 @@ const gear = [
     name: "系統爪",
     id: "familyNail",
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
-    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, confusionBarrier: { duration: 3 } },
   },
   {
     name: "メタルキングの爪",
