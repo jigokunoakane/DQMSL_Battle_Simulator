@@ -5677,6 +5677,17 @@ const skill = [
     MPcost: 0,
   },
   {
+    name: "会心通常攻撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    criticalHitProbability: 1,
+  },
+  {
     name: "魔獣の追撃",
     type: "notskill",
     howToCalculate: "spd",
@@ -8654,6 +8665,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス") {
     NormalAttackName = "はやぶさ攻撃弱";
+  } else if (skillUser.id === "reopa" && fieldState.turnNum % 2 === 0 && hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 4)) {
+    NormalAttackName = "会心通常攻撃";
   } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
     NormalAttackName = "魔獣の追撃";
   }
