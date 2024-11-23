@@ -1167,6 +1167,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
+  const familyBuffs = ["goragoAtk", "goragoSpd"];
+
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
     const currentBuff = buffTarget.buffs[buffName];
@@ -1181,8 +1183,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.flags.isZombie && buffName !== "sealed") {
       continue;
     }
-    // 1-3. statusLock が存在する場合は stackableBuffs と familyBuff を付与しない
-    if (buffTarget.buffs.hasOwnProperty("statusLock") && (stackableBuffs.hasOwnProperty(buffName) || (buffData.hasOwnProperty("type") && buffData.type === "familyBuff"))) {
+    // 1-3. statusLock が存在する場合は stackableBuffs と familyBuffs を付与しない
+    if (buffTarget.buffs.hasOwnProperty("statusLock") && (stackableBuffs.hasOwnProperty(buffName) || familyBuffs.hasOwnProperty(buffName))) {
       continue;
     }
     // 1-4. 解除不可状態異常を上書きしない
@@ -1360,11 +1362,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       buffTarget.buffs[buffName] = { ...buffData };
       // 重ねがけ不可の付与成功時処理
-      // statusLockを付与時、既存のstackableBuffsとfamilyBuffを削除
+      // statusLockを付与時、既存のstackableBuffsとfamilyBuffsを削除
       if (buffName === "statusLock") {
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
-          if (stackableBuffs.hasOwnProperty(existingBuffName) || (buffTarget.buffs[existingBuffName] && buffTarget.buffs[existingBuffName]?.type === "familyBuff")) {
+          if (stackableBuffs.hasOwnProperty(existingBuffName) || familyBuffs.hasOwnProperty(existingBuffName)) {
             delete buffTarget.buffs[existingBuffName];
           }
         }
