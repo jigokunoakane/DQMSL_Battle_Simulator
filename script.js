@@ -3000,9 +3000,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
 
     if (isCriticalHit) {
-      // 会心の一撃成功時
+      // 会心の一撃成功時 (呪文暴走は別処理)
       const criticalHitMultiplier = 0.95 + 0.01 * Math.floor(Math.random() * 11);
-      baseDamage = Math.floor((status / 2) * criticalHitMultiplier);
+      baseDamage = Math.floor(status * criticalHitMultiplier);
+      if (skillUser.gear?.name === "魔神のかなづち") {
+        baseDamage *= 2;
+      }
     } else {
       // 会心の一撃が発生しない場合
       const statusRatio = targetDef / status;
@@ -7537,6 +7540,18 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, confusionBarrier: { duration: 3 } },
   },
   {
+    name: "系統爪魔獣",
+    id: "familyNailBeast",
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, sleepBarrier: { duration: 3 } },
+  },
+  {
+    name: "系統爪ザキ",
+    id: "familyNailZaki",
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
+  },
+  {
     name: "メタルキングの爪",
     id: "metalNail",
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
@@ -7604,10 +7619,21 @@ const gear = [
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
   },
   {
+    name: "魔神のかなづち",
+    id: "kanazuchi",
+    status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+  },
+  {
     name: "天空のフルート",
     id: "flute",
     status: { HP: 0, MP: 0, atk: 30, def: 60, spd: 0, int: 0 },
     turn1buffs: { dodgeBuff: { strength: 1 } },
+  },
+  {
+    name: "天空の衣",
+    id: "heavenlyClothes",
+    status: { HP: 0, MP: 0, atk: 0, def: 105, spd: 0, int: 0 },
+    turn1buffs: { danceEvasion: { unDispellable: true, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "炎よけのおまもり",
@@ -8606,7 +8632,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "心砕き";
   } else if (skillUser.gear?.name === "昇天") {
     NormalAttackName = "昇天槍";
-  } else if (skillUser.gear?.name === "aaa系統爪") {
+  } else if (skillUser.gear?.name === "系統爪ザキ") {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス") {
     NormalAttackName = "はやぶさ攻撃弱";
