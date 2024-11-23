@@ -3813,6 +3813,8 @@ document.querySelectorAll(".monsterListIcon").forEach((img) => {
 function selectMonster(monsterName) {
   //選択中partyの該当monsterに引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
   selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id == monsterName));
+  // 新規生成したselectingMonster内に、initailからdefaultを作成、以下defaultを操作する
+  selectingParty[selectingMonsterNum].defaultSkill = [...selectingParty[selectingMonsterNum].initialSkill];
   //表示更新
   updatePartyIcon(selectingMonsterNum);
 
@@ -3894,10 +3896,7 @@ function selectGear(gearName) {
 function adjustStatusAndSkillDisplay() {
   //丸ごと放り込まれているor操作済みのため、ただ引っ張ってくれば良い
   //所持特技名表示変更
-  document.getElementById("skill0").textContent = selectingParty[currentTab].defaultSkill[0];
-  document.getElementById("skill1").textContent = selectingParty[currentTab].defaultSkill[1];
-  document.getElementById("skill2").textContent = selectingParty[currentTab].defaultSkill[2];
-  document.getElementById("skill3").textContent = selectingParty[currentTab].defaultSkill[3];
+  addSkillOptions();
   //種表示変更
   document.getElementById("selectSeedAtk").value = selectingParty[currentTab].seed.atk;
   document.getElementById("selectSeedDef").value = selectingParty[currentTab].seed.def;
@@ -3905,6 +3904,78 @@ function adjustStatusAndSkillDisplay() {
   document.getElementById("selectSeedInt").value = selectingParty[currentTab].seed.int;
   displayGearIncrement();
   changeSeedSelect();
+}
+
+function addSkillOptions() {
+  for (let j = 0; j < 4; j++) {
+    const selectElement = document.getElementById(`skill${j}`);
+    const defaultSkills = selectingParty[currentTab].defaultSkill;
+    const superSkills = [
+      "精霊の守り・強",
+      "防刃の守り",
+      "タップダンス",
+      "マインドバリア",
+      "ピオリム",
+      "ザオリク",
+      "ベホマラー",
+      "光のはどう",
+      "斬撃よそく",
+      "体技よそく",
+      "踊りよそく",
+      "昇天斬り",
+      "メゾラゴン",
+      "メラゾロス",
+      "おぞましいおたけび",
+      "天の裁き",
+      "ダイヤモンドダスト",
+      "スパークふんしゃ",
+      "体技封じの息",
+      "キャンセルステップ",
+      "体砕きの斬舞",
+    ];
+    // 未実装: マジックバリア マホカンタ おいかぜ バギラ
+
+    let defaultOptGroup = selectElement.querySelector("optgroup[label='固有特技']");
+    if (!defaultOptGroup) {
+      defaultOptGroup = document.createElement("optgroup");
+      defaultOptGroup.label = "固有特技";
+      selectElement.appendChild(defaultOptGroup);
+    }
+    defaultOptGroup.innerHTML = "";
+
+    let superOptGroup = selectElement.querySelector("optgroup[label='超マス特技']");
+    if (!superOptGroup) {
+      superOptGroup = document.createElement("optgroup");
+      superOptGroup.label = "超マス特技";
+      selectElement.appendChild(superOptGroup);
+      for (const skill of superSkills) {
+        // 超マス特技を追加
+        const option = document.createElement("option");
+        option.value = skill;
+        option.text = skill;
+        superOptGroup.appendChild(option);
+      }
+    }
+
+    for (let i = 0; i < defaultSkills.length; i++) {
+      if (defaultSkills[i]) {
+        const option = document.createElement("option");
+        option.value = defaultSkills[i];
+        option.text = defaultSkills[i];
+        if (i === j) {
+          option.selected = true;
+        }
+        defaultOptGroup.appendChild(option); // 固有特技optgroupに追加
+      }
+    }
+  }
+}
+
+for (let i = 0; i < 4; i++) {
+  document.getElementById(`skill${i}`).addEventListener("change", function (event) {
+    const skillIndex = parseInt(event.target.id.replace("skill", ""), 10);
+    selectingParty[currentTab].defaultSkill[skillIndex] = event.target.value;
+  });
 }
 
 //種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedIncrementCalcによる増分計算、格納、表示
@@ -4070,10 +4141,10 @@ function switchTab(tabNumber) {
     addTabClass(tabNumber);
     //各種表示reset
     // skill表示空に
-    document.getElementById("skill0").textContent = "";
-    document.getElementById("skill1").textContent = "";
-    document.getElementById("skill2").textContent = "";
-    document.getElementById("skill3").textContent = "";
+    document.getElementById("skill0").value = "";
+    document.getElementById("skill1").value = "";
+    document.getElementById("skill2").value = "";
+    document.getElementById("skill3").value = "";
     // 種表示reset
     document.getElementById("selectSeedAtk").value = 0;
     document.getElementById("selectSeedDef").value = 0;
@@ -4101,9 +4172,10 @@ function switchTab(tabNumber) {
 }
 switchTab(0);
 
+// 特技選択無効化も相乗り
 function disableSeedSelect(boolean) {
-  document.querySelectorAll(".selectSeed").forEach((button) => {
-    button.disabled = boolean;
+  document.querySelectorAll(".selectSeed, select.changeSkill").forEach((element) => {
+    element.disabled = boolean;
   });
 }
 
@@ -4149,7 +4221,7 @@ const monsters = [
     rank: 10,
     race: "ドラゴン",
     status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 500, int: 259 },
-    defaultSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
+    initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
@@ -4176,7 +4248,7 @@ const monsters = [
     rank: 10,
     race: "ドラゴン",
     status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
-    defaultSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
+    initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -4194,7 +4266,7 @@ const monsters = [
     rank: 10,
     race: "ドラゴン",
     status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 545, int: 294 },
-    defaultSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
+    initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     defaultGear: "killerEarrings",
     attribute: {
       initialBuffs: {
@@ -4221,7 +4293,7 @@ const monsters = [
     rank: 10,
     race: "ドラゴン",
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
-    defaultSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
+    initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -4246,7 +4318,7 @@ const monsters = [
     rank: 10,
     race: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
-    defaultSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
+    initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -4270,7 +4342,7 @@ const monsters = [
     race: "???",
     weight: "30",
     status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
-    defaultSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
+    initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -4296,7 +4368,7 @@ const monsters = [
     race: "超魔王",
     weight: "40",
     status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
-    defaultSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
+    initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -4324,7 +4396,7 @@ const monsters = [
     race: "超魔王",
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
-    defaultSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
+    initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -4351,7 +4423,7 @@ const monsters = [
     race: "???",
     weight: "25",
     status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
-    defaultSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
+    initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
@@ -4373,7 +4445,7 @@ const monsters = [
     race: "ゾンビ",
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
-    defaultSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
+    initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
     defaultGear: "familyNail",
     attribute: {},
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
@@ -4388,7 +4460,7 @@ const monsters = [
     race: "超魔王",
     weight: "40",
     status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
-    defaultSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
+    initialSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
     defaultGear: "dragonCane",
     attribute: {
       initialBuffs: {
@@ -4414,7 +4486,7 @@ const monsters = [
     race: "超魔王",
     weight: "40",
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
-    defaultSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
+    initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -4444,7 +4516,7 @@ const monsters = [
     race: "???",
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
-    defaultSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
+    initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     attribute: {
       initialBuffs: {
         demonKingBarrier: { divineDispellable: true },
@@ -4470,7 +4542,7 @@ const monsters = [
     race: "物質",
     weight: "16",
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
-    defaultSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
+    initialSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
@@ -4497,7 +4569,7 @@ const monsters = [
     race: "???",
     weight: "14",
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
-    defaultSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
+    initialSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -4518,7 +4590,7 @@ const monsters = [
     race: "悪魔",
     weight: "30",
     status: { HP: 772, MP: 458, atk: 329, def: 495, spd: 462, int: 501 },
-    defaultSkill: ["邪悪なこだま", "絶氷の嵐", "禁忌のかくせい", "邪道のかくせい"],
+    initialSkill: ["邪悪なこだま", "絶氷の嵐", "禁忌のかくせい", "邪道のかくせい"],
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
@@ -4538,7 +4610,7 @@ const monsters = [
     race: "悪魔",
     weight: "28",
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
-    defaultSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
+    initialSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
     defaultGear: "shoten",
     attribute: {
       initialBuffs: {
@@ -4561,7 +4633,7 @@ const monsters = [
     race: "悪魔",
     weight: "32",
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
-    defaultSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "メラゾロス"],
+    initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "メラゾロス"],
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
@@ -4589,7 +4661,7 @@ const monsters = [
     race: "悪魔",
     weight: "25",
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
-    defaultSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
+    initialSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 1 },
@@ -4610,7 +4682,7 @@ const monsters = [
     race: "悪魔",
     weight: "25",
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
-    defaultSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
+    initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
     defaultGear: "waveNail",
     attribute: {
       initialBuffs: {
@@ -4632,7 +4704,7 @@ const monsters = [
     race: "悪魔",
     weight: "28",
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
-    defaultSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
+    initialSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
     attribute: {
       initialBuffs: {
         thunderBreak: { keepOnDeath: true, strength: 1 },
@@ -4653,7 +4725,7 @@ const monsters = [
     race: "悪魔",
     weight: "25",
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
-    defaultSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
+    initialSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -4675,7 +4747,7 @@ const monsters = [
     race: "悪魔",
     weight: "28",
     status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
-    defaultSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
+    initialSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
     attribute: {
       initialBuffs: {
         protection: { strength: 0.34, duration: 3 },
@@ -4697,7 +4769,7 @@ const monsters = [
     race: "悪魔",
     weight: "25",
     status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
-    defaultSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
+    initialSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
     attribute: {
       initialBuffs: {
         breathReflection: { keepOnDeath: true, strength: 1 },
@@ -4716,7 +4788,7 @@ const monsters = [
     race: "魔獣",
     weight: "30",
     status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
-    defaultSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
+    initialSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
     defaultGear: "cursedNail",
     attribute: {
       initialBuffs: {
@@ -4737,7 +4809,7 @@ const monsters = [
     race: "魔獣",
     weight: "30",
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
-    defaultSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
+    initialSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
     defaultGear: "familyNailBeast",
     attribute: {
       initialBuffs: {
@@ -4757,7 +4829,7 @@ const monsters = [
     race: "魔獣",
     weight: "28",
     status: { HP: 865, MP: 396, atk: 506, def: 428, spd: 513, int: 275 },
-    defaultSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
+    initialSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
     defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
@@ -4781,7 +4853,7 @@ const monsters = [
     race: "魔獣",
     weight: "28",
     status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
-    defaultSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
+    initialSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
     defaultGear: "kanazuchi",
     attribute: {
       initialBuffs: {
@@ -4801,7 +4873,7 @@ const monsters = [
     race: "魔獣",
     weight: "28",
     status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
-    defaultSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
+    initialSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -4824,7 +4896,7 @@ const monsters = [
     race: "ゾンビ",
     weight: "25",
     status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
-    defaultSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
+    initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
     attribute: {
       initialBuffs: {
         asleep: { duration: 999 },
@@ -4847,7 +4919,7 @@ const monsters = [
     race: "", // 日本語
     weight: "",
     status: { HP: 1, MP: 1, atk: 1, def: 1, spd: 1, int: 1 },
-    defaultSkill: ["", "", "", ""],
+    initialSkill: ["", "", "", ""],
     attribute: "",
     seed: { atk: 0, def: 0, spd: 95, int: 0 },
     ls: { HP: 1, MP: 1 },
