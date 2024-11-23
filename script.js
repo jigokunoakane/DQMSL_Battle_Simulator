@@ -4112,6 +4112,10 @@ document.getElementById("akumapa").addEventListener("click", function () {
   selectAllPartyMembers(["tanisu", "dhuran", "rogos", "magesu", "zuisho"]);
 });
 
+document.getElementById("beastpa").addEventListener("click", function () {
+  selectAllPartyMembers(["azu", "gorago", "tenkai", "reopa", "kingreo"]);
+});
+
 async function selectAllPartyMembers(monsters) {
   for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
     selectMonster(monsters[selectingMonsterNum]);
