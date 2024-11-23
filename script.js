@@ -3239,7 +3239,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (executingSkill.SubstituteBreaker && skillTarget.flags.isSubstituting) {
     damage *= executingSkill.SubstituteBreaker;
   }
-  //魔神の金槌など
 
   // anchorBonus
   if (executingSkill.anchorBonus) {
@@ -3256,6 +3255,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   // HP割合依存
   if (executingSkill.damageByHpPercent) {
     damage *= skillUser.currentStatus.HP / skillUser.defaultStatus.HP;
+  }
+  // 体砕き
+  if (executingSkill.name === "体砕きの斬舞" && skillTarget.buffs.martialReflection) {
+    damage *= 3;
   }
 
   //以下加算処理
@@ -3917,7 +3920,6 @@ function addSkillOptions() {
       "マインドバリア",
       "ピオリム",
       "ザオリク",
-      "ベホマラー",
       "光のはどう",
       "斬撃よそく",
       "体技よそく",
@@ -3933,7 +3935,7 @@ function addSkillOptions() {
       "キャンセルステップ",
       "体砕きの斬舞",
     ];
-    // 未実装: マジックバリア マホカンタ おいかぜ バギラ
+    // 未実装: ベホマラー マジックバリア マホカンタ おいかぜ バギラ
 
     let defaultOptGroup = selectElement.querySelector("optgroup[label='固有特技']");
     if (!defaultOptGroup) {
@@ -6826,7 +6828,7 @@ const skill = [
     hitNum: 5,
     MPcost: 41,
     criticalHitProbability: 0,
-    //反射特攻
+    //反射特攻はcalc内で
   },
   {
     name: "アストロンゼロ",
@@ -7686,6 +7688,43 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+  },
+  {
+    name: "ピオリム",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 21,
+    appliedEffect: { spdUp: { strength: 1 } },
+  },
+  {
+    name: "天の裁き",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 123,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 62,
+    damageByLevel: true,
+    act: function (skillUser, skillTarget) {
+      if (Math.random() < 0.8) {
+        deleteUnbreakable(skillTarget);
+      }
+    },
+  },
+  {
+    name: "体技封じの息",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 75,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 32,
+    appliedEffect: { martialSeal: { probability: 0.448 } },
   },
   {
     name: "debugbreath",
