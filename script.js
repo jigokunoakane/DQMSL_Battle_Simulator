@@ -5490,9 +5490,43 @@ function getMonsterAbilities(monsterId) {
         },
       ],
       supportAbilities: {
-        permanentAbilities: [
+        1: [
           {
             name: "孤高の獣",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.monsterId === skillUser.monsterId) {
+                  continue;
+                } else if (monster.race === "魔獣") {
+                  monster.abilities.additionalDeathAbilities.push({
+                    name: "孤高の獣発動",
+                    isOneTimeUse: true,
+                    message: function (skillUser) {
+                      displayMessage(`${skillUser.name} がチカラつき`, "孤高の獣 の効果が発動！");
+                    },
+                    unavailableIf: (skillUser) => parties[skillUser.teamID].find((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie) === undefined,
+                    act: async function (skillUser) {
+                      const helgoragos = parties[skillUser.teamID].filter((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie);
+                      for (const helgorago of helgoragos) {
+                        if (!helgorago.buffs.powerCharge) {
+                          applyBuff(helgorago, { powerCharge: { strength: 1.5 } });
+                        } else {
+                          const newStrength = Math.min(helgorago.buffs.powerCharge.strength + 0.5, 3);
+                          applyBuff(helgorago, { powerCharge: { strength: newStrength } });
+                        }
+                      }
+                    },
+                  });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+        permanentAbilities: [
+          {
+            name: "孤高の獣ぴかぱ",
             disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
