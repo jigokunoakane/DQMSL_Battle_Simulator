@@ -434,7 +434,7 @@ function selectCommand(selectedSkillNum) {
     //targetがallのとき、all(yes,no)画面を起動
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    document.getElementById("selectSkillTargetAllText").textContent = selectedSkillName + "を使用しますか？";
+    document.getElementById("selectSkillTargetAllText").textContent = selectedSkillName + "+3を使用しますか？";
     document.getElementById("selectSkillTargetAll").style.visibility = "visible";
   } else {
     //targetがmeのとき、そのまま終了
@@ -1316,7 +1316,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // 3. 確率判定成功時にバフ適用処理 バフ付与に付随する効果の処理もここで durationやstrengthによる比較で弾く処理も
     if (stackableBuffs.hasOwnProperty(buffName)) {
       // 3-1. 重ねがけ可能バフ
-      if (currentBuff) {
+      if (currentBuff && !buffData.keepOnDeath && !buffData.unDispellable) {
+        // 負けている場合はcontinue済、同格の場合は重ねがけだが、勝っている(keepOnDeathやunDispellable)場合は重ねがけせず上書き
         // 重ねがけ可能かつ既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
         const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
         if (newStrength === 0) {
