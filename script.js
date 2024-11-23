@@ -1167,7 +1167,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenly"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1743,6 +1743,7 @@ function updateCurrentStatus(monster) {
   }
 
   //内部バフと系統バフ 1.5ではなく0.5等と指定することに注意
+  // 攻撃
   let atkMultiplier = 1;
   if (monster.buffs.internalAtkUp) {
     atkMultiplier += monster.buffs.internalAtkUp.strength;
@@ -1753,12 +1754,18 @@ function updateCurrentStatus(monster) {
   }
   monster.currentStatus.atk *= atkMultiplier;
 
+  // 防御
   let defMultiplier = 1;
   if (monster.buffs.internalDefUp) {
     defMultiplier += monster.buffs.internalDefUp.strength;
   }
+  // アズ
+  if (monster.buffs.heavenly) {
+    defMultiplier -= 0.2;
+  }
   monster.currentStatus.def *= defMultiplier;
 
+  // 素早さ
   let spdMultiplier = 1;
   if (monster.buffs.internalSpdUp) {
     spdMultiplier += monster.buffs.internalSpdUp.strength;
@@ -1772,6 +1779,7 @@ function updateCurrentStatus(monster) {
   }
   monster.currentStatus.spd *= spdMultiplier;
 
+  // 賢さ
   let intMultiplier = 1;
   if (monster.buffs.internalIntUp) {
     intMultiplier += monster.buffs.internalIntUp.strength;
@@ -7530,6 +7538,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 71,
+    appliedEffect: { heavenly: { divineDispellable: true, probability: 0.42 } },
   },
   {
     name: "裁きの極光",
