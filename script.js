@@ -1098,7 +1098,7 @@ async function startBattle() {
       break;
     }
     await processMonsterAction(monster);
-    await sleep(400);
+    await sleep(600);
   }
   await startTurn();
 }
