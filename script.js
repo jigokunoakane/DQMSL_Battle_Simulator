@@ -4699,7 +4699,7 @@ const monsters = [
     weight: "25",
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
-    defaultGear: "waveNail",
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         spdUp: { strength: 2 },
@@ -4708,7 +4708,7 @@ const monsters = [
         manaBoost: { strength: 1.5 },
       },
     },
-    seed: { atk: 10, def: 55, spd: 30, int: 25 },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
     ls: { spd: 1.18 },
     lsTarget: "悪魔",
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 0.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
