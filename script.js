@@ -4502,6 +4502,7 @@ const monsters = [
     weight: "40",
     status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
+    defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -4763,6 +4764,7 @@ const monsters = [
     weight: "28",
     status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
     initialSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
+    defaultGear: "heavenlyClothes",
     attribute: {
       initialBuffs: {
         protection: { strength: 0.34, duration: 3 },
