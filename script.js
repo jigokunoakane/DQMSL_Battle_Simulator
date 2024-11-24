@@ -1095,6 +1095,7 @@ async function startBattle() {
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
     if (isBattleOver()) {
+      removeAllStickOut();
       return;
     }
     await processMonsterAction(monster);
