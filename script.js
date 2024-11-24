@@ -802,7 +802,7 @@ async function startTurn() {
   for (const party of parties) {
     for (const monster of party) {
       //calculateModifiedSpeed ラウンド開始時に毎ターン起動 行動順生成はコマンド選択後
-      monster.modifiedSpeed = monster.currentStatus.spd * (0.975 + Math.random() * 0.05);
+      monster.modifiedSpeed = monster.currentStatus.spd * (0.985 + Math.random() * 0.03); //0.97と0.05だが+-1.5%に緩和
       //flag削除 ぼうぎょ・覆い隠す以外の身代わり
       delete monster.flags.guard;
       //ターン限定flagsを初期化
