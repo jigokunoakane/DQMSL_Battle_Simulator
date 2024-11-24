@@ -4649,7 +4649,7 @@ const monsters = [
     race: "悪魔",
     weight: "32",
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
-    initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "メラゾロス"],
+    initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "イオナルーン"],
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
@@ -7108,6 +7108,25 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true,
     appliedEffect: { statusLock: {}, paralyzed: { probability: 0.58 } },
+  },
+  {
+    name: "イオナルーン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 180,
+    maxInt: 500,
+    maxIntDamage: 360,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 47,
+    RaceBane: ["???"],
+    RaceBaneValue: 3,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
   },
   {
     name: "陰惨な暗闇",
