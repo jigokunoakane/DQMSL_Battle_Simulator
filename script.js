@@ -4813,6 +4813,9 @@ const monsters = [
         manaBoost: { strength: 1.2 },
         dodgeBuff: { strength: 1 },
       },
+      1: {
+        preemptiveAction: {},
+      },
     },
     seed: { atk: 0, def: 0, spd: 55, int: 65 },
     ls: { spd: 1.18 },
