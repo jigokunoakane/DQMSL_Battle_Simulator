@@ -3239,6 +3239,16 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
+  // そしでん
+  if (skillTarget.buffs.sosidenBarrier) {
+    const reduce80Race = ["???", "超魔王", "超伝説"];
+    if (reduce80Race.includes(skillUser.race)) {
+      damage *= 0.2;
+    } else {
+      damage *= 0.5;
+    }
+  }
+
   //ダメージ軽減
   if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
     damage *= 1 - skillTarget.buffs.protection.strength;
@@ -4455,6 +4465,30 @@ const monsters = [
     resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "そして伝説へ",
+    id: "sosiden",
+    rank: 10,
+    race: "超伝説",
+    weight: "25",
+    status: { HP: 877, MP: 315, atk: 609, def: 495, spd: 505, int: 389 },
+    initialSkill: ["でんせつのギガデイン", "いてつくマヒャド", "閃光ジゴデイン", "ロトの剣技"],
+    defaultGear: "shoten",
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "伝説のタッグ3" },
+        iceBreak: { unDispellable: true, strength: 2 },
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        lightSuperBreak: { keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 1, io: 0, light: 0, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルナイト",
     id: "skull",
     rank: 8,
@@ -5223,6 +5257,20 @@ function getMonsterAbilities(monsterId) {
           if (executingSkill.element === "fire") return "アイスエイジ";
           if (executingSkill.element === "ice") return "地獄の火炎";
         },
+      },
+    },
+    sosiden: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "伝説のタッグ3") {
+          monster.skill[1] = "ひかりのたま";
+          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          delete monster.buffs.lightSuperBreak;
+          applyBuff(monster, { lightUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { martialReflection: { strength: 1.5, duration: 2, removeAtTurnStart: true, unDispellable: true } });
+          applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
+          applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+        }
       },
     },
     skull: {
@@ -6574,6 +6622,108 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { prismVeil: { strength: 1, duration: 3 } },
+  },
+  {
+    name: "でんせつのギガデイン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 62,
+    maxInt: 500,
+    maxIntDamage: 188,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 69,
+    appliedEffect: { spellBarrier: { strength: -1, probability: 0.2 } },
+  },
+  {
+    name: "いてつくマヒャド",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 200,
+    maxInt: 400,
+    maxIntDamage: 316,
+    skillPlus: 1.15,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 92,
+    ignoreReflection: true,
+    followingSkill: "いてつくはどう",
+  },
+  {
+    name: "閃光ジゴデイン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 239,
+    maxInt: 800,
+    maxIntDamage: 435,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 40,
+  },
+  {
+    name: "ロトの剣技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.06,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 38,
+    ignoreEvasion: true,
+    ignoreSubstitute: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "ひかりのたま",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    isOneTimeUse: true,
+    ignoreReflection: true, //不要
+    appliedEffect: "divineWave",
+    followingSkill: "ひかりのたま回復封じ",
+  },
+  {
+    name: "ひかりのたま回復封じ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { healBlock: {} },
+    followingSkill: "ひかりのたま回復",
+  },
+  {
+    name: "ひかりのたま回復",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 0,
+    act: async function (skillUser, skillTarget) {
+      applyHeal(skillTarget, skillTarget.defaultStatus.HP);
+    },
+    appliedEffect: { slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } },
   },
   {
     name: "ルカナン",
@@ -8277,7 +8427,7 @@ document.getElementById("harvestBtn").addEventListener("click", function () {
   executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
 });
 document.getElementById("endBtn").addEventListener("click", function () {
-  executeSkill(parties[0][1], findSkillByName("debugbreath"), parties[1][0]);
+  executeSkill(parties[0][0], findSkillByName("debugbreath"), parties[1][0]);
 });
 
 document.getElementById("skipBtn").addEventListener("click", function () {
@@ -8747,7 +8897,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "あらゆる状態異常が効かなくなった！",
     },
-    demonKingBarrier: {
+    mindBarrier: {
       start: "行動停止系の効果が  効かなくなった！",
       message: "",
     },
