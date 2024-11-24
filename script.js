@@ -2159,12 +2159,16 @@ async function processMonsterAction(skillUser) {
   } else if (executingSkill.name === "ぼうぎょ") {
     displayMessage(`${skillUser.name}は身を守っている！`);
   } else if (executingSkill.type === "notskill") {
-    displayMessage(`${skillUser.name}のこうげき！`);
+    displayMessage(`${skillUser.name}の攻撃！`);
   } else {
     displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
   }
+  if (skillUser.teamID === 0) {
+    await sleep(70); // スキル実行前に待機時間を設ける
+  } else {
+    await sleep(180);
+  }
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
-  await sleep(40); // スキル実行前に待機時間を設ける
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === "" ? null : skillTargetTeam[parseInt(skillUser.commandTargetInput)];
   executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false);
