@@ -4208,7 +4208,7 @@ document.getElementById("omudopa").addEventListener("click", function () {
 });
 
 document.getElementById("akumapa").addEventListener("click", function () {
-  selectAllPartyMembers(["tanisu", "dhuran", "rogos", "magesu", "zuisho"]);
+  selectAllPartyMembers(["tanisu", "dhuran", "rogos", "tseru", "zuisho"]);
 });
 
 document.getElementById("beastpa").addEventListener("click", function () {
