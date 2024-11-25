@@ -1208,10 +1208,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
 
     // 1-5. 順位付け処理の前に自動付与
-    //removeAtTurnStartの反射にはあらかじめunDispellableを自動付与
-    if (reflectionMap.includes(buffName) && buffData.removeAtTurnStart) {
-      buffData.unDispellable = true;
-    }
     //蘇生封じをkeepOnDeath化
     if (buffName === "reviveBlock") {
       buffData.keepOnDeath = true;
@@ -1626,14 +1622,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
     }
 
-    //状態異常によるduration1・removeAtTurnStartの構え予測系解除
+    //状態異常付与時、dispellableByAbnormality指定された予測系を解除
     if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
       for (const reflection of reflectionMap) {
-        if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].removeAtTurnStart && buffTarget.buffs[reflection].duration === 1) {
+        if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].dispellableByAbnormality) {
           delete buffTarget.buffs[reflection];
         }
       }
-      // 反撃も解除
+      // 反撃状態も解除
       if (buffTarget.buffs.counterAttack) {
         delete buffTarget.buffs.counterAttack;
       }
@@ -3853,7 +3849,7 @@ document.querySelectorAll(".monsterListIcon").forEach((img) => {
 function selectMonster(monsterName) {
   //選択中partyの該当monsterに引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
   selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id == monsterName));
-  // 新規生成したselectingMonster内に、initailからdefaultを作成、以下defaultを操作する
+  // 新規生成したselectingMonster内に、initialからdefaultを作成、以下defaultを操作する
   selectingParty[selectingMonsterNum].defaultSkill = [...selectingParty[selectingMonsterNum].initialSkill];
   //表示更新
   updatePartyIcon(selectingMonsterNum);
@@ -4564,8 +4560,8 @@ const monsters = [
         spellBarrier: { strength: 1 },
       },
       permanentBuffs: {
-        slashReflection: { strength: 1, duration: 1, unDispellable: true, isKanta: true },
-        martialReflection: { strength: 1, duration: 1, unDispellable: true },
+        slashReflection: { strength: 1, duration: 1, unDispellable: true, isKanta: true, dispellableByAbnormality: true },
+        martialReflection: { strength: 1, duration: 1, unDispellable: true, dispellableByAbnormality: true },
       },
     },
     seed: { atk: 80, def: 30, spd: 10, int: 0 },
@@ -6960,7 +6956,10 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     MPcost: 38,
-    appliedEffect: { slashReflection: { strength: 1, duration: 1, removeAtTurnStart: true, isKanta: true }, martialReflection: { strength: 1, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: {
+      slashReflection: { strength: 1, duration: 1, unDispellable: true, removeAtTurnStart: true, isKanta: true, dispellableByAbnormality: true },
+      martialReflection: { strength: 1, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
+    },
   },
   {
     name: "必殺の双撃",
@@ -7007,8 +7006,8 @@ const skill = [
     MPcost: 37,
     appliedEffect: {
       powerCharge: { strength: 2, duration: 3 },
-      slashReflection: { strength: 1, duration: 2, removeAtTurnStart: true, isKanta: true },
-      spellReflection: { strength: 1, duration: 2, removeAtTurnStart: true },
+      slashReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true, isKanta: true },
+      spellReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true },
       damageLimit: { strength: 200, duration: 2 },
     },
   },
@@ -7967,7 +7966,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "体技よそく",
@@ -7979,7 +7978,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "踊りよそく",
@@ -7991,7 +7990,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { danceReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { danceReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "リザオラル",
@@ -8795,7 +8794,7 @@ function preloadImages() {
   });
 }
 
-//MPcostを返す スキル選択時と実行時
+// MPcostを返す スキル選択時と実行時
 function calculateMPcost(skillUser, executingSkill) {
   if (executingSkill.MPcost === "all") {
     return skillUser.currentStatus.MP;
