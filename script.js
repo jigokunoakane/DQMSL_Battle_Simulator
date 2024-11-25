@@ -2514,9 +2514,13 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   }
 
   ++fieldState.deathCount[target.teamID];
-  // 蘇生予定がない場合、完全死亡カウントを増加
+  // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
   if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock)) {
     ++fieldState.completeDeathCount[target.teamID];
+    // このターンに付与されたrapuFlag持ちが蘇生予定なしで完全死亡した場合、rapu変身フラグを立てる
+    if (target.flags.rapuFlag && target.flags.rapuFlag === fieldState.turnNum + 1) {
+      target.flags.killedRapuTarget = fieldState.turnNum + 1;
+    }
   }
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
   console.log(fieldState.deathCount);
@@ -3035,6 +3039,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (skillUser.gear?.name === "魔神のかなづち") {
         baseDamage *= 2;
       }
+      col("かいしんのいちげき");
     } else {
       // 会心の一撃が発生しない場合
       const statusRatio = targetDef / status;
@@ -3125,6 +3130,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (isCriticalHit) {
         // 暴走成功時
         baseDamage *= 1.6;
+        col("呪文がぼうそうした");
       }
     }
   }
@@ -5361,10 +5367,9 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => {
               // turnNum管理で直前のtargetのみを指定、支配更新による旧flag削除がラプ死亡により行われなくてもそれは対象にしない
               const previousTarget = parties[skillUser.enemyTeamID].find((member) => member.flags.rapuFlag === fieldState.turnNum);
-              if (skillUser.flags.hasTransformed) {
-                return true;
-              } else if (previousTarget && previousTarget.flags.isDead) {
-                //未変身かつ対象が死亡していたら変身処理へ
+              if (!skillUser.flags.hasTransformed && previousTarget && previousTarget.flags.killedRapuTarget && previousTarget.flags.killedRapuTarget === fieldState.turnNum) {
+                // handleDeath内でrapuFlag所持者が完全死亡・亡者化(リザオやタッグ以外)した場合、次ターン数を格納したkilledRapuTarget付与
+                // 未変身かつpreviousTargetが死んでいた痕跡がある場合に変身処理
                 return false;
               } else {
                 return true;
@@ -5386,9 +5391,10 @@ function getMonsterAbilities(monsterId) {
               // デバフ付与: 自動解除  flag付与: 判定される次ターンを格納
               const aliveEnemies = parties[skillUser.enemyTeamID].filter((member) => !member.flags.isDead);
               const newTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-              //TODO: newTargetが存在しない=全滅時にはerror
-              applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
-              newTarget.flags.rapuFlag = fieldState.turnNum + 1;
+              if (newTarget) {
+                applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+                newTarget.flags.rapuFlag = fieldState.turnNum + 1;
+              }
             },
           },
         ],
@@ -6434,6 +6440,7 @@ const skill = [
         nerugeru.currentStatus.HP = nerugeru.defaultStatus.HP;
         updateMonsterBar(nerugeru);
         updateBattleIcons(nerugeru);
+        updateMonsterBuffsDisplay(nerugeru);
         await transformTyoma(nerugeru);
       }
     },
