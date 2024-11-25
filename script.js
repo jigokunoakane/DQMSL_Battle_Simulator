@@ -2189,7 +2189,7 @@ async function processMonsterAction(skillUser) {
       delete monster.flags.willTransformOmudo;
     }
   }
-  if (skillUser.name === "超オムド" && executingSkill.type !== "notskill") {
+  if (skillUser.name === "魔扉の災禍オムド・レクス" && executingSkill.type !== "notskill") {
     skillUser.flags.willTransformOmudo = true;
   }
   if (isBattleOver()) {
@@ -2772,7 +2772,7 @@ async function processHitSequence(
   // 死亡時発動前なので、リザオ処理やゾンビ処理がまだ行われていないタイミング
   //エルギ変身判定
   for (const party of parties) {
-    const targetErugi = party.find((monster) => monster.name === "超エルギ");
+    const targetErugi = party.find((monster) => monster.name === "憎悪のエルギオス");
     if (targetErugi && !targetErugi.flags.isDead && fieldState.deathCount[targetErugi.teamID] > 1 && !targetErugi.flags.hasTransformed) {
       await transformTyoma(targetErugi);
     }
@@ -3354,7 +3354,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
   // 特殊系
   // 天使のしるしデフォルト
-  if (parties[skillTarget.enemyTeamID].some((monster) => monster.name === "超エルギ") && executingSkill.element === "light") {
+  if (parties[skillTarget.enemyTeamID].some((monster) => monster.name === "憎悪のエルギオス") && executingSkill.element === "light") {
     damageModifier += 0.3;
   }
   // 天使のしるし
@@ -4373,7 +4373,7 @@ const monsters = [
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "WORLD",
+    name: "神獣王WORLD",
     id: "world",
     rank: 10,
     race: "???",
@@ -4399,7 +4399,7 @@ const monsters = [
     resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
-    name: "超ネルゲル",
+    name: "死を統べる者ネルゲル",
     id: "nerugeru",
     rank: 10,
     race: "超魔王",
@@ -4427,7 +4427,7 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "超エルギ",
+    name: "憎悪のエルギオス",
     id: "erugi",
     rank: 10,
     race: "超魔王",
@@ -4454,7 +4454,7 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "イフシバ",
+    name: "氷炎の化身",
     id: "ifshiba",
     rank: 10,
     race: "???",
@@ -4515,7 +4515,7 @@ const monsters = [
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "超オムド",
+    name: "魔扉の災禍オムド・レクス",
     id: "omudo",
     rank: 10,
     race: "超魔王",
@@ -4541,7 +4541,7 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
-    name: "超ラプ",
+    name: "新たなる神ラプソーン",
     id: "rapu",
     rank: 10,
     race: "超魔王",
@@ -4625,7 +4625,7 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 1.5, io: 0, light: 1.5, dark: 1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "ティトス",
+    name: "闇魔ティトス",
     id: "dorunisu",
     rank: 9,
     race: "???",
@@ -9015,21 +9015,21 @@ async function transformTyoma(monster) {
   delete monster.buffs.stoned;
 
   // skill変更と、各種message
-  if (monster.name === "超エルギ") {
+  if (monster.name === "憎悪のエルギオス") {
     monster.skill[0] = "絶望の天舞";
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
-  } else if (monster.name === "超ネルゲル") {
+  } else if (monster.name === "死を統べる者ネルゲル") {
     monster.attribute.additionalPermanentBuffs = { spellBarrier: { strength: 2, unDispellable: true, duration: 0 }, breathBarrier: { strength: 2, unDispellable: true, duration: 0 } };
     monster.skill[0] = "終の流星";
     monster.skill[1] = "暴獣の右ウデ";
     displayMessage("＊「……大いなる闇の根源よ。", "  我にチカラを 与えたまえ！");
     await sleep(200);
     displayMessage("＊「見よっ この強靱なる肉体をぉ！", "  この絶大なる魔力をぉ！");
-  } else if (monster.name === "超オムド") {
+  } else if (monster.name === "魔扉の災禍オムド・レクス") {
     monster.skill[0] = "クロノストーム";
     monster.skill[2] = "永劫の闇冥";
     displayMessage("＊「くだらぬ希望など", "  すべて消し去ってやろう。");
-  } else if (monster.name === "超ラプ") {
+  } else if (monster.name === "新たなる神ラプソーン") {
     monster.buffs.ioBreak.strength = 3;
     monster.skill[0] = "真・神々の怒り";
     monster.skill[1] = "爆炎の儀式";
@@ -9040,19 +9040,19 @@ async function transformTyoma(monster) {
   // 共通バフ
   applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
   // 各種buff
-  if (monster.name === "超エルギ") {
+  if (monster.name === "憎悪のエルギオス") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
         await executeSkill(skillUser, findSkillByName("堕天使の理"));
       },
     });
-  } else if (monster.name === "超ネルゲル") {
+  } else if (monster.name === "死を統べる者ネルゲル") {
     applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
   }
 
   // 回復
-  if (monster.name !== "超ネルゲル") {
+  if (monster.name !== "死を統べる者ネルゲル") {
     //ネルのみHP回復を実行しない
     await sleep(400);
     applyDamage(monster, monster.defaultStatus.HP, -1);
@@ -9061,27 +9061,31 @@ async function transformTyoma(monster) {
   applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
 
   // 回復後発動する変身時特性など
-  if (monster.name === "超エルギ") {
+  if (monster.name === "憎悪のエルギオス") {
     await sleep(400);
     for (const target of parties[monster.enemyTeamID]) {
       if (!target.buffs.angelMark) {
         applyBuff(target, { healBlock: {} });
       }
     }
-  } else if (monster.name === "超オムド") {
+  } else if (monster.name === "魔扉の災禍オムド・レクス") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
     fieldState.isDistorted = true;
     fieldState.isPermanentDistorted = true;
     adjustFieldStateDisplay();
-  } else if (monster.name === "超ラプ") {
+  } else if (monster.name === "新たなる神ラプソーン") {
     await sleep(400);
     displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
     for (const party of parties) {
-      for (const monster of party) {
-        if (monster.buffs.nonElementalResistance && monster.name !== "超ラプ") {
-          delete monster.buffs.nonElementalResistance;
-          updateMonsterBuffsDisplay(monster);
+      for (const tempTarget of party) {
+        let skillTarget = tempTarget;
+        if (skillTarget.flags.hasSubstitute) {
+          skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+        }
+        if (skillTarget.buffs.nonElementalResistance && skillTarget.name !== "新たなる神ラプソーン") {
+          delete skillTarget.buffs.nonElementalResistance;
+          updateMonsterBuffsDisplay(skillTarget);
         }
       }
     }
