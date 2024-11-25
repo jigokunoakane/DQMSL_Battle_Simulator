@@ -1101,6 +1101,11 @@ async function startBattle() {
     await processMonsterAction(monster);
     await sleep(600);
   }
+  // 最後のmonsterの行動で戦闘終了時に停止
+  if (isBattleOver()) {
+    removeAllStickOut();
+    return;
+  }
   await startTurn();
 }
 
@@ -1634,7 +1639,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
     }
     //反射の場合にエフェクト追加
-    if (reflectionMap.includes(buffName) && buffTarget.buffs[buffName].name !== "幻獣のタッグ反射") {
+    if (reflectionMap.includes(buffName) && !buffTarget.buffs[buffName].skipReflectionEffect) {
       addMirrorEffect(buffTarget.iconElementId);
     }
     if (!skipMessage) {
@@ -5244,9 +5249,9 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "幻獣のタッグ") {
           if (Math.random() < 0.5) {
-            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, name: "幻獣のタッグ反射" } });
+            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, skipReflectionEffect: true } });
           } else {
-            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1, name: "幻獣のタッグ反射" } });
+            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1, skipReflectionEffect: true } });
           }
         }
       },
@@ -5264,12 +5269,15 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ3") {
           monster.skill[1] = "ひかりのたま";
           monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          await sleep(50);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
           delete monster.buffs.lightSuperBreak;
           applyBuff(monster, { lightUltraBreak: { keepOnDeath: true } });
-          applyBuff(monster, { martialReflection: { strength: 1.5, duration: 2, removeAtTurnStart: true, unDispellable: true } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+          applyBuff(monster, { martialReflection: { strength: 1.5, duration: 2, removeAtTurnStart: true, unDispellable: true, skipReflectionEffect: true } });
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
           applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
-          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
         }
       },
     },
