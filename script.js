@@ -2517,9 +2517,12 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
   if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock)) {
     ++fieldState.completeDeathCount[target.teamID];
-    // このターンに付与されたrapuFlag持ちが蘇生予定なしで完全死亡した場合、rapu変身フラグを立てる
-    if (target.flags.rapuFlag && target.flags.rapuFlag === fieldState.turnNum + 1) {
-      target.flags.killedRapuTarget = fieldState.turnNum + 1;
+    // 支配持ちが蘇生予定なしで完全死亡した場合、rapu変身フラグを立てる
+    if (target.buffs.controlOfRapu) {
+      const enemyRapus = parties[target.enemyTeamID].filter((member) => member.name === "新たなる神ラプソーン");
+      for (const eachRapu of enemyRapus) {
+        eachRapu.flags.rapuTransformTurn = fieldState.turnNum + 1;
+      }
     }
   }
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
@@ -5365,11 +5368,10 @@ function getMonsterAbilities(monsterId) {
             name: "ラプ変身",
             disableMessage: true,
             unavailableIf: (skillUser) => {
-              // turnNum管理で直前のtargetのみを指定、支配更新による旧flag削除がラプ死亡により行われなくてもそれは対象にしない
-              const previousTarget = parties[skillUser.enemyTeamID].find((member) => member.flags.rapuFlag === fieldState.turnNum);
-              if (!skillUser.flags.hasTransformed && previousTarget && previousTarget.flags.killedRapuTarget && previousTarget.flags.killedRapuTarget === fieldState.turnNum) {
-                // handleDeath内でrapuFlag所持者が完全死亡・亡者化(リザオやタッグ以外)した場合、次ターン数を格納したkilledRapuTarget付与
-                // 未変身かつpreviousTargetが死んでいた痕跡がある場合に変身処理
+              // turnNum管理で、直前ターンに支配対象が完全死亡してflagが付与された場合のみ変身する
+              if (!skillUser.flags.hasTransformed && skillUser.flags.rapuTransformTurn === fieldState.turnNum) {
+                // handleDeath内で支配所持者が完全死亡・亡者化(リザオやタッグ以外)した場合、すべての敵ラプに次ターン数を格納したrapuTransformTurn付与
+                // 未変身かつターン数が正確な場合に変身
                 return false;
               } else {
                 return true;
