@@ -4583,6 +4583,7 @@ const monsters = [
     weight: "32",
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
+    defaultGear: "estaSword",
     attribute: {
       initialBuffs: {
         demonKingBarrier: { divineDispellable: true },
