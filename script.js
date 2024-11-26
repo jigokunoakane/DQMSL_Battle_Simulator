@@ -142,8 +142,12 @@ async function prepareBattle() {
         if ((lsTarget === "all" || monster.race === lsTarget) && leaderSkill[key]) {
           lsMultiplier = leaderSkill[key];
         }
-        if (monster.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(monster.race)) {
+        if (key === "spd" && monster.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(monster.race)) {
           lsMultiplier += 0.05;
+        }
+        // 装備のstatusMultiplierを適用
+        if (monster.gear?.statusMultiplier && monster.gear.statusMultiplier[key]) {
+          lsMultiplier += monster.gear.statusMultiplier[key];
         }
         // HPまたはMPの場合、乗数を0.04加算
         if (key === "HP" || key === "MP") {
@@ -8050,10 +8054,31 @@ const skill = [
 
 const gear = [
   {
+    name: "sample",
+    id: "sample",
+    status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
+    statusMultiplier: { atk: 0.08, spd: -0.1 }, // lsと加算
+    initialBuffs: { isUnbreakable: { keepOnDeath: true } }, // 戦闘開始時
+    turn1buffs: { dodgeBuff: { strength: 1 } }, // 演出あり
+    alchemy: true, // 特定系統の場合5%増加
+    healBoost: 1.2, // 回復錬金
+    skillAlchemy: "必殺の双撃", // 双撃は追撃の後半部分にも無理やり反映
+    skillAlchemyStrength: 0.3, // 加算
+    iceGearResistance: 2,
+  },
+  {
     name: "かがやく魔神剣",
     id: "dreamSword",
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
     //斬撃5 ?への斬撃10 絶技8
+  },
+  {
+    name: "帝王のつるぎ",
+    id: "estaSword",
+    status: { HP: 0, MP: 0, atk: 65, def: 0, spd: 0, int: 0 },
+    statusMultiplier: { atk: 0.08, spd: -0.1 },
+    skillAlchemy: "必殺の双撃",
+    skillAlchemyStrength: 0.3,
   },
   {
     name: "系統爪",
@@ -8102,6 +8127,7 @@ const gear = [
     name: "呪われし爪",
     id: "cursedNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+    statusMultiplier: { def: -0.2 },
     alchemy: true,
   },
   {
@@ -8138,6 +8164,7 @@ const gear = [
     name: "りゅうおうの杖",
     id: "dragonCane",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
+    statusMultiplier: { spd: -0.2 },
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
   },
   {
