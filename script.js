@@ -8166,7 +8166,7 @@ const gear = [
     id: "dragonCane",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
-    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true } },
+    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
   },
   {
     name: "魔神のかなづち",
@@ -8689,28 +8689,31 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
-    // 基本のアイコンパス
+    // 基本のアイコンパス これを編集
     let iconSrc = `images/buffIcons/${buffKey}.png`;
 
-    // keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認し、
-    // 対応するアイコンが存在すればパスを更新
-    const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
-    for (const prop of buffAttributes) {
-      if (monster.buffs[buffKey]?.[prop] !== undefined) {
-        const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
-        if (await imageExists(tempSrc)) {
-          iconSrc = tempSrc;
-          break;
+    // 指定アイコン処理 (最優先)
+    if (monster.buffs[buffKey]?.iconSrc) {
+      iconSrc = `images/buffIcons/${monster.buffs[buffKey]?.iconSrc}.png`;
+    } else if (buffKey === "slashReflection" && monster.buffs.slashReflection.isKanta) {
+      // アタカン処理
+      iconSrc = "images/buffIcons/atakan.png";
+    } else if (buffKey === "isUnbreakable" && monster.buffs.isUnbreakable.isBroken) {
+      // くじけぬ砕き処理
+      iconSrc = "images/buffIcons/brokenHeart.png";
+    } else {
+      // 指定以外の場合、keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認
+      const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
+      for (const prop of buffAttributes) {
+        if (monster.buffs[buffKey]?.[prop] !== undefined) {
+          const tempSrc = `images/buffIcons/${buffKey}${prop === "strength" ? "str" + monster.buffs[buffKey][prop] : prop}.png`;
+          if (await imageExists(tempSrc)) {
+            // 対応するアイコンが存在すればパスを更新して離脱
+            iconSrc = tempSrc;
+            break;
+          }
         }
       }
-    }
-    //アタカン処理
-    if (buffKey === "slashReflection" && monster.buffs.slashReflection.isKanta) {
-      iconSrc = "images/buffIcons/atakan.png";
-    }
-    //アタカン処理
-    if (buffKey === "isUnbreakable" && monster.buffs.isUnbreakable.isBroken) {
-      iconSrc = "images/buffIcons/brokenHeart.png";
     }
 
     // 画像が存在する場合は、activeBuffsにバフデータを追加
