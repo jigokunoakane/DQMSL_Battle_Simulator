@@ -3266,7 +3266,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  //ダメージ軽減
+  // ダメージ軽減
   if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
     damage *= 1 - skillTarget.buffs.protection.strength;
   }
@@ -3275,11 +3275,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= 1 + skillTarget.buffs.crimsonMist.strength;
   }
 
-  //特技の種族特効 反射には乗らない
+  // 特技の種族特効 反射には乗らない
   if (!isReflection && executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.race)) {
     damage *= executingSkill.RaceBaneValue;
   }
-  //みがわり特効
+  // みがわり特効
   if (executingSkill.SubstituteBreaker && skillTarget.flags.isSubstituting) {
     damage *= executingSkill.SubstituteBreaker;
   }
@@ -4869,6 +4869,7 @@ const monsters = [
         windBreak: { keepOnDeath: true, strength: 2 },
         manaBoost: { strength: 1.2 },
         dodgeBuff: { strength: 1 },
+        crimsonMist: { strength: 0.1, removeAtTurnStart: true, duration: 1 },
       },
       1: {
         preemptiveAction: {},
