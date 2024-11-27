@@ -3332,9 +3332,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillUser.gear?.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
     damageModifier += 0.1;
   }
-  //全属性バフ
+  // 全属性バフ
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
+  }
+  // 領界
+  const targetDomain = `${executingSkill.element}Domain`;
+  if (skillUser.buffs[targetDomain]) {
+    damageModifier += 0.3;
   }
   //特技錬金
   if (skillUser.gear?.skillAlchemy) {
@@ -5052,7 +5057,7 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "sample",
+    name: "hoge",
     id: "",
     rank: 10, // SSが10で下げる
     race: "", // 日本語
@@ -5463,6 +5468,33 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    nadoraga: {
+      afterActionAbilities: [
+        {
+          name: "領界召喚",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性`, "領界召喚 が発動！");
+          },
+          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹",
+          act: async function (skillUser, executingSkill) {
+            const targetDomain = {
+              翠嵐の息吹: "thunderDomain",
+              竜の波濤: "iceDomain",
+              冥闇の息吹: "darkDomain",
+            }[executingSkill.name];
+            const buffToApply = {};
+            buffToApply[targetDomain] = { keepOnDeath: true };
+            for (const monster of parties[skillUser.teamID]) {
+              delete monster.buffs.iceDomain;
+              delete monster.buffs.thunderDomain;
+              delete monster.buffs.darkDomain;
+              applyBuff(monster, buffToApply);
+              await sleep(100);
+            }
+          },
+        },
+      ],
     },
     dhuran: {
       supportAbilities: {
@@ -8154,8 +8186,8 @@ const skill = [
 
 const gear = [
   {
-    name: "sample",
-    id: "sample",
+    name: "hoge",
+    id: "hoge",
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
     statusMultiplier: { atk: 0.08, spd: -0.1 }, // lsと加算
     initialBuffs: { isUnbreakable: { keepOnDeath: true } }, // 戦闘開始時
@@ -9124,6 +9156,18 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     internalIntUp: {
       start: `${buffTarget.name}の`,
       message: `賢さが ${buffData.strength + 1}倍になった！`,
+    },
+    iceDomain: {
+      start: `${buffTarget.name}の`,
+      message: "ヒャド系のダメージが あがった！",
+    },
+    thunderDomain: {
+      start: `${buffTarget.name}の`,
+      message: "ギラ系のダメージが あがった！",
+    },
+    darkDomain: {
+      start: `${buffTarget.name}の`,
+      message: "ドルマ系のダメージが あがった！",
     },
   };
 
