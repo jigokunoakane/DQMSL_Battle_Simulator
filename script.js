@@ -2252,6 +2252,19 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
 
+  // 7-. ナドラガ判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグ 死亡判定は後で
+  let domainCheck = false;
+  if (skillUser.name === "邪竜神ナドラガ" && executingSkill) {
+    const targetDomain = {
+      翠嵐の息吹: "thunderDomain",
+      竜の波濤: "iceDomain",
+      冥闇の息吹: "darkDomain",
+    }[executingSkill.name];
+    if (skillUser.buffs[targetDomain]) {
+      domainCheck = true;
+    }
+  }
+
   // 7-4. 行動後発動特性の処理
   async function executeAfterActionAbilities(monster) {
     const abilitiesToExecute = [];
@@ -2316,7 +2329,13 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
-  // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
+  // 7-7. 特殊追加skillの実行
+  if (skillUser.commandInput !== "skipThisTurn" && domainCheck) {
+    await sleep(300);
+    executeSkill(skillUser, executingSkill);
+  }
+
+  // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   for (const monster of parties[skillUser.enemyTeamID]) {
     if (damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
@@ -5472,6 +5491,7 @@ function getMonsterAbilities(monsterId) {
           },
           unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹",
           act: async function (skillUser, executingSkill) {
+            await sleep(200);
             const targetDomain = {
               翠嵐の息吹: "thunderDomain",
               竜の波濤: "iceDomain",
