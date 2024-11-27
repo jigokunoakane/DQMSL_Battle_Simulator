@@ -1170,6 +1170,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "healBlock",
     "manaReduction",
     "powerWeaken",
+    "murakumo",
+    "zombifyBlock",
+    "crimsonMist",
   ];
   const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
 
@@ -3266,6 +3269,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   //ダメージ軽減
   if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
     damage *= 1 - skillTarget.buffs.protection.strength;
+  }
+  // クリミス
+  if (skillTarget.buffs.crimsonMist) {
+    damage *= 1 + skillTarget.buffs.crimsonMist.strength;
   }
 
   //特技の種族特効 反射には乗らない
@@ -5980,7 +5987,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
-    appliedEffect: { zombifyBlock: { dispellableByRadiantWave: true, removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
       ascension(skillTarget);
     },
@@ -7866,7 +7873,7 @@ const skill = [
     RaceBane: ["???", "超魔王"],
     RaceBaneValue: 4,
     ignoreProtection: true,
-    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { dispellableByRadiantWave: true, removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
   },
   {
     name: "天翔の舞い",
