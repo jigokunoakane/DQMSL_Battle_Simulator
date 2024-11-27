@@ -2529,6 +2529,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   target.flags.isDead = true;
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
+  delete target.flags.guard;
   // 供物2種はskipDeathAbilityを付与して死亡時発動を行わない
   if (applySkipDeathAbility) {
     target.flags.skipDeathAbility = true;
