@@ -4628,6 +4628,27 @@ const monsters = [
     resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "邪竜神ナドラガ",
+    id: "nadoraga",
+    rank: 10,
+    race: "???",
+    weight: "32",
+    status: { HP: 906, MP: 304, atk: 500, def: 619, spd: 454, int: 355 },
+    initialSkill: ["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "虚空神の福音"],
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.33 },
+        healBlock: { keepOnDeath: true, iconSrc: "none" },
+        breathEnhancement: { keepOnDeath: true },
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 30, def: 60, spd: 30, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 0, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
+  },
+  {
     name: "ミステリドール",
     id: "dogu",
     rank: 9,
@@ -5130,7 +5151,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.enemyTeamID]) {
-                applyBuff(monster, { reviveBlock: { name: "竜衆の鎮魂" } });
+                applyBuff(monster, { reviveBlock: { name: "竜衆の鎮魂", duration: 1 } });
               }
             },
           },
@@ -7057,6 +7078,58 @@ const skill = [
     //反射特攻はcalc内で
   },
   {
+    name: "翠嵐の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 48,
+    ignoreReflection: true,
+    appliedEffect: { paralyzed: { probability: 0.56 } },
+  },
+  {
+    name: "竜の波濤",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 355,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 84,
+    damageByLevel: true,
+    appliedEffect: { crimsonMist: { strength: 0.33 } },
+  },
+  {
+    name: "冥闇の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 305,
+    element: "dark",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 76,
+    ignoreProtection: true,
+    appliedEffect: { reviveBlock: { duration: 1 }, dazzle: {} },
+  },
+  {
+    name: "虚空神の福音",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 180,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    damageByLevel: true,
+    appliedEffect: { fear: { probability: 0.3133 }, spdUp: { strength: -1, probability: 0.7822 } },
+  },
+  {
     name: "アストロンゼロ",
     type: "martial",
     howToCalculate: "none",
@@ -8001,7 +8074,7 @@ const skill = [
     MPcost: 62,
     damageByLevel: true,
     act: function (skillUser, skillTarget) {
-      if (Math.random() < 0.8) {
+      if (Math.random() < 0.83) {
         deleteUnbreakable(skillTarget);
       }
     },
