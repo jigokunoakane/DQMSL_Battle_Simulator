@@ -2294,7 +2294,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
     console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
     applyDamage(skillUser, damage);
-    await checkRecentlyKilledFlag(skillUser);
+    await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
   // 7-6. 毒・継続ダメージ処理
@@ -2305,7 +2305,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "もうどくにおかされている！");
     applyDamage(skillUser, damage);
-    await checkRecentlyKilledFlag(skillUser);
+    await checkRecentlyKilledFlagForPoison(skillUser);
   }
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
     await sleep(400);
@@ -2313,7 +2313,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
     applyDamage(skillUser, damage);
-    await checkRecentlyKilledFlag(skillUser);
+    await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
   // 7-7. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
@@ -2360,7 +2360,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 }
 
 // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
-async function checkRecentlyKilledFlag(monster) {
+async function checkRecentlyKilledFlagForPoison(monster) {
   if (monster.flags.recentlyKilled) {
     delete monster.flags.recentlyKilled;
     const killedThisSkill = new Set();
@@ -2895,15 +2895,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
       handleDeath(zakiTarget);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
-      if (!killedThisSkill.has(zakiTarget)) {
-        killedThisSkill.add(zakiTarget);
-        // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
-        if (isZakiReflection && zakiTarget.flags.willZombify) {
-          delete zakiTarget.flags.willZombify;
-          zakiTarget.commandInput = "skipThisTurn";
-        }
-      }
-      delete zakiTarget.flags.recentlyKilled;
+      checkRecentlyKilledFlag(zakiTarget, killedThisSkill, isZakiReflection);
       return;
     }
   }
@@ -2933,18 +2925,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // isDamageExistingはfalseで送る
     await processAppliedEffectWave(skillTarget, executingSkill);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    // actで死亡時も死亡時発動等を実行するため
-    // 追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
-    if (skillTarget.flags.recentlyKilled) {
-      if (!killedThisSkill.has(skillTarget)) {
-        killedThisSkill.add(skillTarget);
-        // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
-        if (isReflection && skillTarget.flags.willZombify) {
-          delete skillTarget.flags.willZombify;
-          skillTarget.commandInput = "skipThisTurn";
-        }
+    // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加して回収
+    checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection);
+    // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
+    // todo: killedThisSkillを利用するわけではないので、供物内で直接入れれば良い？
+    for (const party of parties) {
+      for (const monster of party) {
+        checkRecentlyKilledFlag(monster, killedThisSkill, isReflection);
       }
-      delete skillTarget.flags.recentlyKilled;
     }
     return;
   }
@@ -3463,18 +3451,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  //ダメージとact処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加
-  if (skillTarget.flags.recentlyKilled) {
-    if (!killedThisSkill.has(skillTarget)) {
-      killedThisSkill.add(skillTarget);
-      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
-      if (isReflection && skillTarget.flags.willZombify) {
-        delete skillTarget.flags.willZombify;
-        skillTarget.commandInput = "skipThisTurn";
-      }
-    }
-    delete skillTarget.flags.recentlyKilled;
-  }
+  // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加して回収
+  checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection);
 }
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
@@ -3640,6 +3618,21 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     }
 
     return distortedResistance;
+  }
+}
+
+// recentlyを持っているmonsterをkilledに追加して回収、ついでに反射死判定
+function checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection) {
+  if (skillTarget.flags.recentlyKilled) {
+    if (!killedThisSkill.has(skillTarget)) {
+      killedThisSkill.add(skillTarget);
+      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
+      if (isReflection && skillTarget.flags.willZombify) {
+        delete skillTarget.flags.willZombify;
+        skillTarget.commandInput = "skipThisTurn";
+      }
+    }
+    delete skillTarget.flags.recentlyKilled;
   }
 }
 
