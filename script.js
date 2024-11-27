@@ -1243,6 +1243,24 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if ((buffName === "powerWeaken" && buffTarget.buffs.powerCharge) || (buffName === "manaReduction" && buffTarget.buffs.manaBoost)) {
       continue;
     }
+    // 強いprotection所持時にクリミスを付与しない
+    if (buffName === "crimsonMist" && buffTarget.buffs.protection) {
+      if (buffTarget.buffs.protection.keepOnDeath || buffTarget.buffs.protection.unDispellable || buffTarget.buffs.protection.divineDispellable || buffTarget.buffs.protection.strength > 0.5) {
+        continue;
+      } else {
+        // クリミス付与時、弱いprotの場合は上書き削除(簡略化のため確率処理前に)
+        delete buffTarget.buffs.protection;
+      }
+    }
+    // クリミス所持時に弱いprotectionの場合は付与しない
+    if (buffName === "protection" && buffTarget.buffs.crimsonMist) {
+      if (!(buffData.keepOnDeath || buffData.unDispellable || buffData.divineDispellable || buffData.strength > 0.5)) {
+        continue;
+      } else {
+        // 強いprotを付与時、クリミスを上書き削除(簡略化のため確率処理前に)
+        delete buffTarget.buffs.crimsonMist;
+      }
+    }
 
     // buffData 内に probability が存在するかチェックして用意
     const probability = buffData.probability ?? 10;
