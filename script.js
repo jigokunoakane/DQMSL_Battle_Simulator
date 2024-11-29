@@ -2423,7 +2423,7 @@ function applyHeal(target, healAmount, isMPheal = false) {
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
+function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false) {
   if (resistance === -1) {
     // 回復処理 基礎値を用意
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
@@ -2481,8 +2481,8 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
       } else {
         displayMessage(`${target.name}に`, `${hpDamage}のダメージ！！`);
       }
-      // HPかつダメージのときのみ、reducedByElementalShieldを渡して0ダメ表示対応
-      displayDamage(target, hpDamage, resistance, false, reducedByElementalShield);
+      // HPかつダメージのときのみ、reducedByElementalShieldを渡して0ダメ表示対応 会心フラグも渡す
+      displayDamage(target, hpDamage, resistance, false, reducedByElementalShield, isCriticalHit);
 
       // 亡者はダメージ表示(と無意味なcurrentの更新)のみ updateMonsterBarやくじけぬは実行せず終了
       if (target.flags.isZombie) {
@@ -3452,7 +3452,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield);
+  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit);
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
@@ -8403,7 +8403,7 @@ function findSkillByName(skillName) {
   return skill.find((skill) => skill.name === skillName);
 }
 
-function displayDamage(monster, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
+function displayDamage(monster, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
   if (damage === 0 && !reducedByElementalShield && resistance !== -1) {
@@ -8474,7 +8474,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
     effectImage.src = effectImagePath;
     effectImage.style.position = "absolute";
     let scale = 1;
-    if (resistance > 1.4) {
+    if (resistance > 1.4 || (isCriticalHit && resistance !== -1)) {
       scale = 2;
     } else if (resistance === -1) {
       scale = 0.8;
@@ -8494,6 +8494,40 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
       const randomOffsetX = Math.floor(Math.random() * 21) - 10; // -10px から 10px までのランダムな値
       const randomOffsetY = Math.floor(Math.random() * 21) - 10;
       damageEffectContainer.style.transform = `translate(-50%, -50%) translate(${randomOffsetX}px, ${randomOffsetY}px)`; // コンテナごとずらす
+    }
+
+    // isCriticalHitがtrueのとき文字列を表示
+    if (isCriticalHit && !isMPdamage && resistance !== -1) {
+      const criticalTextContainer = document.createElement("div");
+      criticalTextContainer.style.position = "absolute";
+      criticalTextContainer.style.whiteSpace = "nowrap";
+      criticalTextContainer.style.top = "-250%"; // 効果画像の上部に配置
+      criticalTextContainer.style.left = "50%";
+      criticalTextContainer.style.textAlign = "center"; // 文字列を中央揃え
+      criticalTextContainer.style.textShadow =
+        "black 0.3px 0px 0.7px, black -0.3px 0px 0.7px, black 0px -0.3px 0.7px, black 0px 0.3px 0.7px, black 0.3px 0.3px 0.7px, black -0.3px 0.3px 0.7px, black 0.3px -0.3px 0.7px, black -0.3px -0.3px 0.7px";
+      criticalTextContainer.style.fontfamily = "Hiragino Maru Gothic ProN";
+      criticalTextContainer.style.webkittextstroke = "1.5px black";
+      criticalTextContainer.style.fontSize = "1rem"; // フォントサイズを調整
+      criticalTextContainer.style.fontWeight = "bold"; // 太字に
+      criticalTextContainer.style.transform = "translateX(-50%) rotate(-5deg)";
+      criticalTextContainer.style.zIndex = "5";
+      const firstLine = document.createElement("div");
+      const secondLine = document.createElement("div");
+      if (monster.teamID === 1) {
+        firstLine.textContent = "かいしんの";
+        criticalTextContainer.style.color = "#1fbaf8";
+        effectImage.src = "images/systems/effectImages/enemyDamagedCritical.png";
+      } else {
+        firstLine.textContent = "つうこんの";
+        criticalTextContainer.style.color = "#e14f1e";
+        effectImage.src = "images/systems/effectImages/allyDamagedCritical.png";
+      }
+      secondLine.textContent = "いちげき !!";
+      secondLine.style.marginTop = "-5px";
+      criticalTextContainer.appendChild(firstLine);
+      criticalTextContainer.appendChild(secondLine);
+      damageEffectContainer.appendChild(criticalTextContainer); // コンテナに追加
     }
 
     // 子要素を追加
