@@ -1,4 +1,5 @@
 //初期処理とglobal変数群
+let isDeveloperMode = false;
 const allParties = Array(10)
   .fill(null)
   .map(() => Array(5).fill([]));
@@ -4287,6 +4288,7 @@ async function selectAllPartyMembers(monsters) {
   for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
     selectMonster(monsters[selectingMonsterNum]);
   }
+  if (!isDeveloperMode) return;
   decideParty();
   await sleep(9);
   // 選択画面を開く
