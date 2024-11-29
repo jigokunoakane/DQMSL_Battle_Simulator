@@ -4152,23 +4152,52 @@ function seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSe
 
 function calcAndAdjustDisplayStatus() {
   //statusとseedIncrementとgearIncrementを足して、displayStatusを計算、表示値を更新
-  const gearStatus = selectingParty[currentTab].gear?.status || {};
+  const target = selectingParty[currentTab];
+  const gearStatus = target.gear?.status || {};
 
-  selectingParty[currentTab].displayStatus = {
-    HP: selectingParty[currentTab].status.HP + selectingParty[currentTab].seedIncrement.HP + (gearStatus.HP || 0),
-    MP: selectingParty[currentTab].status.MP + selectingParty[currentTab].seedIncrement.MP + (gearStatus.MP || 0),
-    atk: selectingParty[currentTab].status.atk + selectingParty[currentTab].seedIncrement.atk + (gearStatus.atk || 0),
-    def: selectingParty[currentTab].status.def + selectingParty[currentTab].seedIncrement.def + (gearStatus.def || 0),
-    spd: selectingParty[currentTab].status.spd + selectingParty[currentTab].seedIncrement.spd + (gearStatus.spd || 0),
-    int: selectingParty[currentTab].status.int + selectingParty[currentTab].seedIncrement.int + (gearStatus.int || 0),
+  target.displayStatus = {
+    HP: target.status.HP + target.seedIncrement.HP + (gearStatus.HP || 0),
+    MP: target.status.MP + target.seedIncrement.MP + (gearStatus.MP || 0),
+    atk: target.status.atk + target.seedIncrement.atk + (gearStatus.atk || 0),
+    def: target.status.def + target.seedIncrement.def + (gearStatus.def || 0),
+    spd: target.status.spd + target.seedIncrement.spd + (gearStatus.spd || 0),
+    int: target.status.int + target.seedIncrement.int + (gearStatus.int || 0),
   };
 
-  document.getElementById("statusInfoDisplayStatusHP").textContent = selectingParty[currentTab].displayStatus.HP;
-  document.getElementById("statusInfoDisplayStatusMP").textContent = selectingParty[currentTab].displayStatus.MP;
-  document.getElementById("statusInfoDisplayStatusatk").textContent = selectingParty[currentTab].displayStatus.atk;
-  document.getElementById("statusInfoDisplayStatusdef").textContent = selectingParty[currentTab].displayStatus.def;
-  document.getElementById("statusInfoDisplayStatusspd").textContent = selectingParty[currentTab].displayStatus.spd;
-  document.getElementById("statusInfoDisplayStatusint").textContent = selectingParty[currentTab].displayStatus.int;
+  document.getElementById("statusInfoDisplayStatusHP").textContent = target.displayStatus.HP;
+  document.getElementById("statusInfoDisplayStatusMP").textContent = target.displayStatus.MP;
+  document.getElementById("statusInfoDisplayStatusatk").textContent = target.displayStatus.atk;
+  document.getElementById("statusInfoDisplayStatusdef").textContent = target.displayStatus.def;
+  document.getElementById("statusInfoDisplayStatusspd").textContent = target.displayStatus.spd;
+  document.getElementById("statusInfoDisplayStatusint").textContent = target.displayStatus.int;
+
+  // 素早さ予測値の更新
+  let firstMonster = null;
+  for (const obj of selectingParty) {
+    if (Object.keys(obj).length !== 0) {
+      // オブジェクトが空でなければ設定してbreak
+      firstMonster = obj;
+      break;
+    }
+  }
+  // lsや錬金を反映して更新
+  const leaderSkill = firstMonster.ls;
+  const lsTarget = firstMonster.lsTarget;
+
+  let lsMultiplier = 1;
+  if ((lsTarget === "all" || target.race === lsTarget) && leaderSkill.spd) {
+    lsMultiplier = leaderSkill.spd;
+  }
+  if (target.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(target.race)) {
+    lsMultiplier += 0.05;
+  }
+  // 装備のstatusMultiplierを適用
+  if (target.gear?.statusMultiplier?.spd) {
+    lsMultiplier += target.gear.statusMultiplier.spd;
+  }
+  let predictedSpeed = target.displayStatus.spd;
+  predictedSpeed = Math.ceil(predictedSpeed * lsMultiplier);
+  document.getElementById("predictedSpeed").textContent = predictedSpeed;
 }
 
 function displayGearIncrement() {
@@ -4249,6 +4278,8 @@ function switchTab(tabNumber) {
     document.getElementById("statusInfoDisplayStatusdef").textContent = "0";
     document.getElementById("statusInfoDisplayStatusspd").textContent = "0";
     document.getElementById("statusInfoDisplayStatusint").textContent = "0";
+    // 素早さ予測値reset
+    document.getElementById("predictedSpeed").textContent = "";
     // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
     displayGearIncrement();
     //種選択無効化
@@ -8300,7 +8331,7 @@ const gear = [
   {
     name: "キラーピアス",
     id: "killerEarrings",
-    status: { HP: 0, MP: 0, atk: 10, def: 0, spd: 40, int: 0 },
+    status: { HP: 0, MP: 0, atk: 40, def: 0, spd: 10, int: 0 },
     alchemy: true,
   },
   {

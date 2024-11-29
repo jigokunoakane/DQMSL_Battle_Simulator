@@ -203,118 +203,122 @@
             <div id="statusInfoGearIncrementint"></div>
           </div>
           <!-- 種振り情報 -->
-          <!--
-<button id = "resetSeedBtn" class = "normalButton" onclick = "resetSeed()">種リセット</button>
--->
-          <div id="statusInfoSeedTitle">
-            <div>攻撃</div>
-            <div>防御</div>
-            <div>早さ</div>
-            <div>賢さ</div>
+          <div id="statusInfoPredictedSpeedAndSeedContainer">
+            <div id="predictedSpeedContainer">Ls錬金込S: <span id="predictedSpeed"></span></div>
+            <div id="statusInfoSeedTitleAndSelectContainer">
+              <div id="statusInfoSeedTitle">
+                <div>攻撃</div>
+                <div>防御</div>
+                <div>早さ</div>
+                <div>賢さ</div>
+              </div>
+              <div id="statusInfoSeedSelectContainer">
+                <div>
+                  <select id="selectSeedAtk" class="selectSeed" onchange="changeSeedSelect()">
+                    <option value="0">0</option>
+                    <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
+                    <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                    <option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                    <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                    <option value="25">25&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                    <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                    <option value="35">35&nbsp;&nbsp;&nbsp;攻撃+10</option>
+                    <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                    <option value="45">45&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                    <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                    <option value="55">55&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                    <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="65">65&nbsp;&nbsp;&nbsp;攻撃+6</option>
+                    <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="75">75&nbsp;&nbsp;&nbsp;攻撃+4</option>
+                    <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="85">85&nbsp;&nbsp;&nbsp;攻撃+2</option>
+                    <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
+                    <option value="95">95&nbsp;&nbsp;&nbsp;攻撃+2</option>
+                    <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
+                  </select>
+                </div>
+                <div>
+                  <select id="selectSeedDef" class="selectSeed" onchange="changeSeedSelect()">
+                    <option value="0">0</option>
+                    <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
+                    <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                    <option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
+                    <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="25">25&nbsp;&nbsp;&nbsp;防御+20</option>
+                    <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                    <option value="35">35&nbsp;&nbsp;&nbsp;防御+20</option>
+                    <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="45">45&nbsp;&nbsp;&nbsp;防御+12</option>
+                    <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                    <option value="55">55&nbsp;&nbsp;&nbsp;防御+12</option>
+                    <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="65">65&nbsp;&nbsp;&nbsp;防御+12</option>
+                    <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                    <option value="75">75&nbsp;&nbsp;&nbsp;防御+8</option>
+                    <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="85">85&nbsp;&nbsp;&nbsp;防御+4</option>
+                    <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="95">95&nbsp;&nbsp;&nbsp;防御+4</option>
+                    <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                  </select>
+                </div>
+                <div>
+                  <select id="selectSeedSpd" class="selectSeed" onchange="changeSeedSelect()">
+                    <option value="0">0</option>
+                    <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
+                    <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                    <option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                    <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="25">25&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                    <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
+                    <option value="35">35&nbsp;&nbsp;&nbsp;素早さ+10</option>
+                    <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="45">45&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                    <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                    <option value="55">55&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                    <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="65">65&nbsp;&nbsp;&nbsp;素早さ+6</option>
+                    <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
+                    <option value="75">75&nbsp;&nbsp;&nbsp;素早さ+4</option>
+                    <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="85">85&nbsp;&nbsp;&nbsp;素早さ+2</option>
+                    <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
+                    <option value="95">95&nbsp;&nbsp;&nbsp;素早さ+2</option>
+                    <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                  </select>
+                </div>
+                <div>
+                  <select id="selectSeedInt" class="selectSeed" onchange="changeSeedSelect()">
+                    <option value="0">0</option>
+                    <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
+                    <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                    <option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                    <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                    <option value="25">25&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                    <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
+                    <option value="35">35&nbsp;&nbsp;&nbsp;賢さ+20</option>
+                    <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                    <option value="45">45&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                    <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
+                    <option value="55">55&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                    <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="65">65&nbsp;&nbsp;&nbsp;賢さ+12</option>
+                    <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="75">75&nbsp;&nbsp;&nbsp;賢さ+8</option>
+                    <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
+                    <option value="85">85&nbsp;&nbsp;&nbsp;賢さ+4</option>
+                    <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+1</option>
+                    <option value="95">95&nbsp;&nbsp;&nbsp;賢さ+4</option>
+                    <option value="100">100&nbsp;&nbsp;&nbsp;MP+1</option>
+                  </select>
+                </div>
+              </div>
+              <!-- statusInfoSeedSelectContainer -->
+            </div>
+            <!-- statusInfoSeedTitleAndSelectContainer -->
           </div>
-          <div id="statusInfoSeedSelectContainer">
-            <div>
-              <select id="selectSeedAtk" class="selectSeed" onchange="changeSeedSelect()">
-                <option value="0">0</option>
-                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
-                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-                <option value="15">15&nbsp;&nbsp;&nbsp;攻撃+10</option>
-                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-                <option value="25">25&nbsp;&nbsp;&nbsp;攻撃+10</option>
-                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-                <option value="35">35&nbsp;&nbsp;&nbsp;攻撃+10</option>
-                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-                <option value="45">45&nbsp;&nbsp;&nbsp;攻撃+6</option>
-                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-                <option value="55">55&nbsp;&nbsp;&nbsp;攻撃+6</option>
-                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="65">65&nbsp;&nbsp;&nbsp;攻撃+6</option>
-                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="75">75&nbsp;&nbsp;&nbsp;攻撃+4</option>
-                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="85">85&nbsp;&nbsp;&nbsp;攻撃+2</option>
-                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
-                <option value="95">95&nbsp;&nbsp;&nbsp;攻撃+2</option>
-                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+1</option>
-              </select>
-            </div>
-            <div>
-              <select id="selectSeedDef" class="selectSeed" onchange="changeSeedSelect()">
-                <option value="0">0</option>
-                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
-                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-                <option value="15">15&nbsp;&nbsp;&nbsp;防御+20</option>
-                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="25">25&nbsp;&nbsp;&nbsp;防御+20</option>
-                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-                <option value="35">35&nbsp;&nbsp;&nbsp;防御+20</option>
-                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="45">45&nbsp;&nbsp;&nbsp;防御+12</option>
-                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-                <option value="55">55&nbsp;&nbsp;&nbsp;防御+12</option>
-                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="65">65&nbsp;&nbsp;&nbsp;防御+12</option>
-                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-                <option value="75">75&nbsp;&nbsp;&nbsp;防御+8</option>
-                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="85">85&nbsp;&nbsp;&nbsp;防御+4</option>
-                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="95">95&nbsp;&nbsp;&nbsp;防御+4</option>
-                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-              </select>
-            </div>
-            <div>
-              <select id="selectSeedSpd" class="selectSeed" onchange="changeSeedSelect()">
-                <option value="0">0</option>
-                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
-                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-                <option value="15">15&nbsp;&nbsp;&nbsp;素早さ+10</option>
-                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="25">25&nbsp;&nbsp;&nbsp;素早さ+10</option>
-                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
-                <option value="35">35&nbsp;&nbsp;&nbsp;素早さ+10</option>
-                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="45">45&nbsp;&nbsp;&nbsp;素早さ+6</option>
-                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-                <option value="55">55&nbsp;&nbsp;&nbsp;素早さ+6</option>
-                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="65">65&nbsp;&nbsp;&nbsp;素早さ+6</option>
-                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+3</option>
-                <option value="75">75&nbsp;&nbsp;&nbsp;素早さ+4</option>
-                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="85">85&nbsp;&nbsp;&nbsp;素早さ+2</option>
-                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+2</option>
-                <option value="95">95&nbsp;&nbsp;&nbsp;素早さ+2</option>
-                <option value="100">100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-              </select>
-            </div>
-            <div>
-              <select id="selectSeedInt" class="selectSeed" onchange="changeSeedSelect()">
-                <option value="0">0</option>
-                <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
-                <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-                <option value="15">15&nbsp;&nbsp;&nbsp;賢さ+20</option>
-                <option value="20">20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-                <option value="25">25&nbsp;&nbsp;&nbsp;賢さ+20</option>
-                <option value="30">30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
-                <option value="35">35&nbsp;&nbsp;&nbsp;賢さ+20</option>
-                <option value="40">40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-                <option value="45">45&nbsp;&nbsp;&nbsp;賢さ+12</option>
-                <option value="50">50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+3</option>
-                <option value="55">55&nbsp;&nbsp;&nbsp;賢さ+12</option>
-                <option value="60">60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="65">65&nbsp;&nbsp;&nbsp;賢さ+12</option>
-                <option value="70">70&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="75">75&nbsp;&nbsp;&nbsp;賢さ+8</option>
-                <option value="80">80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+2</option>
-                <option value="85">85&nbsp;&nbsp;&nbsp;賢さ+4</option>
-                <option value="90">90&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+1</option>
-                <option value="95">95&nbsp;&nbsp;&nbsp;賢さ+4</option>
-                <option value="100">100&nbsp;&nbsp;&nbsp;MP+1</option>
-              </select>
-            </div>
-          </div>
-          <!-- statusInfoSeedSelectContainer -->
+          <!-- statusInfoPredictedSpeedAndSeedContainer -->
         </div>
         <!-- statusInfoContainer -->
 
