@@ -3327,8 +3327,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (executingSkill.damageByHpPercent) {
     damage *= skillUser.currentStatus.HP / skillUser.defaultStatus.HP;
   }
-  // 体砕き
+  // 反射特攻系
   if (executingSkill.name === "体砕きの斬舞" && skillTarget.buffs.martialReflection) {
+    damage *= 3;
+  }
+  if (
+    executingSkill.name === "すさまじいオーラ" &&
+    (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.danceReflection || skillTarget.buffs.ritualReflection)
+  ) {
     damage *= 3;
   }
 
@@ -3377,6 +3383,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   // world反撃ののろし
   if (skillUser.buffs.worldBuff) {
     damageModifier += skillUser.buffs.worldBuff.strength;
+  }
+  // dream
+  if (skillUser.buffs.dreamBuff && executingSkill.element === "none") {
+    damageModifier += 0.15;
   }
 
   //skillTarget対象バフ
@@ -4580,6 +4590,41 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 1, io: 0, light: 0, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "魔神ダークドレアム",
+    id: "dream",
+    rank: 10,
+    race: "???",
+    weight: "32",
+    status: { HP: 909, MP: 317, atk: 742, def: 525, spd: 504, int: 408 },
+    initialSkill: ["真・魔神の絶技", "すさまじいオーラ", "魔神の構え", "斬撃よそく"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        dreamBuff: { keepOnDeath: true },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+        demonKingBarrier: { divineDispellable: true },
+      },
+      1: {
+        //魔神のいげん
+        powerCharge: { strength: 1.1 },
+        slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+        spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+        breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.2, atk: 1.2 },
+    lsTarget: "???",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルナイト",
     id: "skull",
     rank: 8,
@@ -5388,6 +5433,17 @@ function getMonsterAbilities(monsterId) {
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
           applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
         }
+      },
+    },
+    dream: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
+            },
+          },
+        ],
       },
     },
     skull: {
@@ -6874,6 +6930,54 @@ const skill = [
       applyHeal(skillTarget, skillTarget.defaultStatus.HP);
     },
     appliedEffect: { slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } },
+  },
+  {
+    name: "真・魔神の絶技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.21,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 60,
+    ignoreEvasion: true,
+    appliedEffect: { defUp: { strength: -1, probability: 0.6 } },
+  },
+  {
+    name: "すさまじいオーラ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 195,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 82,
+    damageByLevel: true,
+    appliedEffect: "disruptiveWave",
+    //体技以外の反射に3倍
+    act: function (skillUser, skillTarget) {
+      delete skillTarget.buffs.powerCharge;
+      delete skillTarget.buffs.manaBoost;
+      delete skillTarget.buffs.breathCharge;
+    },
+  },
+  {
+    name: "魔神の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 52,
+    isOneTimeUse: true,
+    appliedEffect: {
+      slashEvasion: { duration: 3, unDispellable: true },
+      spellEvasion: { duration: 3, unDispellable: true },
+      breathEvasion: { duration: 3, unDispellable: true },
+    },
   },
   {
     name: "ルカナン",
