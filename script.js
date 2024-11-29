@@ -8406,93 +8406,40 @@ function findSkillByName(skillName) {
 function displayDamage(monster, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
-  if (damage === 0 && !reducedByElementalShield) {
-    if (resistance === -1) {
-      // 回復でダメージが0の場合は、回復効果画像と数字0を表示
-      const damageContainer = document.createElement("div");
-      damageContainer.style.position = "absolute";
-      damageContainer.style.display = "flex";
-      damageContainer.style.top = "50%";
-      damageContainer.style.left = "50%";
-      damageContainer.style.transform = "translate(-50%, -50%)";
-      damageContainer.style.justifyContent = "center";
+  if (damage === 0 && !reducedByElementalShield && resistance !== -1) {
+    // 回復ではなく、障壁以外でダメージ0の場合はmissを表示
+    const missImage = document.createElement("img");
+    missImage.src = "images/systems/miss.png";
+    missImage.style.position = "absolute";
+    missImage.style.width = monsterIcon.offsetWidth + "px";
+    missImage.style.height = "auto";
+    missImage.style.top = "50%";
+    missImage.style.left = "50%";
+    missImage.style.transform = "translate(-50%, -50%)";
+    monsterIcon.parentElement.appendChild(missImage);
 
-      const effectImagePath = isMPdamage ? "images/systems/effectImages/MPRecovery.png" : "images/systems/effectImages/HPRecovery.png"; // MP回復かHP回復か
-
-      const effectImage = document.createElement("img");
-      effectImage.src = effectImagePath;
-      effectImage.style.position = "absolute";
-      effectImage.style.width = monsterIcon.offsetWidth + "px";
-      effectImage.style.height = monsterIcon.offsetHeight + "px";
-      effectImage.style.top = monsterIcon.offsetTop + "px";
-      effectImage.style.left = monsterIcon.offsetLeft + "px";
-      effectImage.style.scale = "80%";
-
-      monsterIcon.parentElement.appendChild(effectImage);
-      monsterIcon.parentElement.appendChild(damageContainer);
-
-      const digitImage = document.createElement("img");
-      digitImage.src = isMPdamage ? "images/systems/MPRecoveryNumbers/0.png" : "images/systems/HPRecoveryNumbers/0.png"; // 数字0の画像
-      digitImage.style.maxWidth = "60%";
-      digitImage.style.height = "auto";
-      digitImage.style.marginLeft = "-1.5px";
-      digitImage.style.marginRight = "-1.5px";
-      damageContainer.appendChild(digitImage);
-
-      // 各数字のアニメーションを設定
+    // missImageのアニメーション
+    setTimeout(() => {
+      missImage.style.transition = "transform 0.04s ease-in-out";
+      const currentTransform = missImage.style.transform;
+      missImage.style.transform = `${currentTransform} translateY(-15%)`;
       setTimeout(() => {
-        digitImage.style.transition = "transform 0.03s ease-in-out";
-        digitImage.style.transform = "translateY(-15%)";
+        missImage.style.transform = currentTransform;
         setTimeout(() => {
-          digitImage.style.transform = "translateY(-50%)";
-          setTimeout(() => {
-            digitImage.style.transform = "translateY(-15%)";
-            setTimeout(() => {
-              digitImage.style.transform = "translateY(0)";
-            }, 30);
-          }, 30);
-        }, 30);
-      }, 0);
-
-      // 表示を消去
-      setTimeout(() => {
-        effectImage.remove();
-        damageContainer.remove();
-      }, 0 + 90 + 140);
-    } else {
-      // ダメージでダメージが0の場合はmissを表示
-      const missImage = document.createElement("img");
-      missImage.src = "images/systems/miss.png";
-      missImage.style.position = "absolute";
-      missImage.style.width = monsterIcon.offsetWidth + "px";
-      missImage.style.height = "auto";
-      missImage.style.top = "50%";
-      missImage.style.left = "50%";
-      missImage.style.transform = "translate(-50%, -50%)";
-      monsterIcon.parentElement.appendChild(missImage);
-
-      // missImageのアニメーション
-      setTimeout(() => {
-        missImage.style.transition = "transform 0.04s ease-in-out";
-        const currentTransform = missImage.style.transform;
-        missImage.style.transform = `${currentTransform} translateY(-15%)`;
-        setTimeout(() => {
-          missImage.style.transform = currentTransform;
-          setTimeout(() => {
-            missImage.remove();
-          }, 200);
-        }, 40);
-      }, 60);
-    }
+          missImage.remove();
+        }, 200);
+      }, 40);
+    }, 60);
   } else {
-    // ダメージが0以外の場合は、ダメージ画像と数値を表示
-    // ダメージ効果画像と数値画像をまとめるコンテナを作成
+    // ミス以外の場合、ダメージ/回復画像と数値を表示 回復0や障壁0を含む
+    // ダメージ効果画像と数値画像をまとめる全体コンテナを作成
     const damageEffectContainer = document.createElement("div");
     damageEffectContainer.style.position = "absolute";
     damageEffectContainer.style.top = "50%";
     damageEffectContainer.style.left = "50%";
     damageEffectContainer.style.transform = "translate(-50%, -50%)";
 
+    // ダメージ数値のコンテナ部分
     const damageContainer = document.createElement("div");
     damageContainer.style.position = "relative";
     damageContainer.style.display = "flex";
@@ -8522,7 +8469,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
         }
       }
     }
-
+    // 効果画像部分
     const effectImage = document.createElement("img");
     effectImage.src = effectImagePath;
     effectImage.style.position = "absolute";
@@ -8564,7 +8511,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
             ? `images/systems/MPRecoveryNumbers/${digits[i]}.png`
             : `images/systems/HPRecoveryNumbers/${digits[i]}.png`
           : isMPdamage
-          ? `images/systems/MPDamageNumbers/${digits[i]}.png`
+          ? `images/systems/MPRecoveryNumbers/${digits[i]}.png` // 本来MPDamageNumbers
           : `images/systems/HPDamageNumbers/${digits[i]}.png`;
       digitImage.style.maxWidth = "60%";
       if (resistance > 1.4) {
