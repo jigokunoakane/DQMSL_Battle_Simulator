@@ -5543,10 +5543,15 @@ function getMonsterAbilities(monsterId) {
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
-                        if (monster.race === "悪魔") {
-                          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
-                        } else {
-                          displayMiss(skillUser);
+                        if (!monster.flags.isDead && monster.race === "悪魔") {
+                          applyBuff(monster, { baiki: { strength: 1 } });
+                          await sleep(150);
+                          applyBuff(monster, { defUp: { strength: 1 } });
+                          await sleep(150);
+                          applyBuff(monster, { spdUp: { strength: 1 } });
+                          await sleep(150);
+                          applyBuff(monster, { intUp: { strength: 1 } });
+                          await sleep(150);
                         }
                       }
                     },
