@@ -2837,7 +2837,6 @@ async function processHitSequence(
       }
     }
   }
-  // ドレアム判定 skillUserがドレアムでかつexcludedTargetsに敵monsterが含まれている場合、nextTurnを付与
 
   // 死亡時発動能力の処理
   await processDeathAction(skillUser, excludedTargets);
@@ -2918,7 +2917,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
       handleDeath(zakiTarget);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
-      checkRecentlyKilledFlag(zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
+      checkRecentlyKilledFlag(skillUser, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
       return;
     }
   }
@@ -2949,12 +2948,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     await processAppliedEffectWave(skillTarget, executingSkill);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-    checkRecentlyKilledFlag(skillTarget, excludedTargets, killedByThisSkill, isReflection);
+    checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
     // todo: excludedTargetsを利用するわけではないので、供物内で直接入れれば良い？
     for (const party of parties) {
       for (const monster of party) {
-        checkRecentlyKilledFlag(monster, excludedTargets, killedByThisSkill, isReflection);
+        checkRecentlyKilledFlag(null, monster, excludedTargets, killedByThisSkill, isReflection);
       }
     }
     return;
@@ -3485,7 +3484,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-  checkRecentlyKilledFlag(skillTarget, excludedTargets, killedByThisSkill, isReflection);
+  checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
 }
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
@@ -3655,7 +3654,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 }
 
 // recentlyを持っているmonsterをkilledに追加して回収、ついでに反射死判定
-function checkRecentlyKilledFlag(skillTarget, excludedTargets, killedByThisSkill, isReflection) {
+function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection) {
   if (skillTarget.flags.recentlyKilled) {
     if (!excludedTargets.has(skillTarget)) {
       excludedTargets.add(skillTarget);
@@ -3664,6 +3663,13 @@ function checkRecentlyKilledFlag(skillTarget, excludedTargets, killedByThisSkill
       if (isReflection && skillTarget.flags.willZombify) {
         delete skillTarget.flags.willZombify;
         skillTarget.commandInput = "skipThisTurn";
+      }
+      // ドレアム判定 skillTargetが死亡してかつリザオではない場合、フラグを立てる(リザオ・変身等判定前に判別) 現状ざんよによる倒しは対象外
+      if (skillUser && skillUser.name === "魔神ダークドレアム") {
+        // reviveしないならば
+        if (!(skillTarget.buffs.revive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
+          skillUser.flags.thisTurn.applyDreamEvasion = true;
+        }
       }
     }
     delete skillTarget.flags.recentlyKilled;
@@ -5449,6 +5455,27 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+      afterActionAbilities: [
+        {
+          name: "魔神のいげん",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !skillUser.flags.thisTurn.applyDreamEvasion,
+          act: async function (skillUser, executingSkill) {
+            delete skillUser.flags.thisTurn.applyDreamEvasion;
+            applyBuff(skillUser, { spdUp: { strength: 1 } });
+            skillUser.abilities.supportAbilities.nextTurnAbilities.push({
+              name: "魔神のいげん",
+              act: async function (skillUser) {
+                applyBuff(skillUser, {
+                  powerCharge: { strength: 1.1 },
+                  slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+                  spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+                  breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+                });
+              },
+            });
+          },
+        },
+      ],
     },
     skull: {
       initialAttackAbilities: [
