@@ -552,6 +552,7 @@ select {
 }
 
 #selectSkillTargetAll,
+#commandPopupWindowAdjustAi,
 #askFinishCommand,
 #howToCommandEnemy {
   position: absolute;
@@ -564,6 +565,7 @@ select {
 }
 
 #selectSkillTargetAllText,
+#commandPopupWindowAdjustAiText,
 #askFinishCommandText,
 #howToCommandEnemyText {
   width: 100%;

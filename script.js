@@ -161,6 +161,7 @@ async function prepareBattle() {
       // 初期化
       monster.commandInput = "";
       monster.commandTargetInput = "";
+      monster.currentAiType = monster.defaultAiType || "いのちだいじに"; //本来ガンガン
       monster.buffs = {};
       monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
       monster.attribute.additionalPermanentBuffs = {};
@@ -662,12 +663,29 @@ document.getElementById("commandBackBtn").addEventListener("click", function () 
   }
 });
 
+// AI調整画面を開く
+document.getElementById("commandAdjustAIBtn").addEventListener("click", function () {
+  disableCommandBtn(true);
+  document.getElementById("commandPopupWindowAdjustAiText").textContent = `現在のAI: ${parties[currentTeamIndex][currentMonsterIndex].currentAiType}`;
+  document.getElementById("commandPopupWindowAdjustAi").style.visibility = "visible";
+  document.getElementById("commandPopupWindow").style.visibility = "visible";
+});
+document.getElementById("ajustAiNoSkillUse").addEventListener("click", function () {
+  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "とくぎつかうな";
+  closeSelectCommandPopupWindowContents();
+});
+document.getElementById("ajustAiFocusOnHealing").addEventListener("click", function () {
+  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "いのちだいじに";
+  closeSelectCommandPopupWindowContents();
+});
+
 function closeAllPopupContents() {
   document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
   document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
   document.getElementById("selectSkillBtnContainer").style.visibility = "hidden";
   document.getElementById("commandPopupWindow").style.visibility = "hidden";
   document.getElementById("commandPopupWindowText").style.visibility = "hidden";
+  document.getElementById("commandPopupWindowAdjustAi").style.visibility = "hidden";
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   document.getElementById("howToCommandEnemy").style.visibility = "hidden";
 }
@@ -1982,7 +2000,7 @@ async function processMonsterAction(skillUser) {
   // AIの場合変更されるのでここで定義
   let executingSkill = findSkillByName(skillUser.commandInput);
 
-  function decideNormalAICommand(skillUser) {
+  function decideAICommandShowNoMercy(skillUser) {
     const availableSkills = [];
     const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風"];
     for (const skillName of skillUser.skill) {
@@ -2018,7 +2036,7 @@ async function processMonsterAction(skillUser) {
     // 全部だめなら通常攻撃
   }
 
-  function decideReviveAICommand(skillUser) {
+  function decideAICommandFocusOnHeal(skillUser) {
     const availableReviveSkills = [];
     const availableAllHealSkills = [];
     const availableSingleHealSkills = [];
@@ -2096,16 +2114,15 @@ async function processMonsterAction(skillUser) {
     executingSkill = findSkillByName(getNormalAttackName(skillUser));
   }
 
-  // 状態異常判定をクリア後、AI行動特技設定
-  // 仮で通常攻撃に
+  // 状態異常判定をクリア後、normalAICommandの場合はAIタイプごとに応じて特技を設定
   if (skillUser.commandInput === "normalAICommand") {
-    executingSkill = findSkillByName(getNormalAttackName(skillUser));
-  }
-
-  if (skillUser.commandInput === "reviveAICommand") {
-    //decideReviveAICommand(skillUser);
-  } else if (skillUser.commandInput === "normalAICommand") {
-    //decideNormalAICommand(skillUser);
+    if (skillUser.currentAiType === "いのちだいじに") {
+      decideAICommandFocusOnHeal(skillUser);
+    } else if (skillUser.currentAiType === "ガンガンいこうぜ") {
+      decideAICommandShowNoMercy(skillUser);
+    } else if (skillUser.currentAiType === "とくぎつかうな") {
+      executingSkill = findSkillByName(getNormalAttackName(skillUser));
+    }
   }
 
   if (executingSkill.name === "ぼうぎょ") {
@@ -4647,6 +4664,7 @@ const monsters = [
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
     defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
     attribute: {},
     seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { spd: 1.08 },
