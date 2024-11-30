@@ -2001,7 +2001,9 @@ async function processMonsterAction(skillUser) {
   let executingSkill = findSkillByName(skillUser.commandInput);
 
   function decideAICommandShowNoMercy(skillUser) {
-    const availableSkills = [];
+    const availableRandomSkills = [];
+    const availableSingleSkills = [];
+    const availableAllSkills = [];
     const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風"];
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
@@ -2019,6 +2021,9 @@ async function processMonsterAction(skillUser) {
         skillInfo.howToCalculate === "none" ||
         //仮で敵対象skillのみ
         skillInfo.targetTeam !== "enemy" ||
+        //吸収が存在
+        ((skillInfo.targetType === "all" || skillInfo.targetType === "random") &&
+          parties[skillUser.enemyTeamID].some((target) => calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted) < 0)) ||
         //反射が存在
         (skillInfo.targetTeam === "enemy" &&
           (skillInfo.targetType === "all" || skillInfo.targetType === "random") &&
@@ -2030,10 +2035,35 @@ async function processMonsterAction(skillUser) {
         continue;
       }
       // 条件を満たさない場合は、availableSkillsに追加
-      availableSkills.push(skillInfo);
+      if (skillInfo.targetType === "random") {
+        availableRandomSkills.push(skillInfo);
+      } else if (skillInfo.targetType === "single") {
+        availableSingleSkills.push(skillInfo);
+      } else if (skillInfo.targetType === "all") {
+        availableAllSkills.push(skillInfo);
+      }
     }
     // availableSkillsの中から選ぶ
+    if (availableRandomSkills.length > 0) {
+      executingSkill = availableRandomSkills[0];
+      return;
+    }
+    if (availableSingleSkills.length > 0) {
+      executingSkill = availableSingleSkills[0];
+      return;
+    }
+    if (availableAllSkills.length > 0) {
+      executingSkill = availableAllSkills[0];
+      return;
+    }
     // 全部だめなら通常攻撃
+    executingSkill = findSkillByName(getNormalAttackName(skillUser));
+    const targetMonster = decideNormalAttackTarget(skillUser);
+    if (targetMonster !== null) {
+      skillUser.commandTargetInput = targetMonster.index;
+    } else {
+      skillUser.commandTargetInput = "";
+    }
   }
 
   function decideAICommandFocusOnHeal(skillUser) {
@@ -2110,8 +2140,13 @@ async function processMonsterAction(skillUser) {
       }
     }
     // 全部だめなら通常攻撃
-    // todo: 通常攻撃のtargetがランダムなので反射にうってしまう可能性を排除する
     executingSkill = findSkillByName(getNormalAttackName(skillUser));
+    const targetMonster = decideNormalAttackTarget(skillUser);
+    if (targetMonster !== null) {
+      skillUser.commandTargetInput = targetMonster.index;
+    } else {
+      skillUser.commandTargetInput = "";
+    }
   }
 
   // 状態異常判定をクリア後、normalAICommandの場合はAIタイプごとに応じて特技を設定
@@ -2121,7 +2156,14 @@ async function processMonsterAction(skillUser) {
     } else if (skillUser.currentAiType === "ガンガンいこうぜ") {
       decideAICommandShowNoMercy(skillUser);
     } else if (skillUser.currentAiType === "とくぎつかうな") {
+      // 通常攻撃
       executingSkill = findSkillByName(getNormalAttackName(skillUser));
+      const targetMonster = decideNormalAttackTarget(skillUser);
+      if (targetMonster !== null) {
+        skillUser.commandTargetInput = targetMonster.index;
+      } else {
+        skillUser.commandTargetInput = "";
+      }
     }
   }
 
