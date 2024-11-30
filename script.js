@@ -987,7 +987,7 @@ async function startTurn() {
 
   // 1モンスターのabilityを連続的に実行する関数
   async function executeAbility(monster, isSupportOrAttack) {
-    //他attackAbilitiesで死亡した場合もreturnしない
+    //他attackAbilitiesで死亡して復活した場合もreturnせず実行
     if (monster.flags.isDead || monster.flags.isZombie || !monster.abilities || !monster.abilities[isSupportOrAttack]) {
       return;
     }
@@ -1039,12 +1039,33 @@ async function startTurn() {
     await sleep(150);
   }
 
+  // カウントダウン処理
+  async function executeCountDown(monster) {
+    if (monster.buffs.countDown && !monster.flags.isDead && !monster.flags.isZombie) {
+      await sleep(200);
+      if (monster.buffs.countDown.count === 1) {
+        displayMessage("死のカウントダウンの", "効果が 発動！");
+        await sleep(100);
+        delete monster.buffs.countDown;
+        handleDeath(monster, true);
+        displayMessage(`${monster.name}は ちからつきた！`);
+        await checkRecentlyKilledFlagForPoison(monster);
+      } else {
+        displayMessage("死のカウントダウンが すすんだ！");
+        monster.buffs.countDown.count--;
+        updateMonsterBuffsDisplay(monster);
+      }
+      await sleep(150);
+    }
+  }
+
   // partiesに順番にバフ適用・supportAbilities発動
   await sleep(700);
   for (const party of parties) {
     for (const monster of party) {
       await applyBuffsForMonster(monster);
       await executeAbility(monster, "supportAbilities");
+      await executeCountDown(monster);
       await executeContinuousHealing(monster);
     }
   }
@@ -1192,6 +1213,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "murakumo",
     "zombifyBlock",
     "crimsonMist",
+    "countDown",
   ];
   const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
 
@@ -1258,7 +1280,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
     }
     // 1-7. その他個別の付与不可能条件
-    //力ため魔力覚醒所持時に侵食は付与しない
+    // 力ため魔力覚醒所持時に侵食は付与しない
     if ((buffName === "powerWeaken" && buffTarget.buffs.powerCharge) || (buffName === "manaReduction" && buffTarget.buffs.manaBoost)) {
       continue;
     }
@@ -1279,6 +1301,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         // 強いprotを付与時、クリミスを上書き削除(簡略化のため確率処理前に)
         delete buffTarget.buffs.crimsonMist;
       }
+    }
+    // countDownは上書きしない
+    if (buffName === "countDown" && buffTarget.buffs.countDown) {
+      continue;
     }
 
     // buffData 内に probability が存在するかチェックして用意
@@ -5427,7 +5453,7 @@ function getMonsterAbilities(monsterId) {
         },
       ],
       supportAbilities: {
-        evenTurnAbilities: [
+        permanentAbilities: [
           {
             name: "死の化身",
             disableMessage: true,
@@ -9057,6 +9083,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     } else if (buffKey === "isUnbreakable" && monster.buffs.isUnbreakable.isBroken) {
       // くじけぬ砕き処理
       iconSrc = "images/buffIcons/brokenHeart.png";
+    } else if (buffKey === "countDown") {
+      // カウントダウン処理
+      const ifUnDispellableByRadiantWave = monster.buffs.countDown.unDispellableByRadiantWave ? "unDispellableByRadiantWave" : "";
+      iconSrc = `images/buffIcons/countDown${monster.buffs.countDown.count}${ifUnDispellableByRadiantWave}.png`;
     } else {
       // 指定以外の場合、keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認
       const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
