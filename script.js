@@ -4322,6 +4322,10 @@ document.getElementById("yuzupa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "nerugeru", "erugi", "ifshiba", "skull"]);
 });
 
+document.getElementById("siragapa").addEventListener("click", function () {
+  selectAllPartyMembers(["world", "erugi", "sosiden", "dream", "skull"]);
+});
+
 document.getElementById("omudopa").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
 });
@@ -4533,6 +4537,7 @@ const monsters = [
     weight: "40",
     status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
     initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
+    defaultGear: "lightCharm",
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
