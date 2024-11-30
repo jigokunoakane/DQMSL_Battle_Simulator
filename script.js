@@ -6586,17 +6586,10 @@ const skill = [
     hitNum: 4,
     MPcost: 54,
     appliedEffect: "divineWave",
-    followingSkill: "暴獣の右ウデ後半",
-  },
-  {
-    name: "暴獣の右ウデ後半",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "self",
-    targetTeam: "ally",
-    MPcost: 0,
-    appliedEffect: { martialEvasion: { duration: 2 } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { martialEvasion: { duration: 2 } });
+    },
   },
   {
     name: "供物をささげる",
