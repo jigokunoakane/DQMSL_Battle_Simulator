@@ -1984,7 +1984,7 @@ async function processMonsterAction(skillUser) {
 
   function decideNormalAICommand(skillUser) {
     const availableSkills = [];
-    const unavailableSkillsOnAI = ["黄泉の封印", "超魔滅光", "神獣の封印", "エンドブレス", "涼風一陣", "昇天斬り", "誇りのつるぎ", "狂気のいあつ", "メゾラゴン", "メラゾロス"];
+    const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風"];
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
@@ -2013,8 +2013,9 @@ async function processMonsterAction(skillUser) {
       }
       // 条件を満たさない場合は、availableSkillsに追加
       availableSkills.push(skillInfo);
-      //全部だめなら通常攻撃;
     }
+    // availableSkillsの中から選ぶ
+    // 全部だめなら通常攻撃
   }
 
   function decideReviveAICommand(skillUser) {
@@ -2048,6 +2049,7 @@ async function processMonsterAction(skillUser) {
     if (availableReviveSkills.length > 0) {
       const validTargets = parties[skillUser.teamID].filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
       let fastestTarget = null;
+      // validTargetsが存在するとき、targetを決定してそこに蘇生技を打ってreturn
       if (validTargets.length > 0) {
         fastestTarget = validTargets[0];
         for (let i = 1; i < validTargets.length; i++) {
@@ -2058,15 +2060,14 @@ async function processMonsterAction(skillUser) {
             fastestTarget = validTargets[i];
           }
         }
-      }
-      // target存在時 そのtargetに蘇生技を撃つ commandInputはそのまま
-      if (fastestTarget) {
+        // 決定したtargetに蘇生技を撃つ commandInputはそのまま
         executingSkill = availableReviveSkills[0];
         skillUser.commandTargetInput = fastestTarget.index;
         return;
       }
     }
-    // 全体回復技所持時
+    // 蘇生技未所持 または 有効なtargetがいなかった場合
+    // 全体回復技所持時はそれを選んでreturn
     if (availableAllHealSkills.length > 0) {
       executingSkill = availableAllHealSkills[0];
       return;
@@ -2084,16 +2085,14 @@ async function processMonsterAction(skillUser) {
             lowestTarget = currentTarget;
           }
         }
-      }
-      // target存在時 そのtargetに回復技を撃つ commandInputはそのまま
-      if (lowestTarget) {
+        // 決定したtargetに回復技を撃つ commandInputはそのまま
         executingSkill = availableSingleHealSkills[0];
         skillUser.commandTargetInput = lowestTarget.index;
         return;
       }
     }
     // 全部だめなら通常攻撃
-    // todo: targetがランダム 反射にうつ可能性を排除する
+    // todo: 通常攻撃のtargetがランダムなので反射にうってしまう可能性を排除する
     executingSkill = findSkillByName(getNormalAttackName(skillUser));
   }
 
