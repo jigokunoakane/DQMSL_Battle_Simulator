@@ -2383,9 +2383,9 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 async function checkRecentlyKilledFlagForPoison(monster) {
   if (monster.flags.recentlyKilled) {
     delete monster.flags.recentlyKilled;
-    const killedThisSkill = new Set();
-    killedThisSkill.add(monster);
-    await processDeathAction(monster, killedThisSkill);
+    const excludedTargets = new Set();
+    excludedTargets.add(monster);
+    await processDeathAction(monster, excludedTargets);
   }
 }
 
@@ -2650,12 +2650,12 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     executedSkills.push(currentSkill);
 
     // スキル実行中に死亡したモンスターを追跡
-    const killedThisSkill = new Set();
+    const excludedTargets = new Set();
     // スキル開始時に死亡しているモンスターを記録
     for (const party of parties) {
       for (const monster of party) {
         if (monster.flags.isDead) {
-          killedThisSkill.add(monster);
+          excludedTargets.add(monster);
         }
       }
     }
@@ -2668,7 +2668,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    await processHitSequence(skillUser, currentSkill, skillTarget, killedThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
+    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
 
     //currentSkill実行後、生存にかかわらず実行するact
     if (currentSkill.afterActionAct) {
@@ -2714,7 +2714,7 @@ async function processHitSequence(
   skillUser,
   executingSkill,
   assignedTarget,
-  killedThisSkill,
+  excludedTargets,
   currentHit,
   singleSkillTarget = null,
   executedSingleSkillTarget = null,
@@ -2741,9 +2741,9 @@ async function processHitSequence(
   switch (executingSkill.targetType) {
     case "all":
       // 全体攻撃
-      // 生きているモンスターかつkilledThisSkill対象外をtargetとする
+      // 生きているモンスターかつexcludedTargets対象外をtargetとする
       const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter(
-        (monster) => !monster.flags.isDead && !killedThisSkill.has(monster)
+        (monster) => !monster.flags.isDead && !excludedTargets.has(monster)
       );
       if (aliveMonsters.length === 0) {
         return;
@@ -2754,14 +2754,14 @@ async function processHitSequence(
         if (eachTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
           eachTarget = parties.flat().find((monster) => monster.monsterId === eachTarget.flags.hasSubstitute.targetMonsterId);
         }
-        await processHit(skillUser, executingSkill, eachTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+        await processHit(skillUser, executingSkill, eachTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       }
       break;
     case "single":
       // 単体攻撃
       if (currentHit === 0) {
         // 最初のヒット時のみターゲットを決定
-        skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, killedThisSkill);
+        skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, excludedTargets);
         // ターゲットが存在しない場合は処理を中断
         if (!skillTarget) {
           return;
@@ -2776,15 +2776,15 @@ async function processHitSequence(
         // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
         skillTarget = singleSkillTarget;
         // ターゲットが死亡しているかリザオ等した場合に処理を中断
-        if (skillTarget.flags.isDead || killedThisSkill.has(skillTarget)) {
+        if (skillTarget.flags.isDead || excludedTargets.has(skillTarget)) {
           return;
         }
       }
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     case "random":
       // ランダム攻撃
-      skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, killedThisSkill, currentHit);
+      skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, excludedTargets, currentHit);
       // ターゲットが存在しない場合は処理を中断
       if (!skillTarget) {
         return;
@@ -2793,22 +2793,22 @@ async function processHitSequence(
       if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
         skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
       }
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     case "self":
       // 自分自身をターゲット
       skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     case "field":
       // meと同様
       skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     case "dead":
       // 蘇生特技
       skillTarget = assignedTarget;
-      await processHit(skillUser, executingSkill, skillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack);
       break;
     default:
       console.error("無効なターゲットタイプ:", executingSkill.targetType);
@@ -2835,30 +2835,31 @@ async function processHitSequence(
       }
     }
   }
+  // ドレアム判定 skillUserがドレアムでかつexcludedTargetsに敵monsterが含まれている場合、nextTurnを付与
 
   // 死亡時発動能力の処理
-  await processDeathAction(skillUser, killedThisSkill);
+  await processDeathAction(skillUser, excludedTargets);
 
-  // もしkilledThisSkillにskillUserが含まれていたら、反射死と判定して次のヒットを実行せず終了
+  // もしexcludedTargetsにskillUserが含まれていたら、反射死と判定して次のヒットを実行せず終了
   // skillTargetの死亡等は逐次判定してDeathActionも行わずにreturn
-  if (killedThisSkill.has(skillUser)) {
+  if (excludedTargets.has(skillUser)) {
     return;
   } else {
     // 次のヒット処理
     currentHit++;
     await sleep(70);
-    await processHitSequence(skillUser, executingSkill, assignedTarget, killedThisSkill, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack);
+    await processHitSequence(skillUser, executingSkill, assignedTarget, excludedTargets, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack);
   }
 }
 
 // 単体攻撃のターゲットを決定する関数
-function determineSingleTarget(target, skillUser, executingSkill, killedThisSkill) {
+function determineSingleTarget(target, skillUser, executingSkill, excludedTargets) {
   const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
-  if (target && !killedThisSkill.has(target) && aliveMonsters.includes(target)) {
-    // 指定されたターゲットが生きていて、killedThisSkillに含まれていない場合は、そのターゲットを返す
+  if (target && !excludedTargets.has(target) && aliveMonsters.includes(target)) {
+    // 指定されたターゲットが生きていて、excludedTargetsに含まれていない場合は、そのターゲットを返す
     return target;
   } else {
-    const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
+    const validTargets = aliveMonsters.filter((monster) => !excludedTargets.has(monster));
     // validTargets が空の場合の処理を追加
     if (validTargets.length > 0) {
       return validTargets[Math.floor(Math.random() * validTargets.length)];
@@ -2868,12 +2869,12 @@ function determineSingleTarget(target, skillUser, executingSkill, killedThisSkil
   }
 }
 
-function determineRandomTarget(target, skillUser, executingSkill, killedThisSkill, currentHit) {
+function determineRandomTarget(target, skillUser, executingSkill, excludedTargets, currentHit) {
   if (currentHit === 0) {
-    return determineSingleTarget(target, skillUser, executingSkill, killedThisSkill);
+    return determineSingleTarget(target, skillUser, executingSkill, excludedTargets);
   } else {
     const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
-    const validTargets = aliveMonsters.filter((monster) => !killedThisSkill.has(monster));
+    const validTargets = aliveMonsters.filter((monster) => !excludedTargets.has(monster));
     if (validTargets.length > 0) {
       return validTargets[Math.floor(Math.random() * validTargets.length)];
     } else {
@@ -2883,7 +2884,7 @@ function determineRandomTarget(target, skillUser, executingSkill, killedThisSkil
 }
 
 // ヒット処理を実行する関数
-async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, killedThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack) {
+async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, excludedTargets, isProcessMonsterAction, damagedMonsters, isAIattack) {
   let skillTarget = assignedSkillTarget;
   let skillUser = assignedSkillUser;
   let isReflection = false;
@@ -2915,7 +2916,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
       handleDeath(zakiTarget);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
-      checkRecentlyKilledFlag(zakiTarget, killedThisSkill, isZakiReflection);
+      checkRecentlyKilledFlag(zakiTarget, excludedTargets, isZakiReflection);
       return;
     }
   }
@@ -2945,13 +2946,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // isDamageExistingはfalseで送る
     await processAppliedEffectWave(skillTarget, executingSkill);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加して回収
-    checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection);
+    // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
+    checkRecentlyKilledFlag(skillTarget, excludedTargets, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
-    // todo: killedThisSkillを利用するわけではないので、供物内で直接入れれば良い？
+    // todo: excludedTargetsを利用するわけではないので、供物内で直接入れれば良い？
     for (const party of parties) {
       for (const monster of party) {
-        checkRecentlyKilledFlag(monster, killedThisSkill, isReflection);
+        checkRecentlyKilledFlag(monster, excludedTargets, isReflection);
       }
     }
     return;
@@ -3481,8 +3482,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたkilledThisSkillに追加して回収
-  checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection);
+  // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
+  checkRecentlyKilledFlag(skillTarget, excludedTargets, isReflection);
 }
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
@@ -3652,10 +3653,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 }
 
 // recentlyを持っているmonsterをkilledに追加して回収、ついでに反射死判定
-function checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection) {
+function checkRecentlyKilledFlag(skillTarget, excludedTargets, isReflection) {
   if (skillTarget.flags.recentlyKilled) {
-    if (!killedThisSkill.has(skillTarget)) {
-      killedThisSkill.add(skillTarget);
+    if (!excludedTargets.has(skillTarget)) {
+      excludedTargets.add(skillTarget);
       // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
       if (isReflection && skillTarget.flags.willZombify) {
         delete skillTarget.flags.willZombify;
@@ -3668,7 +3669,7 @@ function checkRecentlyKilledFlag(skillTarget, killedThisSkill, isReflection) {
 
 // deathActionQueue および processDeathActionの実行中かどうかを示すフラグ: isProcessingDeathActionを使用
 // 死亡時発動能力の処理
-async function processDeathAction(skillUser, killedThisSkill) {
+async function processDeathAction(skillUser, excludedTargets) {
   // キューに死亡時発動能力を持つモンスターを追加する関数
   function enqueueDeathAction(monster) {
     if (monster.flags.beforeDeathActionCheck && !deathActionQueue.includes(monster)) {
@@ -3677,13 +3678,13 @@ async function processDeathAction(skillUser, killedThisSkill) {
   }
   // 敵逆順処理
   for (const monster of [...parties[skillUser.enemyTeamID]].reverse()) {
-    if (killedThisSkill.has(monster)) {
+    if (excludedTargets.has(monster)) {
       enqueueDeathAction(monster);
     }
   }
   // 味方逆順処理
   for (const monster of [...parties[skillUser.teamID]].reverse()) {
-    if (killedThisSkill.has(monster)) {
+    if (excludedTargets.has(monster)) {
       enqueueDeathAction(monster);
     }
   }
