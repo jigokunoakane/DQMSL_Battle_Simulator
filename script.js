@@ -3607,12 +3607,12 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
         return "miss";
       }
     }
-    // 素早さによる回避
+    // 素早さによる回避 通常時はtargetが早いほど回避する
     else {
-      const speedRatio = skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
+      const speedRatio = fieldState.isReverse ? skillUser.currentStatus.spd / skillTarget.currentStatus.spd : skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
       let evasionRate = 0;
       if (speedRatio >= 1 && speedRatio < 1.5) {
-        evasionRate = 0.01; //下方修正
+        evasionRate = 0.008; //下方修正
       } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
         evasionRate = 0.15;
       } else if (speedRatio >= 1.75 && speedRatio < 2) {
