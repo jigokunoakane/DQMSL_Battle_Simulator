@@ -2350,7 +2350,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
 
-  // 7-4. 行動後発動特性の処理
+  // 7-4. 行動後発動特性の処理 //executingSkillがnullの場合に要注意
   async function executeAfterActionAbilities(monster) {
     const abilitiesToExecute = [];
     // 各ability配列の中身を展開して追加
@@ -5733,7 +5733,8 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性`, "領界召喚 が発動！");
           },
-          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹",
+          unavailableIf: (skillUser, executingSkill, executedSkills) =>
+            !executingSkill || (executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹"),
           act: async function (skillUser, executingSkill) {
             await sleep(200);
             const targetDomain = {
