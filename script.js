@@ -841,15 +841,6 @@ async function startTurn() {
       monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
-      // ラザマ等
-      if (monster.flags.isDead && monster.flags.reviveNextTurn) {
-        await sleep(300);
-        delete monster.flags.reviveNextTurn;
-        await reviveMonster(monster, 1, true);
-        if (monster.flags.reviveNextTurnActName && monster.abilities.reviveNextTurnAct) {
-          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurnActName);
-        }
-      }
     }
   }
   // ぼうぎょタグを削除
@@ -900,6 +891,20 @@ async function startTurn() {
   }
   displayMessage(`ラウンド${turnNum}`, null, true);
   document.getElementById("turnNumDisplay").textContent = `残りラウンド ${11 - turnNum}`;
+
+  // ラザマ等
+  for (const party of parties) {
+    for (const monster of party) {
+      if (monster.flags.isDead && monster.flags.reviveNextTurn) {
+        await sleep(300);
+        delete monster.flags.reviveNextTurn;
+        await reviveMonster(monster, 1, true);
+        if (monster.flags.reviveNextTurnActName && monster.abilities.reviveNextTurnAct) {
+          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurnActName);
+        }
+      }
+    }
+  }
 
   // 非同期処理でバフを適用
   async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
@@ -1045,6 +1050,11 @@ async function startTurn() {
   // カウントダウン処理
   async function executeCountDown(monster) {
     if (monster.buffs.countDown && !monster.flags.isDead && !monster.flags.isZombie) {
+      // 即死防止 1ターン待ったフラグを付与して終了 次ターンにはフラグがあるので通常通り死亡
+      if (monster.name === "万物の王オルゴ・デミーラ" && !monster.flags.zombieProbability && !monster.buffs.countDown.hasWaited1Turn) {
+        monster.buffs.countDown.hasWaited1Turn = true;
+        return;
+      }
       await sleep(200);
       if (monster.buffs.countDown.count === 1) {
         displayMessage("死のカウントダウンの", "効果が 発動！");
