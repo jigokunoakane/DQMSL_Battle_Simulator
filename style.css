@@ -1,7 +1,7 @@
 html {
   -ms-touch-action: manipulation;
   touch-action: manipulation; /*効いてない*/
-  overflow: hidden; /*スクロール禁止*/
+  /*overflow: hidden; スクロール禁止*/
 }
 
 body {
@@ -17,7 +17,7 @@ body {
   font-weight: 400;
   font-size: 100%;
   max-width: 414px;
-  overflow: hidden; /*スクロール禁止*/
+  /*overflow: hidden; スクロール禁止*/
 }
 
 /* 全体の余白とパディングをリセット */
@@ -432,7 +432,7 @@ select {
 }
 
 #enemyBars {
-  padding-bottom: 6rem;
+  padding-bottom: 5rem;
 }
 
 .barContainer {
@@ -475,7 +475,7 @@ select {
   align-items: center; /* 交差軸方向に中央寄せ */
   flex-wrap: wrap;
   position: relative; /*popupの起点化*/
-  /*padding-bottom: 2rem;*/
+  /*padding-bottom: 5rem;*/
 }
 
 .commandBtn {
@@ -499,6 +499,7 @@ select {
   visibility: hidden;
   width: 96%;
   height: 94%;
+  max-height: 7.2rem;
   position: absolute; /*親要素にrelativeでそこ起点*/
   transform: translate(0%, -2%);
   background: black;
@@ -604,6 +605,12 @@ select {
   background-color: red;
 }
 
+#ajustAiNoSkillUse,
+#ajustAiFocusOnHealing {
+  width: auto;
+  padding: 0.1rem 0.5rem;
+}
+
 #selectSkillTargetContainer {
   position: absolute;
   display: flex;
@@ -679,6 +686,7 @@ select {
 
 #upperContainer {
   display: flex;
+  /*padding-top: 6rem;*/
 }
 
 #fieldStateContainer {
