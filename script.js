@@ -799,7 +799,7 @@ async function startTurn() {
     for (const monster of party) {
       // 亡者解除
       if (monster.flags.isZombie) {
-        ascension(monster);
+        ascension(monster, true);
       }
     }
   }
@@ -846,6 +846,9 @@ async function startTurn() {
         await sleep(300);
         delete monster.flags.reviveNextTurn;
         await reviveMonster(monster, 1, true);
+        if (monster.flags.reviveNextTurnActName && monster.abilities.reviveNextTurnAct) {
+          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurnActName);
+        }
       }
     }
   }
@@ -3749,8 +3752,8 @@ function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killed
     if (!excludedTargets.has(skillTarget)) {
       excludedTargets.add(skillTarget);
       killedByThisSkill.add(skillTarget);
-      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する
-      if (isReflection && skillTarget.flags.willZombify) {
+      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する ただし超魔ゾンビやオルゴは反射死でも亡者化
+      if (isReflection && skillTarget.flags.willZombify && !skillTarget.name === "非道兵器超魔ゾンビ" && !skillTarget.buffs.isUnAscensionable) {
         delete skillTarget.flags.willZombify;
         skillTarget.commandInput = "skipThisTurn";
       }
@@ -3906,7 +3909,11 @@ async function zombifyMonster(monster) {
   delete monster.flags.isDead;
   delete monster.flags.willZombify;
   monster.flags.isZombie = true;
+  if (monster.flags.zombifyActName && monster.abilities.zombifyAct) {
+    await monster.abilities.zombifyAct(monster, monster.flags.zombifyActName);
+  }
   updateBattleIcons(monster);
+  updateMonsterBuffsDisplay(monster);
   await sleep(300);
 }
 
@@ -4419,6 +4426,10 @@ document.getElementById("siragapa").addEventListener("click", function () {
 
 document.getElementById("omudopa").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
+});
+
+document.getElementById("omuoru").addEventListener("click", function () {
+  selectAllPartyMembers(["omudo", "orugo", "nadoraga", "dogu", "dorunisu"]);
 });
 
 document.getElementById("akumapa").addEventListener("click", function () {
@@ -5711,6 +5722,56 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+    },
+    orugo: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "偽りの化身",
+            disableMessage: true,
+            act: function (skillUser) {
+              executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        abilitiesFromTurn2: [
+          {
+            name: "オルゴ変身第2形態",
+            disableMessage: true,
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => skillUser.buffs.stoned || skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              await transformTyoma(skillUser);
+            },
+          },
+        ],
+      },
+      zombifyAct: async function (monster, zombifyActName) {
+        if (zombifyActName === "不滅の美") {
+          monster.iconSrc = "images/icons/orugoZombified.jpeg";
+          displayMessage("＊「ぐははははっ！", "  おうじょうぎわの悪い やつらめ！");
+          monster.flags.orugoDispelleUnbreakableAttack = true;
+          await sleep(150);
+          applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
+        }
+      },
+      reviveNextTurnAct: async function (monster, reviveNextTurnActName) {
+        if (reviveNextTurnActName === "怨嗟のうめき") {
+          monster.skill[0] = "溶熱の儀式";
+          delete monster.flags.zombieProbability;
+          delete monster.flags.isUnAscensionable;
+          delete monster.flags.zombifyActName;
+          monster.iconSrc = "images/icons/orugoRevived.jpeg";
+          updateBattleIcons(monster);
+          displayMessage("＊「グゲゴゴゴゴゴ……。", "  許さぬ… 許さぬぞ……。");
+          applyBuff(monster, { reviveBlock: { unDispellableByRadiantWave: true } });
+          await sleep(150);
+          applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
+          applyBuff(monster, { countDown: { count: 1, unDispellableByRadiantWave: true } });
+        }
       },
     },
     esta: {
@@ -9628,6 +9689,15 @@ async function transformTyoma(monster) {
     monster.skill[0] = "真・神々の怒り";
     monster.skill[1] = "爆炎の儀式";
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
+  } else if (monster.name === "万物の王オルゴ・デミーラ") {
+    monster.skill[0] = "リーサルエッジ";
+    monster.skill[1] = "火艶乱拳";
+    monster.flags.zombieProbability = 1;
+    monster.flags.isUnAscensionable = true;
+    monster.flags.zombifyActName = "不滅の美";
+    monster.flags.reviveNextTurn = true;
+    monster.flags.reviveNextTurnActName = "怨嗟のうめき";
+    displayMessage("＊「オホホホ。", "  おバカさんにも ほどがあるわね。");
   }
   await sleep(400);
 
@@ -9729,6 +9799,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
     NormalAttackName = "魔獣の追撃";
+  } else if (skillUser.flags.orugoDispelleUnbreakableAttack) {
+    NormalAttackName = "通常攻撃時くじけぬ心を解除";
   }
   return NormalAttackName;
 }
@@ -9892,8 +9964,8 @@ function adjustFieldStateDisplay() {
   }
 }
 // 昇天
-function ascension(monster) {
-  if (monster.flags.isUnAscensionable || !monster.flags.isZombie) {
+function ascension(monster, ignoreUnAscensionable = false) {
+  if (!monster.flags.isZombie || (!ignoreUnAscensionable && monster.flags.isUnAscensionable)) {
     return;
   }
   delete monster.flags.isZombie;
