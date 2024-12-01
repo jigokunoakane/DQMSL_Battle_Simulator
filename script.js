@@ -3423,6 +3423,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   ) {
     damage *= 3;
   }
+  if (
+    executingSkill.name === "破鏡の円舞" &&
+    (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection)
+  ) {
+    damage *= 3;
+  }
 
   //以下加算処理
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
@@ -4795,6 +4801,34 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
+    name: "万物の王オルゴ・デミーラ",
+    id: "orugo",
+    rank: 10,
+    race: "超魔王",
+    weight: "40",
+    status: { HP: 1040, MP: 424, atk: 660, def: 507, spd: 497, int: 354 },
+    initialSkill: ["もえさかるほむら", "無比なる覇気", "破鏡の円舞", "魔空の一撃"],
+    defaultGear: "kanazuchi",
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { keepOnDeath: true },
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 95, def: 25, spd: 0, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "エスターク",
@@ -6223,6 +6257,19 @@ const skill = [
     MPcost: 0,
   },
   {
+    name: "通常攻撃時くじけぬ心を解除",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
     name: "ぼうぎょ",
     type: "notskill",
     howToCalculate: "none",
@@ -7317,6 +7364,93 @@ const skill = [
     },
   },
   {
+    name: "もえさかるほむら",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 465,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 85,
+    ignoreSubstitute: true,
+    appliedEffect: { healBlock: {} },
+  },
+  {
+    name: "無比なる覇気",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    order: "preemptive",
+    preemptiveGroup: 7,
+    MPcost: 56,
+    appliedEffect: "disruptiveWave",
+    selfAppliedEffect: async function (skillUser) {
+      applyBuff(skillUser, { damageLimit: { strength: 300, keepOnDeath: true } }, null, false, true);
+    },
+  },
+  {
+    name: "破鏡の円舞",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 270,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 51,
+  },
+  {
+    name: "魔空の一撃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4.6,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreEvasion: true,
+    ignoreProtection: true,
+  },
+  {
+    name: "リーサルエッジ",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.8,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    order: "anchor",
+    MPcost: 79,
+    ignoreBaiki: true,
+    criticalHitProbability: 1,
+  },
+  {
+    name: "火艶乱拳",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 65,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.4 } },
+  },
+  {
+    name: "溶熱の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 465,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "必殺の双撃",
     type: "slash",
     howToCalculate: "atk",
@@ -7511,7 +7645,6 @@ const skill = [
     skipAbnormalityCheck: true,
     damage: 100,
     trigger: "death",
-    ignoreBaiki: true,
     ignorePowerCharge: true,
     MPcost: 0,
   },
