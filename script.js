@@ -10053,7 +10053,7 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
 
 // 終了時trueを返す
 function isBattleOver() {
-  if (parties.some((party) => party.every((monster) => monster.flags.isDead))) {
+  if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn))) {
     fieldState.isBattleOver = true;
   }
   return fieldState.isBattleOver;
