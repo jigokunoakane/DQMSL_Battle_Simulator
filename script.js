@@ -1841,6 +1841,10 @@ function updateCurrentStatus(monster) {
   if (monster.buffs.goragoAtk) {
     atkMultiplier += monster.buffs.goragoAtk.strength;
   }
+  // シャムダ
+  if (monster.buffs.shamuAtk) {
+    atkMultiplier += monster.buffs.shamuAtk.strength;
+  }
   monster.currentStatus.atk *= atkMultiplier;
 
   // 防御
@@ -1851,6 +1855,10 @@ function updateCurrentStatus(monster) {
   // アズ
   if (monster.buffs.heavenly) {
     defMultiplier -= 0.2;
+  }
+  // シャムダ
+  if (monster.buffs.shamuDef) {
+    defMultiplier += monster.buffs.shamuDef.strength;
   }
   monster.currentStatus.def *= defMultiplier;
 
@@ -1865,6 +1873,10 @@ function updateCurrentStatus(monster) {
   // ゴラゴ
   if (monster.buffs.goragoSpd) {
     spdMultiplier += monster.buffs.goragoSpd.strength;
+  }
+  // シャムダ
+  if (monster.buffs.shamuSpd) {
+    spdMultiplier += monster.buffs.shamuSpd.strength;
   }
   monster.currentStatus.spd *= spdMultiplier;
 
@@ -3503,6 +3515,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damageModifier += 0.15;
   }
 
+  // 魔壊
+  if (skillUser.buffs.makaiBoost && executingSkill.element === "dark") {
+    damageModifier += skillUser.buffs.makaiBoost.strength;
+  }
+  // シャムダLS
+  if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
+    damageModifier += 0.25;
+  }
+
   //skillTarget対象バフ
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
@@ -4758,6 +4779,33 @@ const monsters = [
     lsTarget: "???",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "闇竜シャムダ",
+    id: "shamu",
+    rank: 10,
+    race: "???",
+    weight: "32",
+    status: { HP: 831, MP: 329, atk: 622, def: 653, spd: 505, int: 203 },
+    initialSkill: ["魔壊裂き", "闇竜の構え", "崩壊裂き", "闇の天地"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        spellReflection: { strength: 1, keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+        darkBreak: { keepOnDeath: true, strength: 2 },
+      },
+      1: {
+        shamuAtk: { strength: 0.2, divineDispellable: true, duration: 3 },
+        shamuDef: { strength: 0.2, divineDispellable: true, duration: 3 },
+        shamuSpd: { strength: 0.5, divineDispellable: true, duration: 3 },
+      },
+    },
+    seed: { atk: 75, def: 0, spd: 45, int: 0 },
+    ls: { HP: 1.25 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルナイト",
@@ -7287,6 +7335,75 @@ const skill = [
       spellEvasion: { duration: 3, unDispellable: true },
       breathEvasion: { duration: 3, unDispellable: true },
     },
+  },
+  {
+    name: "魔壊裂き",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 65,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
+    criticalHitProbability: 0,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.teamID]) {
+        applyBuff(monster, { makaiBoost: { strength: 0.2, duration: 3 } });
+      }
+    },
+  },
+  {
+    name: "崩壊裂き",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 60,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
+    criticalHitProbability: 0,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    },
+  },
+  {
+    name: "闇竜の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 32,
+    appliedEffect: {
+      slashReflection: { strength: 2.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
+      martialReflection: { strength: 2.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
+      protection: { strength: 0.5, duration: 1, removeAtTurnStart: true },
+    },
+  },
+  {
+    name: "闇の天地",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 247,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 82,
+    ignoreProtection: true,
+    damageByLevel: true,
+    appliedEffect: { fear: { probability: 0.37 }, martialSeal: { probability: 0.38 } },
   },
   {
     name: "ルカナン",
