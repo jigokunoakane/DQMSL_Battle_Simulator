@@ -586,6 +586,9 @@ function startSelectingCommandForFirstMonster(teamNum) {
     currentMonsterIndex++;
   }
 
+  // 前の戦闘で全員選択不能で非表示になっていた場合に備え、最初に解除
+  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
+
   // 敵が全員行動不能な場合 (一瞬5になった場合も終了判定をして最後に戻す 戻してはいない)
   if (currentMonsterIndex === parties[teamNum].length) {
     if (teamNum === 1) {
