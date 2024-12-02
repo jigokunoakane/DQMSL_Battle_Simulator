@@ -10098,6 +10098,7 @@ function ascension(monster, ignoreUnAscensionable = false) {
   delete monster.flags.isZombie;
   delete monster.buffs.sealed;
   monster.flags.isDead = true;
+  monster.commandInput = "skipThisTurn";
   updateMonsterBar(monster); //isDead付与後にupdateでbar非表示化
   updateBattleIcons(monster);
   /*
