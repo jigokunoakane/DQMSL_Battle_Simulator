@@ -4988,7 +4988,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33 },
-        healBlock: { keepOnDeath: true, iconSrc: "none" },
+        healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true, iconSrc: "none" },
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { duration: 3 },
       },
