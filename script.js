@@ -2401,7 +2401,12 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
   // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行するcheckRecentlyKilledFlag
   // 7-5. 属性断罪の刻印処理
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none" && skill.element !== "notskill")) {
+  if (
+    skillUser.commandInput !== "skipThisTurn" &&
+    skillUser.buffs.elementalRetributionMark &&
+    executedSkills &&
+    executedSkills.some((skill) => skill && skill.element !== "none" && skill.element !== "notskill")
+  ) {
     await sleep(400);
     const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
     console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
