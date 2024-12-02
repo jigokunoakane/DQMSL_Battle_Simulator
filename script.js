@@ -721,6 +721,7 @@ function askFinishCommand() {
   document.getElementById("askFinishCommand").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
   displayMessage("モンスターたちはやる気だ！");
+  disableCommandBtn(true);
 }
 
 //コマンド選択終了画面でno選択時、yes,no選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
@@ -7052,6 +7053,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities.push({
         name: "冥王の構え反撃状態",
+        message: function (skillUser) {
+          displayMessage(`${skillUser.name}の 反撃！`);
+        },
         unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
         act: async function (skillUser, counterTarget) {
           await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
