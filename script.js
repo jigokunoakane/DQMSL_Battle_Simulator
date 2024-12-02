@@ -1227,6 +1227,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "zombifyBlock",
     "crimsonMist",
     "countDown",
+    "elementalRetributionMark",
   ];
   const mindAndSealBarrierTargets = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"];
 
@@ -2400,7 +2401,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
   // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行するcheckRecentlyKilledFlag
   // 7-5. 属性断罪の刻印処理
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none")) {
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.elementalRetributionMark && executedSkills.some((skill) => skill && skill.element !== "none" && skill.element !== "notskill")) {
     await sleep(400);
     const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
     console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
@@ -4900,6 +4901,31 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
   },
   {
+    name: "ダグジャガルマ",
+    id: "daguja",
+    rank: 10,
+    race: "???",
+    weight: "32",
+    status: { HP: 874, MP: 388, atk: 384, def: 644, spd: 298, int: 522 },
+    initialSkill: ["クラックストーム", "属性断罪の刻印", "光のはどう", "ザオリク"],
+    attribute: {
+      initialBuffs: {
+        defUp: { strength: 1 },
+        slashBarrier: { strength: 1 },
+        mindBarrier: { keepOnDeath: true },
+        confusedBreak: { keepOnDeath: true, strength: 2 },
+      },
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        slashBarrier: { strength: 1 },
+      },
+    },
+    seed: { atk: 10, def: 55, spd: 50, int: 5 },
+    ls: { HP: 1.15, def: 1.15 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 0 },
+  },
+  {
     name: "ミステリドール",
     id: "dogu",
     rank: 9,
@@ -5826,6 +5852,16 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
+    daguja: {
+      initialAttackAbilities: [
+        {
+          name: "亡者の怨嗟",
+          act: function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+          },
+        },
+      ],
+    },
     dhuran: {
       supportAbilities: {
         1: [
@@ -6474,7 +6510,7 @@ const skill = [
     criticalHitProbability: 0,
     ignoreDazzle: true,
     ignoreBaiki: true,
-    appliedEffect: { fear: { probability: 0.57 }, confused: { probability: 0.57 } },
+    appliedEffect: { fear: { probability: 0.2792 }, confused: { probability: 0.2329 } },
   },
   {
     name: "スパークふんしゃ",
@@ -7636,6 +7672,37 @@ const skill = [
     preemptiveGroup: 7,
     damageByLevel: true,
     appliedEffect: { fear: { probability: 0.3133 }, spdUp: { strength: -1, probability: 0.7822 } },
+  },
+  {
+    name: "クラックストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 220,
+    skillPlus: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 85,
+    appliedEffect: { confused: { probability: 0.55 }, countDown: { count: 2, probability: 0.48 } },
+  },
+  {
+    name: "属性断罪の刻印",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 64,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { elementalRetributionMark: {} },
   },
   {
     name: "アストロンゼロ",
