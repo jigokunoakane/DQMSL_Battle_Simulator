@@ -1238,7 +1238,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenly"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenly", "shamuAtk", "shamuDef", "shamuSpd"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
