@@ -2880,18 +2880,27 @@ async function processHitSequence(
     case "single":
       // 単体攻撃
       if (currentHit === 0) {
-        // 最初のヒット時のみターゲットを決定
-        skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, excludedTargets);
-        // ターゲットが存在しない場合は処理を中断
-        if (!skillTarget) {
-          return;
+        // 双撃などのfollowingの場合
+        if (executedSingleSkillTarget.length > 0) {
+          skillTarget = executedSingleSkillTarget[0];
+          // ターゲットが存在しない場合は処理を中断
+          if (!skillTarget) {
+            return;
+          }
+        } else {
+          // 最初のヒット時のみターゲットを決定
+          skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, excludedTargets);
+          // ターゲットが存在しない場合は処理を中断
+          if (!skillTarget) {
+            return;
+          }
+          // みがわり処理 味方補助でないかつみがわり無視でないときに変更
+          if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
+            skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+          }
+          // 初回hitのみ実行 singleのみ、最終的なみがわり処理後のskillTargetをexecutedSingleSkillTargetに格納
+          executedSingleSkillTarget.push(skillTarget);
         }
-        // みがわり処理 味方補助でないかつみがわり無視でないときに変更
-        if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
-          skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
-        }
-        // 初回hitのみ実行 singleのみ、最終的なみがわり処理後のskillTargetをexecutedSingleSkillTargetに格納
-        executedSingleSkillTarget.push(skillTarget);
       } else {
         // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
         skillTarget = singleSkillTarget;
