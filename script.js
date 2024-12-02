@@ -3280,12 +3280,22 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       "滅びの呪文",
       "サイコストーム",
       "メラゾストーム",
-      "陰惨な暗闇",
       "メラゾスペル",
       "メテオ",
       "マヒャドストーム",
       "メドローア",
       "ハザードウェポン",
+      "リーサルウェポン",
+      "破壊の魔砲",
+      "魔弾の流星",
+      "催眠の邪弾",
+      "奇襲の邪弾",
+      "闇討ちの魔弾",
+      "海冥の浸食",
+      "アルマゲスト",
+      "報復の大嵐",
+      "クラウンスパーク",
+      "インパクトキャノン",
     ];
     if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name)) {
       isCriticalHit = Math.random() < 0.009;
