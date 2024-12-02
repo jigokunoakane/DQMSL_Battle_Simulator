@@ -4974,6 +4974,27 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "氷魔フィルグレア",
+    id: "hyadonisu",
+    rank: 9,
+    race: "???",
+    weight: "14",
+    status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
+    initialSkill: ["おおいかくす", "氷の紋章", "防刃の守り", "ザオリク"],
+    defaultGear: "lightCharm",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        elementalShield: { targetElement: "ice", remain: 250, unDispellable: true, targetType: "ally" },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "タイタニス",
     id: "tanisu",
     rank: 10,
@@ -5858,6 +5879,17 @@ function getMonsterAbilities(monsterId) {
           name: "亡者の怨嗟",
           act: function (skillUser) {
             skillUser.flags.zombieProbability = 1;
+          },
+        },
+      ],
+    },
+    hyadonisu: {
+      counterAbilities: [
+        {
+          name: "氷晶の加護",
+          act: async function (skillUser, counterTarget) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
+            executeRadiantWave(skillUser);
           },
         },
       ],
@@ -7769,6 +7801,24 @@ const skill = [
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.enemyTeamID]) {
         applyBuff(monster, { darkResistance: { strength: 2 } });
+      }
+    },
+    isOneTimeUse: true,
+  },
+  {
+    name: "氷の紋章",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 53,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { iceResistance: { strength: 2 } },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.enemyTeamID]) {
+        applyBuff(monster, { iceResistance: { strength: 2 } });
       }
     },
     isOneTimeUse: true,
