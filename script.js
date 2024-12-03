@@ -7977,7 +7977,7 @@ const skill = [
     name: "衝撃波",
     type: "martial",
     howToCalculate: "atk",
-    ratio: 1.24,
+    ratio: 0.41,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
