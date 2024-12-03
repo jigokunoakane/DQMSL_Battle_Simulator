@@ -4542,7 +4542,7 @@ const monsters = [
       2: { breathCharge: { strength: 1.5 } },
       3: { breathCharge: { strength: 2 } },
     },
-    seed: { atk: 15, def: 35, spd: 70, int: 0 },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1.15, spd: 1.3 },
     lsTarget: "ドラゴン",
     AINormalAttack: [2, 3],
