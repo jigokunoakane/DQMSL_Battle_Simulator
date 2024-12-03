@@ -8460,7 +8460,7 @@ const skill = [
       if (skillTarget.race === "悪魔") {
         applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
       } else {
-        displayMiss(target);
+        displayMiss(skillTarget);
       }
       applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
     },
