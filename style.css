@@ -340,6 +340,18 @@ select {
   flex-flow: column;
 }
 
+#tips {
+  font-size: 0.8rem;
+  margin-top: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.detailhighlight {
+  background-color: #e5f1ff;
+  border-bottom: 2px solid #b3c8e0;
+  margin-bottom: 0.5rem;
+}
+
 /*戦闘画面 icon以外*/
 #battlePage {
   width: 100%;
