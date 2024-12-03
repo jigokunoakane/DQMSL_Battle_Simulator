@@ -4553,7 +4553,7 @@ const monsters = [
     id: "sinri",
     rank: 10,
     race: "ドラゴン",
-    status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 581, int: 483 },
+    status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 525, int: 483 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     defaultGear: "metalNail",
     attribute: {
