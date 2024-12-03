@@ -3543,6 +3543,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
     damageModifier += 0.25;
   }
+  // オルゴLS
+  if (parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" && executingSkill.type === "martial") {
+    damageModifier += 0.2;
+  }
 
   //skillTarget対象バフ
   //全ダメージ軽減
@@ -4737,7 +4741,7 @@ const monsters = [
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
-    ls: { HP: 1, MP: 1 },
+    ls: { HP: 1 },
     lsTarget: "all",
     resistance: { fire: -1, ice: -1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
