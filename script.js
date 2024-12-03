@@ -4522,11 +4522,11 @@ async function selectAllPartyMembers(monsters) {
 
 const monsters = [
   {
-    name: "マスタードラゴン",
+    name: "マスタードラゴン", //44
     id: "masudora",
     rank: 10,
     race: "ドラゴン",
-    status: { HP: 886, MP: 398, atk: 474, def: 536, spd: 500, int: 259 },
+    status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     defaultGear: "familyNail",
     attribute: {
@@ -4549,11 +4549,11 @@ const monsters = [
     resistance: { fire: 0, ice: 1, thunder: -1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "宵の華シンリ",
+    name: "宵の華シンリ", //44
     id: "sinri",
     rank: 10,
     race: "ドラゴン",
-    status: { HP: 772, MP: 365, atk: 293, def: 341, spd: 525, int: 483 },
+    status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     defaultGear: "metalNail",
     attribute: {
@@ -4567,11 +4567,11 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0.5 },
   },
   {
-    name: "魔夏姫アンルシア",
+    name: "魔夏姫アンルシア", //44
     id: "rusia",
     rank: 10,
     race: "ドラゴン",
-    status: { HP: 785, MP: 318, atk: 635, def: 447, spd: 545, int: 294 },
+    status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     defaultGear: "killerEarrings",
     attribute: {
@@ -4594,7 +4594,7 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "怪竜やまたのおろち",
+    name: "怪竜やまたのおろち", //4
     id: "orochi",
     rank: 10,
     race: "ドラゴン",
@@ -4619,7 +4619,7 @@ const monsters = [
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 0.5 },
   },
   {
-    name: "ヴォルカドラゴン",
+    name: "ヴォルカドラゴン", //44
     id: "voruka",
     rank: 10,
     race: "ドラゴン",
@@ -4642,7 +4642,7 @@ const monsters = [
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "神獣王WORLD",
+    name: "神獣王WORLD", //最速
     id: "world",
     rank: 10,
     race: "???",
@@ -4668,12 +4668,12 @@ const monsters = [
     resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
-    name: "死を統べる者ネルゲル",
+    name: "死を統べる者ネルゲル", //44
     id: "nerugeru",
     rank: 10,
     race: "超魔王",
     weight: "40",
-    status: { HP: 907, MP: 373, atk: 657, def: 564, spd: 577, int: 366 },
+    status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
     defaultGear: "hunkiNail",
     attribute: {
@@ -4696,12 +4696,12 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 0, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "憎悪のエルギオス",
+    name: "憎悪のエルギオス", //44
     id: "erugi",
     rank: 10,
     race: "超魔王",
     weight: "40",
-    status: { HP: 870, MP: 411, atk: 603, def: 601, spd: 549, int: 355 },
+    status: { HP: 897, MP: 425, atk: 620, def: 619, spd: 564, int: 366 },
     initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
     defaultGear: "lightCharm",
     attribute: {
@@ -4724,12 +4724,12 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "氷炎の化身",
+    name: "氷炎の化身", //44
     id: "ifshiba",
     rank: 10,
     race: "???",
     weight: "25",
-    status: { HP: 750, MP: 299, atk: 540, def: 385, spd: 461, int: 415 },
+    status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
     defaultGear: "genjiNail",
     attribute: {
@@ -4832,7 +4832,7 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "真夏のクシャラミ",
+    name: "真夏のクシャラミ", //44
     id: "natsukusha",
     rank: 10,
     race: "???",
@@ -4871,12 +4871,12 @@ const monsters = [
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "魔扉の災禍オムド・レクス",
+    name: "魔扉の災禍オムド・レクス", //44
     id: "omudo",
     rank: 10,
     race: "超魔王",
     weight: "40",
-    status: { HP: 937, MP: 460, atk: 528, def: 663, spd: 263, int: 538 },
+    status: { HP: 965, MP: 475, atk: 544, def: 684, spd: 272, int: 554 },
     initialSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
     defaultGear: "dragonCane",
     attribute: {
@@ -4897,12 +4897,12 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 0, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
-    name: "新たなる神ラプソーン",
+    name: "新たなる神ラプソーン", //44
     id: "rapu",
     rank: 10,
     race: "超魔王",
     weight: "40",
-    status: { HP: 1075, MP: 457, atk: 380, def: 513, spd: 405, int: 559 },
+    status: { HP: 1108, MP: 470, atk: 392, def: 529, spd: 418, int: 576 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
     defaultGear: "hunkiNail",
     attribute: {
@@ -4956,7 +4956,7 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "エスターク",
+    name: "エスターク", //最速?
     id: "esta",
     rank: 10,
     race: "???",
@@ -8458,11 +8458,11 @@ const skill = [
     preemptiveGroup: 5,
     act: function (skillUser, skillTarget) {
       if (skillTarget.race === "悪魔") {
-        applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+        applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
       } else {
         displayMiss(skillTarget);
       }
-      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true } });
+      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
     },
   },
   {
