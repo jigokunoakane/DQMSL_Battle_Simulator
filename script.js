@@ -3364,7 +3364,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       if (skillUser.buffs.manaBoost) {
         damage *= skillUser.buffs.manaBoost.strength;
       } else if (skillUser.buffs.manaReduction) {
-        damage *= skillUser.buffs.manaBoost.strength;
+        damage *= skillUser.buffs.manaReduction.strength;
       }
     }
     //力ため 斬撃体技踊りまたはatk依存(通常攻撃)
