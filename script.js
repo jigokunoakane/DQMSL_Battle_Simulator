@@ -4943,13 +4943,14 @@ const monsters = [
     weight: 25,
     status: { HP: 753, MP: 411, atk: 396, def: 391, spd: 501, int: 395 },
     initialSkill: ["真夏の誘惑", "まどいの風", "マホターン", "ぎゃくふう"],
+    defaultGear: "swimSuit",
     attribute: {
       permanentBuffs: {
-        dodgeBuff: { strength: 0.5, duration: 4 },
-        martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
         mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
       },
       1: {
+        dodgeBuff: { strength: 0.5, duration: 4 },
+        martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
         preemptiveAction: {},
       },
     },
