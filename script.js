@@ -9193,6 +9193,13 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
   },
   {
+    name: "狭間の闇のはごろも",
+    id: "hazamaClothes",
+    weight: 10,
+    status: { HP: 0, MP: 0, atk: 0, def: 95, spd: 0, int: 0 },
+    initialBuffs: { allElementalBreak: { strength: 1, keepOnDeath: true, iconSrc: "none" } },
+  },
+  {
     name: "炎よけのおまもり",
     id: "fireCharm",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
