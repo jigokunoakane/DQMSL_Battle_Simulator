@@ -2,7 +2,7 @@
 let isDeveloperMode = false;
 const allParties = Array(10)
   .fill(null)
-  .map(() => Array(5).fill([]));
+  .map(() => Array(5).fill({}));
 const parties = [];
 
 let selectingPartyNum = 0;
@@ -52,8 +52,8 @@ function switchParty() {
 // selectingPartyのうちn番目のpartyIconを更新する関数
 function updatePartyIcon(number) {
   const monster = selectingParty[number];
-  const iconSrc = monster.length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
-  const gearSrc = monster.length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/unGeared.jpeg";
+  const iconSrc = Object.keys(monster).length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
+  const gearSrc = Object.keys(monster).length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/unGeared.jpeg";
   document.getElementById(`partyIcon${number}`).src = iconSrc;
   document.getElementById(`partyGear${number}`).src = gearSrc;
 }
@@ -71,7 +71,7 @@ function decideParty() {
     }
     switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
     //現在の仮partyを対戦用partiesにcopy 空monsterは削除
-    parties[0] = structuredClone(selectingParty).filter((element) => element.length !== 0);
+    parties[0] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 5;
     switchParty();
@@ -85,7 +85,7 @@ function decideParty() {
     }
     switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
     // 対戦用partiesにcopy 空monsterは削除
-    parties[1] = structuredClone(selectingParty).filter((element) => element.length !== 0);
+    parties[1] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
     // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 0;
     switchParty();
@@ -4514,7 +4514,7 @@ function addTabClass(targetTabNum) {
 function switchTab(tabNumber) {
   // tab button押した時または新規モンスター選択時に起動、currentTab更新、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
   // tabの中身が存在するとき
-  if (selectingParty[tabNumber].length !== 0) {
+  if (Object.keys(selectingParty[tabNumber]).length !== 0) {
     currentTab = tabNumber;
     adjustStatusAndSkillDisplay();
     // タブ自体の詳細/表示中を切り替え
@@ -4552,8 +4552,8 @@ function switchTab(tabNumber) {
     document.getElementById("statusInfoDisplayStatusint").textContent = "0";
     // 素早さ予測値reset
     document.getElementById("predictedSpeed").textContent = "";
-    // ウェイトreset
-    document.getElementById("weightSum").textContent = "w0";
+    // ウェイトresetは関数 空ではないpartyでswitchtab(0)した場合に0表示にならないよう
+    calculateWeight();
     // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
     displayGearIncrement();
     //種選択無効化
@@ -10794,7 +10794,7 @@ function isBattleOver() {
 // 体重計
 function calculateWeight() {
   let weightSum = 0;
-  for (const monster of selectingParty.filter((element) => element.length !== 0)) {
+  for (const monster of selectingParty.filter((element) => Object.keys(element).length !== 0)) {
     weightSum += monster.weight;
     if (monster.gear && !monster.gear.noWeightMonsters?.includes(monster.name)) {
       weightSum += monster.gear.weight;
