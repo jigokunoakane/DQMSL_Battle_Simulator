@@ -872,7 +872,7 @@ async function startTurn() {
         await applyBuffsAsync(monster, initialBuffs, true, true);
 
         // 戦闘開始時装備特性
-        if (monster.gear?.initialAbilities) {
+        if (monster.gear && gearAbilities[monster.gear.id]) {
           await gearAbilities[monster.gear.id].initialAbilities(monster);
         }
         // 戦闘開始時発動特性
@@ -4586,7 +4586,7 @@ const monsters = [
     race: "ドラゴン",
     status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
-    defaultGear: "familyNail",
+    defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
@@ -9115,6 +9115,12 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
+    name: "系統爪光の洗礼",
+    id: "familyNailRadiantWave",
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
+  },
+  {
     name: "系統爪超魔王錬金",
     id: "familyNailTyoma",
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
@@ -9155,7 +9161,6 @@ const gear = [
     name: "はどうのツメ",
     id: "waveNail",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
-    initialAbilities: true,
     alchemy: true,
   },
   {
@@ -9271,6 +9276,21 @@ const gearAbilities = {
   waveNail: {
     initialAbilities: function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
+    },
+  },
+  familyNailRadiantWave: {
+    // 直接挿入で良いのか 存在しない場合生成
+    initialAbilities: function (skillUser) {
+      if (!skillUser.abilities.supportAbilities.evenTurnAbilities) {
+        skillUser.abilities.supportAbilities.evenTurnAbilities = [];
+      }
+      skillUser.abilities.supportAbilities.evenTurnAbilities.push({
+        name: "光の洗礼",
+        disableMessage: true,
+        act: function (skillUser) {
+          executeRadiantWave(skillUser);
+        },
+      });
     },
   },
 };
