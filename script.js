@@ -8160,13 +8160,15 @@ const skill = [
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
       if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
-        skillUser.abilities.attackAbilities.nextTurnAbilities.push({
-          act: function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
-              applyBuff(monster, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
-            }
-          },
-        });
+        for (const monster of parties[skillUser.teamID]) {
+          if (monster.race === "悪魔") {
+            monster.abilities.supportAbilities.nextTurnAbilities.push({
+              act: function (skillUser) {
+                applyBuff(skillUser, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
+              },
+            });
+          }
+        }
       }
     },
   },
