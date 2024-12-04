@@ -6863,6 +6863,12 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, true);
     },
+    selfAppliedEffect: async function (skillUser) {
+      if (skillUser.gear?.name === "天空の衣") {
+        await sleep(100);
+        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+      }
+    },
   },
   {
     name: "大樹の守り",
@@ -6890,6 +6896,12 @@ const skill = [
     preemptiveGroup: 4,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      if (skillUser.gear?.name === "天空の衣") {
+        await sleep(100);
+        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+      }
     },
   },
   {
