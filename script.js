@@ -3495,6 +3495,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (skillUser.gear.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
       damageModifier += 0.1;
     }
+    // 装備本体 - 強戦士ハート・闇
+    if (skillUser.gear.name === "強戦士ハート・闇" && skillUser.race === "悪魔" && executingSkill.type === "spell") {
+      damageModifier += 0.15;
+    }
     // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
     if (skillUser.gear.name === "心砕き" || skillUser.gear.name === "昇天") {
       if (skillUser.race === "ドラゴン") {
@@ -5230,6 +5234,7 @@ const monsters = [
     weight: "25",
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
     initialSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
+    defaultGear: "swimSuit",
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 1 },
@@ -9183,6 +9188,11 @@ const gear = [
     turn1buffs: { danceEvasion: { unDispellable: true, duration: 1, removeAtTurnStart: true } },
   },
   {
+    name: "あぶない水着",
+    id: "swimSuit",
+    status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
+  },
+  {
     name: "炎よけのおまもり",
     id: "fireCharm",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
@@ -9223,6 +9233,11 @@ const gear = [
     id: "darkCharm",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     darkGearResistance: 2,
+  },
+  {
+    name: "強戦士ハート・闇",
+    id: "devilSpellHeart",
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
   },
 ];
 
