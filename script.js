@@ -4960,6 +4960,26 @@ const monsters = [
     resistance: { fire: 0, ice: 0.5, thunder: 0, wind: 1, io: 0, light: 0.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
+    name: "虚空の神ナドラガ", //4
+    id: "snadoraga",
+    rank: 9,
+    race: "???",
+    weight: 23,
+    status: { HP: 827, MP: 274, atk: 463, def: 574, spd: 416, int: 328 },
+    initialSkill: ["虚空神の福音", "ザオリク", "スパークふんしゃ", "体技よそく"],
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.33 },
+        healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true, iconSrc: "none" },
+      },
+    },
+    seed: { atk: 40, def: 5, spd: 75, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
+  },
+  {
     name: "スカルナイト",
     id: "skull",
     rank: 8,
