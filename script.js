@@ -5121,6 +5121,7 @@ const monsters = [
     weight: "14",
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
+    defaultGear: "dragonScale",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -9223,6 +9224,11 @@ const gear = [
     initialBuffs: { allElementalBreak: { strength: 1, keepOnDeath: true, iconSrc: "none" } },
   },
   {
+    name: "ピエロの帽子",
+    id: "clownHat",
+    status: { HP: 20, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+  },
+  {
     name: "炎よけのおまもり",
     id: "fireCharm",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
@@ -9269,6 +9275,12 @@ const gear = [
     id: "devilSpellHeart",
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
   },
+  {
+    name: "竜のうろこ",
+    id: "dragonScale",
+    status: { HP: 8, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+    fireGearResistance: 1,
+  },
 ];
 
 // 必要ならばasyncにするのに注意
@@ -9276,6 +9288,21 @@ const gearAbilities = {
   waveNail: {
     initialAbilities: function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
+    },
+  },
+  clownHat: {
+    initialAbilities: function (skillUser) {
+      skillUser.abilities.additionalCounterAbilities.push({
+        name: "帽子反撃",
+        message: function (skillUser) {
+          displayMessage("そうびの特性が 発動！");
+        },
+        unavailableIf: (skillUser) => skillUser.flags.isZombie,
+        act: async function (skillUser, counterTarget) {
+          executeWave(skillUser);
+          executeWave(counterTarget);
+        },
+      });
     },
   },
   familyNailRadiantWave: {
