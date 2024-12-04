@@ -4440,6 +4440,9 @@ function calcAndAdjustDisplayStatus() {
   document.getElementById("statusInfoDisplayStatusspd").textContent = target.displayStatus.spd;
   document.getElementById("statusInfoDisplayStatusint").textContent = target.displayStatus.int;
 
+  // ウェイト更新
+  calculateWeight();
+
   // 素早さ予測値の更新
   let firstMonster = null;
   for (const obj of selectingParty) {
@@ -4642,7 +4645,7 @@ const monsters = [
     id: "sinri",
     rank: 10,
     race: "ドラゴン",
-    weight: 28,
+    weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
     anotherSkills: ["テンペストブレス", "神速メラガイアー"],
@@ -4931,7 +4934,7 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "真夏のクシャラミ", //44
+    name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
     race: "???",
@@ -5056,7 +5059,7 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "エスターク", //最速?
+    name: "地獄の帝王エスターク", //最速?
     id: "esta",
     rank: 10,
     race: "???",
@@ -9282,11 +9285,13 @@ const gear = [
   {
     name: "hoge",
     id: "hoge",
+    weight: 5,
+    noWeightMonsters: ["地獄の帝王エスターク"],
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
     statusMultiplier: { atk: 0.08, spd: -0.1 }, // lsと加算
-    initialBuffs: { isUnbreakable: { keepOnDeath: true } }, // 戦闘開始時
+    initialBuffs: { isUnbreakable: { keepOnDeath: true } }, // 戦闘開始時 演出なし
     turn1buffs: { dodgeBuff: { strength: 1 } }, // 演出あり
-    alchemy: true, // 特定系統の場合5%増加
+    alchemy: true, // 特定4系統の場合5%増加
     healBoost: 1.2, // 回復錬金
     skillAlchemy: "必殺の双撃", // 双撃は追撃の後半部分にも無理やり反映
     skillAlchemyStrength: 0.3, // 加算
@@ -9296,6 +9301,7 @@ const gear = [
     name: "かがやく魔神剣",
     id: "dreamSword",
     weight: 5,
+    noWeightMonsters: ["魔神ダークドレアム"],
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
     //斬撃5 ?への斬撃10 絶技8
   },
@@ -9303,6 +9309,7 @@ const gear = [
     name: "帝王のつるぎ",
     id: "estaSword",
     weight: 5,
+    noWeightMonsters: ["地獄の帝王エスターク"],
     status: { HP: 0, MP: 0, atk: 65, def: 0, spd: 0, int: 0 },
     statusMultiplier: { atk: 0.08, spd: -0.1 },
     skillAlchemy: "必殺の双撃",
@@ -9362,6 +9369,7 @@ const gear = [
     name: "源氏の小手",
     id: "genjiNail",
     weight: 5,
+    noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
   },
   {
@@ -9417,6 +9425,7 @@ const gear = [
     name: "りゅうおうの杖",
     id: "dragonCane",
     weight: 5,
+    noWeightMonsters: ["りゅうおう"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
@@ -9445,6 +9454,7 @@ const gear = [
     name: "あぶない水着",
     id: "swimSuit",
     weight: 5,
+    noWeightMonsters: ["真夏の女神クシャラミ", "常夏少女ジェマ", "魔夏姫アンルシア", "涼風の魔女グレイツェル"],
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
   },
   {
@@ -9463,53 +9473,62 @@ const gear = [
   {
     name: "炎よけのおまもり",
     id: "fireCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     fireGearResistance: 2,
   },
   {
     name: "氷よけのおまもり",
     id: "iceCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     iceGearResistance: 2,
   },
   {
     name: "雷よけのおまもり",
     id: "thunderCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     thunderGearResistance: 2,
   },
   {
     name: "風よけのおまもり",
     id: "windCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     windGearResistance: 2,
   },
   {
     name: "爆発よけのおまもり",
     id: "ioCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     ioGearResistance: 2,
   },
   {
     name: "光よけのおまもり",
     id: "lightCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     lightGearResistance: 2,
   },
   {
     name: "闇よけのおまもり",
     id: "darkCharm",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
     darkGearResistance: 2,
   },
   {
     name: "強戦士ハート・闇",
     id: "devilSpellHeart",
+    weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
   },
   {
     name: "竜のうろこ",
     id: "dragonScale",
+    weight: 0,
     status: { HP: 8, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
     fireGearResistance: 1,
   },
@@ -10768,4 +10787,16 @@ function isBattleOver() {
     fieldState.isBattleOver = true;
   }
   return fieldState.isBattleOver;
+}
+
+// 体重計
+function calculateWeight() {
+  let weightSum = 0;
+  for (const monster of selectingParty) {
+    weightSum += monster.weight;
+    if (monster.gear && !monster.gear.noWeightMonsters?.includes(monster.name)) {
+      weightSum += monster.gear.weight;
+    }
+  }
+  document.getElementById("weightSum").textContent = `w${weightSum}`;
 }
