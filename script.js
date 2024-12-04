@@ -4552,6 +4552,8 @@ function switchTab(tabNumber) {
     document.getElementById("statusInfoDisplayStatusint").textContent = "0";
     // 素早さ予測値reset
     document.getElementById("predictedSpeed").textContent = "";
+    // ウェイトreset
+    document.getElementById("weightSum").textContent = "w0";
     // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
     displayGearIncrement();
     //種選択無効化
@@ -10792,7 +10794,7 @@ function isBattleOver() {
 // 体重計
 function calculateWeight() {
   let weightSum = 0;
-  for (const monster of selectingParty) {
+  for (const monster of selectingParty.filter((element) => element.length !== 0)) {
     weightSum += monster.weight;
     if (monster.gear && !monster.gear.noWeightMonsters?.includes(monster.name)) {
       weightSum += monster.gear.weight;
