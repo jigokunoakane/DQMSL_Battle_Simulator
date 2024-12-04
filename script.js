@@ -9103,6 +9103,12 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
+    name: "系統爪超魔王錬金",
+    id: "familyNailTyoma",
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
+  },
+  {
     name: "メタルキングの爪",
     id: "metalNail",
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
