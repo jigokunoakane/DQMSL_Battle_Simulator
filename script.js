@@ -144,7 +144,7 @@ async function prepareBattle() {
           lsMultiplier = leaderSkill[key];
         }
         if (key === "spd" && monster.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(monster.race)) {
-          lsMultiplier += 0.05;
+          lsMultiplier += 0.05; // 魔獣ドラゴンゾンビ物質
         }
         // 装備のstatusMultiplierを適用
         if (monster.gear?.statusMultiplier && monster.gear.statusMultiplier[key]) {
@@ -3484,15 +3484,68 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damage *= 3;
   }
 
-  //以下加算処理
+  // 以下加算処理
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
 
-  //skillUser対象バフ
-  // 装備
-  if (skillUser.gear?.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
-    damageModifier += 0.1;
+  // skillUser対象バフ
+  // 装備 錬金が一意に定まるように注意
+  if (skillUser.gear) {
+    // 装備本体 - 竜神爪
+    if (skillUser.gear.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
+      damageModifier += 0.1;
+    }
+    // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
+    if (skillUser.gear.name === "心砕き" || skillUser.gear.name === "昇天") {
+      if (skillUser.race === "ドラゴン") {
+        if (executingSkill.type === "breath") {
+          damageModifier += 0.1;
+        }
+      } else if (skillUser.race === "スライム") {
+        if (executingSkill.type === "breath" && executingSkill.element === "thunder") {
+          damageModifier += 0.1;
+        }
+      } else if (executingSkill.type === "martial") {
+        damageModifier += 0.05;
+      }
+    }
+    // 装備錬金 - 竜神爪の斬撃5%錬金(S5%錬金対象の系統を除く)
+    if (skillUser.gear.name === "竜神爪" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].includes(skillUser.race) && executingSkill.type === "slash") {
+      damageModifier += 0.05;
+    }
+    // 装備錬金 - 源氏小手の体技5%斬撃3%錬金
+    if (skillUser.gear.name === "源氏の小手") {
+      if (executingSkill.type === "martial") {
+        damageModifier += 0.05;
+      } else if (executingSkill.type === "slash") {
+        damageModifier += 0.03;
+      }
+    }
+    // 装備錬金 - 水着の真夏の誘惑とバギ呪文10
+    if (skillUser.gear.name === "あぶない水着") {
+      if (executingSkill.name === "真夏の誘惑") {
+        damageModifier += 0.25;
+      } else if (skillUser.name === "涼風の魔女グレイツェル" && executingSkill.type === "spell" && executingSkill.element === "wind") {
+        damageModifier += 0.1;
+      }
+    }
+    // 装備錬金 - 金槌踊り3%
+    if (skillUser.gear.name === "魔神のかなづち" && executingSkill.type === "dance") {
+      damageModifier += 0.03;
+    }
+    // 装備錬金 - 系統爪超魔王錬金
+    if (skillUser.gear.name === "系統爪超魔王錬金" && skillTarget.race === "超魔王") {
+      damageModifier += 0.3;
+    }
+
+    // 特技錬金の反映(双撃は個別に後半も対象に含める)
+    if (skillUser.gear.skillAlchemy) {
+      if (skillUser.gear.skillAlchemy === executingSkill.name || (skillUser.gear.skillAlchemy === "必殺の双撃" && executingSkill.name === "必殺の双撃後半")) {
+        damageModifier += skillUser.gear.skillAlchemyStrength;
+      }
+    }
   }
+
   // 全属性バフ
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
@@ -3502,13 +3555,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillUser.buffs[targetDomain]) {
     damageModifier += 0.3;
   }
-  //特技錬金
-  if (skillUser.gear?.skillAlchemy) {
-    if (skillUser.gear?.skillAlchemy === executingSkill.name || (skillUser.gear?.skillAlchemy === "必殺の双撃" && executingSkill.name === "必殺の双撃後半")) {
-      damageModifier += skillUser.gear.skillAlchemyStrength;
-    }
-  }
-  //種別錬金
 
   // デュラン
   if (skillUser.id === "dhuran" && (skillTarget.race === "超魔王" || skillTarget.race === "超伝説") && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
@@ -3548,7 +3594,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damageModifier += 0.2;
   }
 
-  //skillTarget対象バフ
+  // skillTarget対象バフ
+  // 装備 錬金が一意に定まるように注意
+  if (skillTarget.gear) {
+    // 装備錬金 - 竜王杖体技10%軽減
+    if (skillTarget.gear.name === "りゅうおうの杖" && executingSkill.type === "martial") {
+      damageModifier -= 0.1;
+    }
+  }
+
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
     damageModifier -= 0.3;
@@ -3556,7 +3610,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.buffs.fireGuard && executingSkill.element === "fire") {
     damageModifier -= skillTarget.buffs.fireGuard.strength;
   }
-  //被ダメージ増加
+  // 被ダメージ増加
   if (skillTarget.buffs.controlOfRapu) {
     damageModifier += 0.2;
   }
@@ -3573,7 +3627,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     damageModifier -= 0.3;
   }
 
-  //skill特有の特殊計算
+  // skill特有の特殊計算
   if (executingSkill.damageModifier) {
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
@@ -9060,7 +9114,6 @@ const gear = [
     name: "源氏の小手",
     id: "genjiNail",
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
-    //体技5 はやぶさ攻撃
   },
   {
     name: "竜神爪",
@@ -10141,7 +10194,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "昇天槍";
   } else if (skillUser.gear?.name === "系統爪ザキ") {
     NormalAttackName = "通常攻撃ザキ攻撃";
-  } else if (skillUser.gear?.name === "キラーピアス") {
+  } else if (skillUser.gear?.name === "キラーピアス" || skillUser.gear?.name === "源氏の小手") {
     NormalAttackName = "はやぶさ攻撃弱";
   } else if (skillUser.id === "reopa" && fieldState.turnNum % 2 === 0 && hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 4)) {
     NormalAttackName = "会心通常攻撃";
