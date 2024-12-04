@@ -3052,8 +3052,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
-    // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
-    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
+    // 種別無効かつ無効貫通でない かつ味方対象ではない かつ波動系でないときには種別無効処理 ミス表示後にreturn
+    if (
+      !executingSkill.ignoreTypeEvasion &&
+      skillTarget.buffs[executingSkill.type + "Evasion"] &&
+      executingSkill.targetTeam !== "ally" &&
+      executingSkill.appliedEffect !== "divineWave" &&
+      executingSkill.appliedEffect !== "disruptiveWave"
+    ) {
       applyDamage(skillTarget, 0);
       return;
     }
@@ -4233,6 +4239,7 @@ function addSkillOptions() {
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
     const defaultSkills = selectingParty[currentTab].defaultSkill;
+    const anotherSkills = selectingParty[currentTab].anotherSkills;
     const superSkills = [
       "メゾラゴン",
       "メラゾロス",
@@ -4240,6 +4247,7 @@ function addSkillOptions() {
       "昇天斬り",
       "おぞましいおたけび",
       "天の裁き",
+      "聖魔拳",
       "ダイヤモンドダスト",
       "スパークふんしゃ",
       "体技封じの息",
@@ -4250,6 +4258,9 @@ function addSkillOptions() {
       "タップダンス",
       "マインドバリア",
       "ピオリム",
+      "バイシオン",
+      "バイキルト",
+      "インテラ",
       "ザオリク",
       "リザオラル",
       "光のはどう",
@@ -4259,30 +4270,14 @@ function addSkillOptions() {
       "マホカンタ",
       "おいかぜ",
     ];
-    // 未実装: ベホマラー マジックバリア
 
     let defaultOptGroup = selectElement.querySelector("optgroup[label='固有特技']");
-    if (!defaultOptGroup) {
-      defaultOptGroup = document.createElement("optgroup");
-      defaultOptGroup.label = "固有特技";
-      selectElement.appendChild(defaultOptGroup);
-    }
     defaultOptGroup.innerHTML = "";
 
+    let anotherOptGroup = selectElement.querySelector("optgroup[label='その他特技']");
     let superOptGroup = selectElement.querySelector("optgroup[label='超マス特技']");
-    if (!superOptGroup) {
-      superOptGroup = document.createElement("optgroup");
-      superOptGroup.label = "超マス特技";
-      selectElement.appendChild(superOptGroup);
-      for (const skill of superSkills) {
-        // 超マス特技を追加
-        const option = document.createElement("option");
-        option.value = skill;
-        option.text = skill;
-        superOptGroup.appendChild(option);
-      }
-    }
 
+    // 固有特技を追加
     for (let i = 0; i < defaultSkills.length; i++) {
       if (defaultSkills[i]) {
         const option = document.createElement("option");
@@ -4291,7 +4286,40 @@ function addSkillOptions() {
         if (i === j) {
           option.selected = true;
         }
-        defaultOptGroup.appendChild(option); // 固有特技optgroupに追加
+        defaultOptGroup.appendChild(option);
+      }
+    }
+
+    // その他特技を追加
+    if (anotherSkills) {
+      if (!anotherOptGroup) {
+        anotherOptGroup = document.createElement("optgroup");
+        anotherOptGroup.label = "その他特技";
+        selectElement.insertBefore(anotherOptGroup, superOptGroup); // 超マス特技の前に挿入
+      }
+      anotherOptGroup.innerHTML = "";
+      for (let i = 0; i < anotherSkills.length; i++) {
+        if (anotherSkills[i]) {
+          const option = document.createElement("option");
+          option.value = anotherSkills[i];
+          option.text = anotherSkills[i];
+          anotherOptGroup.appendChild(option);
+        }
+      }
+    } else if (anotherOptGroup) {
+      anotherOptGroup.remove();
+    }
+
+    // 超マス特技を追加 (初回のみ)
+    if (!superOptGroup) {
+      superOptGroup = document.createElement("optgroup");
+      superOptGroup.label = "超マス特技";
+      selectElement.appendChild(superOptGroup); // 末尾に追加
+      for (const skill of superSkills) {
+        const option = document.createElement("option");
+        option.value = skill;
+        option.text = skill;
+        superOptGroup.appendChild(option);
       }
     }
   }
@@ -4615,6 +4643,7 @@ const monsters = [
     race: "ドラゴン",
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
+    anotherSkills: ["テンペストブレス", "神速メラガイアー"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -4633,6 +4662,7 @@ const monsters = [
     race: "ドラゴン",
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
+    anotherSkills: ["テンペストブレス", "サンダーボルト", "ほとばしる暗闇"],
     defaultGear: "killerEarrings",
     attribute: {
       initialBuffs: {
@@ -4660,6 +4690,7 @@ const monsters = [
     race: "ドラゴン",
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
+    anotherSkills: ["テンペストブレス"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -4685,6 +4716,7 @@ const monsters = [
     race: "ドラゴン",
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
+    anotherSkills: ["テンペストブレス"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -4791,6 +4823,7 @@ const monsters = [
     weight: "25",
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
+    anotherSkills: ["真・氷魔の力"],
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
@@ -4813,6 +4846,7 @@ const monsters = [
     weight: "25",
     status: { HP: 877, MP: 315, atk: 609, def: 495, spd: 505, int: 389 },
     initialSkill: ["でんせつのギガデイン", "いてつくマヒャド", "閃光ジゴデイン", "ロトの剣技"],
+    anotherSkills: ["おうじゃのけん"],
     defaultGear: "shoten",
     attribute: {
       initialBuffs: {
@@ -4922,6 +4956,7 @@ const monsters = [
     weight: "8",
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
+    anotherSkills: ["ヘルスピア"],
     defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
     attribute: {},
@@ -5209,6 +5244,7 @@ const monsters = [
     weight: "32",
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "イオナルーン"],
+    anotherSkills: ["陰惨な暗闇"],
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
@@ -5302,6 +5338,7 @@ const monsters = [
     weight: "25",
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     initialSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
+    anotherSkills: ["みがわり", "会心撃"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -5324,6 +5361,7 @@ const monsters = [
     weight: "28",
     status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
     initialSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
+    anotherSkills: ["超息よそく"],
     defaultGear: "heavenlyClothes",
     attribute: {
       initialBuffs: {
@@ -5365,7 +5403,7 @@ const monsters = [
     race: "悪魔",
     weight: "25",
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
-    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"],
+    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"], //けがれた狂風 マインドブレス
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 2 },
@@ -5456,6 +5494,7 @@ const monsters = [
     weight: "28",
     status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
     initialSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
+    anotherSkills: ["いてつくはどう"],
     defaultGear: "kanazuchi",
     attribute: {
       initialBuffs: {
@@ -6552,6 +6591,20 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
+    name: "会心撃",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 110,
+    criticalHitProbability: 1,
+    ignoreEvasion: true,
+    ignoreBaiki: true,
+    ignorePowerCharge: true,
+  },
+  {
     name: "魔獣の追撃",
     type: "notskill",
     howToCalculate: "spd",
@@ -6720,6 +6773,17 @@ const skill = [
     hitNum: 5,
     MPcost: 58,
     appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "サンダーボルト",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 78,
+    damageByLevel: true,
   },
   {
     name: "天空竜の息吹",
@@ -7299,6 +7363,31 @@ const skill = [
     appliedEffect: { fireResistance: { strength: -1, probability: 0.58 } },
   },
   {
+    name: "真・氷魔の力",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 48,
+    appliedEffect: "disruptiveWave",
+    followingSkill: "真・氷魔の力後半",
+  },
+  {
+    name: "真・氷魔の力後半",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    appliedEffect: { martialBarrier: { strength: -1 }, breathBarrier: { strength: -1 } },
+    act: function (skillUser, skillTarget) {
+      applyBuff(skillTarget, { martialBarrier: { strength: -1, probability: 0.4 }, breathBarrier: { strength: -1, probability: 0.4 } });
+    },
+  },
+  {
     name: "プリズムヴェール",
     type: "martial",
     howToCalculate: "none",
@@ -7341,6 +7430,20 @@ const skill = [
     MPcost: 92,
     ignoreReflection: true,
     followingSkill: "いてつくはどう",
+  },
+  {
+    name: "おうじゃのけん",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 59,
+    ignoreReflection: true,
+    ignoreProtection: true,
+    RaceBane: ["???", "超魔王", "超伝説"],
+    RaceBaneValue: 3,
   },
   {
     name: "閃光ジゴデイン",
@@ -7602,6 +7705,31 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 18,
     appliedEffect: { defUp: { strength: -1, probability: 0.2 } },
+  },
+  {
+    name: "ヘルスピア",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 332,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 56,
+    damageByLevel: true,
+    appliedEffect: { healBlock: { probability: 0.5 } },
+    followingSkill: "ヘルスピア後半",
+  },
+  {
+    name: "ヘルスピア後半",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 117,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    damageByLevel: true,
+    appliedEffect: { healBlock: { probability: 0.5 } },
   },
   {
     name: "ザオリク",
@@ -8224,6 +8352,21 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+  },
+  {
+    name: "神速メラガイアー",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 245,
+    maxInt: 800,
+    maxIntDamage: 434,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 40,
+    hitNum: 3,
   },
   {
     name: "禁忌のかくせい",
@@ -9003,6 +9146,36 @@ const skill = [
     appliedEffect: { spdUp: { strength: 1 } },
   },
   {
+    name: "バイシオン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 30,
+    appliedEffect: { baiki: { strength: 1 } },
+  },
+  {
+    name: "バイキルト",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 13,
+    appliedEffect: { baiki: { strength: 2 } },
+  },
+  {
+    name: "インテラ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 15,
+    appliedEffect: { intUp: { strength: 1 } },
+  },
+  {
     name: "天の裁き",
     type: "martial",
     howToCalculate: "fix",
@@ -9066,6 +9239,18 @@ const skill = [
     appliedEffect: { danceReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
   },
   {
+    name: "超息よそく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    MPcost: 15,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    appliedEffect: { breathReflection: { strength: 3, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+  },
+  {
     name: "リザオラル",
     type: "spell",
     howToCalculate: "none",
@@ -9074,6 +9259,18 @@ const skill = [
     targetTeam: "ally",
     MPcost: 120,
     appliedEffect: { revive: { keepOnDeath: true, strength: 0.65 } },
+  },
+  {
+    name: "聖魔拳",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.74,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 28,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
   },
   {
     name: "debugbreath",
