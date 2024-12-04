@@ -1700,8 +1700,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (removeAtTurnStartBuffs.includes(buffName)) {
         buffTarget.buffs[buffName].removeAtTurnStart = true;
       }
-      //stackableBuffs または decreaseTurnEndBuffs内 または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与)
-      if (buffName in stackableBuffs || decreaseTurnEndBuffs.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart) {
+      //stackableBuffs または decreaseTurnEndBuffs内 または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与) または既に手動設定されている場合
+      if (buffName in stackableBuffs || decreaseTurnEndBuffs.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart || buffTarget.buffs[buffName].decreaseTurnEnd) {
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
         //decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
@@ -4256,8 +4256,10 @@ function addSkillOptions() {
       "斬撃よそく",
       "体技よそく",
       "踊りよそく",
+      "マホカンタ",
+      "おいかぜ",
     ];
-    // 未実装: ベホマラー マジックバリア マホカンタ おいかぜ バギラ
+    // 未実装: ベホマラー マジックバリア
 
     let defaultOptGroup = selectElement.querySelector("optgroup[label='固有特技']");
     if (!defaultOptGroup) {
@@ -7550,6 +7552,26 @@ const skill = [
     MPcost: 83,
     damageByLevel: true,
     appliedEffect: { confused: { probability: 0.28 } },
+  },
+  {
+    name: "マホカンタ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 22,
+    appliedEffect: { spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true } },
+  },
+  {
+    name: "おいかぜ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 22,
+    appliedEffect: { breathReflection: { strength: 1, duration: 4, decreaseTurnEnd: true } },
   },
   {
     name: "マホターン",
