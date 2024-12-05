@@ -3316,6 +3316,10 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let damage = baseDamage;
 
   //会心完全ガード
+  if (isCriticalHit && skillTarget.buffs.criticalGuard) {
+    damage = 0;
+    col("会心完全ガード");
+  }
 
   //弱点1.8倍処理
   if (resistance === 1.5 && executingSkill.weakness18) {
@@ -8021,6 +8025,7 @@ const skill = [
     order: "anchor",
     MPcost: 79,
     ignoreBaiki: true,
+    ignorePowerCharge: true,
     criticalHitProbability: 1,
   },
   {
@@ -9367,6 +9372,13 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
+    name: "系統爪会心完全ガード",
+    id: "familyNailCriticalGuard",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, criticalGuard: { duration: 3 } },
+  },
+  {
     name: "系統爪超魔王錬金",
     id: "familyNailTyoma",
     weight: 0,
@@ -10118,9 +10130,9 @@ function executeRadiantWave(monster) {
   updateMonsterBuffsDisplay(monster);
 }
 
-//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア
+//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア 会心完全ガード
 function executeWave(monster, isDivine = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock"];
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock", "criticalGuard"];
   const newBuffs = {};
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
