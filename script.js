@@ -3501,8 +3501,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   // skillUser対象バフ
   // 装備 錬金が一意に定まるように注意
   if (skillUser.gear) {
-    // 装備本体 - 竜神爪
-    if (skillUser.gear.name === "竜神爪" && ["???", "ドラゴン"].includes(skillTarget.race)) {
+    // 装備本体 - 竜神のツメ
+    if (skillUser.gear.name === "竜神のツメ" && ["???", "ドラゴン"].includes(skillTarget.race)) {
       damageModifier += 0.1;
     }
     // 装備本体 - 強戦士ハート・闇
@@ -3510,7 +3510,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       damageModifier += 0.15;
     }
     // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
-    if (skillUser.gear.name === "心砕き" || skillUser.gear.name === "昇天") {
+    if (skillUser.gear.name === "心砕きのヤリ" || skillUser.gear.name === "昇天のヤリ") {
       if (skillUser.race === "ドラゴン") {
         if (executingSkill.type === "breath") {
           damageModifier += 0.1;
@@ -3523,8 +3523,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         damageModifier += 0.05;
       }
     }
-    // 装備錬金 - 竜神爪の斬撃5%錬金(S5%錬金対象の系統を除く)
-    if (skillUser.gear.name === "竜神爪" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].includes(skillUser.race) && executingSkill.type === "slash") {
+    // 装備錬金 - 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く)
+    if (skillUser.gear.name === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].includes(skillUser.race) && executingSkill.type === "slash") {
       damageModifier += 0.05;
     }
     // 装備錬金 - 源氏小手の体技5%斬撃3%錬金
@@ -6544,7 +6544,7 @@ const skill = [
     zakiProbability: 0.6,
   },
   {
-    name: "昇天槍",
+    name: "昇天槍攻撃",
     type: "notskill",
     howToCalculate: "atk",
     ratio: 1,
@@ -6568,7 +6568,7 @@ const skill = [
     },
   },
   {
-    name: "心砕き",
+    name: "心砕き攻撃",
     type: "notskill",
     howToCalculate: "atk",
     ratio: 0.33,
@@ -9344,14 +9344,14 @@ const gear = [
     skillAlchemyStrength: 0.3,
   },
   {
-    name: "系統爪",
+    name: "系統爪パニバリ",
     id: "familyNail",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, confusionBarrier: { duration: 3 } },
   },
   {
-    name: "系統爪魔獣",
+    name: "系統爪暗夜",
     id: "familyNailBeast",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
@@ -9408,7 +9408,7 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
   },
   {
-    name: "竜神爪",
+    name: "竜神のツメ",
     id: "ryujinNail",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
@@ -9445,13 +9445,13 @@ const gear = [
     alchemy: true,
   },
   {
-    name: "心砕き",
+    name: "心砕きのヤリ",
     id: "kudaki",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 22, def: 0, spd: 15, int: 0 },
   },
   {
-    name: "昇天",
+    name: "昇天のヤリ",
     id: "shoten",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 23, def: 0, spd: 0, int: 28 },
@@ -10561,10 +10561,10 @@ function deleteSubstitute(target) {
 function getNormalAttackName(skillUser) {
   let NormalAttackName = "通常攻撃";
   //上から優先的に処理して当てはまったらその時点で確定
-  if (skillUser.gear?.name === "心砕き") {
-    NormalAttackName = "心砕き";
-  } else if (skillUser.gear?.name === "昇天") {
-    NormalAttackName = "昇天槍";
+  if (skillUser.gear?.name === "心砕きのヤリ") {
+    NormalAttackName = "心砕き攻撃";
+  } else if (skillUser.gear?.name === "昇天のヤリ") {
+    NormalAttackName = "昇天槍攻撃";
   } else if (skillUser.gear?.name === "系統爪ザキ") {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス" || skillUser.gear?.name === "源氏の小手") {
