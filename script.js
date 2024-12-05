@@ -3951,7 +3951,7 @@ async function processDeathAction(skillUser, excludedTargets) {
 async function executeDeathAbilities(monster) {
   const abilitiesToExecute = [];
   // 復活とタグ変化が予定されているか判定
-  let isReviving = monster.buffs.revive || monster.buffs.tagTransformation;
+  let isReviving = (monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation;
   // 各ability配列の中身を展開して追加
   abilitiesToExecute.push(...(monster.abilities.deathAbilities ?? []));
   abilitiesToExecute.push(...(monster.abilities.additionalDeathAbilities ?? []));
