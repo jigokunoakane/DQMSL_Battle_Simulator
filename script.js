@@ -4087,15 +4087,21 @@ function decideNormalAttackTarget(skillUser) {
 function findLowestHPRateTarget(candidates) {
   let target = candidates[0];
   let lowestHPRate = target.currentStatus.HP / target.defaultStatus.HP;
+  let lowestHP = target.currentStatus.HP;
 
   for (let i = 1; i < candidates.length; i++) {
     const currentHPRate = candidates[i].currentStatus.HP / candidates[i].defaultStatus.HP;
+    const currentHP = candidates[i].currentStatus.HP;
+
     if (currentHPRate < lowestHPRate) {
       target = candidates[i];
       lowestHPRate = currentHPRate;
+      lowestHP = currentHP;
+    } else if (currentHPRate === lowestHPRate && currentHP < lowestHP) {
+      target = candidates[i];
+      lowestHP = currentHP;
     }
   }
-
   return target;
 }
 
