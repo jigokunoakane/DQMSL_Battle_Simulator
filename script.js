@@ -161,7 +161,7 @@ async function prepareBattle() {
       // 初期化
       monster.commandInput = "";
       monster.commandTargetInput = "";
-      monster.currentAiType = monster.defaultAiType || "いのちだいじに"; //本来ガンガン
+      monster.currentAiType = "いのちだいじに"; //本来ガンガン monster.defaultAiType || "ガンガン";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
       monster.attribute.additionalPermanentBuffs = {};
@@ -3721,7 +3721,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
     }
   }
   // みかわし処理
-  if (!executingSkill.ignoreEvasion && !(skillTarget.buffs.fear || skillTarget.buffs.seal || skillTarget.buffs.tempted)) {
+  if (!executingSkill.ignoreEvasion && !skillTarget.buffs.fear && !skillTarget.buffs.sealed && !skillTarget.buffs.tempted) {
     // みかわしバフ
     if (skillTarget.buffs.dodgeBuff) {
       if (Math.random() < skillTarget.buffs.dodgeBuff.strength) {
@@ -8231,6 +8231,7 @@ const skill = [
     MPcost: 38,
     order: "anchor",
     anchorBonus: 3,
+    ignoreEvasion: true,
     appliedEffect: { fear: { probability: 0.3287 } },
   },
   {
