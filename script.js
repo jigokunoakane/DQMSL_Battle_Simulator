@@ -4253,7 +4253,7 @@ function adjustStatusAndSkillDisplay() {
 function addSkillOptions() {
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
-    const defaultSkills = selectingParty[currentTab].defaultSkill;
+    const initialSkills = selectingParty[currentTab].initialSkill;
     const anotherSkills = selectingParty[currentTab].anotherSkills;
     const superSkills = [
       "メゾラゴン",
@@ -4292,15 +4292,12 @@ function addSkillOptions() {
     let anotherOptGroup = selectElement.querySelector("optgroup[label='その他特技']");
     let superOptGroup = selectElement.querySelector("optgroup[label='超マス特技']");
 
-    // 固有特技を追加
-    for (let i = 0; i < defaultSkills.length; i++) {
-      if (defaultSkills[i]) {
+    // 固有特技を追加 (ここはdefaultではなくinitial)
+    for (let i = 0; i < initialSkills.length; i++) {
+      if (initialSkills[i]) {
         const option = document.createElement("option");
-        option.value = defaultSkills[i];
-        option.text = defaultSkills[i];
-        if (i === j) {
-          option.selected = true;
-        }
+        option.value = initialSkills[i];
+        option.text = initialSkills[i];
         defaultOptGroup.appendChild(option);
       }
     }
@@ -4336,6 +4333,12 @@ function addSkillOptions() {
         option.text = skill;
         superOptGroup.appendChild(option);
       }
+    }
+
+    // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultを
+    const defaultSkills = selectingParty[currentTab].defaultSkill;
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`skill${i}`).value = defaultSkills[i];
     }
   }
 }
