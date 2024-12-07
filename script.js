@@ -10428,10 +10428,15 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
   //dazzle, dotDamage, healBlock
-  //  !の  回避率が最大になった!
 
   if (buffMessages[buffName]) {
-    displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
+    if (buffName === "dodgeBuff" && buffData.strength === 1) {
+      displayMessage(`${buffTarget.name}の`, "回避率が最大になった！");
+    } else if (buffName === "stoned" && buffTarget.commandInput === "アストロンゼロ") {
+      displayMessage(`${buffTarget.name}は`, "敵の攻撃をうけなくなった！");
+    } else {
+      displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
+    }
   } else if (stackableBuffs.hasOwnProperty(buffName)) {
     if (buffData.strength < 0) {
       displayMessage(`${buffTarget.name}の`, `${stackableBuffs[buffName]}が さがった！！`);
