@@ -4707,7 +4707,6 @@ const monsters = [
       1: {
         powerCharge: { strength: 2 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
-        fireGuard: { strength: 0.5, duration: 4, targetType: "ally" },
       },
     },
     seed: { atk: 45, def: 0, spd: 75, int: 0 },
@@ -5687,6 +5686,27 @@ function getMonsterAbilities(monsterId) {
                 displayMessage("天の竜気の", "効果が発動！");
                 applyBuff(member, { preemptiveAction: {} });
                 await sleep(150);
+              }
+            },
+          },
+        ],
+      },
+    },
+    rusia: {
+      supportAbilities: {
+        1: [
+          {
+            name: "サンセットビーチ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { fireGuard: { strength: 0.5, duration: 4 } });
+                await sleep(150);
+              }
+              if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
+                for (const monster of parties[skillUser.enemyTeamID]) {
+                  applyBuff(monster, { fireGuard: { strength: 0.5, duration: 4 } });
+                  await sleep(150);
+                }
               }
             },
           },
@@ -10293,6 +10313,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     allElementalBreak: {
       start: `${buffTarget.name}は 属性耐性を`,
       message: `${buffData.strength}ランク下げて 攻撃する状態になった！`,
+    },
+    fireGuard: {
+      start: `${buffTarget.name}は`,
+      message: `メラ系の受けるダメージが減った！`,
     },
     powerCharge: {
       start: `${buffTarget.name}は`,
