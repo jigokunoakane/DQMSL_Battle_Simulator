@@ -5299,7 +5299,6 @@ const monsters = [
         thunderBreak: { keepOnDeath: true, strength: 2 },
         windBreak: { keepOnDeath: true, strength: 2 },
         darkBreak: { keepOnDeath: true, strength: 2 },
-        autoRadiantWave: { removeAtTurnStart: true, duration: 3, targetType: "ally" },
       },
       evenTurnBuffs: {
         thunderBreakBoost: { strength: 1, maxStrength: 3 },
@@ -6320,8 +6319,9 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "悪魔") {
+                applyBuff(monster, { autoRadiantWave: { removeAtTurnStart: true, duration: 3 } });
                 monster.abilities.supportAbilities.additionalPermanentAbilities.push({
-                  name: "偽神の威光",
+                  name: "偽神の威光実行",
                   message: function (skillUser) {
                     displayMessage("偽神の威光の", "効果が発動！");
                   },
