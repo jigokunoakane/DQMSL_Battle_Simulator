@@ -5527,9 +5527,6 @@ const monsters = [
         breathEnhancement: { keepOnDeath: true },
         windBreak: { keepOnDeath: true, strength: 1 },
       },
-      1: {
-        spdUp: { keepOnDeath: true, strength: 1, targetType: "ally" },
-      },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1 },
@@ -6554,6 +6551,22 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+      supportAbilities: {
+        1: [
+          {
+            name: "獣衆の速攻・天",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "魔獣") {
+                  applyBuff(monster, { spdUp: { keepOnDeath: true, strength: 1 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     reopa: {
       supportAbilities: {
