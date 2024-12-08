@@ -4754,10 +4754,6 @@ const monsters = [
         metal: { keepOnDeath: true, strength: 0.75 },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
       },
-      1: {
-        spellBarrier: { strength: 1, targetType: "ally" },
-        stonedBlock: { duration: 3, targetType: "ally" },
-      },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1.3 },
@@ -5779,6 +5775,35 @@ function getMonsterAbilities(monsterId) {
       },
     },
     voruka: {
+      supportAbilities: {
+        1: [
+          {
+            name: "竜衆の防魔",
+            act: async function (skillUser) {
+              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
+                for (const monster of parties[skillUser.teamID]) {
+                  applyBuff(monster, { spellBarrier: { strength: 1 } });
+                  await sleep(150);
+                }
+              } else {
+                applyBuff(skillUser, { spellBarrier: { strength: 2 } });
+              }
+            },
+          },
+          {
+            name: "竜衆の溶鉄",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
+            act: async function (skillUser) {
+              for (const party of parties) {
+                for (const monster of party) {
+                  applyBuff(monster, { stonedBlock: { duration: 3, keepOnDeath: true } });
+                }
+              }
+              displayMessage("アストロンを ふうじられた！");
+            },
+          },
+        ],
+      },
       deathAbilities: [
         {
           name: "最後に祝福",
