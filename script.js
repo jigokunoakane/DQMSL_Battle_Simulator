@@ -5325,6 +5325,7 @@ const monsters = [
     weight: 25,
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
     initialSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
+    anotherSkills: ["妖艶イオマータ"],
     defaultGear: "swimSuit",
     attribute: {
       initialBuffs: {
