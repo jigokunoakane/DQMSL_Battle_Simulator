@@ -4656,12 +4656,8 @@ const monsters = [
       initialBuffs: {
         breathEnhancement: { keepOnDeath: true },
         mindAndSealBarrier: { keepOnDeath: true },
-        allElementalBoost: { strength: 0.2, duration: 4, targetType: "ally" },
       },
-      1: {
-        allElementalBreak: { strength: 1, duration: 4, divineDispellable: true, targetType: "ally" },
-        breathCharge: { strength: 1.2 },
-      },
+      1: { breathCharge: { strength: 1.2 } },
       2: { breathCharge: { strength: 1.5 } },
       3: { breathCharge: { strength: 2 } },
     },
@@ -5622,6 +5618,16 @@ function getMonsterAbilities(monsterId) {
     masudora: {
       initialAbilities: [
         {
+          name: "全能の加護",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "ドラゴン") {
+                applyBuff(monster, { allElementalBoost: { strength: 0.2, duration: 4 } });
+              }
+            }
+          },
+        },
+        {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "ドラゴン") {
@@ -5654,6 +5660,21 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+      supportAbilities: {
+        1: [
+          {
+            name: "一族の息吹",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "ドラゴン") {
+                  applyBuff(monster, { allElementalBreak: { strength: 1, duration: 4, divineDispellable: true } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+      },
       attackAbilities: {
         permanentAbilities: [
           {
@@ -9625,7 +9646,9 @@ const gearAbilities = {
       }
       skillUser.abilities.supportAbilities.evenTurnAbilities.push({
         name: "光の洗礼",
-        disableMessage: true,
+        message: function (skillUser) {
+          displayMessage("そうびの特性により", "光の洗礼 が発動！");
+        },
         act: function (skillUser) {
           executeRadiantWave(skillUser);
         },
@@ -10278,6 +10301,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     manaBoost: {
       start: `${buffTarget.name}は`,
       message: "魔力をためている！",
+    },
+    breathCharge: {
+      start: `${buffTarget.name}は`,
+      message: `息ダメージが${buffData.strength}倍になった！`,
     },
     preemptiveAction: {
       start: `${buffTarget.name}の`,
