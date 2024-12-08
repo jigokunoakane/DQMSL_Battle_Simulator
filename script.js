@@ -1036,10 +1036,10 @@ async function startTurn() {
       if (!ability.disableMessage) {
         if (ability.hasOwnProperty("message")) {
           ability.message(monster);
-          await sleep(200);
+          await sleep(300);
         } else if (ability.hasOwnProperty("name")) {
           displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-          await sleep(200);
+          await sleep(300);
         }
       }
       await ability.act(monster);
@@ -4731,9 +4731,6 @@ const monsters = [
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { keepOnDeath: true },
       },
-      1: {
-        preemptiveAction: {},
-      },
       evenTurnBuffs: { slashBarrier: { strength: 1 } },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -5754,6 +5751,15 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        1: [
+          {
+            name: "竜衆の先鋒",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
+            act: function (skillUser) {
+              applyBuff(skillUser, { preemptiveAction: {} });
             },
           },
         ],
