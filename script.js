@@ -1497,11 +1497,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       //石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
+        // 力ため系は削除 禁忌および天使のしるしはいてはとは異なりkeep
+        const keepKeys = ["tabooSeal", "angelMark", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock", "criticalGuard"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
-          //stackableBuffs, keepOnDeath, unDispellableByRadiantWave, unDispellable, divineDispellableは残す
+          //以下は残す
           if (
             !(
+              keepKeys.includes(existingBuffName) ||
               stackableBuffs.hasOwnProperty(existingBuffName) ||
               existingBuff.keepOnDeath ||
               existingBuff.unDispellableByRadiantWave ||
@@ -1510,13 +1513,21 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
               existingBuffName === "stoned"
             )
           ) {
-            delete existingBuff;
+            delete buffTarget.buffs[existingBuffName];
           }
         }
-        //reviveは問答無用で削除
-        delete buffTarget.buffs.revive;
+        // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealedは問答無用で削除
+        if (buffTarget.buffs.revive && !buffTarget.buffs.revive.unDispellable) {
+          delete buffTarget.buffs.revive;
+        }
+        if (buffTarget.buffs.reviveBlock && !buffTarget.buffs.reviveBlock.unDispellableByRadiantWave) {
+          delete buffTarget.buffs.reviveBlock;
+        }
+        delete buffTarget.buffs.counterAttack;
+        delete buffTarget.buffs.sealed;
         // 防御は解除済なのでみがわりだけ解除
         deleteSubstitute(buffTarget);
+        // 現状、dispellableByAbnormality指定された予測系も解除
       }
       //マホカンは自動でカンタに
       if (buffName === "spellReflection") {
@@ -10145,7 +10156,7 @@ function executeRadiantWave(monster) {
   updateMonsterBuffsDisplay(monster);
 }
 
-//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア 会心完全ガード
+//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア 会心完全ガード //これは石化でのkeep処理と共通
 function executeWave(monster, isDivine = false) {
   const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock", "criticalGuard"];
   const newBuffs = {};
