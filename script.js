@@ -878,6 +878,10 @@ async function startTurn() {
         // 戦闘開始時発動特性
         const allInitialAbilities = [...(monster.abilities?.initialAbilities || [])];
         for (const ability of allInitialAbilities) {
+          // 発動不可能条件に当てはまった場合次のabilityへ
+          if (ability.unavailableIf && ability.unavailableIf(monster)) {
+            continue;
+          }
           await ability.act(monster);
         }
       }
@@ -5481,7 +5485,6 @@ const monsters = [
     attribute: {
       initialBuffs: {
         breathReflection: { strength: 1, keepOnDeath: true },
-        aiExtraAttacks: { strength: 1, keepOnDeath: true, targetType: "ally" },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -6457,6 +6460,21 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
               applyBuff(skillUser, { iceBreak: { keepOnDeath: true, strength: 1 }, rizuIceBuff: { duration: 3 } });
+            }
+          },
+        },
+      ],
+    },
+    azu: {
+      initialAbilities: [
+        {
+          name: "獣衆の進撃",
+          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "魔獣") {
+                applyBuff(monster, { aiExtraAttacks: { strength: 1, keepOnDeath: true } });
+              }
             }
           },
         },
