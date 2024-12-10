@@ -5247,6 +5247,21 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "宵闇の魔人",
+    id: "yoiyami",
+    rank: 9,
+    race: "物質",
+    weight: 14,
+    status: { HP: 864, MP: 264, atk: 367, def: 589, spd: 305, int: 170 },
+    initialSkill: ["封印の光", "におうだち", "ザオリク", "防刃の守り"],
+    defaultGear: "familyNail",
+    attribute: {},
+    seed: { atk: 30, def: 80, spd: 10, int: 0 },
+    ls: { HP: 1.15 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: -1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "タイタニス",
     id: "tanisu",
     rank: 10,
@@ -6244,6 +6259,34 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    yoiyami: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "毎回マインドバリア",
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の特性により`, "マインドバリア が発動！");
+            },
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { mindBarrier: { duration: 4 } });
+              }
+            },
+          },
+        ],
+      },
+      /*deathAbilities: [
+        {
+          name: "封印の光",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            executeWave(skillUser);
+            applyBuff(skillUser, { statusLock: {} });
+          },
+        },
+      ],
+      */
     },
     dhuran: {
       supportAbilities: {
@@ -8447,6 +8490,16 @@ const skill = [
       }
     },
     isOneTimeUse: true,
+  },
+  {
+    name: "封印の光",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 23,
+    appliedEffect: { statusLock: {} },
   },
   {
     name: "物質の爆発",
