@@ -10265,6 +10265,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (monster.flags.isSubstituting) {
     activeBuffs.push({ key: "isSubstituting", src: "images/buffIcons/isSubstituting.png" });
   }
+  // 天の竜気アイコンをpush
+  if (monster.buffs.dragonPreemptiveAction) {
+    activeBuffs.push({ key: "dragonPreemptiveAction", src: `images/buffIcons/dragonPreemptiveAction${monster.buffs.dragonPreemptiveAction.strength}.png` });
+  }
   // 亡者アイコンをpushはせず、亡者アイコンのみに
   //if (monster.flags.isZombie && newId.includes("ally")) {
   //  activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
@@ -10826,6 +10830,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
   const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
   for (const member of aliveMasudora) {
     member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: newStrength };
+    updateMonsterBuffsDisplay(member);
   }
   displayMessage("マスタードラゴンの", `天の竜気レベルが ${newStrength}に上がった！`);
   // 涼風の場合はさらに増加可能性
@@ -10834,6 +10839,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
     const ryouhuStrength = Math.min(newStrength + 1, 9);
     for (const member of aliveMasudora) {
       member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: ryouhuStrength };
+      updateMonsterBuffsDisplay(member);
     }
     displayMessage("マスタードラゴンの", `天の竜気レベルが ${ryouhuStrength}に上がった！`);
   }
