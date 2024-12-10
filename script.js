@@ -5695,6 +5695,7 @@ function getMonsterAbilities(monsterId) {
         permanentAbilities: [
           {
             name: "天の竜気発動",
+            disableMessage: true,
             isOneTimeUse: true,
             unavailableIf: (skillUser) => !skillUser.buffs.dragonPreemptiveAction || skillUser.buffs.dragonPreemptiveAction.strength < 3,
             act: async function (skillUser) {
@@ -10364,10 +10365,13 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
 function preloadImages() {
   const imageUrls = [
     "images/systems/miss.png",
+    "images/systems/effectImages/allyDamaged.png",
+    "images/systems/effectImages/allyDamagedCritical.png",
     "images/systems/effectImages/allyDamagedSuperWeakness.png",
     "images/systems/effectImages/allyDamagedUltraWeakness.png",
     "images/systems/effectImages/allyDamagedWeakness.png",
     "images/systems/effectImages/enemyDamaged.png",
+    "images/systems/effectImages/enemyDamagedCritical.png",
     "images/systems/effectImages/enemyDamagedSuperWeakness.png",
     "images/systems/effectImages/enemyDamagedUltraWeakness.png",
     "images/systems/effectImages/enemyDamagedWeakness.png",
@@ -10383,6 +10387,26 @@ function preloadImages() {
     "images/systems/HPDamageNumbers/7.png",
     "images/systems/HPDamageNumbers/8.png",
     "images/systems/HPDamageNumbers/9.png",
+    "images/systems/HPRecoveryNumbers/0.png",
+    "images/systems/HPRecoveryNumbers/1.png",
+    "images/systems/HPRecoveryNumbers/2.png",
+    "images/systems/HPRecoveryNumbers/3.png",
+    "images/systems/HPRecoveryNumbers/4.png",
+    "images/systems/HPRecoveryNumbers/5.png",
+    "images/systems/HPRecoveryNumbers/6.png",
+    "images/systems/HPRecoveryNumbers/7.png",
+    "images/systems/HPRecoveryNumbers/8.png",
+    "images/systems/HPRecoveryNumbers/9.png",
+    "images/systems/MPRecoveryNumbers/0.png",
+    "images/systems/MPRecoveryNumbers/1.png",
+    "images/systems/MPRecoveryNumbers/2.png",
+    "images/systems/MPRecoveryNumbers/3.png",
+    "images/systems/MPRecoveryNumbers/4.png",
+    "images/systems/MPRecoveryNumbers/5.png",
+    "images/systems/MPRecoveryNumbers/6.png",
+    "images/systems/MPRecoveryNumbers/7.png",
+    "images/systems/MPRecoveryNumbers/8.png",
+    "images/systems/MPRecoveryNumbers/9.png",
   ];
   imageUrls.forEach((imageUrl) => {
     const img = new Image();
