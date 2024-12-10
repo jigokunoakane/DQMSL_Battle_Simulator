@@ -822,6 +822,7 @@ async function startTurn() {
   if (!fieldState.isPermanentDistorted) {
     delete fieldState.isDistorted;
   }
+  delete fieldState.psychoField;
   adjustFieldStateDisplay();
   removeAllStickOut();
 
@@ -886,11 +887,22 @@ async function startTurn() {
         }
       }
     }
+    await sleep(600);
     for (const party of parties) {
       for (const monster of party) {
         // 戦闘開始時発動特性 天使のしるしなど敵に付与するもの
         const allInitialAttackAbilities = [...(monster.abilities?.initialAttackAbilities || [])];
         for (const ability of allInitialAttackAbilities) {
+          await sleep(300);
+          if (!ability.disableMessage) {
+            if (ability.hasOwnProperty("message")) {
+              ability.message(monster);
+              await sleep(300);
+            } else if (ability.hasOwnProperty("name")) {
+              displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+              await sleep(300);
+            }
+          }
           await ability.act(monster);
         }
       }
@@ -4958,6 +4970,29 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ゴア・サイコピサロ",
+    id: "asahaka",
+    rank: 10,
+    race: "???",
+    weight: 32,
+    status: { HP: 839, MP: 400, atk: 634, def: 582, spd: 527, int: 245 },
+    initialSkill: ["深淵の儀式", "暴風の儀式", "禁忌の左腕", "防壁反転"],
+    defaultGear: "metalNail",
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" },
+        windBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { duration: 3 },
+        ritualReflection: { strength: 1.5, duration: 3, unDispellable: true, dispellableByAbnormality: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: -1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
@@ -5948,6 +5983,9 @@ function getMonsterAbilities(monsterId) {
       initialAttackAbilities: [
         {
           name: "天使のしるし付与",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性`, "天使のしるし が発動！");
+          },
           act: function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
               applyBuff(monster, { angelMark: { keepOnDeath: true } });
@@ -6035,8 +6073,77 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
-    skull: {
+    asahaka: {
       initialAttackAbilities: [
+        {
+          name: "いきなり冥界の霧",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性により`, "冥界の霧 が発動！");
+          },
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { healBlock: {} });
+              await sleep(150);
+            }
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { healBlock: {} });
+              await sleep(150);
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        1: [
+          {
+            name: "魔族の痕跡風の使い手付与",
+            disableMessage: true,
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { windBreak: { divineDispellable: true, strength: 1 } });
+                displayMessage(`${monster.name}は`, "風の使い手状態になった！");
+                await sleep(150);
+              }
+            },
+          },
+          {
+            name: "サイコ・ワールド",
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の特性`, "サイコ・ワールド が発動！");
+            },
+            act: async function (skillUser) {
+              displayMessage("フィールド効果が無効化された！");
+              delete fieldState.isPermanentReverse;
+              delete fieldState.isReverse;
+              delete fieldState.isPermanentDistorted;
+              delete fieldState.isDistorted;
+              // リバース封じ・アストロン封じ解除
+              fieldState.psychoField = true;
+              adjustFieldStateDisplay();
+            },
+          },
+        ],
+        2: [
+          {
+            name: "サイコ・ワールド",
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の特性`, "サイコ・ワールド が発動！");
+            },
+            act: async function (skillUser) {
+              displayMessage("フィールド効果が無効化された！");
+              delete fieldState.isPermanentReverse;
+              delete fieldState.isReverse;
+              delete fieldState.isPermanentDistorted;
+              delete fieldState.isDistorted;
+              // リバース封じ・アストロン封じ解除
+              fieldState.psychoField = true;
+              adjustFieldStateDisplay();
+            },
+          },
+        ],
+      },
+    },
+    skull: {
+      initialAbilities: [
         {
           name: "亡者の執念",
           act: function (skillUser) {
@@ -6074,8 +6181,10 @@ function getMonsterAbilities(monsterId) {
             },
             act: function (skillUser) {
               displayMessage("全員の 行動順と素早さが", "逆転した！");
-              fieldState.isReverse = true;
-              adjustFieldStateDisplay();
+              if (!fieldState.psychoField) {
+                fieldState.isReverse = true;
+                adjustFieldStateDisplay();
+              }
             },
           },
         ],
@@ -7858,6 +7967,67 @@ const skill = [
     appliedEffect: { fear: { probability: 0.37 }, martialSeal: { probability: 0.38 } },
   },
   {
+    name: "深淵の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 73,
+    appliedEffect: { crimsonMist: { strength: 0.33 }, manaReduction: { strength: 0.5, duration: 2 } },
+  },
+  {
+    name: "暴風の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 56,
+    weakness18: true,
+    appliedEffect: { paralyzed: { probability: 0.56 } },
+  },
+  {
+    name: "禁忌の左腕",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4.6,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 70,
+    ignoreEvasion: true,
+    ignoreTypeEvasion: true,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    },
+  },
+  {
+    name: "防壁反転",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 99,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.sacredBarrier) {
+        delete skillTarget.buffs.sacredBarrier;
+        applyBuff(skillTarget, { dotDamage: { strength: 0.2 } });
+      }
+    },
+  },
+  {
     name: "真夏の誘惑",
     type: "martial",
     howToCalculate: "fix",
@@ -8042,8 +8212,10 @@ const skill = [
     preemptiveGroup: 1,
     MPcost: 39,
     act: function (skillUser, skillTarget) {
-      fieldState.isDistorted = true;
-      adjustFieldStateDisplay();
+      if (!fieldState.psychoField) {
+        fieldState.isDistorted = true;
+        adjustFieldStateDisplay();
+      }
     },
   },
   {
@@ -8057,9 +8229,11 @@ const skill = [
     order: "anchor",
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      fieldState.isReverse = true;
-      fieldState.isPermanentReverse = true;
-      adjustFieldStateDisplay();
+      if (!fieldState.psychoField) {
+        fieldState.isReverse = true;
+        fieldState.isPermanentReverse = true;
+        adjustFieldStateDisplay();
+      }
       applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } });
     },
   },
@@ -10068,28 +10242,10 @@ document.getElementById("resetBtn").addEventListener("click", async function () 
   skipBtn(false);
 });
 
-document.getElementById("elementErrorBtn").addEventListener("click", function () {
-  const elementErrorText = document.getElementById("elementErrorBtn").textContent;
-  if (elementErrorText === "エレエラ") {
-    document.getElementById("elementErrorBtn").textContent = "エラ解除";
-    fieldState.isDistorted = true;
-  } else {
-    document.getElementById("elementErrorBtn").textContent = "エレエラ";
-    delete fieldState.isDistorted;
-  }
-  adjustFieldStateDisplay();
-});
-
 document.getElementById("floBtn").addEventListener("click", function () {
   executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
 });
 
-document.getElementById("rezaoBtn").addEventListener("click", function () {
-  for (const monster of parties[1]) {
-    applyBuff(monster, { revive: { keepOnDeath: true, strength: 0.5 } });
-  }
-  displayMessage("リザオ付与");
-});
 document.getElementById("harvestBtn").addEventListener("click", function () {
   executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
 });
@@ -10602,6 +10758,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "蘇生を ふうじられた！",
     },
+    healBlock: {
+      start: `${buffTarget.name}は`,
+      message: "HPとMPが回復しなくなった！",
+    },
     demonKingBarrier: {
       start: `${buffTarget.name}は`,
       message: "あらゆる状態異常が効かなくなった！",
@@ -10791,9 +10951,11 @@ async function transformTyoma(monster) {
   } else if (monster.name === "魔扉の災禍オムド・レクス") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
-    fieldState.isDistorted = true;
-    fieldState.isPermanentDistorted = true;
-    adjustFieldStateDisplay();
+    if (!fieldState.psychoField) {
+      fieldState.isDistorted = true;
+      fieldState.isPermanentDistorted = true;
+      adjustFieldStateDisplay();
+    }
   } else if (monster.name === "新たなる神ラプソーン") {
     await sleep(400);
     displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
@@ -10991,17 +11153,20 @@ function adjustFieldStateDisplay() {
   let display1Content = "";
   let display2Content = "";
 
-  if (fieldState.isReverse) {
-    display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
-  }
-
-  if (fieldState.isDistorted) {
-    if (display1Content === "") {
-      // display1が空ならdistortedをdisplay1に割り当てる
-      display1Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
-    } else {
-      // display1が埋まっているならdistortedをdisplay2に割り当てる
-      display2Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
+  if (fieldState.psychoField) {
+    display1Content = "フィールド効果無効 残り1ラウンド";
+  } else {
+    if (fieldState.isReverse) {
+      display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
+    }
+    if (fieldState.isDistorted) {
+      if (display1Content === "") {
+        // display1が空ならdistortedをdisplay1に割り当てる
+        display1Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
+      } else {
+        // display1が埋まっているならdistortedをdisplay2に割り当てる
+        display2Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
+      }
     }
   }
 

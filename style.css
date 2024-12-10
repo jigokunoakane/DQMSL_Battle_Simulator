@@ -716,6 +716,7 @@ select {
   color: yellow;
   margin-left: 0.2rem;
   font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 #cooperationDisplayContainer {
