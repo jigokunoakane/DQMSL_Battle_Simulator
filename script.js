@@ -5628,7 +5628,7 @@ const monsters = [
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
 
-// 必要ならばasyncにするのに注意
+// 必要ならばasyncにする 味方に対する.push系の重複付与に注意
 function getMonsterAbilities(monsterId) {
   const monsterAbilities = {
     masudora: {
@@ -5644,6 +5644,9 @@ function getMonsterAbilities(monsterId) {
           },
         },
         {
+          name: "天の竜気上昇付与",
+          disableMessage: true,
+          unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "天の竜気上昇"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "ドラゴン") {
@@ -5735,6 +5738,7 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           name: "祭の名残",
+          unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "祭の名残付与"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "ドラゴン") {
@@ -5844,6 +5848,7 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           name: "反撃ののろし",
+          unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "反撃ののろしダメージバフ"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               monster.abilities.additionalDeathAbilities.push({
@@ -6263,6 +6268,7 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "一族のいかり",
+            unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "一族のいかり"),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race === "悪魔") {
@@ -6341,6 +6347,8 @@ function getMonsterAbilities(monsterId) {
     rogos: {
       initialAbilities: [
         {
+          name: "偽神の威光付与",
+          unavailableIf: (skillUser) => skillUser.abilities.supportAbilities.additionalPermanentAbilities.some((ability) => ability.name === "偽神の威光実行"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "悪魔") {
@@ -6524,7 +6532,7 @@ function getMonsterAbilities(monsterId) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.monsterId === skillUser.monsterId) {
                   continue;
-                } else if (monster.race === "魔獣") {
+                } else if (monster.race === "魔獣" && !monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "孤高の獣発動")) {
                   monster.abilities.additionalDeathAbilities.push({
                     name: "孤高の獣発動",
                     isOneTimeUse: true,
