@@ -3640,8 +3640,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
     damageModifier += 0.25;
   }
-  // オルゴLS
-  if (parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" && executingSkill.type === "martial") {
+  // オルゴアリーナLS
+  if ((parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" || parties[skillUser.teamID][0].name === "剛拳の姫と獅子王") && executingSkill.type === "martial") {
     damageModifier += 0.2;
   }
 
@@ -4998,6 +4998,30 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: -1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "剛拳の姫と獅子王", //44
+    id: "arina",
+    rank: 10,
+    race: "超伝説",
+    weight: 35,
+    status: { HP: 871, MP: 375, atk: 624, def: 514, spd: 483, int: 321 },
+    initialSkill: ["閃光裂衝拳", "ホワイトアウト", "マヒャドブロウ", "鉄拳の構え"],
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "伝説のタッグ4" },
+        iceBreak: { keepOnDeath: true, strength: 2 },
+        iceSuperBreak: { keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+        baiki: { strength: 2 },
+        spdUp: { strength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
@@ -6057,7 +6081,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ3") {
           monster.skill[1] = "ひかりのたま";
           monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
-          await sleep(50);
+          await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
           await sleep(250);
           delete monster.buffs.lightSuperBreak;
@@ -6076,6 +6100,22 @@ function getMonsterAbilities(monsterId) {
           });
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
           applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
+        }
+      },
+    },
+    arina: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "伝説のタッグ4") {
+          monster.skill[1] = "ひしょうきゃく";
+          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          await sleep(150);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
+          delete monster.buffs.iceSuperBreak;
+          applyBuff(monster, { iceUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+          applyBuff(monster, { dodgeBuff: { strength: 0.7, duration: 3 } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
         }
       },
     },
@@ -6822,6 +6862,15 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: function (skillUser) {
               executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            name: "群れのチカラ",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 4),
+            act: function (skillUser) {
+              applyBuff(skillUser, { alwaysCrit: { unDispellable: true, removeAtTurnStart: true, duration: 1 } });
             },
           },
         ],
@@ -8087,6 +8136,80 @@ const skill = [
         applyBuff(skillTarget, { dotDamage: { strength: 0.2 } });
       }
     },
+  },
+  {
+    name: "閃光裂衝拳",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 2.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 98,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
+    ignoreEvasion: true,
+    followingSkill: "閃光裂衝拳後半",
+  },
+  {
+    name: "閃光裂衝拳後半",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 260,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { martialBarrier: { strength: -1, probability: 0.45 } },
+  },
+  {
+    name: "ホワイトアウト",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 464,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 85,
+    appliedEffect: { asleep: { probability: 0.5 } },
+  },
+  {
+    name: "マヒャドブロウ",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 0.82,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 45,
+  },
+  {
+    name: "ひしょうきゃく",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 45,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    ignoreEvasion: true,
+  },
+  {
+    name: "鉄拳の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    isOneTimeUse: true,
+    MPcost: 46,
+    appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, removeAtTurnStart: true, duration: 2 } },
   },
   {
     name: "真夏の誘惑",
@@ -11088,7 +11211,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス" || skillUser.gear?.name === "源氏の小手") {
     NormalAttackName = "はやぶさ攻撃弱";
-  } else if (skillUser.id === "reopa" && fieldState.turnNum % 2 === 0 && hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 4)) {
+  } else if (skillUser.buffs.alwaysCrit) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
     NormalAttackName = "魔獣の追撃";
