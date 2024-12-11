@@ -823,6 +823,10 @@ async function startTurn() {
     delete fieldState.isDistorted;
   }
   delete fieldState.psychoField;
+  fieldState.stonedBlock--;
+  if (fieldState.stonedBlock === 0) {
+    delete fieldState.stonedBlock;
+  }
   adjustFieldStateDisplay();
   removeAllStickOut();
 
@@ -1373,7 +1377,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         confused: "confusionBarrier",
         paralyzed: "paralyzeBarrier",
         sealed: "sealBarrier",
-        stoned: "stonedBlock",
         reviveBlock: "reviveBlockBarrier",
       };
       // 防壁や魔王バリアで防ぐ
@@ -1384,8 +1387,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffTarget.buffs.mindAndSealBarrier && mindAndSealBarrierTargets.includes(buffName)) {
         continue;
       }
-      // バリアによる無効化
-      if (barrierMap[buffName] && buffTarget.buffs[barrierMap[buffName]]) {
+      // バリアおよび石化封じによる無効化
+      if ((barrierMap[buffName] && buffTarget.buffs[barrierMap[buffName]]) || (buffName === "stoned" && fieldState.stonedBlock)) {
         continue;
       }
       //既にほかの行動停止系状態異常にかかっているかつ新規バフがfear, tempted, sealedのときは付与しない ただし封印によるマインド上書きは例外
@@ -1511,7 +1514,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
         // 力ため系は削除 禁忌および天使のしるしはいてはとは異なりkeep
-        const keepKeys = ["tabooSeal", "angelMark", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock", "criticalGuard"];
+        const keepKeys = ["tabooSeal", "angelMark", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
           //以下は残す
@@ -5869,12 +5872,16 @@ function getMonsterAbilities(monsterId) {
             name: "竜衆の溶鉄",
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
             act: async function (skillUser) {
-              for (const party of parties) {
-                for (const monster of party) {
-                  applyBuff(monster, { stonedBlock: { duration: 3, keepOnDeath: true } });
+              displayMessage("アストロンを ふうじられた！");
+              if (!fieldState.psychoField) {
+                fieldState.stonedBlock = 3;
+                // 全体buff表示更新
+                for (const party of parties) {
+                  for (const monster of party) {
+                    updateMonsterBuffsDisplay(monster);
+                  }
                 }
               }
-              displayMessage("アストロンを ふうじられた！");
             },
           },
         ],
@@ -6113,7 +6120,8 @@ function getMonsterAbilities(monsterId) {
               delete fieldState.isReverse;
               delete fieldState.isPermanentDistorted;
               delete fieldState.isDistorted;
-              // リバース封じ・アストロン封じ解除
+              delete fieldState.stonedBlock;
+              // リバース封じ解除
               fieldState.psychoField = true;
               adjustFieldStateDisplay();
             },
@@ -6131,7 +6139,8 @@ function getMonsterAbilities(monsterId) {
               delete fieldState.isReverse;
               delete fieldState.isPermanentDistorted;
               delete fieldState.isDistorted;
-              // リバース封じ・アストロン封じ解除
+              delete fieldState.stonedBlock;
+              // リバース封じ解除
               fieldState.psychoField = true;
               adjustFieldStateDisplay();
             },
@@ -10483,6 +10492,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (monster.buffs.dragonPreemptiveAction) {
     activeBuffs.push({ key: "dragonPreemptiveAction", src: `images/buffIcons/dragonPreemptiveAction${monster.buffs.dragonPreemptiveAction.strength}.png` });
   }
+  // 石化封じアイコンをpush
+  if (fieldState.stonedBlock) {
+    activeBuffs.push({ key: "stonedBlock", src: "images/buffIcons/stonedBlock.png" });
+  }
   // 亡者アイコンをpushはせず、亡者アイコンのみに
   //if (monster.flags.isZombie && newId.includes("ally")) {
   //  activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
@@ -10529,9 +10542,9 @@ function executeRadiantWave(monster) {
   updateMonsterBuffsDisplay(monster);
 }
 
-//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 石化バリア 会心完全ガード //これは石化でのkeep処理と共通
+//keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
 function executeWave(monster, isDivine = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "stonedBlock", "criticalGuard"];
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
   const newBuffs = {};
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
@@ -10700,10 +10713,6 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     damageLimit: {
       start: `${buffTarget.name}は`,
       message: `被ダメージ上限値${buffData.strength}の状態になった！`,
-    },
-    stonedBlock: {
-      start: "アストロンを ふうじられた！",
-      message: "",
     },
     spellSeal: {
       start: `${buffTarget.name}は`,
