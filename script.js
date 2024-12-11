@@ -5042,6 +5042,25 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
   },
   {
+    name: "ディアノーグ", //最強? a45 s75振り
+    id: "snogu",
+    rank: 9,
+    race: "???",
+    weight: 14,
+    status: { HP: 603, MP: 272, atk: 474, def: 290, spd: 535, int: 268 },
+    initialSkill: ["かがやく息", "スパークふんしゃ", "おぞましいおたけび", "おいかぜ"],
+    attribute: {
+      1: {
+        preemptiveAction: {},
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 0, int: 0 },
+    ls: { MP: 1.1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1.5, ice: 0, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルナイト",
     id: "skull",
     rank: 8,
@@ -6162,6 +6181,27 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    snogu: {
+      deathAbilities: [
+        {
+          name: "最後の息吹",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            const randomAlly = getRandomLivingPartyMember(skillUser);
+            if (randomAlly) {
+              applyBuff(randomAlly, { baiki: { strength: 1 } });
+              await sleep(150);
+              applyBuff(randomAlly, { defUp: { strength: 1 } });
+              await sleep(150);
+              applyBuff(randomAlly, { spdUp: { strength: 1 } });
+              await sleep(150);
+              applyBuff(randomAlly, { intUp: { strength: 1 } });
+              await sleep(150);
+            }
+          },
+        },
+      ],
     },
     skull: {
       initialAbilities: [
@@ -8111,6 +8151,16 @@ const skill = [
     targetTeam: "ally",
     MPcost: 42,
     appliedEffect: { breathReflection: { strength: 1, duration: 1, decreaseTurnEnd: true } },
+  },
+  {
+    name: "かがやく息",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 295,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 124,
   },
   {
     name: "ルカナン",
@@ -11308,4 +11358,16 @@ function calculateWeight() {
     }
   }
   document.getElementById("weightSum").textContent = `w${weightSum}`;
+}
+
+// isDeadもZombieも持たないランダムな味方を返す
+function getRandomLivingPartyMember(skillUser) {
+  const livingMembers = parties[skillUser.teamID].filter((member) => !member.flags.isDead && !member.flags.isZombie);
+
+  if (livingMembers.length === 0) {
+    return null; // 生きているメンバーがいない場合はnullを返す
+  }
+
+  const randomIndex = Math.floor(Math.random() * livingMembers.length);
+  return livingMembers[randomIndex];
 }
