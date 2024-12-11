@@ -7857,7 +7857,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 69,
-    appliedEffect: { spellBarrier: { strength: -1, probability: 0.2 } },
+    appliedEffect: { spellBarrier: { strength: -1, probability: 0.3 } },
   },
   {
     name: "いてつくマヒャド",
@@ -7970,7 +7970,7 @@ const skill = [
     hitNum: 6,
     MPcost: 60,
     ignoreEvasion: true,
-    appliedEffect: { defUp: { strength: -1, probability: 0.6 } },
+    appliedEffect: { defUp: { strength: -1, probability: 0.66 } },
   },
   {
     name: "すさまじいオーラ",
@@ -8099,7 +8099,7 @@ const skill = [
     hitNum: 5,
     MPcost: 56,
     weakness18: true,
-    appliedEffect: { paralyzed: { probability: 0.56 } },
+    appliedEffect: { paralyzed: { probability: 0.4 } },
   },
   {
     name: "禁忌の左腕",
@@ -8374,7 +8374,7 @@ const skill = [
     hitNum: 6,
     MPcost: 85,
     ignoreReflection: true,
-    appliedEffect: { fear: { probability: 0.3647 } },
+    appliedEffect: { fear: { probability: 0.38 } },
   },
   {
     name: "クロノストーム",
