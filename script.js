@@ -846,6 +846,8 @@ async function startTurn() {
       monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
+      // みがわり削除後に更新
+      updateMonsterBuffsDisplay(monster);
     }
   }
   // ぼうぎょタグを削除
@@ -1503,12 +1505,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //みがわり解除 みがわられは解除しない
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
-        for (const eachMonster of parties.flat()) {
-          if (eachMonster.flags.hasSubstitute && eachMonster.flags.hasSubstitute.targetMonsterId === buffTarget.monsterId) {
-            delete eachMonster.flags.hasSubstitute;
-          }
-        }
-        delete buffTarget.flags.isSubstituting;
+        deleteSubstitute(buffTarget);
       }
       //石化処理
       if (buffName === "stoned") {
@@ -10581,6 +10578,8 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
     skillTarget.flags.hasSubstitute.cover = true;
     skillUser.flags.isSubstituting.cover = true;
   }
+  updateMonsterBuffsDisplay(skillUser);
+  updateMonsterBuffsDisplay(skillTarget);
 }
 
 function preloadImages() {
@@ -10977,7 +10976,7 @@ async function transformTyoma(monster) {
 
 function deleteSubstitute(target) {
   if (target.flags.isSubstituting) {
-    //みがわり中 hasSubstituteのtargetが死亡者と一致する場合に削除
+    // targetがみがわり中の場合 targetがみがわっている相手(hasSubstituteのtargetが死亡者と一致)からみがわり所持を削除 その後targetのみがわり中も削除
     for (const monster of parties.flat()) {
       if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
         delete monster.flags.hasSubstitute;
@@ -10985,9 +10984,10 @@ function deleteSubstitute(target) {
       }
     }
     delete target.flags.isSubstituting;
+    updateMonsterBuffsDisplay(target);
   }
   if (target.flags.hasSubstitute) {
-    //みがわられ中 hasSubstituteのtargetのisSubstitutingをupdate
+    // targetがみがわられ中の場合 みがわり中の相手のみがわり先一覧からtargetを削除 もし空になったら完全削除 その後targetのみがわられ中を削除
     const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
     if (substitutingMonster) {
       // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
@@ -10999,6 +10999,7 @@ function deleteSubstitute(target) {
       }
     }
     delete target.flags.hasSubstitute;
+    updateMonsterBuffsDisplay(target);
   }
 }
 
