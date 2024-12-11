@@ -1745,7 +1745,12 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     //状態異常付与時、dispellableByAbnormality指定された予測系を解除
     if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
       for (const reflection of reflectionMap) {
-        if (buffTarget.buffs[reflection] && !buffTarget.buffs[reflection].keepOnDeath && buffTarget.buffs[reflection].dispellableByAbnormality) {
+        if (
+          buffTarget.buffs[reflection] &&
+          !buffTarget.buffs[reflection].keepOnDeath &&
+          buffTarget.buffs[reflection].dispellableByAbnormality &&
+          !(buffTarget.buffs[reflection].dispellableBySpecificAbnormality && (buffName === "fear" || buffName === "tempted" || buffName === "sealed"))
+        ) {
           delete buffTarget.buffs[reflection];
         }
       }
@@ -6039,7 +6044,17 @@ function getMonsterAbilities(monsterId) {
           delete monster.buffs.lightSuperBreak;
           applyBuff(monster, { lightUltraBreak: { keepOnDeath: true } });
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
-          applyBuff(monster, { martialReflection: { strength: 1.5, duration: 2, removeAtTurnStart: true, unDispellable: true, skipReflectionEffect: true } });
+          applyBuff(monster, {
+            martialReflection: {
+              strength: 1.5,
+              duration: 2,
+              removeAtTurnStart: true,
+              unDispellable: true,
+              skipReflectionEffect: true,
+              dispellableByAbnormality: true,
+              dispellableBySpecificAbnormality: true,
+            },
+          });
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
           applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
         }
