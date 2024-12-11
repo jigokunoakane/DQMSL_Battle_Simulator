@@ -4872,7 +4872,7 @@ const monsters = [
     weight: 25,
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
-    anotherSkills: ["真・氷魔の力"],
+    anotherSkills: ["真・氷魔の力", "アイスエイジ", "地獄の火炎"],
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
