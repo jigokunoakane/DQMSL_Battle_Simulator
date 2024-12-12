@@ -215,15 +215,7 @@ function updateBattleIcons(monster, reverseDisplay = false) {
   // 対面monsterが存在しないとき、対面のアイコンを非表示に
   if (!parties[monster.enemyTeamID][monster.index]) {
     const enemyTargetElementId = reverseDisplay ? monster.iconElementId : monster.reversedIconElementId;
-    //buffContainerを削除
-    document
-      .getElementById(enemyTargetElementId)
-      .parentNode.querySelectorAll(".buffContainer")
-      .forEach((buffContainer) => {
-        buffContainer.remove();
-      });
-    document.getElementById(enemyTargetElementId).src = "";
-    document.getElementById(enemyTargetElementId).style.display = "none";
+    deleteIconAndBuffDisplay(enemyTargetElementId);
   }
 
   targetElement.style.display = "flex";
@@ -241,8 +233,36 @@ function updateBattleIcons(monster, reverseDisplay = false) {
   }
 }
 
+function deleteIconAndBuffDisplay(enemyTargetElementId) {
+  //buffContainerを削除
+  document
+    .getElementById(enemyTargetElementId)
+    .parentNode.querySelectorAll(".buffContainer")
+    .forEach((buffContainer) => {
+      buffContainer.remove();
+    });
+  document.getElementById(enemyTargetElementId).src = "";
+  document.getElementById(enemyTargetElementId).style.display = "none";
+}
+
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
 function prepareBattlePageIcons(reverseDisplay = false) {
+  // 初期化で全て非表示にする 対面は削除できるが、両方ともに2体の場合残り3体の表示が残るのを防止
+  const iconElements = [
+    "allyBattleIcon0",
+    "allyBattleIcon1",
+    "allyBattleIcon2",
+    "allyBattleIcon3",
+    "allyBattleIcon4",
+    "enemyBattleIcon0",
+    "enemyBattleIcon1",
+    "enemyBattleIcon2",
+    "enemyBattleIcon3",
+    "enemyBattleIcon4",
+  ];
+  for (const element of iconElements) {
+    deleteIconAndBuffDisplay(element);
+  }
   for (const party of parties) {
     for (const monster of party) {
       updateBattleIcons(monster, reverseDisplay);
