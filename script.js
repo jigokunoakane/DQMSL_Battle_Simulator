@@ -62,6 +62,10 @@ function updatePartyIcon(number) {
 function decideParty() {
   const switchPartyElement = document.getElementById("switchParty");
   if (currentPlayer === "A") {
+    //現在の仮partyを対戦用partiesにcopy 空monsterは削除
+    parties[0] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
+    // 空の場合は停止
+    if (parties[0].length === 0) return;
     // playerBの選択に移行
     currentPlayer = "B";
     document.getElementById("playerAorB").textContent = "プレイヤーB";
@@ -70,12 +74,14 @@ function decideParty() {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
-    //現在の仮partyを対戦用partiesにcopy 空monsterは削除
-    parties[0] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 5;
     switchParty();
   } else {
+    // 対戦用partiesにcopy 空monsterは削除
+    parties[1] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
+    // 空の場合は停止
+    if (parties[1].length === 0) return;
     // playerAの選択に戻す
     currentPlayer = "A";
     document.getElementById("playerAorB").textContent = "プレイヤーA";
@@ -84,8 +90,6 @@ function decideParty() {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
-    // 対戦用partiesにcopy 空monsterは削除
-    parties[1] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
     // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = 0;
     switchParty();
