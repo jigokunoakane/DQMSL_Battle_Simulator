@@ -10778,6 +10778,11 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     if (newId.includes("ally")) {
       buffIcons[0].src = "images/buffIcons/isDead.png";
       buffIcons[0].style.display = "block"; // 表示する
+      // もし所持していれば蘇生封じ表示
+      if (monster.buffs.reviveBlock) {
+        buffIcons[1].src = monster.buffs.reviveBlock.unDispellableByRadiantWave ? "images/buffIcons/reviveBlockunDispellableByRadiantWave.png" : "images/buffIcons/reviveBlock.png";
+        buffIcons[1].style.display = "block";
+      }
     }
     return;
   }
