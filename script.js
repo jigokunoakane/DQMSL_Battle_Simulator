@@ -2770,6 +2770,14 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     target.flags.willZombify = true;
   }
 
+  // タッグおよびリザオ蘇生予定がない完全死亡で、亡者化もしない場合、蘇生封じ確定化
+  if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock) && !target.flags.willZombify && target.buffs.reviveBlock) {
+    delete target.buffs.reviveBlock.name;
+    delete target.buffs.reviveBlock.duration;
+    delete target.buffs.reviveBlock.decreaseTurnEnd;
+    delete target.buffs.reviveBlock.removeAtTurnStart;
+  }
+
   // tag変化もゾンビ化もしない場合のみ、コマンドスキップ
   if (!target.buffs.tagTransformation && !target.flags.willZombify) {
     target.commandInput = "skipThisTurn";
@@ -3016,11 +3024,12 @@ async function processHitSequence(
   }
   // シンリ解除
   // 全体特技ではskillTargetを毎hit変更していない(eachTarget)上に、反射なども反映されない なので、skillUserやskillTargetで判定するよりかは両方について判定
+  // 現状、何度も実行されている
   for (let i = 0; i < 2; i++) {
     if (fieldState.completeDeathCount[i] > 0) {
       for (const monster of parties[i]) {
-        // 生存している敵のみから削除
-        if (!monster.flags.isDead && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
+        // 生存しているあるいは亡者化予定のtargetから蘇生封じを削除
+        if ((!monster.flags.isDead || monster.flags.willZombify) && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
           delete monster.buffs.reviveBlock;
           updateMonsterBuffsDisplay(monster);
         }
