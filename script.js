@@ -5047,6 +5047,28 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "聖獣ムンババ",
+    id: "munbaba",
+    rank: 10,
+    race: "自然",
+    weight: 28,
+    status: { HP: 848, MP: 344, atk: 602, def: 550, spd: 414, int: 226 },
+    initialSkill: ["ホーリーナックル", "かばう", "いてつくゆきだま", "ムフォムフォダンス"],
+    attribute: {
+      initialBuffs: {
+        iceBreak: { keepOnDeath: true, strength: 1 },
+        lightBreak: { keepOnDeath: true, strength: 1 },
+        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" },
+        protection: { strength: 0.34, duration: 3 },
+      },
+      1: { lightResistance: { strength: 3, targetType: "ally" } },
+    },
+    seed: { atk: 30, def: 55, spd: 35, int: 0 },
+    ls: { HP: 1.3 },
+    lsTarget: "all",
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
@@ -6761,6 +6783,24 @@ function getMonsterAbilities(monsterId) {
         }
       },
     },
+    munbaba: {
+      reviveAct: async function (monster, buffName) {
+        if (buffName === "神授のチカラ") {
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spellBarrier: { strength: 1 } });
+          if (Math.random() < 0.72) {
+            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" } });
+          }
+        }
+      },
+      counterAbilities: [
+        {
+          name: "はんげきのゆきだま",
+          act: async function (skillUser, counterTarget) {
+            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget);
+          },
+        },
+      ],
+    },
     rizu: {
       initialAbilities: [
         {
@@ -8235,6 +8275,96 @@ const skill = [
     isOneTimeUse: true,
     MPcost: 46,
     appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, removeAtTurnStart: true, duration: 2 } },
+  },
+  {
+    name: "ホーリーナックル",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 2.18,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 55,
+    order: "anchor",
+    ignoreEvasion: true,
+  },
+  {
+    name: "かばう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    excludeTarget: "self",
+    MPcost: 9,
+    order: "preemptive",
+    preemptiveGroup: 3,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, skillTarget, false, true);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { slashBarrier: { strength: 1 } });
+    },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+  },
+  {
+    name: "いてつくゆきだま",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 184,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 7,
+    MPcost: 54,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "はんげきのゆきだま1発目",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 184,
+    element: "ice",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    isCounterSkill: true,
+    appliedEffect: "disruptiveWave",
+    followingSkill: "はんげきのゆきだま2発目",
+  },
+  {
+    name: "はんげきのゆきだま2発目",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 184,
+    element: "ice",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    isCounterSkill: true,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "ムフォムフォダンス",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 46,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    appliedEffect: { baiki: { strength: 2 }, defUp: { strength: -2 } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.teamID]) {
+        applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: -2 } });
+      }
+    },
   },
   {
     name: "真夏の誘惑",
