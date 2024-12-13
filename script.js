@@ -496,8 +496,8 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
     toggleDarkenAndClick(targetMonsterElement, false);
 
     if (selectedSkillTargetType === "dead") {
-      // 蘇生などdead対象のskillの場合、死亡monsterのみ表示 対象外の生存モンスターを非表示化
-      if (!targetMonster.flags.isDead) {
+      // 蘇生などdead対象のskillの場合、蘇生封じを持っていない死亡monsterのみ表示 対象外の生存モンスターまたは蘇生封じ持ちを非表示化
+      if (!targetMonster.flags.isDead || targetMonster.buffs.reviveBlock) {
         targetMonsterElement.style.display = "none";
         targetMonsterWrapper.style.display = "none";
       }
