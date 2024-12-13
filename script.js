@@ -1285,7 +1285,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenly", "shamuAtk", "shamuDef", "shamuSpd"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1529,6 +1529,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       //魅了による防御バフ解除
       if (buffName === "tempted") {
         delete buffTarget.buffs.defUp;
+        delete buffTarget.buffs.heavenlyBreath;
       }
       //みがわり解除 みがわられは解除しない
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
@@ -1915,7 +1916,7 @@ function updateCurrentStatus(monster) {
     defMultiplier += monster.buffs.internalDefUp.strength;
   }
   // アズ
-  if (monster.buffs.heavenly) {
+  if (monster.buffs.heavenlyBreath) {
     defMultiplier -= 0.2;
   }
   // シャムダ
@@ -9615,7 +9616,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 71,
-    appliedEffect: { heavenly: { divineDispellable: true, probability: 0.42 } },
+    appliedEffect: { heavenlyBreath: { divineDispellable: true, probability: 0.42 } },
   },
   {
     name: "裁きの極光",
