@@ -3101,12 +3101,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const zakiResistance = calculateResistance(assignedSkillUser, "zaki", assignedSkillTarget);
     let zakiTarget = assignedSkillTarget;
     let isZakiReflection = false;
-    //反射処理
-    if (
-      executingSkill.targetTeam === "enemy" &&
-      !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
-    ) {
+    //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
+    if (isSkillReflected(executingSkill, skillTarget)) {
       zakiTarget = assignedSkillUser;
       isZakiReflection = true;
     }
@@ -3135,13 +3131,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       return;
     }
     // 反射持ちかつ反射無視でない、かつ敵対象で、かつ波動系ではないならば反射化
-    if (
-      executingSkill.targetTeam === "enemy" &&
-      !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill")) &&
-      executingSkill.appliedEffect !== "divineWave" &&
-      executingSkill.appliedEffect !== "disruptiveWave"
-    ) {
+    if (isSkillReflected(executingSkill, skillTarget) && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
       isReflection = true;
       //反射演出
       addMirrorEffect(skillTarget.iconElementId);
@@ -3212,11 +3202,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       return;
     }
     //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
-    if (
-      executingSkill.targetTeam === "enemy" &&
-      !executingSkill.ignoreReflection &&
-      (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
-    ) {
+    if (isSkillReflected(executingSkill, skillTarget)) {
       isReflection = true;
       resistance = 1;
       //反射演出
@@ -11671,4 +11657,13 @@ function getRandomLivingPartyMember(skillUser) {
 
   const randomIndex = Math.floor(Math.random() * livingMembers.length);
   return livingMembers[randomIndex];
+}
+
+//反射持ちかつ反射無視でない かつ敵対象ならば反射化
+function isSkillReflected(executingSkill, skillTarget) {
+  return (
+    executingSkill.targetTeam === "enemy" &&
+    !executingSkill.ignoreReflection &&
+    (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
+  );
 }
