@@ -3723,8 +3723,15 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
     damageModifier += 0.25;
   }
-  // オルゴアリーナLS
-  if ((parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" || parties[skillUser.teamID][0].name === "剛拳の姫と獅子王") && executingSkill.type === "martial") {
+  // オルゴアリーナネルLS 体技up
+  if (
+    (parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" || parties[skillUser.teamID][0].name === "剛拳の姫と獅子王" || parties[skillUser.teamID][0].name === "死を統べる者ネルゲル") &&
+    executingSkill.type === "martial"
+  ) {
+    damageModifier += 0.2;
+  }
+  // 斬撃up
+  if (parties[skillUser.teamID][0].name === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
   }
 
