@@ -8310,7 +8310,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, false, true);
+      applySubstitute(skillUser, skillTarget, false, false);
     },
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
@@ -8340,6 +8340,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     isCounterSkill: true,
+    ignoreSubstitute: true,
     appliedEffect: "disruptiveWave",
     followingSkill: "はんげきのゆきだま2発目",
   },
@@ -8353,6 +8354,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     isCounterSkill: true,
+    ignoreSubstitute: true,
     appliedEffect: "disruptiveWave",
   },
   {
@@ -8364,7 +8366,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 46,
     order: "preemptive",
-    preemptiveGroup: 7,
+    preemptiveGroup: 2,
     ignoreReflection: true,
     ignoreSubstitute: true,
     appliedEffect: { baiki: { strength: 2 }, defUp: { strength: -2 } },
