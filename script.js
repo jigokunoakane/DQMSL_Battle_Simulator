@@ -164,7 +164,7 @@ async function prepareBattle() {
 
       // 初期化
       monster.commandInput = "";
-      monster.commandTargetInput = "";
+      monster.commandTargetInput = null;
       monster.currentAiType = "いのちだいじに"; //本来ガンガン monster.defaultAiType || "ガンガン";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
@@ -541,7 +541,7 @@ document.getElementById("selectSkillTargetBtnNo").addEventListener("click", func
 document.querySelectorAll(".selectSkillTarget").forEach((img) => {
   img.addEventListener("click", () => {
     const imgId = img.getAttribute("id");
-    parties[currentTeamIndex][currentMonsterIndex].commandTargetInput = imgId.replace("selectSkillTarget", "");
+    parties[currentTeamIndex][currentMonsterIndex].commandTargetInput = parseInt(imgId.replace("selectSkillTarget", ""));
     document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //テキストとtarget選択iconを閉じる
@@ -590,7 +590,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
   //初期化して行動不能monsterのコマンドを入れる
   for (const monster of parties[teamNum]) {
     monster.commandInput = "";
-    monster.commandTargetInput = "";
+    monster.commandTargetInput = null;
     if (isDead(monster)) {
       monster.commandInput = "skipThisTurn";
     } else if (hasAbnormality(monster) || monster.flags.isZombie) {
@@ -2180,7 +2180,7 @@ async function processMonsterAction(skillUser) {
     if (targetMonster !== null) {
       skillUser.commandTargetInput = targetMonster.index;
     } else {
-      skillUser.commandTargetInput = "";
+      skillUser.commandTargetInput = null;
     }
   }
 
@@ -2263,7 +2263,7 @@ async function processMonsterAction(skillUser) {
     if (targetMonster !== null) {
       skillUser.commandTargetInput = targetMonster.index;
     } else {
-      skillUser.commandTargetInput = "";
+      skillUser.commandTargetInput = null;
     }
   }
 
@@ -2280,7 +2280,7 @@ async function processMonsterAction(skillUser) {
       if (targetMonster !== null) {
         skillUser.commandTargetInput = targetMonster.index;
       } else {
-        skillUser.commandTargetInput = "";
+        skillUser.commandTargetInput = null;
       }
     }
   }
@@ -2374,7 +2374,7 @@ async function processMonsterAction(skillUser) {
   }
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   let executedSkills = [];
-  const commandTarget = skillUser.commandTargetInput === "" ? null : skillTargetTeam[parseInt(skillUser.commandTargetInput)];
+  const commandTarget = skillUser.commandTargetInput === null ? null : skillTargetTeam[skillUser.commandTargetInput];
   executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false);
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
