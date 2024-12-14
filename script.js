@@ -3235,7 +3235,68 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  // ダメージ計算
+  // ダメージ計算 反射などで変更されたuser targetおよび耐性を踏まえて計算
+  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType);
+
+  // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
+  let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
+  if (
+    !isReflection &&
+    damage > 0 &&
+    skillTarget.buffs.elementalShield &&
+    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && AllElements.includes(executingSkill.element)))
+  ) {
+    reducedByElementalShield = true;
+    if (skillTarget.buffs.elementalShield.remain <= damage) {
+      // 障壁が割れる場合
+      damage -= skillTarget.buffs.elementalShield.remain;
+      delete skillTarget.buffs.elementalShield;
+      updateMonsterBuffsDisplay(skillTarget);
+      addHexagonShine(skillTarget.iconElementId, true);
+    } else {
+      skillTarget.buffs.elementalShield.remain -= damage;
+      damage = 0;
+      addHexagonShine(skillTarget.iconElementId, false);
+    }
+  }
+
+  // applyDamage実行前に、appliedEffectのいては系によるリザオ解除を実行
+  if (
+    (reducedByElementalShield || damage > 0) &&
+    executingSkill.appliedEffect &&
+    (executingSkill.appliedEffect === "disruptiveWave" || executingSkill.appliedEffect === "divineWave") &&
+    skillTarget.buffs.revive &&
+    !skillTarget.buffs.revive.unDispellable
+  ) {
+    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.revive.divineDispellable) {
+      delete skillTarget.buffs.revive;
+    }
+  }
+
+  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit);
+
+  // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
+  if (reducedByElementalShield || damage > 0) {
+    await processAppliedEffectWave(skillTarget, executingSkill);
+  }
+  // それ以外の追加効果は  常に実行 または target生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
+  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
+    await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
+  }
+
+  // monsterActionまたはAI追撃のとき、反撃対象にする
+  if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
+    if (!damagedMonsters.includes(skillTarget.monsterId)) {
+      damagedMonsters.push(skillTarget.monsterId);
+    }
+  }
+
+  // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
+  checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
+}
+
+function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, isSimulatedCalculation = false, isReflection = false, reflectionType = null) {
   let baseDamage = 0;
   let isCriticalHit = false;
   if (executingSkill.howToCalculate === "fix") {
@@ -3267,8 +3328,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (criticalHitProbability !== undefined) {
       // criticalHitProbabilityが存在する場合
       isCriticalHit = Math.random() < criticalHitProbability;
-    } else if (executingSkill.howToCalculate !== "int") {
-      // criticalHitProbabilityが存在せず、howToCalculateがintではない場合
+    } else if (executingSkill.howToCalculate !== "int" && !isSimulatedCalculation) {
+      // criticalHitProbabilityが存在せず、howToCalculateがint(賢さ物理)ではない場合
       isCriticalHit = Math.random() < 0.009;
     }
 
@@ -3303,6 +3364,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
     baseDamage *= executingSkill.ratio;
   } else if (executingSkill.howToCalculate === "int") {
+    // 賢さ物理はratio判定に分岐済
     const { minInt, maxInt, minIntDamage, maxIntDamage } = executingSkill;
     const int = skillUser.currentStatus.int;
     if (int <= minInt) {
@@ -3375,7 +3437,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       "クラウンスパーク",
       "インパクトキャノン",
     ];
-    if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name)) {
+    if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name) && !isSimulatedCalculation) {
       isCriticalHit = Math.random() < 0.009;
       if (isCriticalHit) {
         // 暴走成功時
@@ -3420,7 +3482,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //乗算バフ
-
   //バイキ
   if (skillUser.buffs.baiki && executingSkill.howToCalculate === "atk" && !executingSkill.ignoreBaiki) {
     // strengthの値に応じた倍率を定義 (strength + 2 をkey)
@@ -3725,62 +3786,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (skillTarget.buffs.damageLimit && damage > skillTarget.buffs.damageLimit.strength) {
     damage = skillTarget.buffs.damageLimit.strength;
   }
-
-  // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
-  let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
-  if (
-    !isReflection &&
-    damage > 0 &&
-    skillTarget.buffs.elementalShield &&
-    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && AllElements.includes(executingSkill.element)))
-  ) {
-    reducedByElementalShield = true;
-    if (skillTarget.buffs.elementalShield.remain <= damage) {
-      // 障壁が割れる場合
-      damage -= skillTarget.buffs.elementalShield.remain;
-      delete skillTarget.buffs.elementalShield;
-      updateMonsterBuffsDisplay(skillTarget);
-      addHexagonShine(skillTarget.iconElementId, true);
-    } else {
-      skillTarget.buffs.elementalShield.remain -= damage;
-      damage = 0;
-      addHexagonShine(skillTarget.iconElementId, false);
-    }
-  }
-
-  // applyDamage実行前に、appliedEffectのいては系によるリザオ解除を実行
-  if (
-    (reducedByElementalShield || damage > 0) &&
-    executingSkill.appliedEffect &&
-    (executingSkill.appliedEffect === "disruptiveWave" || executingSkill.appliedEffect === "divineWave") &&
-    skillTarget.buffs.revive &&
-    !skillTarget.buffs.revive.unDispellable
-  ) {
-    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.revive.divineDispellable) {
-      delete skillTarget.buffs.revive;
-    }
-  }
-
-  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit);
-
-  // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
-  if (reducedByElementalShield || damage > 0) {
-    await processAppliedEffectWave(skillTarget, executingSkill);
-  }
-  // それ以外の追加効果は  常に実行 または target生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
-  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
-    await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
-  }
-
-  // monsterActionまたはAI追撃のとき、反撃対象にする
-  if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
-    if (!damagedMonsters.includes(skillTarget.monsterId)) {
-      damagedMonsters.push(skillTarget.monsterId);
-    }
-  }
-
-  // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-  checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
+  return { damage, isCriticalHit };
 }
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
