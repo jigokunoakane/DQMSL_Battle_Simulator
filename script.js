@@ -165,7 +165,7 @@ async function prepareBattle() {
       // 初期化
       monster.commandInput = "";
       monster.commandTargetInput = null;
-      monster.currentAiType = "いのちだいじに"; //本来ガンガン monster.defaultAiType || "ガンガン";
+      monster.currentAiType = monster.defaultAiType || "ガンガンいこうぜ";
       monster.buffs = {};
       monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
       monster.attribute.additionalPermanentBuffs = {};
@@ -2122,7 +2122,7 @@ async function processMonsterAction(skillUser) {
     const availableRandomSkills = [];
     const availableSingleSkills = [];
     const availableAllSkills = [];
-    const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風"];
+    const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風", "神楽の術"];
     const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
     const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
     for (const skillName of skillUser.skill) {
@@ -2133,6 +2133,7 @@ async function processMonsterAction(skillUser) {
       if (
         unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
+        skillInfo.isOneTimeUse ||
         (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName)) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
@@ -2154,28 +2155,95 @@ async function processMonsterAction(skillUser) {
       ) {
         continue;
       }
-      // 条件を満たさない場合は、availableSkillsに追加
+
+      // 除外条件をクリアした場合、skillごとに倒せる敵の数とtotalDamageとtargetを記録
+      let killableCount = 0;
+      let totalDamage = 0;
+      let targetIndex = null;
+
+      if (skillInfo.targetType === "all") {
+        for (const target of validTargets) {
+          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
+          const damage = calculateDamage(skillUser, skillInfo, target, resistance, true, true) * (skillInfo.hitNum || 1);
+          totalDamage += damage;
+          if (damage >= target.currentStatus.HP) {
+            killableCount++;
+          }
+        }
+      } else {
+        for (let i = 0; i < validTargets.length; i++) {
+          const target = validTargets[i];
+          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
+          const damage = calculateDamage(skillUser, skillInfo, target, resistance, true, true) * (skillInfo.hitNum || 1);
+
+          if (damage >= target.currentStatus.HP) {
+            // 倒せる場合
+            if (killableCount === 0) {
+              // 倒せる敵がまだいない場合のみカウントとターゲットを更新
+              killableCount = 1;
+              targetIndex = i;
+            }
+          } else if (
+            targetIndex === null ||
+            damage >
+              calculateDamage(skillUser, skillInfo, validTargets[targetIndex], calculateResistance(skillUser, skillInfo.element, validTargets[targetIndex], fieldState.isDistorted), true, true) *
+                (skillInfo.hitNum || 1)
+          ) {
+            // target未設定 または targetが設定されていても前のtargetより多くのダメージが期待できる場合更新
+            // killableCountが0、つまり倒せる敵がいない場合にのみtargetIndexを更新
+            if (killableCount === 0) {
+              targetIndex = i;
+            }
+          }
+          // killableCountが0（ループ終了まで倒せる敵が見つからなかった）場合
+          if (killableCount === 0 && i === validTargets.length - 1) {
+            targetIndex = validTargets.findIndex((target) => target.currentStatus.HP === Math.min(...validTargets.map((monster) => monster.currentStatus.HP)));
+            // findIndexで該当のターゲットが見つからない場合（-1が返る場合）は、最初のターゲット
+            if (targetIndex === -1) targetIndex = 0;
+          }
+        }
+        if (targetIndex != null) {
+          totalDamage =
+            calculateDamage(skillUser, skillInfo, validTargets[targetIndex], calculateResistance(skillUser, skillInfo.element, validTargets[targetIndex], fieldState.isDistorted), true, true) *
+            (skillInfo.hitNum || 1);
+        }
+      }
+
+      // スキル情報を格納
+      const skillData = {
+        skillInfo: skillInfo,
+        killableCount: killableCount,
+        totalDamage: totalDamage,
+        targetIndex: targetIndex, // targetType が all の場合は null
+      };
+
       if (skillInfo.targetType === "random") {
-        availableRandomSkills.push(skillInfo);
+        availableRandomSkills.push(skillData);
       } else if (skillInfo.targetType === "single") {
-        availableSingleSkills.push(skillInfo);
+        availableSingleSkills.push(skillData);
       } else if (skillInfo.targetType === "all") {
-        availableAllSkills.push(skillInfo);
+        availableAllSkills.push(skillData);
       }
     }
-    // availableSkillsの中から選ぶ
-    if (availableRandomSkills.length > 0) {
-      executingSkill = availableRandomSkills[0];
+
+    const availableSkills = [...availableAllSkills, ...availableRandomSkills, ...availableSingleSkills];
+
+    availableSkills.sort((a, b) => {
+      if (a.killableCount !== b.killableCount) {
+        return b.killableCount - a.killableCount;
+      } else {
+        return b.totalDamage - a.totalDamage;
+      }
+    });
+
+    if (availableSkills.length > 0) {
+      executingSkill = availableSkills[0].skillInfo;
+      if (availableSkills[0].targetIndex !== null) {
+        skillUser.commandTargetInput = validTargets[availableSkills[0].targetIndex].index;
+      }
       return;
     }
-    if (availableSingleSkills.length > 0) {
-      executingSkill = availableSingleSkills[0];
-      return;
-    }
-    if (availableAllSkills.length > 0) {
-      executingSkill = availableAllSkills[0];
-      return;
-    }
+
     // 全部だめなら通常攻撃
     executingSkill = findSkillByName(getNormalAttackName(skillUser));
     const targetMonster = decideNormalAttackTarget(skillUser);
@@ -2196,6 +2264,7 @@ async function processMonsterAction(skillUser) {
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
       if (
         skillInfo.order !== undefined ||
+        skillInfo.isOneTimeUse ||
         skillInfo.followingSkill ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
