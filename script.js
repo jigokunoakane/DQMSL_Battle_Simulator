@@ -1253,8 +1253,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
   const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle", "reviveBlock", "stoned"];
-  //hasAbnormalityのfear以外
-  const removeGuardAbnormalities = ["tempted", "sealed", "confused", "paralyzed", "asleep", "stoned"];
+  //hasAbnormalityのfearとsealed以外
+  const removeGuardAbnormalities = ["tempted", "confused", "paralyzed", "asleep", "stoned"];
   //封印とstoned以外
   const dispellableByRadiantWaveAbnormalities = [
     "spellSeal",
@@ -1532,7 +1532,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.heavenlyBreath;
       }
       //みがわり解除 みがわられは解除しない
-      if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
+      if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
         deleteSubstitute(buffTarget);
       }
       //石化処理
@@ -1768,7 +1768,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
 
     //状態異常付与時、dispellableByAbnormality指定された予測系を解除
-    if (removeGuardAbnormalities.includes(buffName) || buffName === "fear") {
+    if (removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") {
       for (const reflection of reflectionMap) {
         if (
           buffTarget.buffs[reflection] &&
@@ -5063,6 +5063,7 @@ const monsters = [
     weight: 28,
     status: { HP: 848, MP: 344, atk: 602, def: 550, spd: 414, int: 226 },
     initialSkill: ["ホーリーナックル", "かばう", "いてつくゆきだま", "ムフォムフォダンス"],
+    defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
