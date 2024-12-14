@@ -2123,6 +2123,8 @@ async function processMonsterAction(skillUser) {
     const availableSingleSkills = [];
     const availableAllSkills = [];
     const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風"];
+    const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
+    const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
@@ -2131,7 +2133,7 @@ async function processMonsterAction(skillUser) {
       if (
         unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
-        skillInfo.followingSkill ||
+        (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName)) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
         // unavailableIfは様子見
