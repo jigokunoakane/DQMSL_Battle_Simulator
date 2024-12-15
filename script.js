@@ -2880,7 +2880,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   }
 }
 
-async function executeSkill(skillUser, executingSkill, assignedTarget = null, isProcessMonsterAction = false, damagedMonsters = null, isAIattack = false) {
+async function executeSkill(skillUser, executingSkill, assignedTarget = null, isProcessMonsterAction = false, damagedMonsters = null, isAIattack = false, ignoreAbnormalityCheck = false) {
   let currentSkill = executingSkill;
   // 実行済skillを格納
   let executedSkills = [];
@@ -2891,7 +2891,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
   while (
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
-    (currentSkill.skipAbnormalityCheck || !hasAbnormality(skillUser))
+    (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser))
   ) {
     // 6. スキル実行処理
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
@@ -11357,7 +11357,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
-        await executeSkill(skillUser, findSkillByName("堕天使の理"));
+        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true);
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
