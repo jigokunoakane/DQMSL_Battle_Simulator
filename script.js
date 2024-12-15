@@ -2123,8 +2123,6 @@ async function processMonsterAction(skillUser) {
 
   function decideAICommandShowNoMercy(skillUser) {
     const availableSkills = [];
-    const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風", "神楽の術"];
-    const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
     const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
     if (validTargets.length === 0) {
       return;
@@ -2141,10 +2139,7 @@ async function processMonsterAction(skillUser) {
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
       if (
-        unavailableSkillsOnAI.includes(skillName) ||
-        skillInfo.order !== undefined ||
-        skillInfo.isOneTimeUse ||
-        (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName)) ||
+        isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
         skillUser.currentStatus.MP < MPcost ||
@@ -2254,9 +2249,7 @@ async function processMonsterAction(skillUser) {
       const MPcost = calculateMPcost(skillUser, skillInfo);
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
       if (
-        skillInfo.order !== undefined ||
-        skillInfo.isOneTimeUse ||
-        skillInfo.followingSkill ||
+        isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
         // unavailableIfは様子見
@@ -11739,4 +11732,12 @@ function isSkillReflected(executingSkill, skillTarget) {
     !executingSkill.ignoreReflection &&
     (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
   );
+}
+
+// 使用不可の場合true
+function isSkillUnavailableForAI(skillName) {
+  const skillInfo = findSkillByName(skillName);
+  const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風", "神楽の術"];
+  const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
+  return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
 }

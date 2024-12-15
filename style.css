@@ -747,8 +747,9 @@ select {
 
 .changeSkillWrapper {
   position: relative;
-  display: inline-block;
+  display: inline-flex; /* inline-flexに変更 */
   width: 60%;
+  align-items: center; /* 垂直方向中央揃え */
 }
 
 .changeSkillWrapper::after {
@@ -785,4 +786,14 @@ select {
   pointer-events: none;
   background-color: #f1f1f1;
   color: #aaa;
+}
+
+.changeSkillWrapper input[type="checkbox"] {
+  margin-right: 10px; /* チェックボックスとセレクトボックスの間隔 */
+  width: 1.2rem; /* チェックボックスのサイズ */
+  height: 1.2rem;
+  border: 1px solid #aaa; /* 枠線 */
+  border-radius: 4px; /* 角丸 */
+  outline: none; /* フォーカス時のアウトラインを削除 */
+  vertical-align: middle; /* select要素と垂直方向に中央揃え */
 }
