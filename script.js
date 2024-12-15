@@ -68,7 +68,7 @@ function decideParty() {
     if (parties[0].length === 0) return;
     // playerBの選択に移行
     currentPlayer = "B";
-    document.getElementById("playerAorB").textContent = "プレイヤーB";
+    document.getElementById("playerAorB").textContent = "player B";
     // selectのoptionを変更
     for (let i = 6; i <= 10; i++) {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
@@ -84,7 +84,7 @@ function decideParty() {
     if (parties[1].length === 0) return;
     // playerAの選択に戻す
     currentPlayer = "A";
-    document.getElementById("playerAorB").textContent = "プレイヤーA";
+    document.getElementById("playerAorB").textContent = "player A";
     // selectのoptionを変更
     for (let i = 1; i <= 5; i++) {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
@@ -137,6 +137,7 @@ async function prepareBattle() {
 
       // skill生成
       monster.skill = [...monster.defaultSkill];
+      monster.turnStartSkills = [...monster.defaultSkill];
 
       // ステータス処理
       monster.defaultStatus = {};
@@ -1175,11 +1176,12 @@ async function startTurn() {
     await executeAbility(monster, "attackAbilities");
   }
 
-  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
+  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除 ターン開始・コマンド開始時点のskillを記録
   for (const party of parties) {
     for (const monster of party) {
       delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
       delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
+      monster.turnStartSkills = [...monster.skill];
     }
   }
 
@@ -2125,7 +2127,8 @@ async function processMonsterAction(skillUser) {
       });
     }
 
-    for (const skillName of skillUser.skill) {
+    // 変身したターンにAIで絶望の天舞や超伝説変身後特技は使用しない
+    for (const skillName of skillUser.turnStartSkills) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
@@ -2236,7 +2239,7 @@ async function processMonsterAction(skillUser) {
     const availableReviveSkills = [];
     const availableAllHealSkills = [];
     const availableSingleHealSkills = [];
-    for (const skillName of skillUser.skill) {
+    for (const skillName of skillUser.turnStartSkills) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
