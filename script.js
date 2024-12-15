@@ -3156,9 +3156,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       zakiTarget = assignedSkillUser;
       isZakiReflection = true;
     }
-    //ザキ成功時、死亡処理とフラグ格納をして終了 失敗時は普通に継続
+    //ザキ成功時、死亡処理とフラグ格納をして終了 失敗時は普通に継続 ただし、全体特技で一発目で死亡している場合はザキ判定をskip
     //反射は成功時かつ反射時にエフェクト表示のみ実行、失敗時には何事もなかったように再度通常の処理で反射化
-    if (Math.random() < zakiResistance * executingSkill.zakiProbability) {
+    if (Math.random() < zakiResistance * executingSkill.zakiProbability && !zakiTarget.flags.isDead) {
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
       handleDeath(zakiTarget);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
