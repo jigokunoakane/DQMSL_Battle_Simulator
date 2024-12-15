@@ -623,6 +623,10 @@ select {
   padding: 0.1rem 0.5rem;
 }
 
+#ajustAiShowNoMercy {
+  background-color: red;
+}
+
 #selectSkillTargetContainer {
   position: absolute;
   display: flex;

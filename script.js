@@ -4965,7 +4965,6 @@ const monsters = [
     weight: 40,
     status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
-    initialAIDisabledSkills: ["ソウルハーベスト"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
