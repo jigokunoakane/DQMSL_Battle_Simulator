@@ -5421,6 +5421,7 @@ const monsters = [
     weight: 32,
     status: { HP: 874, MP: 388, atk: 384, def: 644, spd: 298, int: 522 },
     initialSkill: ["クラックストーム", "属性断罪の刻印", "光のはどう", "ザオリク"],
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         defUp: { strength: 1 },
@@ -5447,6 +5448,7 @@ const monsters = [
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     initialSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
     defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         mindBarrier: { duration: 3 },
@@ -5474,6 +5476,7 @@ const monsters = [
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
     defaultGear: "dragonScale",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -5496,6 +5499,7 @@ const monsters = [
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "氷の紋章", "防刃の守り", "ザオリク"],
     defaultGear: "lightCharm",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -5517,6 +5521,7 @@ const monsters = [
     status: { HP: 864, MP: 264, atk: 367, def: 589, spd: 305, int: 170 },
     initialSkill: ["封印の光", "におうだち", "ザオリク", "防刃の守り"],
     defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
     attribute: {},
     seed: { atk: 30, def: 80, spd: 10, int: 0 },
     ls: { HP: 1.15 },
