@@ -2142,6 +2142,7 @@ async function processMonsterAction(skillUser) {
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
+        skillUser.disabledSkillsByPlayer.includes(skillName) ||
         skillUser.currentStatus.MP < MPcost ||
         skillInfo.howToCalculate === "none" ||
         skillInfo.targetTeam !== "enemy"
@@ -2252,6 +2253,7 @@ async function processMonsterAction(skillUser) {
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
+        skillUser.disabledSkillsByPlayer.includes(skillName) ||
         // unavailableIfは様子見
         skillUser.currentStatus.MP < MPcost
       ) {
@@ -4282,6 +4284,8 @@ function selectMonster(monsterName) {
   selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id == monsterName));
   // 新規生成したselectingMonster内に、initialからdefaultを作成、以下defaultを操作する
   selectingParty[selectingMonsterNum].defaultSkill = [...selectingParty[selectingMonsterNum].initialSkill];
+  // disabledSkillsByPlayer配列を生成
+  selectingParty[selectingMonsterNum].disabledSkillsByPlayer = [...(selectingParty[selectingMonsterNum].initialAIDisabledSkills || [])];
   //表示更新
   updatePartyIcon(selectingMonsterNum);
 
@@ -4458,18 +4462,67 @@ function addSkillOptions() {
       }
     }
 
-    // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultを
-    const defaultSkills = selectingParty[currentTab].defaultSkill;
-    for (let i = 0; i < 4; i++) {
-      document.getElementById(`skill${i}`).value = defaultSkills[i];
+    // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultをselect要素に代入
+    document.getElementById(`skill${j}`).value = selectingParty[currentTab].defaultSkill[j];
+  }
+  // タブ遷移や初期選択で挿入されたselect要素のskillに応じてcheckBoxを変更
+  adjustCheckBox();
+}
+
+function adjustCheckBox() {
+  for (let i = 0; i < 4; i++) {
+    const targetSkillName = selectingParty[currentTab].defaultSkill[i];
+    // タブ遷移や初期選択で挿入されたそれぞれのskillに応じてcheckBoxを変更
+    if (isSkillUnavailableForAI(targetSkillName)) {
+      // 選択不可の場合はdisable化
+      document.getElementById(`skillEnabled${i}`).disabled = true;
+      document.getElementById(`skillEnabled${i}`).checked = false;
+    } else {
+      // 選択可能な場合、disabledは解除
+      document.getElementById(`skillEnabled${i}`).disabled = false;
+      // disabledSkillsByPlayerに含まれている場合checkを外す
+      if (selectingParty[currentTab].disabledSkillsByPlayer.includes(targetSkillName)) {
+        document.getElementById(`skillEnabled${i}`).checked = false;
+      } else {
+        document.getElementById(`skillEnabled${i}`).checked = true;
+      }
     }
   }
 }
 
+// skill select変更
 for (let i = 0; i < 4; i++) {
   document.getElementById(`skill${i}`).addEventListener("change", function (event) {
     const skillIndex = parseInt(event.target.id.replace("skill", ""), 10);
+    const oldSkillName = selectingParty[currentTab].defaultSkill[skillIndex];
+    // select表示は更新済なので内部データを更新
     selectingParty[currentTab].defaultSkill[skillIndex] = event.target.value;
+    // 前のskillを記録 更新後もし4枠内に存在しない場合はdisabledSkillsByPlayerから削除
+    if (!selectingParty[currentTab].defaultSkill.includes(oldSkillName)) {
+      selectingParty[currentTab].disabledSkillsByPlayer = selectingParty[currentTab].disabledSkillsByPlayer.filter((skillName) => skillName !== oldSkillName);
+    }
+    // 新規選択skill(event.target.value)をdisabledSkillsByPlayerから削除
+    selectingParty[currentTab].disabledSkillsByPlayer = selectingParty[currentTab].disabledSkillsByPlayer.filter((skillName) => skillName !== event.target.value);
+    // checkBox全体を更新
+    adjustCheckBox();
+  });
+}
+
+// skillEnabled0 から skillEnabled3 までの checkbox の変更イベントリスナーを設定
+for (let i = 0; i < 4; i++) {
+  const checkbox = document.getElementById(`skillEnabled${i}`);
+  checkbox.addEventListener("change", function (event) {
+    const skillIndex = parseInt(event.target.id.replace("skillEnabled", ""), 10);
+    const monster = selectingParty[selectingMonsterNum];
+    if (event.target.checked) {
+      // checkされた場合、使用禁止リストから削除して使用可能にする
+      monster.disabledSkillsByPlayer = monster.disabledSkillsByPlayer.filter((skillName) => skillName !== monster.defaultSkill[skillIndex]);
+    } else {
+      // checkが外された場合、disabledSkillsByPlayer配列にスキルを追加して使用禁止に (既に存在する場合は追加しない)
+      if (!monster.disabledSkillsByPlayer.includes(monster.defaultSkill[skillIndex])) {
+        monster.disabledSkillsByPlayer.push(monster.defaultSkill[skillIndex]);
+      }
+    }
   });
 }
 
@@ -4672,6 +4725,10 @@ function switchTab(tabNumber) {
     document.getElementById("skill1").value = "";
     document.getElementById("skill2").value = "";
     document.getElementById("skill3").value = "";
+    document.querySelectorAll(".skillEnabledCheckBox").forEach((checkbox) => {
+      checkbox.disabled = true;
+      checkbox.checked = false;
+    });
     // 種表示reset
     document.getElementById("selectSeedAtk").value = 0;
     document.getElementById("selectSeedDef").value = 0;
