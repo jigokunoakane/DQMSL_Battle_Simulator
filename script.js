@@ -697,10 +697,14 @@ document.getElementById("commandAdjustAIBtn").addEventListener("click", function
   document.getElementById("commandPopupWindowAdjustAi").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
 });
-document.getElementById("ajustAiNoSkillUse").addEventListener("click", function () {
-  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "とくぎつかうな";
+document.getElementById("ajustAiShowNoMercy").addEventListener("click", function () {
+  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "ガンガンいこうぜ";
   closeSelectCommandPopupWindowContents();
 });
+//document.getElementById("ajustAiNoSkillUse").addEventListener("click", function () {
+//  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "とくぎつかうな";
+//  closeSelectCommandPopupWindowContents();
+//});
 document.getElementById("ajustAiFocusOnHealing").addEventListener("click", function () {
   parties[currentTeamIndex][currentMonsterIndex].currentAiType = "いのちだいじに";
   closeSelectCommandPopupWindowContents();
@@ -1501,7 +1505,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "statusLock") {
         const buffNames = Object.keys(buffTarget.buffs);
         for (const existingBuffName of buffNames) {
-          col(existingBuffName);
           if (
             (stackableBuffs.hasOwnProperty(existingBuffName) || familyBuffs.includes(existingBuffName)) &&
             !buffTarget.buffs[existingBuffName].keepOnDeath &&
@@ -2119,17 +2122,24 @@ async function processMonsterAction(skillUser) {
   let executingSkill = findSkillByName(skillUser.commandInput);
 
   function decideAICommandShowNoMercy(skillUser) {
-    const availableRandomSkills = [];
-    const availableSingleSkills = [];
-    const availableAllSkills = [];
+    const availableSkills = [];
     const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風", "神楽の術"];
     const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
     const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+    if (validTargets.length === 0) {
+      return;
+    } else {
+      validTargets.sort((a, b) => {
+        const ratioA = a.currentStatus.HP / a.defaultStatus.HP;
+        const ratioB = b.currentStatus.HP / b.defaultStatus.HP;
+        return ratioA === ratioB ? a.currentStatus.HP - b.currentStatus.HP : ratioA - ratioB;
+      });
+    }
+
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
-      // 除外条件のいずれかを満たすとき次へ送る
       if (
         unavailableSkillsOnAI.includes(skillName) ||
         skillInfo.order !== undefined ||
@@ -2137,96 +2147,85 @@ async function processMonsterAction(skillUser) {
         (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName)) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
-        // unavailableIfは様子見
         skillUser.currentStatus.MP < MPcost ||
         skillInfo.howToCalculate === "none" ||
-        //仮で敵対象skillのみ
-        skillInfo.targetTeam !== "enemy" ||
-        //吸収が存在
-        ((skillInfo.targetType === "all" || skillInfo.targetType === "random") &&
-          parties[skillUser.enemyTeamID].some((target) => calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted) < 0)) ||
-        //反射が存在
-        (skillInfo.targetTeam === "enemy" &&
-          (skillInfo.targetType === "all" || skillInfo.targetType === "random") &&
-          !skillInfo.ignoreReflection &&
-          parties[skillUser.enemyTeamID].some((monster) => {
-            return monster.buffs[skillInfo.type + "Reflection"] || (monster.buffs.slashReflection && monster.buffs.slashReflection.isKanta && skillInfo.type === "notskill");
-          }))
+        skillInfo.targetTeam !== "enemy"
       ) {
         continue;
       }
 
-      // 除外条件をクリアした場合、skillごとに倒せる敵の数とtotalDamageとtargetを記録
       let killableCount = 0;
       let totalDamage = 0;
-      let targetIndex = null;
+      let target = null;
+      let skipSkill = false; // Flag to skip the current skill
 
+      // allの場合 killableCountとtotalDamageは累計 targetは未指定
       if (skillInfo.targetType === "all") {
         for (const target of validTargets) {
           const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
-          const damage = calculateDamage(skillUser, skillInfo, target, resistance, true, true) * (skillInfo.hitNum || 1);
+          // ひとつでも吸収反射ならばbreak後に次skillにcontinue
+          if (resistance < 0 || isSkillReflected(skillInfo, target)) {
+            skipSkill = true;
+            break;
+          }
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true);
+          const damage = damagePerHit * (skillInfo.hitNum || 1);
           totalDamage += damage;
           if (damage >= target.currentStatus.HP) {
             killableCount++;
           }
         }
       } else {
-        for (let i = 0; i < validTargets.length; i++) {
-          const target = validTargets[i];
-          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
-          const damage = calculateDamage(skillUser, skillInfo, target, resistance, true, true) * (skillInfo.hitNum || 1);
-
-          if (damage >= target.currentStatus.HP) {
-            // 倒せる場合
-            if (killableCount === 0) {
-              // 倒せる敵がまだいない場合のみカウントとターゲットを更新
-              killableCount = 1;
-              targetIndex = i;
+        // single randomの場合 killableCountとtotalDamageは個別 target指定
+        let bestTargetDamage = 0;
+        for (const potentialTarget of validTargets) {
+          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted);
+          if (resistance < 0 || isSkillReflected(skillInfo, potentialTarget)) {
+            // randomの場合、ひとつでも吸収反射ならばbreak後に次skillにcontinue
+            if (skillInfo.targetType === "random") {
+              skipSkill = true;
+              break;
             }
-          } else if (
-            targetIndex === null ||
-            damage >
-              calculateDamage(skillUser, skillInfo, validTargets[targetIndex], calculateResistance(skillUser, skillInfo.element, validTargets[targetIndex], fieldState.isDistorted), true, true) *
-                (skillInfo.hitNum || 1)
-          ) {
-            // target未設定 または targetが設定されていても前のtargetより多くのダメージが期待できる場合更新
-            // killableCountが0、つまり倒せる敵がいない場合にのみtargetIndexを更新
-            if (killableCount === 0) {
-              targetIndex = i;
-            }
+            continue;
           }
-          // killableCountが0（ループ終了まで倒せる敵が見つからなかった）場合
-          if (killableCount === 0 && i === validTargets.length - 1) {
-            targetIndex = validTargets.findIndex((target) => target.currentStatus.HP === Math.min(...validTargets.map((monster) => monster.currentStatus.HP)));
-            // findIndexで該当のターゲットが見つからない場合（-1が返る場合）は、最初のターゲット
-            if (targetIndex === -1) targetIndex = 0;
+          // 倒せる敵を最終決定済の場合、反射吸収判定だけループを継続してランダム特技の使用禁止条件をcheck
+          if (killableCount === 1) {
+            continue;
+          }
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true);
+          const damage = damagePerHit * (skillInfo.hitNum || 1);
+
+          // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
+          if (damage >= potentialTarget.currentStatus.HP) {
+            killableCount = 1;
+            totalDamage = damage; // killableCountは最大で1 totalDamageは個別
+            target = potentialTarget;
+          } else if (damage > bestTargetDamage) {
+            // 倒せない場合 これまでのbestTargetDamageより大きければ更新して次の判定へ 初回は0なのでダメージが通りさえすれば確定更新
+            bestTargetDamage = damage;
+            totalDamage = bestTargetDamage;
+            target = potentialTarget;
           }
         }
-        if (targetIndex != null) {
-          totalDamage =
-            calculateDamage(skillUser, skillInfo, validTargets[targetIndex], calculateResistance(skillUser, skillInfo.element, validTargets[targetIndex], fieldState.isDistorted), true, true) *
-            (skillInfo.hitNum || 1);
+
+        // singleで、もし全てのpotentialTargetに対して反射吸収によるcontinueし続けたならば
+        if (!target) {
+          skipSkill = true;
         }
       }
 
-      // スキル情報を格納
-      const skillData = {
-        skillInfo: skillInfo,
-        killableCount: killableCount,
-        totalDamage: totalDamage,
-        targetIndex: targetIndex, // targetType が all の場合は null
-      };
+      // 次skillに移行
+      if (skipSkill) continue;
+      // 全ての相手にダメージが通らない場合 (allの累計が0 または single randomで個別の相手に対するdamageが全ての0) 通常攻撃のほうがダメージが出るのでcontinue
+      if (killableCount === 0 && totalDamage === 0) continue;
 
-      if (skillInfo.targetType === "random") {
-        availableRandomSkills.push(skillData);
-      } else if (skillInfo.targetType === "single") {
-        availableSingleSkills.push(skillData);
-      } else if (skillInfo.targetType === "all") {
-        availableAllSkills.push(skillData);
-      }
+      availableSkills.push({
+        skillInfo,
+        killableCount,
+        totalDamage,
+        target,
+      });
     }
-
-    const availableSkills = [...availableAllSkills, ...availableRandomSkills, ...availableSingleSkills];
 
     availableSkills.sort((a, b) => {
       if (a.killableCount !== b.killableCount) {
@@ -2237,20 +2236,12 @@ async function processMonsterAction(skillUser) {
     });
 
     if (availableSkills.length > 0) {
-      executingSkill = availableSkills[0].skillInfo;
-      if (availableSkills[0].targetIndex !== null) {
-        skillUser.commandTargetInput = validTargets[availableSkills[0].targetIndex].index;
-      }
-      return;
-    }
-
-    // 全部だめなら通常攻撃
-    executingSkill = findSkillByName(getNormalAttackName(skillUser));
-    const targetMonster = decideNormalAttackTarget(skillUser);
-    if (targetMonster !== null) {
-      skillUser.commandTargetInput = targetMonster.index;
+      const bestSkill = availableSkills[0];
+      executingSkill = bestSkill.skillInfo;
+      skillUser.commandTargetInput = bestSkill.target ? bestSkill.target.index : null;
     } else {
-      skillUser.commandTargetInput = null;
+      // 全部ダメなら通常攻撃
+      decideAICommandNoSkillUse(skillUser);
     }
   }
 
@@ -2328,13 +2319,20 @@ async function processMonsterAction(skillUser) {
         return;
       }
     }
-    // 全部だめなら通常攻撃
-    executingSkill = findSkillByName(getNormalAttackName(skillUser));
+    // 全部ダメなら通常攻撃
+    decideAICommandNoSkillUse(skillUser);
+  }
+
+  // とくぎつかうな
+  function decideAICommandNoSkillUse(skillUser) {
     const targetMonster = decideNormalAttackTarget(skillUser);
-    if (targetMonster !== null) {
-      skillUser.commandTargetInput = targetMonster.index;
+    // もし返り値が反射持ちの場合、防御に設定
+    if (targetMonster && targetMonster.buffs.slashReflection && targetMonster.buffs.slashReflection.isKanta) {
+      executingSkill = findSkillByName("ぼうぎょ");
     } else {
-      skillUser.commandTargetInput = null;
+      // それ以外の場合は通常攻撃を選択
+      executingSkill = findSkillByName(getNormalAttackName(skillUser));
+      skillUser.commandTargetInput = targetMonster ? targetMonster.index : null;
     }
   }
 
@@ -2342,17 +2340,12 @@ async function processMonsterAction(skillUser) {
   if (skillUser.commandInput === "normalAICommand") {
     if (skillUser.currentAiType === "いのちだいじに") {
       decideAICommandFocusOnHeal(skillUser);
+      col(`AIいのちで${executingSkill.name}を選択`);
     } else if (skillUser.currentAiType === "ガンガンいこうぜ") {
       decideAICommandShowNoMercy(skillUser);
+      col(`AIガンガンで${executingSkill.name}を選択`);
     } else if (skillUser.currentAiType === "とくぎつかうな") {
-      // 通常攻撃
-      executingSkill = findSkillByName(getNormalAttackName(skillUser));
-      const targetMonster = decideNormalAttackTarget(skillUser);
-      if (targetMonster !== null) {
-        skillUser.commandTargetInput = targetMonster.index;
-      } else {
-        skillUser.commandTargetInput = null;
-      }
+      decideAICommandNoSkillUse(skillUser);
     }
   }
 
@@ -3353,7 +3346,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
 }
 
-function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, isSimulatedCalculation = false, isReflection = false, reflectionType = null) {
+function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction = false, isSimulatedCalculation = false, isReflection = false, reflectionType = null) {
   let baseDamage = 0;
   let isCriticalHit = false;
   if (executingSkill.howToCalculate === "fix") {

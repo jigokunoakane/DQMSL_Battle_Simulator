@@ -617,7 +617,7 @@ select {
   background-color: red;
 }
 
-#ajustAiNoSkillUse,
+#ajustAiShowNoMercy,
 #ajustAiFocusOnHealing {
   width: auto;
   padding: 0.1rem 0.5rem;
