@@ -4965,6 +4965,7 @@ const monsters = [
     weight: 40,
     status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
+    initialAIDisabledSkills: ["ソウルハーベスト"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -4993,6 +4994,7 @@ const monsters = [
     weight: 40,
     status: { HP: 897, MP: 425, atk: 620, def: 619, spd: 564, int: 366 },
     initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
+    initialAIDisabledSkills: ["光速の連打"],
     defaultGear: "lightCharm",
     attribute: {
       initialBuffs: {
@@ -5044,6 +5046,7 @@ const monsters = [
     weight: 35,
     status: { HP: 877, MP: 315, atk: 609, def: 495, spd: 505, int: 389 },
     initialSkill: ["でんせつのギガデイン", "いてつくマヒャド", "閃光ジゴデイン", "ロトの剣技"],
+    initialAIDisabledSkills: ["でんせつのギガデイン", "ロトの剣技"],
     anotherSkills: ["おうじゃのけん"],
     defaultGear: "shoten",
     attribute: {
@@ -5131,6 +5134,7 @@ const monsters = [
     weight: 32,
     status: { HP: 839, MP: 400, atk: 634, def: 582, spd: 527, int: 245 },
     initialSkill: ["深淵の儀式", "暴風の儀式", "禁忌の左腕", "防壁反転"],
+    initialAIDisabledSkills: ["禁忌の左腕"],
     defaultGear: "metalNail",
     attribute: {
       initialBuffs: {
@@ -5264,6 +5268,7 @@ const monsters = [
     weight: 8,
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
+    initialAIDisabledSkills: ["ルカナン"],
     anotherSkills: ["ヘルスピア"],
     defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
@@ -5307,6 +5312,7 @@ const monsters = [
     weight: 40,
     status: { HP: 1108, MP: 470, atk: 392, def: 529, spd: 418, int: 576 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
+    initialAIDisabledSkills: ["はめつの流星"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -5366,6 +5372,7 @@ const monsters = [
     weight: 32,
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
+    initialAIDisabledSkills: ["体砕きの斬舞"],
     defaultGear: "estaSword",
     attribute: {
       initialBuffs: {
@@ -5393,6 +5400,7 @@ const monsters = [
     weight: 32,
     status: { HP: 906, MP: 304, atk: 500, def: 619, spd: 454, int: 355 },
     initialSkill: ["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "虚空神の福音"],
+    initialAIDisabledSkills: ["竜の波濤"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33 },
@@ -5567,6 +5575,7 @@ const monsters = [
     weight: 32,
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "イオナルーン"],
+    initialAIDisabledSkills: ["イオナルーン"],
     anotherSkills: ["陰惨な暗闇"],
     defaultGear: "familyNail",
     attribute: {
@@ -5772,6 +5781,7 @@ const monsters = [
     weight: 30,
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
     initialSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
+    initialAIDisabledSkills: ["波状裂き"],
     defaultGear: "familyNailBeast",
     attribute: {
       initialBuffs: {
