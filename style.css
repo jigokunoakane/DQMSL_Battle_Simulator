@@ -613,7 +613,7 @@ select {
 }
 
 .howToCommandEnemyBtn {
-  width: 25%; /*3選択肢のため幅調整*/
+  width: 35%; /*3選択肢のため幅調整*/
   background-color: red;
 }
 

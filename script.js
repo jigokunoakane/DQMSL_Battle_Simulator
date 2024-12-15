@@ -813,15 +813,6 @@ document.getElementById("howToCommandEnemyBtnImprovedAI").addEventListener("clic
   document.getElementById("howToCommandEnemy").style.visibility = "hidden";
   document.getElementById("commandPopupWindow").style.visibility = "hidden";
 });
-//敵のコマンド選択方法-fixedAI
-document.getElementById("howToCommandEnemyBtnFixedAI").addEventListener("click", function () {
-  //全員選択不能の場合の非表示解除 敵のコマンド選択方法選択時に再表示
-  document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
-  currentMonsterIndex = 0;
-  currentTeamIndex = 1;
-  document.getElementById("howToCommandEnemy").style.visibility = "hidden";
-  document.getElementById("commandPopupWindow").style.visibility = "hidden";
-});
 //ここは最大ダメージ検知AIなども含めて統合処理
 
 //ターン開始時処理、毎ラウンド移行時とprepareBattleから起動
