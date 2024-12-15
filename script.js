@@ -4513,7 +4513,7 @@ for (let i = 0; i < 4; i++) {
   const checkbox = document.getElementById(`skillEnabled${i}`);
   checkbox.addEventListener("change", function (event) {
     const skillIndex = parseInt(event.target.id.replace("skillEnabled", ""), 10);
-    const monster = selectingParty[selectingMonsterNum];
+    const monster = selectingParty[currentTab];
     if (event.target.checked) {
       // checkされた場合、使用禁止リストから削除して使用可能にする
       monster.disabledSkillsByPlayer = monster.disabledSkillsByPlayer.filter((skillName) => skillName !== monster.defaultSkill[skillIndex]);
@@ -4796,7 +4796,8 @@ document.getElementById("beastpa").addEventListener("click", function () {
 });
 
 async function selectAllPartyMembers(monsters) {
-  for (selectingMonsterNum = 0; selectingMonsterNum < monsters.length; selectingMonsterNum++) {
+  for (i = 0; i < monsters.length; i++) {
+    selectingMonsterNum = i;
     selectMonster(monsters[selectingMonsterNum]);
   }
   if (!isDeveloperMode) return;
@@ -4820,6 +4821,7 @@ const monsters = [
     weight: 30,
     status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
+    initialAIDisabledSkills: ["煉獄火炎"],
     defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
