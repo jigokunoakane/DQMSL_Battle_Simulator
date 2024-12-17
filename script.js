@@ -3070,7 +3070,9 @@ async function processHitSequence(
   // 死亡時発動前なので、リザオ処理やゾンビ処理がまだ行われていないタイミング
   // エルギ変身判定
   for (const party of parties) {
-    const targetMonsters = party.filter((monster) => monster.name === "憎悪のエルギオス" && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2);
+    const targetMonsters = party.filter(
+      (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2
+    );
     for (const targetErugi of targetMonsters) {
       await transformTyoma(targetErugi);
     }
@@ -4028,7 +4030,7 @@ function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killed
       // エルギ判定 自分以外の味方のエルギのカウントを増やす
       // 通常ダメージ 供物(ダメージなしact) ザキ 反射でカウント増加 カウント刻印毒継続は対象外
       const targetMonsters = parties[skillTarget.teamID].filter(
-        (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId
+        (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId
       );
       for (const targetErugi of targetMonsters) {
         if (!targetErugi.flags.transformationCount) {
