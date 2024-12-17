@@ -8786,6 +8786,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 88,
+    ignoreSubstitute: true,
     damageByHpPercent: true,
   },
   {
@@ -8800,6 +8801,7 @@ const skill = [
     MPcost: 80,
     order: "anchor",
     anchorBonus: 3,
+    ignoreSubstitute: true,
     damageByLevel: true,
   },
   {
