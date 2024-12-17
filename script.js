@@ -3195,6 +3195,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // isDamageExistingはfalseで送る
     await processAppliedEffectWave(skillTarget, executingSkill);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
+    await sleep(1);
+    updateMonsterBuffsDisplay(skillTarget);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
     checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
@@ -3323,6 +3325,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
+  // 失望の光舞でくじけぬ解除表示が更新されない対策(いては効果と連続でupdateしているため？)
+  await sleep(1);
+  updateMonsterBuffsDisplay(skillTarget);
 
   // monsterActionまたはAI追撃のとき、反撃対象にする
   if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
@@ -11707,6 +11712,7 @@ function deleteUnbreakable(skillTarget) {
   if (!skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
     delete skillTarget.buffs.isUnbreakable;
   }
+  updateMonsterBuffsDisplay(skillTarget);
 }
 
 function showCooperationEffect(currentTeamID, cooperationAmount) {
