@@ -2613,7 +2613,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   }
 }
 
-// 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
+// カウントダウン・刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行する
 async function checkRecentlyKilledFlagForPoison(monster) {
   if (monster.flags.recentlyKilled) {
     delete monster.flags.recentlyKilled;
@@ -7789,6 +7789,8 @@ const skill = [
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         delete nerugeru.buffs.reviveBlock;
         delete nerugeru.buffs.poisonDepth;
+        delete nerugeru.buffs.stoned;
+        // マソ深度5も解除
         // skipDeathAbilityを付与してhandleDeath
         handleDeath(nerugeru, true, true);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
@@ -11381,11 +11383,13 @@ async function transformTyoma(monster) {
   updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
-  delete monster.buffs.stoned;
+  executeRadiantWave(monster);
 
   // skill変更と、各種message
   if (monster.name === "憎悪のエルギオス") {
     monster.skill[0] = "絶望の天舞";
+    delete monster.buffs.stoned;
+    delete monster.buffs.sealed;
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "死を統べる者ネルゲル") {
     monster.attribute.additionalPermanentBuffs = { spellBarrier: { strength: 2, unDispellable: true, duration: 0 }, breathBarrier: { strength: 2, unDispellable: true, duration: 0 } };
