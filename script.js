@@ -11804,7 +11804,27 @@ function isSkillReflected(executingSkill, skillTarget) {
 // 使用不可の場合true
 function isSkillUnavailableForAI(skillName) {
   const skillInfo = findSkillByName(skillName);
-  const unavailableSkillsOnAI = ["黄泉の封印", "神獣の封印", "エンドブレス", "浄化の風", "神楽の術"];
+  const unavailableSkillsOnAI = [
+    "エンドブレス",
+    "浄化の風",
+    "神楽の術",
+    "閃く短刀",
+    "けがれた狂風",
+    "キングストーム",
+    "ミナデイン",
+    "ダークミナデイン",
+    "グランドショット",
+    "ビッグバンバースト",
+    "会心斬",
+    "真・獣王会心撃",
+    "けがれの封印",
+    "苦悶の魔弾",
+    "メドローア",
+    "禁呪マダンテ",
+    "クロスマダンテ",
+    "圧縮マダンテ",
+    "呪いのベホマズン",
+  ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
 }
