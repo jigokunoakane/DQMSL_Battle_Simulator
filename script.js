@@ -2935,7 +2935,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       skillUser.abilities.followingAbilities &&
       !hasExecutedFollowingAbilities &&
       executingSkill.howToCalculate !== "none" &&
-      skillUser.abilities.followingAbilities.availableIf(executingSkill)
+      skillUser.abilities.followingAbilities.availableIf(skillUser, executingSkill)
     ) {
       // followingSkillがないかつ追撃特性所持時にそれを実行
       // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
@@ -6268,7 +6268,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "双璧の幻獣・改",
-        availableIf: (executingSkill) => executingSkill.element === "fire" || executingSkill.element === "ice",
+        availableIf: (skillUser, executingSkill) => executingSkill.element === "fire" || executingSkill.element === "ice",
         followingSkillName: (executingSkill) => {
           if (executingSkill.element === "fire") return "アイスエイジ";
           if (executingSkill.element === "ice") return "地獄の火炎";
@@ -6909,7 +6909,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "悪魔衆の踊り",
-        availableIf: (executingSkill) => executingSkill.type === "dance",
+        availableIf: (skillUser, executingSkill) => executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
         followingSkillName: (executingSkill) => {
           return "ディバインフェザー";
         },
