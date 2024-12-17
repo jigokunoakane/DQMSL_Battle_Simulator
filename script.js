@@ -5371,7 +5371,7 @@ const monsters = [
       },
     },
     seed: { atk: 95, def: 25, spd: 0, int: 0 },
-    ls: { HP: 1 },
+    ls: { HP: 1.2 },
     lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
