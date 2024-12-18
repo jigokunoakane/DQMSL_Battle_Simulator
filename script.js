@@ -3719,6 +3719,11 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     damage *= 3;
   }
 
+  // skill特有の特殊計算
+  if (executingSkill.damageMultiplier) {
+    damage *= executingSkill.damageMultiplier(skillUser, skillTarget) || 1;
+  }
+
   // 以下加算処理
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
@@ -5946,6 +5951,26 @@ const monsters = [
     id: "maen",
     rank: 10,
     race: "ゾンビ",
+    weight: 28,
+    status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
+    initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ザオリク"],
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        darkBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1.3 },
+    lsTarget: "ゾンビ",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "やきとり",
+    id: "bossmaen",
+    rank: 10,
+    race: "ゾンビ",
     weight: 25,
     status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
     initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
@@ -7135,6 +7160,26 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    maen: {
+      initialAbilities: [
+        {
+          name: "魔炎のきせき",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.reviveNextTurn = "魔炎のきせき";
+          },
+        },
+      ],
+      deathAbilities: [
+        {
+          name: "邪悪な残り火",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true);
+          },
+        },
+      ],
+    },
   };
 
   return monsterAbilities[monsterId] || {};
@@ -7202,6 +7247,9 @@ const skill = [
     },
     damageModifier: function (skillUser, skillTarget) {
       return Math.pow(1.6, power) - 1;
+    },
+    damageMultiplier: function (skillUser, skillTarget) {
+      return 2; //初期値は1
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
@@ -10120,6 +10168,77 @@ const skill = [
     ignoreBaiki: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
+  },
+  {
+    name: "れんごくの翼",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.confused || skillTarget.buffs.paralyzed) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "プロミネンス",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 150,
+    maxInt: 600,
+    maxIntDamage: 330,
+    skillPlus: 1.06,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 120,
+    ignoreSubstitute: true,
+    appliedEffect: { dotDamage: { strength: 0.2 } },
+  },
+  {
+    name: "時ゆがめる暗霧",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 215,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 75,
+    damageByLevel: true,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.73 }, poisoned: { probability: 0.8 } },
+  },
+  {
+    name: "邪悪な残り火",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    skipDeathCheck: true,
+    skipSkillSealCheck: true,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { fear: { probability: 0.4775 } },
+    followingSkill: "邪悪な残り火後半",
+  },
+  {
+    name: "邪悪な残り火後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    skipDeathCheck: true,
+    skipSkillSealCheck: true,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "ピオリム",
