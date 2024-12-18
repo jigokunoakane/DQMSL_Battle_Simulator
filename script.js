@@ -1207,7 +1207,7 @@ async function startBattle() {
       return;
     }
     await processMonsterAction(monster);
-    await sleep(600);
+    await sleep(450);
   }
   // 最後のmonsterの行動で戦闘終了時: 全てのflowを停止  skip: 考慮不要
   if (isBattleOver()) {
@@ -2438,10 +2438,10 @@ async function processMonsterAction(skillUser) {
   } else {
     displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
   }
-  if (skillUser.teamID === 0) {
-    await sleep(70); // スキル実行前に待機時間を設ける
+  if (executingSkill.name === "ぼうぎょ") {
+    await sleep(40); // スキル実行前に待機時間を設ける
   } else {
-    await sleep(180);
+    await sleep(200);
   }
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   let executedSkills = [];
@@ -2494,9 +2494,10 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         attackTimes += skillUser.buffs.aiExtraAttacks.strength;
       }
       for (let i = 0; i < attackTimes; i++) {
-        await sleep(500); // 追撃ごとに待機時間
+        await sleep(300); // 追撃ごとに待機時間
         console.log(`${skillUser.name}は通常攻撃で追撃！`);
         displayMessage(`${skillUser.name}の攻撃！`);
+        await sleep(100);
         // 追撃の種類を決定
         let NormalAttackName = getNormalAttackName(skillUser);
         // 通常攻撃を実行
