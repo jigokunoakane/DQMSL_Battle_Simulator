@@ -1576,7 +1576,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //防壁魔王バリア付与時の状態異常解除
       if (buffName === "sacredBarrier" || buffName === "demonKingBarrier") {
-        executeRadiantWave(buffTarget);
+        executeRadiantWave(buffTarget, true);
       }
       //封じマインドバリア付与時の状態異常解除
       if (buffName === "mindAndSealBarrier") {
@@ -3242,7 +3242,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       skillTarget = assignedSkillUser;
     }
     // isDamageExistingはfalseで送る
-    await processAppliedEffectWave(skillTarget, executingSkill);
+    await processAppliedEffectWave(skillTarget, executingSkill, false);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     await sleep(1);
     updateMonsterBuffsDisplay(skillTarget);
@@ -3259,14 +3259,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // AppliedEffect指定のうち、規定値による波動処理を定義
-  async function processAppliedEffectWave(buffTarget, executingSkill) {
+  async function processAppliedEffectWave(buffTarget, executingSkill, isDamageExisting = false) {
     if (executingSkill.appliedEffect) {
       if (executingSkill.appliedEffect === "radiantWave") {
         executeRadiantWave(buffTarget);
       } else if (executingSkill.appliedEffect === "divineWave") {
-        executeWave(buffTarget, true);
+        executeWave(buffTarget, true, isDamageExisting);
       } else if (executingSkill.appliedEffect === "disruptiveWave") {
-        executeWave(buffTarget);
+        executeWave(buffTarget, false, isDamageExisting);
       }
     }
   }
@@ -3368,7 +3368,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
-    await processAppliedEffectWave(skillTarget, executingSkill);
+    await processAppliedEffectWave(skillTarget, executingSkill, true);
   }
   // それ以外の追加効果は  常に実行 または target生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
   if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
@@ -11216,28 +11216,51 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 }
 
 //光の波動 dispellableByRadiantWave指定以外を残す
-function executeRadiantWave(monster) {
-  monster.buffs = Object.fromEntries(Object.entries(monster.buffs).filter(([key, value]) => !value.dispellableByRadiantWave));
+function executeRadiantWave(monster, skipMissDisplay = false) {
+  const newBuffs = {};
+  let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
+  for (const key in monster.buffs) {
+    const value = monster.buffs[key];
+    if (value.dispellableByRadiantWave) {
+      debuffRemoved = true; // 削除フラグ
+    } else {
+      newBuffs[key] = value;
+    }
+  }
+  monster.buffs = newBuffs;
+
+  if (!debuffRemoved && !skipMissDisplay) {
+    displayMiss(monster);
+  }
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
 }
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
-function executeWave(monster, isDivine = false) {
+function executeWave(monster, isDivine = false, isDamageExisting = false) {
   const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
   const newBuffs = {};
+  let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
     // keepOnDeathでも削除するバフ群 竜王杖のようなunDispellable指定以外は削除
     const deleteKeys = ["counterAttack", "revive", "tabooSeal", "angelMark"];
     if (deleteKeys.includes(key) && !value.unDispellable && (!value.divineDispellable || isDivine)) {
+      buffRemoved = true; // バフが削除されたことを記録
       continue;
     }
+
     if (keepKeys.includes(key) || value.keepOnDeath || value.unDispellable || value.dispellableByRadiantWave || value.unDispellableByRadiantWave || (!isDivine && value.divineDispellable)) {
       newBuffs[key] = value;
+    } else {
+      buffRemoved = true; //上記の条件に当てはまらない場合も削除扱い
     }
   }
   monster.buffs = newBuffs;
+
+  if (!buffRemoved && !isDamageExisting) {
+    displayMiss(monster); // バフが削除されなかった場合にdisplayMiss関数を呼び出す
+  }
   updateCurrentStatus(monster);
   updateMonsterBuffsDisplay(monster);
 }
