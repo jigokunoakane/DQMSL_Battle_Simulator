@@ -1201,6 +1201,7 @@ async function startBattle() {
   decideTurnOrder(parties, skill);
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
+    // 戦闘終了時: 全てのflowを停止  skipの場合: 毒の処理などはするので通常通りprocessに入る
     if (isBattleOver()) {
       removeAllStickOut();
       return;
@@ -1208,7 +1209,7 @@ async function startBattle() {
     await processMonsterAction(monster);
     await sleep(600);
   }
-  // 最後のmonsterの行動で戦闘終了時に停止
+  // 最後のmonsterの行動で戦闘終了時: 全てのflowを停止  skip: 考慮不要
   if (isBattleOver()) {
     removeAllStickOut();
     return;
@@ -2104,9 +2105,23 @@ async function processMonsterAction(skillUser) {
     return; // 行動前に一回でも死んでいたら処理をスキップ
   }
 
+  // 行動skip確認
+  if (isBattleOver()) {
+    removeAllStickOut();
+    return;
+  } else if (skipThisMonsterAction(skillUser)) {
+    // 行動skipの場合は7. 行動後処理にスキップ
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
+    waitingMessage(skillUser);
+    await sleep(200);
+    await postActionProcess(skillUser, null, null, damagedMonsters);
+    return;
+  }
+
   // 状態異常確認
   if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
     const abnormalityMessage = hasAbnormality(skillUser);
     console.log(`${skillUser.name}は${abnormalityMessage}`);
     displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
@@ -2446,6 +2461,8 @@ async function processMonsterAction(skillUser) {
   if (skillUser.name === "魔扉の災禍オムド・レクス" && executingSkill.type !== "notskill") {
     skillUser.flags.willTransformOmudo = true;
   }
+
+  // 戦闘終了時は毒や継続ダメージ処理をせずに即時return executeによってskip状態になった場合でもpostActionは実行
   if (isBattleOver()) {
     return;
   }
@@ -2459,10 +2476,13 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (skillUser.commandInput === "skipThisTurn") {
     return;
   }
-  // 7-2. flag付与
+  // 7-2. 戦闘終了確認
+  if (isBattleOver()) {
+    return;
+  }
 
   // 7-3. AI追撃処理
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
+  if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
     const noAIskills = ["黄泉の封印", "神獣の封印"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       await sleep(300);
@@ -2481,6 +2501,12 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         let NormalAttackName = getNormalAttackName(skillUser);
         // 通常攻撃を実行
         await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser), false, damagedMonsters, true);
+        // 戦闘終了check
+        if (isBattleOver()) {
+          return;
+        } else if (skipThisMonsterAction(skillUser)) {
+          break;
+        }
       }
     }
   }
@@ -2568,14 +2594,14 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   }
 
   // 7-7. 特殊追加skillの実行
-  if (skillUser.commandInput !== "skipThisTurn" && domainCheck) {
+  if (!isBattleOver() && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && domainCheck) {
     await sleep(300);
     executeSkill(skillUser, executingSkill);
   }
 
   // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   for (const monster of parties[skillUser.enemyTeamID]) {
-    if (damagedMonsters.includes(monster.monsterId)) {
+    if (!isBattleOver() && damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
     }
   }
@@ -2886,6 +2912,10 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser))
   ) {
     // 6. スキル実行処理
+    // 戦闘終了またはskip時は特に表示せず即時return
+    if (isBattleOver() || skipThisMonsterAction(skillUser)) {
+      break;
+    }
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
       break;
@@ -2916,24 +2946,32 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
     await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
 
-    //currentSkill実行後、生存にかかわらず実行するact
+    // currentSkill実行後、生存にかかわらず実行するact 行動skip判定前に実行
     if (currentSkill.afterActionAct) {
       await currentSkill.afterActionAct(skillUser);
     }
-    // 全滅判定後はafterActionAct実行後にexecuteSkillごと終了
+
+    // afterActionAct実行後に全滅判定
     if (isBattleOver()) {
-      return;
-    }
-    //currentSkill実行後、生存している場合はselfAppliedEffect付与
-    if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
-      await currentSkill.selfAppliedEffect(skillUser);
+      break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfApplieEffectやfollowingは実行しない
+    } else if (skipThisMonsterAction(skillUser)) {
+      // skip時はフラグを立て、selfAppliedEffectは実行せず、followingSkill存在時はようす表示だけしてbreak
+    } else {
+      //currentSkill実行後、生存している場合はselfAppliedEffect付与 戦闘継続時のみ実行
+      if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
+        await currentSkill.selfAppliedEffect(skillUser);
+      }
     }
 
     // followingSkillが存在する場合、次のスキルを代入してループ
     if (currentSkill.followingSkill) {
+      await sleep(350);
+      if (skipThisMonsterAction(skillUser)) {
+        waitingMessage(skillUser);
+        break;
+      }
       currentSkill = findSkillByName(currentSkill.followingSkill);
       isFollowingSkill = true;
-      await sleep(350);
     } else if (
       skillUser.abilities.followingAbilities &&
       !hasExecutedFollowingAbilities &&
@@ -2943,13 +2981,17 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       // followingSkillがないかつ追撃特性所持時にそれを実行
       // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
       // executingSkillを渡してskillNameを返り値でもらう
+      await sleep(350);
+      if (skipThisMonsterAction(skillUser)) {
+        waitingMessage(skillUser);
+        break;
+      }
       currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName(executingSkill));
       isFollowingSkill = true;
       // 次のloopに入ってability実行後は、ここには入らずnull指定されて終了
       hasExecutedFollowingAbilities = true;
-      await sleep(350);
     } else {
-      currentSkill = null; // ループを抜けるためにnullを設定
+      break;
     }
   }
   return executedSkills;
@@ -2972,6 +3014,7 @@ async function processHitSequence(
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
+  // 戦闘終了時のみ即時return skip判定はしない
   if (isBattleOver()) {
     return;
   }
@@ -10786,6 +10829,7 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
   document.getElementById("adjustPartyPage").style.display = "block";
   document.getElementById("battlePage").style.display = "none";
   // 戦闘終了フラグを立て、skipしてコマンド画面に
+  col("手動で戦闘終了");
   fieldState.isBattleOver = true;
   setSkipMode(true);
   // skip状態の解除と表示戻し: 次のplayerBのパテ選択決定時に
@@ -11793,12 +11837,42 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
   }, 500);
 }
 
-// 終了時trueを返す
+// 戦闘終了判断
 function isBattleOver() {
-  if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn))) {
+  if (fieldState.isBattleOver) {
+    // 既にこの関数であるいはbtnで終了フラグが立てられている場合
+    return true;
+  } else if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn))) {
+    // どちらかのパテで、全員が死亡かつ次ターン蘇生もない場合 戦闘終了フラグを立てる
     fieldState.isBattleOver = true;
+    col("全滅により戦闘終了フラグが立てられました");
+    return true;
+  } else {
+    return false;
   }
-  return fieldState.isBattleOver;
+}
+
+// skip判断
+function skipThisMonsterAction(skillUser) {
+  // 一応最初に更新
+  isBattleOver();
+  // 敵全員が死亡または亡者で、かつ1体でも次ターン蘇生がいる場合
+  if (
+    !fieldState.isBattleOver &&
+    parties[skillUser.enemyTeamID].every((monster) => monster.flags.isDead || monster.flags.isZombie) &&
+    parties[skillUser.enemyTeamID].some((monster) => monster.flags.reviveNextTurn)
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function waitingMessage(skillUser) {
+  if (skillUser) {
+    col(`${skillUser.name}は ようすを うかがっている！`);
+    displayMessage(`${skillUser.name}は`, "ようすを うかがっている！");
+  }
 }
 
 // 体重計
