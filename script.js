@@ -946,11 +946,11 @@ async function startTurn() {
     for (const monster of party) {
       if (monster.flags.isDead && monster.flags.reviveNextTurn) {
         await sleep(300);
-        delete monster.flags.reviveNextTurn;
         await reviveMonster(monster, 1, true);
-        if (monster.flags.reviveNextTurnActName && monster.abilities.reviveNextTurnAct) {
-          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurnActName);
+        if (monster.abilities.reviveNextTurnAct) {
+          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
         }
+        delete monster.flags.reviveNextTurn;
       }
     }
   }
@@ -7151,10 +7151,10 @@ const skill = [
     },
     alwaysAct: true,
     afterActionAct: async function (skillUser) {
-      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 死亡していても実行
+      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 死亡していても実行 行動skip判定前
     },
     selfAppliedEffect: async function (skillUser) {
-      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact
+      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 行動skipされる可能性あり
     },
     damageModifier: function (skillUser, skillTarget) {
       return Math.pow(1.6, power) - 1;
@@ -11437,8 +11437,7 @@ async function transformTyoma(monster) {
     monster.flags.zombieProbability = 1;
     monster.flags.isUnAscensionable = true;
     monster.flags.zombifyActName = "不滅の美";
-    monster.flags.reviveNextTurn = true;
-    monster.flags.reviveNextTurnActName = "怨嗟のうめき";
+    monster.flags.reviveNextTurn = "怨嗟のうめき";
     displayMessage("＊「オホホホ。", "  おバカさんにも ほどがあるわね。");
   }
   await sleep(400);
