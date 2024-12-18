@@ -3844,8 +3844,12 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   if (parties[skillUser.teamID][0].name === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
   }
+  // バラゾン
+  if (skillUser.name === "怨恨の骸バラモスゾンビ" && skillTarget.buffs.poisoned) {
+    damageModifier += 0.5;
+  }
 
-  // skillTarget対象バフ
+  ///////// skillTarget対象バフ
   // 装備 錬金が一意に定まるように注意
   if (skillTarget.gear) {
     // 装備錬金 - 竜王杖体技10%軽減
@@ -3866,6 +3870,10 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     damageModifier += 0.2;
   }
   if (skillTarget.buffs.murakumo && executingSkill.type === "breath") {
+    damageModifier += 0.5;
+  }
+  // バラゾン
+  if (skillTarget.name === "怨恨の骸バラモスゾンビ") {
     damageModifier += 0.5;
   }
   // 特殊系
@@ -5947,6 +5955,26 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "怨恨の骸バラモスゾンビ",
+    id: "barazon",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 28,
+    status: { HP: 881, MP: 290, atk: 703, def: 311, spd: 393, int: 403 },
+    initialSkill: ["ネクロゴンドの衝撃", "イオナフィスト", "ジェノサイドストーム", "漆黒の儀式"],
+    defaultGear: "kanazuchi",
+    attribute: {
+      initialBuffs: {
+        ioBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.2 },
+    lsTarget: "ゾンビ",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1.5, ice: 1, thunder: 0.5, wind: 1, io: 0, light: 1.5, dark: 0, poisoned: 0, asleep: 1, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
@@ -7159,6 +7187,20 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    barazon: {
+      initialAbilities: [
+        {
+          name: "屍衆の怨霊",
+          disableMessage: true,
+          act: async function (skillUser) {
+            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5)) {
+              skillUser.flags.zombieProbability = 1;
+              skillUser.flags.isUnAscensionable = true;
+            }
+          },
+        },
+      ],
     },
     maen: {
       initialAbilities: [
@@ -10168,6 +10210,70 @@ const skill = [
     ignoreBaiki: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
+  },
+  {
+    name: "ネクロゴンドの衝撃",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 160,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 86,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    damageByLevel: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "イオナフィスト",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 0.5,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 130,
+    ignoreBaiki: true,
+    ignoreEvasion: true,
+    ignorePowerCharge: true,
+    criticalHitProbability: 1,
+  },
+  {
+    name: "ジェノサイドストーム",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 200,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 98,
+    appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.3 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep) {
+        return 2.5;
+      } else if (skillTarget.buffs.maso) {
+        return 1.5;
+      }
+    },
+  },
+  {
+    name: "漆黒の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 52,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.countDown && skillTarget.buffs.countDown.count > 1) {
+        skillTarget.buffs.countDown.count--;
+      }
+    },
   },
   {
     name: "れんごくの翼",
