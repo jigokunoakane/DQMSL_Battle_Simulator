@@ -30,8 +30,9 @@ const imageCache = {};
 let buffDisplayTimers = {};
 //あとはmonster dataとskill dataと装備data および各種特性関数
 
-// 元のsleep関数を保存
-const originalSleep = sleep;
+// アクティブなsleep関数のresolve関数を格納する配列
+let sleepResolvers = [];
+let isSkipMode = false;
 
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
@@ -98,8 +99,10 @@ function decideParty() {
     document.getElementById("pageHeader").style.display = "none";
     document.getElementById("adjustPartyPage").style.display = "none";
     document.getElementById("battlePage").style.display = "block";
-    prepareBattle();
+    // skip状態を解除し、skip解除表示を戻す
+    setSkipMode(false);
     preloadImages();
+    prepareBattle();
   }
 }
 
@@ -4190,11 +4193,6 @@ async function zombifyMonster(monster) {
   updateBattleIcons(monster);
   updateMonsterBuffsDisplay(monster);
   await sleep(300);
-}
-
-// 指定 milliseconds だけ処理を一時停止する関数
-function sleep(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 //AI追撃targetを返す
@@ -10730,26 +10728,70 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
   }
 }
 
-document.getElementById("resetBtn").addEventListener("click", async function () {
-  fieldState.isBattleOver = true;
-  skipBtn(true);
-  //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
-  await originalSleep(700);
-  for (const party of parties) {
-    for (const monster of party) {
-      monster.currentStatus.HP = 200;
-      delete monster.flags.beforeDeathActionCheck;
-      delete monster.flags.isDead;
-      delete monster.flags.isZombie;
-      applyDamage(monster, -1500, -1);
-      applyDamage(monster, -1500, -1, true);
-      updateBattleIcons(monster);
-      displayMessage("戦闘リセット");
-    }
+//////////
+
+// 指定 milliseconds だけ処理を一時停止する関数
+function sleep(milliseconds) {
+  if (fieldState.isBattleOver || isSkipMode) {
+    return Promise.resolve(); // 戦闘終了時とskipSleep設定時は即時解決
   }
-  await prepareBattle();
-  skipBtn(false);
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(resolve, milliseconds);
+    sleepResolvers.push({ resolve, timeoutId }); // resolve関数とtimeoutIdを保持して外部からclear可能に
+  });
+}
+
+// 状況によらず指定秒数待機
+//function originalSleep(milliseconds) { return new Promise((resolve) => setTimeout(resolve, milliseconds)); }
+// ターン開始時および戦闘再開時にsetSkipModeをfalseにする
+
+// 既存のsleep処理を中断し、fieldStateをskipMode化 (isSkipModeは実行後にfalseに戻すこと) skip解除表示に変更
+function setSkipMode(willSkip = false) {
+  if (willSkip) {
+    document.getElementById("skipBtn").textContent = "skip解除";
+    isSkipMode = true;
+    sleepResolvers.forEach(({ resolve, timeoutId }) => {
+      clearTimeout(timeoutId); // interruptSleep
+      resolve(); // Promiseを解決
+    });
+    sleepResolvers = []; // 配列をクリア
+  } else {
+    document.getElementById("skipBtn").textContent = "skip";
+    isSkipMode = false;
+  }
+}
+
+// コマンド中または戦闘中にskip状態にする  skip状態の解除と表示戻し: せずに維持したまま次ターンコマンド画面に
+document.getElementById("skipBtn").addEventListener("click", function () {
+  if (document.getElementById("skipBtn").textContent === "skip解除") {
+    setSkipMode(false);
+  } else {
+    setSkipMode(true);
+  }
 });
+
+document.getElementById("resetBtn").addEventListener("click", async function () {
+  col("戦闘リセット");
+  fieldState.isBattleOver = true;
+  // 戦闘終了フラグを立て、既存のsleep処理を中断、skip状態化、skip解除表示
+  setSkipMode(true);
+  await prepareBattle();
+  // skip状態の解除と表示戻し: コマンド画面になったら
+  setSkipMode(false);
+});
+
+document.getElementById("finishBtn").addEventListener("click", async function () {
+  //displayで全体切り替え、battle画面へ
+  document.getElementById("pageHeader").style.display = "block";
+  document.getElementById("adjustPartyPage").style.display = "block";
+  document.getElementById("battlePage").style.display = "none";
+  // 戦闘終了フラグを立て、skipしてコマンド画面に
+  fieldState.isBattleOver = true;
+  setSkipMode(true);
+  // skip状態の解除と表示戻し: 次のplayerBのパテ選択決定時に
+});
+
+////////////////
 
 document.getElementById("floBtn").addEventListener("click", function () {
   executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
@@ -10760,40 +10802,6 @@ document.getElementById("harvestBtn").addEventListener("click", function () {
 });
 document.getElementById("endBtn").addEventListener("click", function () {
   executeSkill(parties[0][0], findSkillByName("debugbreath"), parties[1][0]);
-});
-
-document.getElementById("skipBtn").addEventListener("click", function () {
-  if (document.getElementById("skipBtn").textContent === "skip解除") {
-    skipBtn(false);
-  } else {
-    skipBtn(true);
-  }
-});
-
-function skipBtn(isSkip = false) {
-  if (isSkip) {
-    document.getElementById("skipBtn").textContent = "skip解除";
-    sleep = function (milliseconds) {
-      return Promise.resolve(); // 即時解決するPromiseを返す
-    };
-  } else {
-    document.getElementById("skipBtn").textContent = "skip";
-    // 元のsleep関数に戻す
-    sleep = originalSleep;
-  }
-}
-
-document.getElementById("finishBtn").addEventListener("click", async function () {
-  //displayで全体切り替え、battle画面へ
-  document.getElementById("pageHeader").style.display = "block";
-  document.getElementById("adjustPartyPage").style.display = "block";
-  document.getElementById("battlePage").style.display = "none";
-  // 戦闘終了フラグを立て、skipしてコマンド画面に
-  fieldState.isBattleOver = true;
-  skipBtn(true);
-  //500以上の処理が実行中の場合良くない sleepがすべてこの秒数未満である必要
-  await originalSleep(1000);
-  skipBtn(false);
 });
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
