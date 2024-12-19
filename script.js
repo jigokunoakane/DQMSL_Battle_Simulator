@@ -5995,6 +5995,27 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "デスソシスト",
+    id: "desuso",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 27,
+    status: { HP: 812, MP: 304, atk: 393, def: 625, spd: 325, int: 504 },
+    initialSkill: ["メガントマータ", "防壁反転", "亡者の儀式", "鮮烈な稲妻"],
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+        spellBarrier: { strength: 2 },
+        mindBarrier: { keepOnDeath: true },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
+    },
+    seed: { atk: 0, def: 65, spd: 0, int: 55 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1.5, ice: 0.5, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
@@ -10347,6 +10368,71 @@ const skill = [
     appliedEffect: "disruptiveWave",
   },
   {
+    name: "メガントマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 48,
+    zakiProbability: 0.41,
+  },
+  {
+    name: "亡者の儀式",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 152,
+    act: async function (skillUser, skillTarget) {
+      ascension(skillTarget);
+    },
+    followingSkill: "亡者の儀式後半",
+  },
+  {
+    name: "亡者の儀式後半",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 152,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          reviveMonster(monster); //awaitしない
+          // MP回復付与
+        }
+      }
+      await sleep(740);
+    },
+  },
+  {
+    name: "鮮烈な稲妻",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    appliedEffect: { thunderResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
     name: "ピオリム",
     type: "spell",
     howToCalculate: "none",
@@ -12008,7 +12094,11 @@ function adjustFieldStateDisplay() {
 }
 // 昇天
 function ascension(monster, ignoreUnAscensionable = false) {
-  if (!monster.flags.isZombie || (!ignoreUnAscensionable && monster.flags.isUnAscensionable)) {
+  if (!monster.flags.isZombie) {
+    return;
+  }
+  if (!ignoreUnAscensionable && monster.flags.isUnAscensionable) {
+    displayMiss(monster);
     return;
   }
   delete monster.flags.isZombie;
