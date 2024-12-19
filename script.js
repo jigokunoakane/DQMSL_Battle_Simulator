@@ -945,10 +945,13 @@ async function startTurn() {
   for (const party of parties) {
     for (const monster of party) {
       if (monster.flags.isDead && monster.flags.reviveNextTurn) {
+        displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
         await sleep(300);
         await reviveMonster(monster, 1, true);
         if (monster.abilities.reviveNextTurnAct) {
           await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
+        } else {
+          applyDamage(monster, monster.defaultStatus.MP, -1, true); //actある場合はact内で、それ以外はここでMP全回復
         }
         delete monster.flags.reviveNextTurn;
       }
@@ -2848,7 +2851,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     !target.buffs.zombifyBlock &&
     (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ") &&
     ((target.flags.zombieProbability && Math.random() < target.flags.zombieProbability) ||
-      (target.race === "ゾンビ" && target.name !== "ラザマナス" && parties[target.teamID].some((target) => target.name === "ラザマナス")))
+      (target.race === "ゾンビ" && target.name !== "ラザマナス" && fieldState.turnNum < 3 && parties[target.teamID].some((target) => target.name === "ラザマナス")))
   ) {
     target.flags.willZombify = true;
   }
@@ -3824,11 +3827,16 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   if (skillUser.buffs.dreamBuff && executingSkill.element === "none") {
     damageModifier += 0.15;
   }
+  // バラゾン
+  if (skillUser.name === "怨恨の骸バラモスゾンビ" && skillTarget.buffs.poisoned) {
+    damageModifier += 0.5;
+  }
 
   // 魔壊
   if (skillUser.buffs.makaiBoost && executingSkill.element === "dark") {
     damageModifier += skillUser.buffs.makaiBoost.strength;
   }
+
   // シャムダLS
   if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
     damageModifier += 0.25;
@@ -3840,13 +3848,13 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   ) {
     damageModifier += 0.2;
   }
-  // 斬撃up
+  // ネルLS 斬撃up
   if (parties[skillUser.teamID][0].name === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
   }
-  // バラゾン
-  if (skillUser.name === "怨恨の骸バラモスゾンビ" && skillTarget.buffs.poisoned) {
-    damageModifier += 0.5;
+  // ラザマLS ゾンビ斬撃息up
+  if (parties[skillUser.teamID][0].name === "ラザマナス" && skillUser.race === "ゾンビ" && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
+    damageModifier += 0.1;
   }
 
   ///////// skillTarget対象バフ
@@ -5955,6 +5963,28 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ラザマナス",
+    id: "razama",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 30,
+    status: { HP: 1055, MP: 373, atk: 558, def: 517, spd: 412, int: 253 },
+    initialSkill: ["黄金のカギ爪", "紫電の瘴気", "ホラーブレス", "黄泉がえりの舞い"],
+    anotherSkills: ["防壁反転"],
+    defaultGear: "familyNailBeast",
+    attribute: {
+      initialBuffs: {
+        protection: { strength: 0.5, duration: 3 },
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { spd: 1.18 },
+    lsTarget: "ゾンビ",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 0.5, io: 0.5, light: 1, dark: 0, poisoned: 0, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "怨恨の骸バラモスゾンビ",
     id: "barazon",
     rank: 10,
@@ -5962,6 +5992,7 @@ const monsters = [
     weight: 28,
     status: { HP: 881, MP: 290, atk: 703, def: 311, spd: 393, int: 403 },
     initialSkill: ["ネクロゴンドの衝撃", "イオナフィスト", "ジェノサイドストーム", "漆黒の儀式"],
+    initialAIDisabledSkills: ["漆黒の儀式"],
     defaultGear: "kanazuchi",
     attribute: {
       initialBuffs: {
@@ -5982,6 +6013,8 @@ const monsters = [
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ザオリク"],
+    anotherSkills: ["防壁反転"],
+    initialAIDisabledSkills: ["れんごくの翼"],
     attribute: {
       initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 1 },
@@ -7219,6 +7252,17 @@ function getMonsterAbilities(monsterId) {
               skillUser.flags.zombieProbability = 1;
               skillUser.flags.isUnAscensionable = true;
             }
+          },
+        },
+      ],
+    },
+    razama: {
+      initialAbilities: [
+        {
+          name: "不滅の王",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.reviveNextTurn = "不滅の王";
           },
         },
       ],
@@ -10225,6 +10269,69 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
+    name: "黄金のカギ爪",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.03,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 48,
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.maso || skillTarget.buffs.paralyzed) {
+        return 2.5;
+      }
+    },
+  },
+  {
+    name: "紫電の瘴気",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 45,
+    appliedEffect: { poisoned: { probability: 0.8 } },
+  },
+  {
+    name: "ホラーブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 210,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 108,
+    appliedEffect: { poisoned: { probability: 1 }, asleep: { probability: 0.34 } },
+    followingSkill: "ホラーブレス後半",
+  },
+  {
+    name: "ホラーブレス後半",
+    type: "breath",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { countDown: { count: 2, probability: 0.66 } },
+  },
+  {
+    name: "黄泉がえりの舞い",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 118,
+    act: async function (skillUser, skillTarget) {
+      await reviveMonster(skillTarget);
+      applyBuff(skillTarget, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+    },
+  },
+  {
     name: "ネクロゴンドの衝撃",
     type: "martial",
     howToCalculate: "fix",
@@ -10319,6 +10426,9 @@ const skill = [
     MPcost: 120,
     ignoreSubstitute: true,
     appliedEffect: { dotDamage: { strength: 0.2 } },
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}は`, "プロミネンスを呼び出した！");
+    },
   },
   {
     name: "時ゆがめる暗霧",
