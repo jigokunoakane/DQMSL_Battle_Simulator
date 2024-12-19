@@ -2581,10 +2581,12 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   // 7-6. 毒・継続ダメージ処理
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
     await sleep(400);
+    const baseRatio = 0.16;
     const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-    const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.poisoned.strength * poisonDepth);
+    const damage = Math.floor(skillUser.defaultStatus.HP * baseRatio * poisonDepth);
     console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "もうどくにおかされている！");
+    await sleep(200);
     applyDamage(skillUser, damage);
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
@@ -2593,6 +2595,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
     console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
+    await sleep(200);
     applyDamage(skillUser, damage);
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
