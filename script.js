@@ -2539,16 +2539,16 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster, executingSkill, executedSkills))) {
         continue;
       }
+      await sleep(300);
       if (!ability.disableMessage) {
         if (ability.hasOwnProperty("message")) {
           ability.message(monster);
-          await sleep(150);
+          await sleep(300);
         } else if (ability.hasOwnProperty("name")) {
           displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-          await sleep(150);
+          await sleep(300);
         }
       }
-      await sleep(150);
       //実行済skillを渡して実行 最初の要素が選択したskill
       await ability.act(monster, executingSkill, executedSkills);
       //実行後の記録
@@ -2624,16 +2624,16 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
         continue;
       }
+      await sleep(300);
       if (!ability.disableMessage) {
         if (ability.hasOwnProperty("message")) {
           ability.message(monster);
-          await sleep(150);
+          await sleep(300);
         } else if (ability.hasOwnProperty("name")) {
           displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-          await sleep(150);
+          await sleep(300);
         }
       }
-      await sleep(150);
       //実行済skillを渡して実行 最初の要素が選択したskill  反撃先としてskillUserを渡す
       await ability.act(monster, skillUser);
       //実行後の記録
@@ -4179,10 +4179,10 @@ async function executeDeathAbilities(monster) {
     if (!ability.disableMessage) {
       if (ability.hasOwnProperty("message")) {
         ability.message(monster);
-        await sleep(150);
+        await sleep(300);
       } else if (ability.hasOwnProperty("name")) {
         displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
-        await sleep(150);
+        await sleep(300);
       }
     }
     await ability.act(monster);
