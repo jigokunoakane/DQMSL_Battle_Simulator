@@ -10495,7 +10495,11 @@ const skill = [
     order: "anchor",
     MPcost: 152,
     act: async function (skillUser, skillTarget) {
-      ascension(skillTarget);
+      if (skillTarget.name === "デスソシスト") {
+        displayMiss(skillTarget);
+      } else {
+        ascension(skillTarget);
+      }
     },
     followingSkill: "亡者の儀式後半",
   },
