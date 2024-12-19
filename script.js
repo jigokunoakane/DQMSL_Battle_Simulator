@@ -2112,22 +2112,19 @@ async function processMonsterAction(skillUser) {
   if (isBattleOver()) {
     removeAllStickOut();
     return;
-  } else if (skipThisMonsterAction(skillUser)) {
-    // 行動skipの場合は7. 行動後処理にスキップ
-    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
-    waitingMessage(skillUser);
-    await sleep(200);
-    await postActionProcess(skillUser, null, null, damagedMonsters);
-    return;
-  }
-
-  // 状態異常確認
-  if (hasAbnormality(skillUser)) {
+  } else if (hasAbnormality(skillUser)) {
     // 状態異常の場合は7. 行動後処理にスキップ
     document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
     const abnormalityMessage = hasAbnormality(skillUser);
     console.log(`${skillUser.name}は${abnormalityMessage}`);
     displayMessage(`${skillUser.name}は`, `${abnormalityMessage}`);
+    await postActionProcess(skillUser, null, null, damagedMonsters);
+    return;
+  } else if (skipThisMonsterAction(skillUser)) {
+    // 行動skipの場合は7. 行動後処理にスキップ
+    document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
+    waitingMessage(skillUser);
+    await sleep(200);
     await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
