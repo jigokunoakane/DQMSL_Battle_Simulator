@@ -8081,17 +8081,9 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 92,
     appliedEffect: "divineWave",
-    followingSkill: "パニッシュスパーク後半",
-  },
-  {
-    name: "パニッシュスパーク後半",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "enemy",
-    MPcost: 0,
-    appliedEffect: { slashSeal: {} },
+    act: function (skillUser, skillTarget) {
+      applyBuff(skillTarget, { slashSeal: {} });
+    },
   },
   {
     name: "堕天使の理",
@@ -12271,6 +12263,6 @@ function isSkillUnavailableForAI(skillName) {
     "圧縮マダンテ",
     "呪いのベホマズン",
   ];
-  const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "パニッシュスパーク", "いてつくマヒャド"];
+  const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
 }
