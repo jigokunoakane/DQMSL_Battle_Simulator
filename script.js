@@ -1242,6 +1242,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     ioResistance: { max: 3, min: -3 },
     lightResistance: { max: 3, min: -3 },
     darkResistance: { max: 3, min: -3 },
+    zakiResistance: { max: 3, min: -3 },
   };
 
   // Resistance 系バフの場合の属性名
@@ -1253,6 +1254,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     ioResistance: "io",
     lightResistance: "light",
     darkResistance: "dark",
+    zakiResistance: "zaki",
   };
 
   //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
@@ -1448,7 +1450,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         continue;
       }
     } else {
-      // 2-3. Resistance系バフと状態異常以外の場合の確率判定
+      // 2-3. Resistance系バフのうち耐性計算をしない上昇分と、状態異常以外の場合の確率判定
       if (Math.random() > probability) {
         continue;
       }
@@ -3961,11 +3963,12 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
 }
 
 //damageCalc、耐性表示、耐性ダウン付与、状態異常耐性取得で実行。耐性ダウン確率判定ではskillUserをnull指定
-function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = null) {
+function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false) {
   const element = executingSkillElement;
   const baseResistance = skillTarget.resistance[element] ?? 1;
   const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; //状態異常やザキと区別
 
   // --- 無属性の処理 ---
   if (element === "notskill") {
@@ -3999,7 +4002,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
       }
       // プリズムヴェール
-      if (skillTarget.buffs.prismVeil) {
+      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
         normalResistanceIndex -= skillTarget.buffs.prismVeil.strength;
       }
       // インデックスの範囲を制限 最大でも無効
@@ -4010,14 +4013,14 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 
     // skillUserが渡された場合のみ使い手効果を適用
     if (skillUser) {
-      const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
       if (skillUser.buffs[element + "Break"]) {
+        // こちらは状態異常使い手なども反映
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
         if (skillUser.buffs[element + "BreakBoost"]) {
           normalResistanceIndex += skillUser.buffs[element + "BreakBoost"].strength;
         }
       } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
-        //全属性の使い手 状態異常以外 普通の属性の場合に処理
+        // 全属性の使い手 こちらは状態異常以外の7属性に限定
         normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
       }
       normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
@@ -4045,7 +4048,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         distortedResistanceIndex += skillTarget.buffs[element + "Resistance"].strength;
       }
       // プリズムヴェール
-      if (skillTarget.buffs.prismVeil) {
+      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
         normalResistanceIndex += skillTarget.buffs.prismVeil.strength;
       }
     }
@@ -4069,7 +4072,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
         // distortedResistanceを更新
         distortedResistance = resistanceValues[distortedResistanceIndex];
-      } else if (skillUser.buffs.allElementalBreak) {
+      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
         distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
         distortedResistanceIndex -= skillUser.buffs.allElementalBreak.strength;
         distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
@@ -11927,6 +11930,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     ioResistance: "イオ耐性",
     lightResistance: "デイン耐性",
     darkResistance: "ドルマ耐性",
+    zakiResistance: "ザキ耐性",
   };
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
