@@ -11399,14 +11399,16 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // isDeadの場合、すべてのbuffIconを非表示化
   if (monster.flags.isDead) {
     buffIcons.forEach((icon) => (icon.style.display = "none"));
-    // 味方側の場合 棺桶だけ表示
+    let iconIndex = 0;
+    // 味方側の場合 棺桶、蘇生封じ の順に表示
     if (newId.includes("ally")) {
-      buffIcons[0].src = "images/buffIcons/isDead.png";
-      buffIcons[0].style.display = "block"; // 表示する
-      // もし所持していれば蘇生封じ表示
+      buffIcons[iconIndex].src = "images/buffIcons/isDead.png";
+      buffIcons[iconIndex].style.display = "block";
+      iconIndex++;
       if (monster.buffs.reviveBlock) {
-        buffIcons[1].src = monster.buffs.reviveBlock.unDispellableByRadiantWave ? "images/buffIcons/reviveBlockunDispellableByRadiantWave.png" : "images/buffIcons/reviveBlock.png";
-        buffIcons[1].style.display = "block";
+        buffIcons[iconIndex].src = monster.buffs.reviveBlock.unDispellableByRadiantWave ? "images/buffIcons/reviveBlockunDispellableByRadiantWave.png" : "images/buffIcons/reviveBlock.png";
+        buffIcons[iconIndex].style.display = "block";
+        iconIndex++;
       }
     }
     return;
@@ -11415,10 +11417,22 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 亡者の場合、すべてのbuffIconを非表示化
   if (monster.flags.isZombie) {
     buffIcons.forEach((icon) => (icon.style.display = "none"));
-    // 味方側の場合 亡者だけ表示
+    let iconIndex = 0;
+    // 味方側の場合 亡者、封印、蘇生封じ の順に表示
     if (newId.includes("ally")) {
-      buffIcons[0].src = "images/buffIcons/isZombie.png";
-      buffIcons[0].style.display = "block"; // 表示する
+      buffIcons[iconIndex].src = "images/buffIcons/isZombie.png";
+      buffIcons[iconIndex].style.display = "block";
+      iconIndex++;
+      if (monster.buffs.sealed) {
+        buffIcons[iconIndex].src = "images/buffIcons/sealed.png";
+        buffIcons[iconIndex].style.display = "block";
+        iconIndex++;
+      }
+      if (monster.buffs.reviveBlock) {
+        buffIcons[iconIndex].src = monster.buffs.reviveBlock.unDispellableByRadiantWave ? "images/buffIcons/reviveBlockunDispellableByRadiantWave.png" : "images/buffIcons/reviveBlock.png";
+        buffIcons[iconIndex].style.display = "block";
+        iconIndex++;
+      }
     }
     return;
   }
