@@ -10396,7 +10396,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 108,
-    appliedEffect: { poisoned: { probability: 1 }, asleep: { probability: 0.34 } },
+    appliedEffect: { poisoned: { probability: 1 }, asleep: { probability: 0.3 } },
     followingSkill: "ホラーブレス後半",
   },
   {
@@ -10461,7 +10461,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 98,
-    appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.3 } },
+    appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.25 } },
     damageMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep) {
         return 2.5;
@@ -10531,7 +10531,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 75,
     damageByLevel: true,
-    appliedEffect: { spdUp: { strength: -1, probability: 0.73 }, poisoned: { probability: 0.8 } },
+    appliedEffect: { spdUp: { strength: -1, probability: 0.6 }, poisoned: { probability: 0.8 } },
   },
   {
     name: "邪悪な残り火",
