@@ -2847,7 +2847,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与 applySkipDeathAbilityがtrue指定(毒等と供物)の場合は付与しない
   if (
     !target.buffs.tagTransformation &&
-    (!target.buffs.revive || target.buffs.reviveBlock) &&
+    !(target.buffs.revive && !target.buffs.reviveBlock) &&
     !target.buffs.zombifyBlock &&
     (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ") &&
     ((target.flags.zombieProbability && Math.random() < target.flags.zombieProbability) ||
@@ -2856,12 +2856,16 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     target.flags.willZombify = true;
   }
 
-  // タッグおよびリザオ蘇生予定がない完全死亡で、亡者化もしない場合、蘇生封じ確定化
-  if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock) && !target.flags.willZombify && target.buffs.reviveBlock) {
-    delete target.buffs.reviveBlock.name;
-    delete target.buffs.reviveBlock.duration;
-    delete target.buffs.reviveBlock.decreaseTurnEnd;
-    delete target.buffs.reviveBlock.removeAtTurnStart;
+  // 蘇生封じ tag変身時は削除 それ以外はpropertyを削除して永久確定化(ただし光の波動解除可能は残すため、亡者化中の光の波動や死者の解放は有効)
+  if (target.buffs.reviveBlock) {
+    if (target.buffs.tagTransformation) {
+      delete target.buffs.reviveBlock;
+    } else {
+      delete target.buffs.reviveBlock.name;
+      delete target.buffs.reviveBlock.duration;
+      delete target.buffs.reviveBlock.decreaseTurnEnd;
+      delete target.buffs.reviveBlock.removeAtTurnStart;
+    }
   }
 
   // tag変化もゾンビ化もしない場合のみ、コマンドスキップ
