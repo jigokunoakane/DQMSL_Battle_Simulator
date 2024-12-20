@@ -7270,6 +7270,58 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+      supportAbilities: {
+        1: [
+          {
+            name: "死者の解放",
+            unavailableIf: (skillUser) => {
+              parties[skillUser.teamID].some(
+                (monster) => monster.abilities && monster.abilities.additionalDeathAbilities && monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "死者の解放")
+              );
+            },
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス") {
+                  monster.abilities.additionalDeathAbilities.push({
+                    name: "死者の解放",
+                    message: function (skillUser) {
+                      displayMessage(`${skillUser.name} がチカラつき`, "死者の解放 の効果が発動！");
+                    },
+                    act: async function (skillUser) {
+                      for (const monster of parties[skillUser.teamID]) {
+                        if (monster.race === "ゾンビ") {
+                          const newBuffs = {};
+                          let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
+                          const deleteKeys = ["slashSeal", "martialSeal", "spellSeal", "breathSeal", "reviveBlock", "healBlock"];
+                          for (const key in monster.buffs) {
+                            const value = monster.buffs[key];
+                            if (!value.unDispellableByRadiantWave && deleteKeys.includes(key)) {
+                              debuffRemoved = true; // 削除フラグ
+                            } else {
+                              newBuffs[key] = value;
+                            }
+                          }
+                          monster.buffs = newBuffs;
+                          if (!debuffRemoved) {
+                            displayMiss(monster);
+                          } else {
+                            updateCurrentStatus(monster);
+                            updateMonsterBuffsDisplay(monster);
+                          }
+                        } else {
+                          displayMiss(skillUser);
+                        }
+                      }
+                    },
+                  });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     maen: {
       initialAbilities: [
