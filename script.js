@@ -3979,76 +3979,32 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     if (skillTarget.buffs.nonElementalResistance) {
       noneResistance = 0;
     }
-    if (!distorted && skillTarget.name === "ダグジャガルマ") {
-      noneResistance = -1; //非歪曲
-    } else if (skillTarget.name === "ダグジャガルマ") {
-      noneResistance = 1.5; //歪曲
+    if (skillTarget.name === "ダグジャガルマ") {
+      if (distorted) {
+        noneResistance = 1.5; //歪曲
+      } else {
+        noneResistance = -1; //非歪曲
+      }
     }
     return noneResistance;
   }
 
-  // --- 通常時の処理 ---
-  if (!distorted) {
-    let normalResistanceIndex = resistanceValues.indexOf(baseResistance);
-
-    //もともと無効や吸収のときは処理せずにそのまま格納 それ以外の場合はバフ等があれば反映した後、最大でも無効止まりにする
-    if (normalResistanceIndex !== 0 && normalResistanceIndex !== 1) {
-      // 装備効果
-      if (skillTarget.gear?.[element + "GearResistance"]) {
-        normalResistanceIndex -= skillTarget.gear[element + "GearResistance"];
-      }
-      // 属性耐性バフ効果
-      if (skillTarget.buffs[element + "Resistance"]) {
-        normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
-      }
-      // プリズムヴェール
-      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
-        normalResistanceIndex -= skillTarget.buffs.prismVeil.strength;
-      }
-      // インデックスの範囲を制限 最大でも無効
-      normalResistanceIndex = Math.max(1, Math.min(normalResistanceIndex, 6));
-    }
-    //ここまでの処理の結果を格納
-    let normalResistance = resistanceValues[normalResistanceIndex];
-
-    // skillUserが渡された場合のみ使い手効果を適用
-    if (skillUser) {
-      if (skillUser.buffs[element + "Break"]) {
-        // こちらは状態異常使い手なども反映
-        normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
-        if (skillUser.buffs[element + "BreakBoost"]) {
-          normalResistanceIndex += skillUser.buffs[element + "BreakBoost"].strength;
-        }
-      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
-        // 全属性の使い手 こちらは状態異常以外の7属性に限定
-        normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
-      }
-      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
-      normalResistance = resistanceValues[normalResistanceIndex];
-      // 大弱点・超弱点処理
-      if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
-        normalResistance = 2;
-      } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
-        normalResistance = 2.5;
-      }
-    }
-    return normalResistance;
-  } else {
-    // --- 属性歪曲時の処理 ---
+  // --- 属性歪曲時 かつ歪曲対象の7属性の処理 ---
+  if (distorted && AllElements.includes(element)) {
     let distortedResistanceIndex = resistanceValues.indexOf(baseResistance);
 
-    // 装備効果・属性耐性バフ効果 反転後に無効吸収になる弱点普通は変化させない
+    // 装備効果・属性耐性バフデバフ効果 反転後に無効吸収になる弱点普通は変化させない
     if (distortedResistanceIndex !== 5 && distortedResistanceIndex !== 6) {
       // 装備効果
       if (skillTarget.gear?.[element + "GearResistance"]) {
         distortedResistanceIndex += skillTarget.gear[element + "GearResistance"];
       }
-      // 属性耐性バフ効果
+      // 属性耐性バフデバフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
         distortedResistanceIndex += skillTarget.buffs[element + "Resistance"].strength;
       }
       // プリズムヴェール
-      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
+      if (skillTarget.buffs.prismVeil) {
         normalResistanceIndex += skillTarget.buffs.prismVeil.strength;
       }
     }
@@ -4072,7 +4028,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
         // distortedResistanceを更新
         distortedResistance = resistanceValues[distortedResistanceIndex];
-      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
+      } else if (skillUser.buffs.allElementalBreak) {
         distortedResistanceIndex = resistanceValues.indexOf(distortedResistance);
         distortedResistanceIndex -= skillUser.buffs.allElementalBreak.strength;
         distortedResistanceIndex = Math.max(0, Math.min(distortedResistanceIndex, 6));
@@ -4081,6 +4037,52 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     }
 
     return distortedResistance;
+  } else {
+    // --- 通常時 または状態異常耐性の処理 ---
+    let normalResistanceIndex = resistanceValues.indexOf(baseResistance);
+
+    //もともと無効や吸収のときは処理せずにそのまま格納 それ以外の場合はバフ等があれば反映した後、最大でも無効止まりにする
+    if (normalResistanceIndex !== 0 && normalResistanceIndex !== 1) {
+      // 装備効果
+      if (skillTarget.gear?.[element + "GearResistance"]) {
+        normalResistanceIndex -= skillTarget.gear[element + "GearResistance"];
+      }
+      // 属性耐性バフデバフ効果
+      if (skillTarget.buffs[element + "Resistance"]) {
+        normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
+      }
+      // プリズムヴェール
+      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
+        normalResistanceIndex -= skillTarget.buffs.prismVeil.strength;
+      }
+      // インデックスの範囲を制限 最大でも無効
+      normalResistanceIndex = Math.max(1, Math.min(normalResistanceIndex, 6));
+    }
+    //ここまでの処理の結果を格納
+    let normalResistance = resistanceValues[normalResistanceIndex];
+
+    // skillUserが渡された場合のみ使い手効果を適用
+    if (skillUser) {
+      if (skillUser.buffs[element + "Break"]) {
+        // 通常ブレイク こちらは状態異常使い手なども反映
+        normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
+        if (skillUser.buffs[element + "BreakBoost"]) {
+          normalResistanceIndex += skillUser.buffs[element + "BreakBoost"].strength;
+        }
+      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
+        // 全属性の使い手 こちらは状態異常以外の7属性に限定
+        normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
+      }
+      normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
+      normalResistance = resistanceValues[normalResistanceIndex];
+      // 大弱点・超弱点処理
+      if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
+        normalResistance = 2;
+      } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
+        normalResistance = 2.5;
+      }
+    }
+    return normalResistance;
   }
 }
 
