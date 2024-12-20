@@ -5956,7 +5956,7 @@ const monsters = [
       },
       evenTurnBuffs: { defUp: { strength: 1 }, spdUp: { strength: 1 }, breathBarrier: { strength: 1 } },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 85, def: 0, spd: 35, int: 0 },
     ls: { HP: 1.18, atk: 1.15 },
     lsTarget: "魔獣",
     AINormalAttack: [2, 3],
@@ -6036,7 +6036,7 @@ const monsters = [
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ザオリク"],
-    anotherSkills: ["防壁反転"],
+    anotherSkills: ["防壁反転", "ヴェレマータ"],
     initialAIDisabledSkills: ["れんごくの翼"],
     attribute: {
       initialBuffs: {
@@ -6058,6 +6058,7 @@ const monsters = [
     weight: 27,
     status: { HP: 812, MP: 304, atk: 393, def: 625, spd: 325, int: 504 },
     initialSkill: ["メガントマータ", "防壁反転", "亡者の儀式", "鮮烈な稲妻"],
+    anotherSkills: ["ヴェレマータ"],
     attribute: {
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
@@ -10627,6 +10628,27 @@ const skill = [
     hitNum: 5,
     MPcost: 45,
     appliedEffect: { thunderResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
+    name: "ヴェレマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 300,
+    minIntDamage: 130,
+    maxInt: 900,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 73,
+    appliedEffect: { poisoned: { probability: 0.8 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        return 1.2;
+      }
+    },
   },
   {
     name: "ピオリム",
