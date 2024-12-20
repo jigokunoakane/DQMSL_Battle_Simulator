@@ -4086,6 +4086,21 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
   }
 }
 
+// 歪曲時に全モンスターに対して、もとが普通弱点の属性の耐性アップダウンバフデバフを削除
+function deleteElementalBuffs() {
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
+  for (const party of parties) {
+    for (const monster of party) {
+      for (const element of AllElements) {
+        if (monster.resistance[element] >= 1) {
+          delete monster.buffs[`${element}Resistance`];
+        }
+      }
+      updateMonsterBuffsDisplay(monster);
+    }
+  }
+}
+
 // recentlyを持っているmonsterをkilledに追加して回収、ついでに反射死判定
 function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection) {
   if (skillTarget.flags.recentlyKilled) {
@@ -8985,6 +9000,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       if (!fieldState.psychoField) {
         fieldState.isDistorted = true;
+        deleteElementalBuffs();
         adjustFieldStateDisplay();
       }
     },
@@ -12054,6 +12070,7 @@ async function transformTyoma(monster) {
     if (!fieldState.psychoField) {
       fieldState.isDistorted = true;
       fieldState.isPermanentDistorted = true;
+      deleteElementalBuffs();
       adjustFieldStateDisplay();
     }
   } else if (monster.name === "新たなる神ラプソーン") {
