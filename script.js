@@ -380,25 +380,24 @@ document.getElementById("commandGuardBtn").addEventListener("click", function ()
 
 ////////////AI
 document.getElementById("commandAIBtn").addEventListener("click", function () {
-  // 最後に戻すため、コマンド可能な最後のmonsterのcurrentMonsterIndexを保持 コマンド可能なときのみ増やす 最初は確定でコマンド可能なので、-1してから+1
-  let tempSelectingMonsterIndex = currentMonsterIndex - 1;
+  // 進捗状況を管理する変数tempSelectingMonsterIndexを現在値にセットしてstart
+  let tempSelectingMonsterIndex = currentMonsterIndex;
 
-  while (currentMonsterIndex < parties[currentTeamIndex].length) {
-    const skillUser = parties[currentTeamIndex][currentMonsterIndex];
+  // index最大4まで連続処理
+  while (tempSelectingMonsterIndex < parties[currentTeamIndex].length) {
+    const skillUser = parties[currentTeamIndex][tempSelectingMonsterIndex];
     if (!isDead(skillUser) && !skillUser.flags.isZombie && !hasAbnormality(skillUser)) {
+      // コマンド可能な場合、AI指定して、現在選択中のindexを更新
       skillUser.commandInput = "normalAICommand";
-      tempSelectingMonsterIndex += 1;
+      currentMonsterIndex = tempSelectingMonsterIndex;
     }
-    currentMonsterIndex += 1;
+    tempSelectingMonsterIndex++;
   }
+  //tempSelectingMonsterIndexが5になって停止
 
   // すべてのモンスターについて処理終了時
-  if (currentMonsterIndex === parties[currentTeamIndex].length) {
-    // すべてのモンスターの選択が終了した場合 currentMonsterIndex を最後に選択されたモンスターに戻す
-    currentMonsterIndex = tempSelectingMonsterIndex;
-    adjustMonsterIconStickOut();
-    askFinishCommand();
-  }
+  adjustMonsterIconStickOut();
+  askFinishCommand();
 });
 
 // startSelectingCommand() とくぎ選択開始
