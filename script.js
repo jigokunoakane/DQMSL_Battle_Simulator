@@ -552,72 +552,49 @@ document.querySelectorAll(".selectSkillTarget").forEach((img) => {
   });
 });
 
-//allでyes選択時、skillTarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmonsterのskill選択に移行する
+// allでyes選択時、skillTarget選択後、ぼうぎょ選択、target:me選択後に起動。次のmonsterのskill選択に移行する
+// 行動不能なモンスターのcommandInputは設定済なので単純に増加
 function finishSelectingEachMonstersCommand() {
   document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
 
-  // 一時的にcurrentMonsterIndexを保持
-  let tempSelectingMonsterIndex = currentMonsterIndex;
+  // [0][4]の終了時、5が引数に渡されてreturn 100
+  const nextMonsterIndex = findNextActionableMonsterIndex(currentMonsterIndex + 1);
 
-  // 次のモンスターの選択処理に移動
-  currentMonsterIndex += 1;
-
-  // 次の行動可能なモンスターが見つかるまでループ
-  while (
-    currentMonsterIndex < parties[currentTeamIndex].length &&
-    (isDead(parties[currentTeamIndex][currentMonsterIndex]) || parties[currentTeamIndex][currentMonsterIndex].flags.isZombie || hasAbnormality(parties[currentTeamIndex][currentMonsterIndex]))
-  ) {
-    // 行動不能なモンスターのcommandInputは設定済なので単純に増加
-    currentMonsterIndex += 1;
-  }
-
-  // 一瞬5になった場合も終了判定をして最後に戻す
-  if (currentMonsterIndex === parties[currentTeamIndex].length) {
-    // すべてのモンスターの選択が終了した場合
-    // currentMonsterIndex を最後に選択されたモンスターに戻す
-    currentMonsterIndex = tempSelectingMonsterIndex;
+  // すべてのモンスターの選択が終了した場合
+  if (nextMonsterIndex === 100) {
     askFinishCommand();
   } else {
     // 行動可能なモンスターが見つかった場合
+    currentMonsterIndex = nextMonsterIndex;
     adjustMonsterIconStickOut();
     displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
-    // スキル選択ポップアップを閉じる
     document.getElementById("commandPopupWindow").style.visibility = "hidden";
-    // コマンドボタンを有効化
     disableCommandBtn(false);
   }
+}
+function findNextActionableMonsterIndex(startIndex) {
+  for (let i = startIndex; i < parties[currentTeamIndex].length; i++) {
+    const monster = parties[currentTeamIndex][i];
+    if (!isDead(monster) && !monster.flags.isZombie && !hasAbnormality(monster)) {
+      return i;
+    }
+  }
+  return 100;
 }
 
 // コマンド選択開始関数
 function startSelectingCommandForFirstMonster(teamNum) {
-  //初期化して行動不能monsterのコマンドを入れる
-  for (const monster of parties[teamNum]) {
-    monster.commandInput = "";
-    monster.commandTargetInput = null;
-    if (isDead(monster)) {
-      monster.commandInput = "skipThisTurn";
-    } else if (hasAbnormality(monster) || monster.flags.isZombie) {
-      monster.commandInput = "normalAICommand";
-    }
-  }
-
-  //isPartyIncapacitated  skipAllMonsterCommandSelection  adjustMonsterIconStickOutにdisplayMessage
+  initializeMonsterCommands(teamNum);
 
   // parties[teamNum]の先頭から、行動可能なモンスターを探す
   currentTeamIndex = teamNum;
-  currentMonsterIndex = 0;
-  while (
-    currentMonsterIndex < parties[teamNum].length &&
-    (isDead(parties[teamNum][currentMonsterIndex]) || parties[currentTeamIndex][currentMonsterIndex].flags.isZombie || hasAbnormality(parties[teamNum][currentMonsterIndex]))
-  ) {
-    currentMonsterIndex++;
-  }
+  const firstActionableMonsterIndex = findFirstActionableMonsterIndex(teamNum);
 
   // 前の戦闘で全員選択不能で非表示になっていた場合に備え、最初に解除
   document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
 
-  // 敵が全員行動不能な場合 (一瞬5になった場合も終了判定をして最後に戻す 戻してはいない)
-  if (currentMonsterIndex === parties[teamNum].length) {
+  // 敵が全員行動不能な場合
+  if (firstActionableMonsterIndex === 100) {
     if (teamNum === 1) {
       //敵コマンド選択でplayerを選んだ場合用
       document.getElementById("howToCommandEnemy").style.visibility = "hidden";
@@ -634,6 +611,7 @@ function startSelectingCommandForFirstMonster(teamNum) {
     document.getElementById("closeCommandPopupWindowBtn").style.display = "none";
   } else {
     // 行動可能なモンスターが見つかった場合、コマンド選択画面を表示
+    currentMonsterIndex = firstActionableMonsterIndex;
     adjustMonsterIconStickOut();
     displayMessage(`${parties[currentTeamIndex][currentMonsterIndex].name}のこうどう`, "コマンド？");
     // コマンドボタンを有効化
@@ -649,6 +627,28 @@ function startSelectingCommandForFirstMonster(teamNum) {
       setMonsterBarDisplay(true);
     }
   }
+}
+
+function initializeMonsterCommands(teamNum) {
+  for (const monster of parties[teamNum]) {
+    monster.commandInput = "";
+    monster.commandTargetInput = null;
+    if (isDead(monster)) {
+      monster.commandInput = "skipThisTurn";
+    } else if (hasAbnormality(monster) || monster.flags.isZombie) {
+      monster.commandInput = "normalAICommand";
+    }
+  }
+}
+
+function findFirstActionableMonsterIndex(teamNum) {
+  for (let i = 0; i < parties[teamNum].length; i++) {
+    const monster = parties[teamNum][i];
+    if (!isDead(monster) && !monster.flags.isZombie && !hasAbnormality(monster)) {
+      return i;
+    }
+  }
+  return 100;
 }
 
 //allのyes btnと、skillTarget選択後に起動する場合、+=1された次のモンスターをstickOut
