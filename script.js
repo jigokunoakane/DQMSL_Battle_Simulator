@@ -11485,10 +11485,12 @@ function sleep(milliseconds) {
 }
 
 // 状況によらず指定秒数待機
-//function originalSleep(milliseconds) { return new Promise((resolve) => setTimeout(resolve, milliseconds)); }
-// ターン開始時および戦闘再開時にsetSkipModeをfalseにする
+function originalSleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 // 既存のsleep処理を中断し、fieldStateをskipMode化 (isSkipModeは実行後にfalseに戻すこと) skip解除表示に変更
+// ターン開始時および戦闘再開時にsetSkipModeをfalseにする
 function setSkipMode(willSkip = false) {
   if (willSkip) {
     document.getElementById("skipBtn").textContent = "skip解除";
@@ -11515,12 +11517,15 @@ document.getElementById("skipBtn").addEventListener("click", function () {
 
 document.getElementById("resetBtn").addEventListener("click", async function () {
   col("戦闘リセット");
+  document.getElementById("resetBtn").disabled = true;
   fieldState.isBattleOver = true;
   // 戦闘終了フラグを立て、既存のsleep処理を中断、skip状態化、skip解除表示
   setSkipMode(true);
+  await originalSleep(30);
   await prepareBattle();
   // skip状態の解除と表示戻し: コマンド画面になったら
   setSkipMode(false);
+  document.getElementById("resetBtn").disabled = false;
 });
 
 document.getElementById("finishBtn").addEventListener("click", async function () {
