@@ -10,16 +10,18 @@
     <h2 id="pageHeader">GPシミュレーターβ</h2>
     <div id="pageContainer">
       <div id="adjustPartyPage">
-        <span id="playerAorB"> player A</span>&nbsp;
-        <select id="switchParty" onchange="switchParty()">
-          <option value="0">パーティ1</option>
-          <option value="1">パーティ2</option>
-          <option value="2">パーティ3</option>
-          <option value="3">パーティ4</option>
-          <option value="4">パーティ5</option>
-        </select>
-        <span id="weightSum">w0</span>&nbsp;&nbsp;
-        <button id="decideParty" class="normalButton" onclick="decideParty()">決定</button>
+        <div id="playerNameandWeightContainer">
+          <span id="playerAorB"> player A</span>&nbsp;
+          <select id="switchParty" onchange="switchParty()">
+            <option value="0">パーティ1</option>
+            <option value="1">パーティ2</option>
+            <option value="2">パーティ3</option>
+            <option value="3">パーティ4</option>
+            <option value="4">パーティ5</option>
+          </select>
+          <span id="weightSum">w0</span>&nbsp;&nbsp;
+          <button id="decideParty" class="normalButton" onclick="decideParty()">決定</button>
+        </div>
         <div id="partyIconsContainer">
           <div class="partyIconWrapper">
             <img src="images/icons/unselected.jpeg" id="partyIcon0" class="partyIcon" />
