@@ -3741,6 +3741,11 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     damage *= executingSkill.damageMultiplier(skillUser, skillTarget) || 1;
   }
 
+  // 乗算装備
+  if (skillTarget.gear?.name === "トリリオンダガー") {
+    damage *= 1.3;
+  }
+
   // 以下加算処理
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
@@ -3881,6 +3886,14 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     // 装備錬金 - 竜王杖体技10%軽減
     if (skillTarget.gear.name === "りゅうおうの杖" && executingSkill.type === "martial") {
       damageModifier -= 0.1;
+    }
+    // 装備効果・錬金 - 聖王の大盾60+5軽減
+    if (skillTarget.gear.name === "聖王の大盾" && executingSkill.element === "light") {
+      damageModifier -= 0.65;
+    }
+    // 装備効果・錬金 - プラチナシールド40+10軽減
+    if (skillTarget.gear.name === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
+      damageModifier -= 0.5;
     }
   }
 
@@ -11008,6 +11021,13 @@ const gear = [
     skillAlchemyStrength: 0.3,
   },
   {
+    name: "トリリオンダガー", //+7 斬撃3%
+    id: "tririon",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 17, def: 0, spd: 30, int: 0 },
+    initialBuffs: { spdUp: { keepOnDeath: true, strength: 1 } },
+  },
+  {
     name: "系統爪パニバリ",
     id: "familyNail",
     weight: 0,
@@ -11134,6 +11154,27 @@ const gear = [
     id: "kanazuchi",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+  },
+  {
+    name: "聖王の大盾", //+10 デイン5軽減
+    id: "holyKingShield",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 0, def: 105, spd: 0, int: 0 },
+    lightGearResistance: 2,
+  },
+  {
+    name: "プラチナシールド", //+7 メラ息10軽減
+    id: "platinumShield",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 78, spd: 0, int: 0 },
+    fireGearResistance: 1,
+  },
+  {
+    name: "呪われし盾", //+10 体技5軽減
+    id: "cursedShield",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 84, spd: 0, int: 0 },
+    statusMultiplier: { spd: -0.2 },
   },
   {
     name: "天空のフルート",
