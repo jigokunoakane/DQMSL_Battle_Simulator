@@ -77,9 +77,10 @@ img {
   font-size: 1rem;
 }
 .debugBtns {
+  margin-top: 0.1rem;
   margin-left: 0rem;
   margin-right: 0rem;
-  padding: 0rem 0.1rem;
+  padding: 0rem 0.3rem;
   font-size: 0.9rem;
 }
 #resetBtn,
