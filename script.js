@@ -3810,6 +3810,10 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     if (skillUser.gear.name === "系統爪超魔王錬金" && skillTarget.race === "超魔王") {
       damageModifier += 0.3;
     }
+    // 装備錬金 - おうごんのツメ ゾンビ息10%
+    if (skillUser.gear.name === "おうごんのツメ" && skillUser.race === "ゾンビ" && executingSkill.type === "breath") {
+      damageModifier += 0.1;
+    }
 
     // 特技錬金の反映(双撃は個別に後半も対象に含める)
     if (skillUser.gear.skillAlchemy) {
@@ -7634,6 +7638,21 @@ const skill = [
     MPcost: 0,
   },
   {
+    name: "おうごんのツメ攻撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.maso || skillTarget.buffs.paralyzed) {
+        return 2.5;
+      }
+    },
+  },
+  {
     name: "会心通常攻撃",
     type: "notskill",
     howToCalculate: "atk",
@@ -11082,19 +11101,10 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
-    name: "メタルキングの爪",
-    id: "metalNail",
-    weight: 5,
-    status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
-    initialBuffs: { metalKiller: { strength: 1.5, keepOnDeath: true } },
-    alchemy: true,
-  },
-  {
     name: "おうごんのツメ",
     id: "goldenNail",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 53, int: 0 },
-    alchemy: true,
   },
   {
     name: "源氏の小手",
@@ -11102,6 +11112,14 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
+  },
+  {
+    name: "メタルキングの爪",
+    id: "metalNail",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
+    initialBuffs: { metalKiller: { strength: 1.5, keepOnDeath: true } },
+    alchemy: true,
   },
   {
     name: "竜神のツメ",
@@ -12394,6 +12412,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス" || skillUser.gear?.name === "源氏の小手") {
     NormalAttackName = "はやぶさ攻撃弱";
+  } else if (skillUser.gear?.name === "おうごんのツメ") {
+    NormalAttackName = "おうごんのツメ攻撃";
   } else if (skillUser.buffs.alwaysCrit) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
