@@ -1302,8 +1302,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned) {
       continue;
     }
-    // 1-2. 亡者の場合 封印以外は付与しない
-    if (buffTarget.flags.isZombie && buffName !== "sealed") {
+    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡以外は付与しない
+    if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
     // 1-3. statusLock が存在する場合は stackableBuffs と familyBuffs を付与しない ただし上位のstackableは例外
@@ -1373,6 +1373,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
     // countDownは上書きしない
     if (buffName === "countDown" && buffTarget.buffs.countDown) {
+      continue;
+    }
+    // 猛毒には毒を付与しない
+    if (buffName === "poisoned" && currentBuff && !currentBuff.isLight && buffData.isLight) {
       continue;
     }
 
@@ -1486,10 +1490,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     } else {
       // 3-3. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
-        //// 3-2-1. currentBuffにremoveAtTurnStartがあり、newBuffにないときはcontinue (予測系は上書きしない)
-        //if (currentBuff.removeAtTurnStart && !buffData.removeAtTurnStart) {
-        //  continue;
-        //}
         // 3-2-2. currentBuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
         //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
         //if (!currentBuff.duration && buffData.duration) {
@@ -1594,6 +1594,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       if (buffName === "manaBoost") {
         delete buffTarget.buffs.manaReduction;
+      }
+      // 既存バフが軽度毒であり、新規付与したのも軽度毒の場合、猛毒化
+      if (buffName === "poisoned" && currentBuff && currentBuff.isLight && buffData.isLight) {
+        delete buffTarget.buffs.poisoned.isLight;
       }
     }
     //付与成功時処理 duration設定
@@ -2579,11 +2583,16 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   // 7-6. 毒・継続ダメージ処理
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
     await sleep(400);
-    const baseRatio = 0.16;
+    let baseRatio = 0.125;
+    let poisonMessage = "もうどくにおかされている！";
+    if (skillUser.buffs.poisoned.isLight) {
+      baseRatio = 0.0625;
+      poisonMessage = "どくにおかされている！";
+    }
     const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
     const damage = Math.floor(skillUser.defaultStatus.HP * baseRatio * poisonDepth);
     console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
-    displayMessage(`${skillUser.name}は`, "もうどくにおかされている！");
+    displayMessage(`${skillUser.name}は`, `${poisonMessage}`);
     await sleep(200);
     applyDamage(skillUser, damage);
     await checkRecentlyKilledFlagForPoison(skillUser);
@@ -3861,6 +3870,10 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   if (parties[skillUser.teamID][0].name === "ラザマナス" && skillUser.race === "ゾンビ" && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
     damageModifier += 0.1;
   }
+  // スカスパLS 毒10%
+  if (parties[skillUser.teamID][0].name === "スカルスパイダー" && skillUser.race === "ゾンビ" && skillTarget.buffs.poisoned) {
+    damageModifier += 0.1;
+  }
 
   ///////// skillTarget対象バフ
   // 装備 錬金が一意に定まるように注意
@@ -4892,6 +4905,10 @@ document.getElementById("akumapa").addEventListener("click", function () {
 
 document.getElementById("beastpa").addEventListener("click", function () {
   selectAllPartyMembers(["azu", "gorago", "tenkai", "reopa", "kingreo"]);
+});
+
+document.getElementById("zombiepa").addEventListener("click", function () {
+  selectAllPartyMembers(["skullspider", "barazon", "razama", "maen", "desuso"]);
 });
 
 async function selectAllPartyMembers(monsters) {
@@ -5986,6 +6003,26 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "スカルスパイダー",
+    id: "skullspider",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 30,
+    status: { HP: 927, MP: 280, atk: 385, def: 646, spd: 495, int: 283 },
+    initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "毒性深化"],
+    anotherSkills: ["防壁反転"],
+    attribute: {
+      initialBuffs: {
+        poisonedBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { spd: 1.18 },
+    lsTarget: "ゾンビ",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 0.5, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ラザマナス",
     id: "razama",
     rank: 10,
@@ -6035,8 +6072,8 @@ const monsters = [
     race: "ゾンビ",
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
-    initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ザオリク"],
-    anotherSkills: ["防壁反転", "ヴェレマータ"],
+    initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ヴェレマータ"],
+    anotherSkills: ["防壁反転"],
     initialAIDisabledSkills: ["れんごくの翼"],
     attribute: {
       initialBuffs: {
@@ -7266,6 +7303,36 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    skullspider: {
+      initialAbilities: [
+        {
+          name: "亡者の怨嗟・鏡",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+            skillUser.flags.zombifyActName = "亡者の怨嗟・鏡";
+          },
+        },
+      ],
+      initialAttackAbilities: [
+        {
+          name: "汚毒の巣",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性`, "汚毒の巣 が発動！");
+          },
+          act: function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { poisoned: { isLight: true }, poisonDepth: { keepOnDeath: true, strength: 3 } }, skillUser);
+            }
+          },
+        },
+      ],
+      zombifyAct: async function (monster, zombifyActName) {
+        if (zombifyActName === "亡者の怨嗟・鏡") {
+          applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, isKanta: true, skipReflectionEffect: true, zombieBuffable: true } });
+        }
+      },
+    },
     barazon: {
       initialAbilities: [
         {
@@ -7514,6 +7581,21 @@ const skill = [
         skillTarget.buffs.isUnbreakable.isBroken = true;
         updateMonsterBuffsDisplay(skillTarget);
       }
+    },
+  },
+  {
+    name: "一族のけがれ攻撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 0.33,
+    element: "notskill",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 0,
+    appliedEffect: { poisoned: { probability: 0.9 } },
+    act: function (skillUser, skillTarget) {
+      intensityPoisonDepth(skillTarget);
     },
   },
   {
@@ -7976,7 +8058,7 @@ const skill = [
     isOneTimeUse: true,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
-    appliedEffect: { sealed: {} },
+    appliedEffect: { sealed: { zombieBuffable: true } },
   },
   {
     name: "ソウルハーベスト",
@@ -8000,7 +8082,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 39,
     isOneTimeUse: true,
-    appliedEffect: { sealed: {}, reviveBlock: { unDispellableByRadiantWave: true } },
+    appliedEffect: { sealed: { zombieBuffable: true }, reviveBlock: { unDispellableByRadiantWave: true } },
   },
   {
     name: "暗黒閃",
@@ -10140,11 +10222,11 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreTypeEvasion: true,
-    appliedEffect: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533 } },
+    appliedEffect: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } },
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
         // skillUserを渡して使い手反映
-        applyBuff(monster, { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533 } }, skillUser);
+        applyBuff(monster, { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } }, skillUser);
       }
     },
     isOneTimeUse: true,
@@ -10360,6 +10442,94 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
+    name: "ヴェノムパニック",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 786,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    damageByLevel: true,
+    appliedEffect: { poisoned: { probability: 0.8 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        return 0.2;
+      }
+    },
+    // todo: 反射時確定5倍
+  },
+  {
+    name: "ドレッドダンス",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 210,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 108,
+    ignoreSubstitute: true,
+    followingSkill: "ドレッドダンス後半",
+  },
+  {
+    name: "ドレッドダンス後半",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreSubstitute: true,
+    appliedEffect: { countDown: { count: 2, probability: 0.66 } },
+  },
+  {
+    name: "劇毒のきり",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 39,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    appliedEffect: { poisoned: { unDispellableByRadiantWave: true } },
+    followingSkill: "劇毒のきり後半",
+  },
+  {
+    name: "劇毒のきり後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 39,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    appliedEffect: { poisoned: { unDispellableByRadiantWave: true } },
+  },
+  {
+    name: "毒性深化",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 27,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisonDepth) {
+        intensityPoisonDepth(skillTarget);
+      } else {
+        applyBuff(skillTarget, { poisonDepth: { keepOnDeath: true, strength: 3 } });
+      }
+    },
+  },
+  {
     name: "黄金のカギ爪",
     type: "slash",
     howToCalculate: "atk",
@@ -10407,7 +10577,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: { countDown: { count: 2, probability: 0.66 } },
+    appliedEffect: { countDown: { count: 2, probability: 0.7 } },
   },
   {
     name: "黄泉がえりの舞い",
@@ -10643,7 +10813,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 73,
-    appliedEffect: { poisoned: { probability: 0.8 } },
+    appliedEffect: { poisoned: { isLight: true, probability: 0.8 } },
     damageMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned) {
         return 1.2;
@@ -11541,6 +11711,11 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
         buffIcons[iconIndex].style.display = "block";
         iconIndex++;
       }
+      if (iconIndex < 3 && monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
+        buffIcons[iconIndex].src = "images/buffIcons/atakan.png";
+        buffIcons[iconIndex].style.display = "block";
+        iconIndex++;
+      }
     }
     return;
   }
@@ -12157,6 +12332,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
     NormalAttackName = "魔獣の追撃";
+  } else if (skillUser.race === "ゾンビ" && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
+    NormalAttackName = "一族のけがれ攻撃";
   } else if (skillUser.flags.orugoDispelleUnbreakableAttack) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
   }
@@ -12336,7 +12513,11 @@ function ascension(monster, ignoreUnAscensionable = false) {
     return;
   }
   delete monster.flags.isZombie;
+  // zombieBuffableのバフを削除
   delete monster.buffs.sealed;
+  if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
+    delete monster.buffs.slashReflection;
+  }
   monster.flags.isDead = true;
   monster.commandInput = "skipThisTurn";
   updateMonsterBar(monster); //isDead付与後にupdateでbar非表示化
@@ -12507,4 +12688,12 @@ function isSkillUnavailableForAI(skillName) {
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
+}
+
+function intensityPoisonDepth(skillTarget) {
+  if (skillTarget.buffs.poisonDepth && !skillTarget.flags.isdead && !skillTarget.flags.isZombie) {
+    displayMessage(`${skillTarget.name}は`, "毒性深化が すすんだ！");
+    skillTarget.buffs.poisonDepth.strength = Math.min(skillTarget.buffs.poisonDepth.strength + 2, 7);
+    updateMonsterBuffsDisplay(skillTarget);
+  }
 }
