@@ -6037,8 +6037,8 @@ const monsters = [
     race: "ゾンビ",
     weight: 30,
     status: { HP: 927, MP: 280, atk: 385, def: 646, spd: 495, int: 283 },
-    initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "毒性深化"],
-    anotherSkills: ["防壁反転"],
+    initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "スパークふんしゃ"],
+    anotherSkills: ["毒性深化", "防壁反転"],
     attribute: {
       initialBuffs: {
         poisonedBreak: { keepOnDeath: true, strength: 2 },
@@ -6057,8 +6057,8 @@ const monsters = [
     race: "ゾンビ",
     weight: 30,
     status: { HP: 1055, MP: 373, atk: 558, def: 517, spd: 412, int: 253 },
-    initialSkill: ["黄金のカギ爪", "紫電の瘴気", "ホラーブレス", "黄泉がえりの舞い"],
-    anotherSkills: ["防壁反転"],
+    initialSkill: ["黄金のカギ爪", "紫電の瘴気", "ホラーブレス", "防壁反転"],
+    anotherSkills: ["黄泉がえりの舞い"],
     defaultGear: "familyNailBeast",
     attribute: {
       initialBuffs: {
