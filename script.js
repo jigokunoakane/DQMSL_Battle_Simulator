@@ -939,13 +939,15 @@ async function startTurn() {
   }
   displayMessage(`ラウンド${turnNum}`, null, true);
   document.getElementById("turnNumDisplay").textContent = `残りラウンド ${11 - turnNum}`;
+  await sleep(300);
 
   // ラザマ等
   for (const party of parties) {
     for (const monster of party) {
       if (monster.flags.isDead && monster.flags.reviveNextTurn) {
-        displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
         await sleep(300);
+        displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
+        await sleep(200);
         await reviveMonster(monster, 1, true);
         if (monster.abilities.reviveNextTurnAct) {
           await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
@@ -11620,17 +11622,6 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
 });
 
 ////////////////
-
-document.getElementById("floBtn").addEventListener("click", function () {
-  executeSkill(parties[0][2], findSkillByName("フローズンシャワー"), parties[1][0]);
-});
-
-document.getElementById("harvestBtn").addEventListener("click", function () {
-  executeSkill(parties[0][0], findSkillByName("ソウルハーベスト"), parties[1][1]);
-});
-document.getElementById("endBtn").addEventListener("click", function () {
-  executeSkill(parties[0][0], findSkillByName("debugbreath"), parties[1][0]);
-});
 
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
