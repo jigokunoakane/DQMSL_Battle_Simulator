@@ -3761,6 +3761,13 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     if (skillUser.gear.name === "強戦士ハート・闇" && skillUser.race === "悪魔" && executingSkill.type === "spell") {
       damageModifier += 0.15;
     }
+    // 装備本体&錬金 - かがやく魔神剣
+    if (skillUser.gear.name === "かがやく魔神剣" && executingSkill.type === "slash") {
+      damageModifier += 0.05;
+      if (skillTarget.race === "???") {
+        damageModifier += 0.1;
+      }
+    }
     // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
     if (skillUser.gear.name === "心砕きのヤリ" || skillUser.gear.name === "昇天のヤリ") {
       if (skillUser.race === "ドラゴン") {
@@ -3887,11 +3894,15 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     if (skillTarget.gear.name === "りゅうおうの杖" && executingSkill.type === "martial") {
       damageModifier -= 0.1;
     }
-    // 装備効果・錬金 - 聖王の大盾60+5軽減
+    // 装備錬金 - 呪盾体技5%軽減
+    if (skillTarget.gear.name === "呪われし盾" && executingSkill.type === "martial") {
+      damageModifier -= 0.05;
+    }
+    // 装備効果・錬金 - 聖王の大盾デイン60+5軽減
     if (skillTarget.gear.name === "聖王の大盾" && executingSkill.element === "light") {
       damageModifier -= 0.65;
     }
-    // 装備効果・錬金 - プラチナシールド40+10軽減
+    // 装備効果・錬金 - プラチナシールドメラ息40+10軽減
     if (skillTarget.gear.name === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
       damageModifier -= 0.5;
     }
@@ -11003,12 +11014,13 @@ const gear = [
     iceGearResistance: 2,
   },
   {
-    name: "かがやく魔神剣",
+    name: "かがやく魔神剣", //+10 絶技8
     id: "dreamSword",
     weight: 5,
     noWeightMonsters: ["魔神ダークドレアム"],
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
-    //斬撃5 ?への斬撃10 絶技8
+    skillAlchemy: "真・魔神の絶技",
+    skillAlchemyStrength: 0.08,
   },
   {
     name: "帝王のつるぎ",
@@ -11154,6 +11166,14 @@ const gear = [
     id: "kanazuchi",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+  },
+  {
+    name: "源氏の盾", //+10 錬金なし
+    id: "genjiShield",
+    weight: 5,
+    noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
+    status: { HP: 0, MP: 0, atk: 0, def: 105, spd: 0, int: 0 },
+    initialBuffs: { spellBarrier: { strength: 2 } },
   },
   {
     name: "聖王の大盾", //+10 デイン5軽減
