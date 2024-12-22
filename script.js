@@ -196,7 +196,7 @@ async function prepareBattle() {
   }
 
   //数が不均衡な場合に備えて存在しないbarを削除しつつ全体のbarを更新
-  setMonsterBarDisplay();
+  await setMonsterBarDisplay();
   //戦闘画面の10のimgのsrcを設定
   //partyの中身のidとgearIdから、適切な画像を設定
   prepareBattlePageIcons();
@@ -349,14 +349,14 @@ function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
 }
 
 //敵skill選択時や戻す時に起動
-function setMonsterBarDisplay(isReverse = false) {
+async function setMonsterBarDisplay(isReverse = false) {
   document.querySelectorAll(".bar").forEach((bar) => {
     bar.style.visibility = "hidden";
   });
   for (const party of parties) {
     for (const monster of party) {
       updateMonsterBar(monster, false, isReverse);
-      updateMonsterBuffsDisplay(monster, isReverse);
+      await updateMonsterBuffsDisplay(monster, isReverse);
     }
   }
 }
@@ -777,7 +777,7 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 });
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
-document.getElementById("askFinishCommandBtnYes").addEventListener("click", function () {
+document.getElementById("askFinishCommandBtnYes").addEventListener("click", async function () {
   document.getElementById("askFinishCommandBtnNo").disabled = false;
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   if (currentTeamIndex === 1) {
@@ -792,7 +792,7 @@ document.getElementById("askFinishCommandBtnYes").addEventListener("click", func
     //popupを閉じ、commandBtnを無効化
     prepareBattlePageIcons();
     //barとバフの反転を戻す
-    setMonsterBarDisplay(false);
+    await setMonsterBarDisplay(false);
     removeAllStickOut();
     startBattle();
   } else {
@@ -874,7 +874,7 @@ async function startTurn() {
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
       // みがわり削除後に更新
-      updateMonsterBuffsDisplay(monster);
+      await updateMonsterBuffsDisplay(monster);
     }
   }
   // ぼうぎょタグを削除
@@ -883,7 +883,7 @@ async function startTurn() {
   //ターン経過で一律にデクリメントタイプの実行 バフ付与前に
   decreaseAllBuffDurations();
   //durationが0になったバフを消去 ターン開始時に削除(帝王の構えや予測等、removeAtTurnStart指定)
-  removeExpiredBuffsAtTurnStart();
+  await removeExpiredBuffsAtTurnStart();
 
   if (turnNum === 1) {
     displayMessage(`${parties[1][0].name}たちが あらわれた！`);
@@ -1121,7 +1121,7 @@ async function startTurn() {
       } else {
         displayMessage("死のカウントダウンが すすんだ！");
         monster.buffs.countDown.count--;
-        updateMonsterBuffsDisplay(monster);
+        await updateMonsterBuffsDisplay(monster);
       }
       await sleep(150);
     }
@@ -1584,7 +1584,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //防壁魔王バリア付与時の状態異常解除
       if (buffName === "sacredBarrier" || buffName === "demonKingBarrier") {
-        executeRadiantWave(buffTarget, true);
+        executeRadiantWave(buffTarget, true); //todo: async化
       }
       //封じマインドバリア付与時の状態異常解除
       if (buffName === "mindAndSealBarrier") {
@@ -1836,7 +1836,7 @@ function decreaseBuffDurationBeforeAction(monster) {
 }
 
 // durationが0になったバフを消去 行動直前に削除(通常タイプ)
-function removeExpiredBuffs(monster) {
+async function removeExpiredBuffs(monster) {
   for (const buffName of Object.keys(monster.buffs)) {
     const buff = monster.buffs[buffName];
     // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがfalseの場合に削除
@@ -1846,11 +1846,11 @@ function removeExpiredBuffs(monster) {
     }
   }
   updateCurrentStatus(monster);
-  updateMonsterBuffsDisplay(monster);
+  await updateMonsterBuffsDisplay(monster);
 }
 
 // durationが0になったバフを消去 ターン開始時(帝王の構えや予測等、removeAtTurnStart指定)
-function removeExpiredBuffsAtTurnStart() {
+async function removeExpiredBuffsAtTurnStart() {
   for (const party of parties) {
     for (const monster of party) {
       for (const buffName of Object.keys(monster.buffs)) {
@@ -1862,7 +1862,7 @@ function removeExpiredBuffsAtTurnStart() {
         }
       }
       updateCurrentStatus(monster);
-      updateMonsterBuffsDisplay(monster);
+      await updateMonsterBuffsDisplay(monster);
     }
   }
 }
@@ -2108,7 +2108,7 @@ async function processMonsterAction(skillUser) {
   // 行動直前に持続時間を減少させる decreaseBeforeAction
   decreaseBuffDurationBeforeAction(skillUser);
   // durationが0になったバフを消去 行動直前に削除(通常タイプ)
-  removeExpiredBuffs(skillUser);
+  await removeExpiredBuffs(skillUser);
 
   removeAllStickOut();
 
@@ -3169,7 +3169,7 @@ async function processHitSequence(
         // 生存しているあるいは亡者化予定のtargetから蘇生封じを削除
         if ((!monster.flags.isDead || monster.flags.willZombify) && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
           delete monster.buffs.reviveBlock;
-          updateMonsterBuffsDisplay(monster);
+          await updateMonsterBuffsDisplay(monster);
         }
       }
     }
@@ -3280,8 +3280,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // isDamageExistingはfalseで送る
     await processAppliedEffectWave(skillTarget, executingSkill, false);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    await sleep(1);
-    updateMonsterBuffsDisplay(skillTarget);
+    await updateMonsterBuffsDisplay(skillTarget);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
     checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
@@ -3298,11 +3297,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   async function processAppliedEffectWave(buffTarget, executingSkill, isDamageExisting = false) {
     if (executingSkill.appliedEffect) {
       if (executingSkill.appliedEffect === "radiantWave") {
-        executeRadiantWave(buffTarget);
+        await executeRadiantWave(buffTarget);
       } else if (executingSkill.appliedEffect === "divineWave") {
-        executeWave(buffTarget, true, isDamageExisting);
+        await executeWave(buffTarget, true, isDamageExisting);
       } else if (executingSkill.appliedEffect === "disruptiveWave") {
-        executeWave(buffTarget, false, isDamageExisting);
+        await executeWave(buffTarget, false, isDamageExisting);
       }
     }
   }
@@ -3315,9 +3314,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (executingSkill.act) {
       await executingSkill.act(skillUser, buffTarget);
       updateCurrentStatus(skillUser);
-      updateMonsterBuffsDisplay(skillUser);
+      await updateMonsterBuffsDisplay(skillUser);
       updateCurrentStatus(buffTarget);
-      updateMonsterBuffsDisplay(buffTarget);
+      await updateMonsterBuffsDisplay(buffTarget);
     }
   }
 
@@ -3378,7 +3377,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       // 障壁が割れる場合
       damage -= skillTarget.buffs.elementalShield.remain;
       delete skillTarget.buffs.elementalShield;
-      updateMonsterBuffsDisplay(skillTarget);
+      await updateMonsterBuffsDisplay(skillTarget);
       addHexagonShine(skillTarget.iconElementId, true);
     } else {
       skillTarget.buffs.elementalShield.remain -= damage;
@@ -3411,8 +3410,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
   // 失望の光舞でくじけぬ解除表示が更新されない対策(いては効果と連続でupdateしているため？)
-  await sleep(1);
-  updateMonsterBuffsDisplay(skillTarget);
+  await updateMonsterBuffsDisplay(skillTarget);
 
   // monsterActionまたはAI追撃のとき、反撃対象にする
   if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
@@ -4149,7 +4147,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 }
 
 // 歪曲時に全モンスターに対して、もとが普通弱点の属性の耐性アップダウンバフデバフを削除
-function deleteElementalBuffs() {
+async function deleteElementalBuffs() {
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   for (const party of parties) {
     for (const monster of party) {
@@ -4158,7 +4156,7 @@ function deleteElementalBuffs() {
           delete monster.buffs[`${element}Resistance`];
         }
       }
-      updateMonsterBuffsDisplay(monster);
+      await updateMonsterBuffsDisplay(monster);
     }
   }
 }
@@ -4328,7 +4326,7 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false) {
   }
   updateMonsterBar(monster);
   updateBattleIcons(monster);
-  updateMonsterBuffsDisplay(monster);
+  await updateMonsterBuffsDisplay(monster);
   await sleep(300);
 }
 
@@ -4342,7 +4340,7 @@ async function zombifyMonster(monster) {
     await monster.abilities.zombifyAct(monster, monster.flags.zombifyActName);
   }
   updateBattleIcons(monster);
-  updateMonsterBuffsDisplay(monster);
+  await updateMonsterBuffsDisplay(monster);
   await sleep(300);
 }
 
@@ -6187,6 +6185,25 @@ const monsters = [
     resistance: { fire: 1.5, ice: 0.5, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "非道兵器超魔ゾンビ", //4
+    id: "tyomazombie",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 28,
+    status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
+    initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "ザオラル"],
+    attribute: {
+      permanentBuffs: {
+        anchorAction: {},
+      },
+    },
+    seed: { atk: 95, def: 0, spd: 0, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ファラオ・カーメン",
     id: "pharaoh",
     rank: 10,
@@ -6376,8 +6393,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "怪竜の竜鱗",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6430,7 +6447,7 @@ function getMonsterAbilities(monsterId) {
                 // 全体buff表示更新
                 for (const party of parties) {
                   for (const monster of party) {
-                    updateMonsterBuffsDisplay(monster);
+                    await updateMonsterBuffsDisplay(monster);
                   }
                 }
               }
@@ -6474,7 +6491,7 @@ function getMonsterAbilities(monsterId) {
                     }
                     if (!monster.flags.isDead) {
                       displayMessage(`${monster.name}の`, "与えるダメージが 上がった！");
-                      updateMonsterBuffsDisplay(monster);
+                      await updateMonsterBuffsDisplay(monster);
                       await sleep(150);
                     }
                   }
@@ -6516,8 +6533,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "死の化身",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6554,8 +6571,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "堕天の化身",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6773,8 +6790,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "遡る時",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6815,8 +6832,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "混沌の化身",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6867,8 +6884,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "偽りの化身",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -6954,7 +6971,7 @@ function getMonsterAbilities(monsterId) {
       ],
     },
     daguja: {
-      initialAttackAbilities: [
+      initialAbilities: [
         {
           name: "亡者の怨嗟",
           act: function (skillUser) {
@@ -6969,7 +6986,7 @@ function getMonsterAbilities(monsterId) {
           name: "氷晶の加護",
           act: async function (skillUser, counterTarget) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
-            executeRadiantWave(skillUser);
+            await executeRadiantWave(skillUser);
           },
         },
       ],
@@ -6995,7 +7012,7 @@ function getMonsterAbilities(monsterId) {
           name: "封印の光",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            executeWave(skillUser);
+            await executeWave(skillUser);
             applyBuff(skillUser, { statusLock: {} });
           },
         },
@@ -7117,7 +7134,7 @@ function getMonsterAbilities(monsterId) {
                   },
                   unavailableIf: (skillUser, executingSkill, executedSkills) => !skillUser.buffs.hasOwnProperty("autoRadiantWave"),
                   act: async function (skillUser) {
-                    executeRadiantWave(skillUser);
+                    await executeRadiantWave(skillUser);
                   },
                 });
               }
@@ -7338,8 +7355,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "孤高の獣ぴかぱ",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -7382,8 +7399,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "自然治癒",
             disableMessage: true,
-            act: function (skillUser) {
-              executeRadiantWave(skillUser);
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
             },
           },
         ],
@@ -7487,8 +7504,7 @@ function getMonsterAbilities(monsterId) {
                           if (!debuffRemoved) {
                             displayMiss(monster);
                           } else {
-                            updateCurrentStatus(monster);
-                            updateMonsterBuffsDisplay(monster);
+                            await updateMonsterBuffsDisplay(monster);
                           }
                         } else {
                           displayMiss(skillUser);
@@ -7712,14 +7728,14 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 0,
-    act: function (skillUser, skillTarget) {
+    act: async function (skillUser, skillTarget) {
       if (skillTarget.buffs.isUnbreakable && !skillTarget.buffs.isUnbreakable.isToukon && !skillTarget.flags.isZombie) {
         //防壁などによる失敗はないので、通常攻撃成功時はactも100%実行
         displayMessage("そうびの特性により", "くじけぬ心が ゆらいだ！");
         skillTarget.buffs.isUnbreakable.left = 1;
         skillTarget.buffs.isUnbreakable.isToukon = true;
         skillTarget.buffs.isUnbreakable.isBroken = true;
-        updateMonsterBuffsDisplay(skillTarget);
+        await updateMonsterBuffsDisplay(skillTarget);
       }
     },
   },
@@ -8360,7 +8376,7 @@ const skill = [
         nerugeru.currentStatus.HP = nerugeru.defaultStatus.HP;
         updateMonsterBar(nerugeru);
         updateBattleIcons(nerugeru);
-        updateMonsterBuffsDisplay(nerugeru);
+        await updateMonsterBuffsDisplay(nerugeru);
         await transformTyoma(nerugeru);
       }
     },
@@ -9234,10 +9250,10 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 1,
     MPcost: 39,
-    act: function (skillUser, skillTarget) {
+    act: async function (skillUser, skillTarget) {
       if (!fieldState.psychoField) {
         fieldState.isDistorted = true;
-        deleteElementalBuffs();
+        await deleteElementalBuffs();
         adjustFieldStateDisplay();
       }
     },
@@ -9753,8 +9769,8 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 50,
-    act: function (skillUser, skillTarget) {
-      executeRadiantWave(skillTarget);
+    act: async function (skillUser, skillTarget) {
+      await executeRadiantWave(skillTarget);
     },
   },
   {
@@ -10550,7 +10566,7 @@ const skill = [
           delete monster.flags.isSubstituting;
           delete monster.flags.hasSubstitute;
           skillTarget.flags.thisTurn.substituteSeal = true;
-          updateMonsterBuffsDisplay(monster);
+          await updateMonsterBuffsDisplay(monster);
           displayMessage(`${monster.name}は`, "みがわりを ふうじられた！");
           await sleep(50);
         }
@@ -11621,8 +11637,8 @@ const gearAbilities = {
         },
         unavailableIf: (skillUser) => skillUser.flags.isZombie,
         act: async function (skillUser, counterTarget) {
-          executeWave(skillUser);
-          executeWave(counterTarget);
+          await executeWave(skillUser);
+          await executeWave(counterTarget);
         },
       });
     },
@@ -11651,8 +11667,8 @@ const gearAbilities = {
         message: function (skillUser) {
           displayMessage("そうびの特性により", "光の洗礼 が発動！");
         },
-        act: function (skillUser) {
-          executeRadiantWave(skillUser);
+        act: async function (skillUser) {
+          await executeRadiantWave(skillUser);
         },
       });
     },
@@ -12194,7 +12210,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 }
 
 //光の波動 dispellableByRadiantWave指定以外を残す
-function executeRadiantWave(monster, skipMissDisplay = false) {
+async function executeRadiantWave(monster, skipMissDisplay = false) {
   const newBuffs = {};
   let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
@@ -12211,11 +12227,11 @@ function executeRadiantWave(monster, skipMissDisplay = false) {
     displayMiss(monster);
   }
   updateCurrentStatus(monster);
-  updateMonsterBuffsDisplay(monster);
+  await updateMonsterBuffsDisplay(monster);
 }
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
-function executeWave(monster, isDivine = false, isDamageExisting = false) {
+async function executeWave(monster, isDivine = false, isDamageExisting = false) {
   const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
   const newBuffs = {};
   let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
@@ -12240,7 +12256,7 @@ function executeWave(monster, isDivine = false, isDamageExisting = false) {
     displayMiss(monster); // バフが削除されなかった場合にdisplayMiss関数を呼び出す
   }
   updateCurrentStatus(monster);
-  updateMonsterBuffsDisplay(monster);
+  await updateMonsterBuffsDisplay(monster);
 }
 
 //みがわり付与
@@ -12573,7 +12589,7 @@ async function transformTyoma(monster) {
   updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
-  executeRadiantWave(monster);
+  await executeRadiantWave(monster);
 
   // skill変更と、各種message
   if (monster.name === "憎悪のエルギオス") {
@@ -12645,7 +12661,7 @@ async function transformTyoma(monster) {
     if (!fieldState.psychoField) {
       fieldState.isDistorted = true;
       fieldState.isPermanentDistorted = true;
-      deleteElementalBuffs();
+      await deleteElementalBuffs();
       adjustFieldStateDisplay();
     }
   } else if (monster.name === "新たなる神ラプソーン") {
@@ -12659,7 +12675,7 @@ async function transformTyoma(monster) {
         }
         if (skillTarget.buffs.nonElementalResistance && skillTarget.name !== "新たなる神ラプソーン") {
           delete skillTarget.buffs.nonElementalResistance;
-          updateMonsterBuffsDisplay(skillTarget);
+          await updateMonsterBuffsDisplay(skillTarget);
         }
       }
     }
@@ -12751,7 +12767,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
   const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
   for (const member of aliveMasudora) {
     member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: newStrength };
-    updateMonsterBuffsDisplay(member);
+    await updateMonsterBuffsDisplay(member);
   }
   displayMessage("マスタードラゴンの", `天の竜気レベルが ${newStrength}に上がった！`);
   // 涼風の場合はさらに増加可能性
@@ -12760,7 +12776,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
     const ryouhuStrength = Math.min(newStrength + 1, 9);
     for (const member of aliveMasudora) {
       member.buffs.dragonPreemptiveAction = { unDispellable: true, strength: ryouhuStrength };
-      updateMonsterBuffsDisplay(member);
+      await updateMonsterBuffsDisplay(member);
     }
     displayMessage("マスタードラゴンの", `天の竜気レベルが ${ryouhuStrength}に上がった！`);
   }
@@ -12918,7 +12934,6 @@ function deleteUnbreakable(skillTarget) {
   if (!skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
     delete skillTarget.buffs.isUnbreakable;
   }
-  updateMonsterBuffsDisplay(skillTarget);
 }
 
 function showCooperationEffect(currentTeamID, cooperationAmount) {
@@ -13075,6 +13090,5 @@ function intensityPoisonDepth(skillTarget) {
   if (skillTarget.buffs.poisonDepth && !skillTarget.flags.isdead && !skillTarget.flags.isZombie) {
     displayMessage(`${skillTarget.name}は`, "毒性深化が すすんだ！");
     skillTarget.buffs.poisonDepth.strength = Math.min(skillTarget.buffs.poisonDepth.strength + 2, 7);
-    updateMonsterBuffsDisplay(skillTarget);
   }
 }
