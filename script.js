@@ -173,6 +173,7 @@ async function prepareBattle() {
       monster.buffs = {};
       monster.flags = { unavailableSkills: [], executedAbilities: [], thisTurn: {} };
       monster.attribute.additionalPermanentBuffs = {};
+      monster.attribute.additionalEvenTurnBuffs = {};
       // monsterAbilitiesの内容をmonsterDataにコピー
       monster.abilities = getMonsterAbilities(monster.id);
       //supportAbilitiesまたはattackAbilitiesオブジェクトを生成、additionalPermanentとnextTurn配列を初期化
@@ -1037,6 +1038,7 @@ async function startTurn() {
       ...(monster.attribute.permanentBuffs || {}),
       ...(monster.attribute.additionalPermanentBuffs || {}),
       ...(turnNum % 2 === 0 && monster.attribute.evenTurnBuffs ? monster.attribute.evenTurnBuffs : {}),
+      ...(turnNum % 2 === 0 && monster.attribute.additionalEvenTurnBuffs ? monster.attribute.additionalEvenTurnBuffs : {}),
       ...(turnNum % 2 !== 0 && monster.attribute.oddTurnBuffs ? monster.attribute.oddTurnBuffs : {}),
       ...(turnNum >= 2 && monster.attribute.buffsFromTurn2 ? monster.attribute.buffsFromTurn2 : {}),
       ...(turnNum === 1 && monster.gear?.turn1buffs ? monster.gear.turn1buffs : {}),
@@ -2519,7 +2521,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
 
-  // 7-. ナドラガ判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグ 死亡判定は後で
+  // 7-. ナドラガ領界判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグ 死亡判定は後で
   let domainCheck = false;
   if (skillUser.name === "邪竜神ナドラガ" && executingSkill) {
     const targetDomain = {
@@ -2610,9 +2612,24 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   }
 
   // 7-7. 特殊追加skillの実行
+  // ナドラガ領界追撃
   if (!isBattleOver() && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && domainCheck) {
     await sleep(300);
-    executeSkill(skillUser, executingSkill);
+    await executeSkill(skillUser, executingSkill);
+  }
+  // 王のつるぎ処理
+  if (
+    !isBattleOver() &&
+    !skipThisMonsterAction(skillUser) &&
+    skillUser.buffs.pharaohPower &&
+    parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
+    !skillUser.flags.isDead &&
+    executedSkills.some((skill) => skill.howToCalculate !== "none" && skill.targetTeam === "enemy")
+  ) {
+    await sleep(400);
+    displayMessage(`${skillUser.name}は`, "ファラオの幻刃 をはなった！");
+    await sleep(150);
+    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"));
   }
 
   // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
@@ -3746,6 +3763,9 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
   // 乗算装備
   if (skillTarget.gear?.name === "トリリオンダガー") {
     damage *= 1.3;
+  }
+  if (skillTarget.gear?.name === "ファラオの腕輪" && skillTarget.race === "ゾンビ") {
+    damage *= 2;
   }
 
   // 以下加算処理
@@ -6145,6 +6165,24 @@ const monsters = [
     ls: { HP: 1 },
     lsTarget: "all",
     resistance: { fire: 1.5, ice: 0.5, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ファラオ・カーメン",
+    id: "pharaoh",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 25,
+    status: { HP: 747, MP: 253, atk: 565, def: 504, spd: 450, int: 225 },
+    initialSkill: ["太陽神の鉄槌", "氷獄斬り", "ファラオの幻刃", "ファラオの召喚"],
+    attribute: {
+      initialBuffs: { pharaohPower: { keepOnDeath: true } },
+      evenTurnBuffs: { baiki: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 1, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "やきとり",
@@ -10873,6 +10911,55 @@ const skill = [
     },
   },
   {
+    name: "太陽神の鉄槌",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 312,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 75,
+    damageByLevel: true,
+    appliedEffect: { poisoned: { probability: 0.8 }, asleep: { probability: 0.2 }, paralyzed: { probability: 0.2 } },
+  },
+  {
+    name: "ファラオの幻刃",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 395,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 28,
+    ignoreEvasion: true,
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.dazzle) {
+        return 3;
+      } else if (skillTarget.buffs.maso) {
+        return 1.5;
+      }
+    },
+  },
+  {
+    name: "ファラオの召喚",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 58,
+    act: async function (skillUser, skillTarget) {
+      await reviveMonster(skillTarget);
+      skillTarget.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
+      skillTarget.attribute.additionalEvenTurnBuffs = {
+        ...skillTarget.attribute.additionalEvenTurnBuffs,
+        baiki: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      };
+    },
+  },
+  {
     name: "ピオリム",
     type: "spell",
     howToCalculate: "none",
@@ -11335,6 +11422,12 @@ const gear = [
     status: { HP: 20, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
   },
   {
+    name: "ファラオの腕輪",
+    id: "pharaohBracelet",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 37, def: 0, spd: 10, int: 0 },
+  },
+  {
     name: "炎よけのおまもり",
     id: "fireCharm",
     weight: 0,
@@ -11418,6 +11511,19 @@ const gearAbilities = {
           executeWave(counterTarget);
         },
       });
+    },
+  },
+  pharaohBracelet: {
+    initialAbilities: function (skillUser) {
+      if (skillUser.race === "ゾンビ") {
+        skillUser.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
+        skillUser.attribute.additionalEvenTurnBuffs = {
+          ...skillUser.attribute.additionalEvenTurnBuffs,
+          baiki: { strength: 1 },
+          spdUp: { strength: 1 },
+          intUp: { strength: 1 },
+        };
+      }
     },
   },
   familyNailRadiantWave: {
