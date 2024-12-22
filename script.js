@@ -9482,7 +9482,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    MPcost: 100,
+    MPcost: 0,
     ignoreSubstitute: true,
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
@@ -10606,7 +10606,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     damageByLevel: true,
-    appliedEffect: { poisoned: { probability: 0.8 } },
+    appliedEffect: { poisoned: { probability: 1.5 } },
     damageMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned) {
         return 0.2;
@@ -10658,7 +10658,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
-    MPcost: 39,
+    MPcost: 0,
     ignoreReflection: true,
     ignoreSubstitute: true,
     appliedEffect: { poisoned: { unDispellableByRadiantWave: true } },
@@ -10976,7 +10976,7 @@ const skill = [
     targetType: "field",
     targetTeam: "ally",
     order: "anchor",
-    MPcost: 152,
+    MPcost: 0,
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
