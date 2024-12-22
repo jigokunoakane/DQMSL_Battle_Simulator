@@ -3718,8 +3718,8 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     damage *= executingSkill.RaceBaneValue;
   }
   // みがわり特効
-  if (executingSkill.SubstituteBreaker && skillTarget.flags.isSubstituting) {
-    damage *= executingSkill.SubstituteBreaker;
+  if (executingSkill.substituteBreaker && skillTarget.flags.isSubstituting) {
+    damage *= executingSkill.substituteBreaker;
   }
 
   // anchorBonus
@@ -6145,6 +6145,26 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 1.5, dark: -1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "くさったまじゅう", //44
+    id: "kusamaju",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 25,
+    status: { HP: 812, MP: 286, atk: 561, def: 283, spd: 531, int: 407 },
+    initialSkill: ["ヒートヴェノム", "腐乱の波動", "仁王溶かしの息", "スパークふんしゃ"],
+    anotherSkills: ["防壁反転"],
+    defaultGear: "metalNail",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { spd: 1.18 },
+    lsTarget: "ゾンビ",
+    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 0.5, dark: 1, poisoned: 0, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "デスソシスト",
     id: "desuso",
     rank: 10,
@@ -7451,7 +7471,7 @@ function getMonsterAbilities(monsterId) {
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
-                        if (monster.race === "ゾンビ") {
+                        if (monster.race === "ゾンビ" && !monster.flags.isDead) {
                           const newBuffs = {};
                           let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
                           const deleteKeys = ["slashSeal", "martialSeal", "spellSeal", "breathSeal", "reviveBlock", "healBlock"];
@@ -7501,6 +7521,51 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true);
+          },
+        },
+      ],
+    },
+    kusamaju: {
+      initialAbilities: [
+        {
+          name: "屍獣の執念執念部分",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+          },
+        },
+        {
+          name: "毒素拡散",
+          unavailableIf: (skillUser) => parties[skillUser.enemyTeamID].some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "毒素拡散")),
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              monster.abilities.additionalDeathAbilities.push({
+                name: "毒素拡散",
+                message: function (skillUser) {
+                  displayMessage(`${skillUser.name} がチカラつき`, "毒素拡散 の効果が発動！");
+                },
+                act: async function (skillUser) {
+                  for (const monster of parties[skillUser.teamID]) {
+                    if (!monster.flags.isDead) {
+                      applyBuff(monster, { poisoned: { probability: 1 } });
+                      await sleep(150);
+                    }
+                  }
+                },
+              });
+            }
+          },
+        },
+      ],
+      deathAbilities: [
+        {
+          name: "屍獣の執念",
+          act: async function (skillUser) {
+            for (const party of parties) {
+              for (const monster of party) {
+                applyBuff(monster, { defUp: { strength: -1 }, spellBarrier: { strength: -1 }, breathBarrier: { strength: -1 } });
+              }
+            }
           },
         },
       ],
@@ -7555,7 +7620,7 @@ const skill = [
     RaceBaneValue: 3,
     anchorBonus: 3,
     damageByLevel: true,
-    SubstituteBreaker: 3,
+    substituteBreaker: 3,
     ignoreProtection: true,
     ignoreReflection: true,
     ignoreSubstitute: true,
@@ -7802,7 +7867,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
-    SubstituteBreaker: 3,
+    substituteBreaker: 3,
     appliedEffect: "divineWave",
   },
   {
@@ -8196,7 +8261,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 52,
-    SubstituteBreaker: 3,
+    substituteBreaker: 3,
     ignoreEvasion: true,
     zakiProbability: 0.78,
   },
@@ -9990,7 +10055,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 98,
-    SubstituteBreaker: 3,
+    substituteBreaker: 3,
     appliedEffect: { confused: { probability: 0.377 } },
   },
   {
@@ -10101,7 +10166,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 98,
-    SubstituteBreaker: 3,
+    substituteBreaker: 3,
     damageByLevel: true,
     followingSkill: "狂気のいあつ魅了",
   },
@@ -10819,6 +10884,55 @@ const skill = [
     skipDeathCheck: true,
     skipSkillSealCheck: true,
     appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "ヒートヴェノム",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 200,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 55,
+    appliedEffect: { poisoned: { probability: 0.8 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "腐乱の波動",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 68,
+    zakiProbability: 0.3683,
+    followingSkill: "腐乱の波動後半",
+  },
+  {
+    name: "腐乱の波動後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { asleep: { probability: 0.405 }, confused: { probability: 0.428 } },
+  },
+  {
+    name: "仁王溶かしの息",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 145,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 78,
+    substituteBreaker: 3,
   },
   {
     name: "メガントマータ",
