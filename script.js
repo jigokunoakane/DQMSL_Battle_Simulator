@@ -2534,6 +2534,23 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
 
+  // 自動HPMP回復
+  async function executeAfterActionHealAbilities(monster) {
+    const abilitiesToExecute = [];
+    // 各ability配列の中身を展開して追加
+    abilitiesToExecute.push(...(monster.abilities.afterActionHealAbilities ?? []));
+    abilitiesToExecute.push(...(monster.abilities.additionalAfterActionHealAbilities ?? []));
+    for (const ability of abilitiesToExecute) {
+      await sleep(200);
+      await ability.act(monster);
+      await sleep(200);
+    }
+  }
+  // 自動HPMP回復
+  if (skillUser.commandInput !== "skipThisTurn") {
+    await executeAfterActionHealAbilities(skillUser);
+  }
+
   // 7-4. 行動後発動特性の処理 //executingSkillがnullの場合に要注意
   async function executeAfterActionAbilities(monster) {
     const abilitiesToExecute = [];
@@ -6779,6 +6796,16 @@ function getMonsterAbilities(monsterId) {
               applyBuff(randomAlly, { intUp: { strength: 1 } });
               await sleep(150);
             }
+          },
+        },
+      ],
+    },
+    kids: {
+      afterActionHealAbilities: [
+        {
+          name: "自動HP大回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.15);
           },
         },
       ],
