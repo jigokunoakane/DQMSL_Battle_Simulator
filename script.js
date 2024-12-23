@@ -11516,6 +11516,13 @@ const gear = [
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
   },
   {
+    name: "しゅくふくの杖",
+    id: "shukuhuku",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 78 },
+    healBoost: 1.32,
+  },
+  {
     name: "魔神のかなづち",
     id: "kanazuchi",
     weight: 2,
