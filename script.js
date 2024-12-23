@@ -4560,6 +4560,7 @@ function addSkillOptions() {
       "バイシオン",
       "バイキルト",
       "インテラ",
+      "ベホマラー",
       "ザオリク",
       "リザオラル",
       "光のはどう",
@@ -5907,7 +5908,8 @@ const monsters = [
     race: "悪魔",
     weight: 25,
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
-    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"], //けがれた狂風 マインドブレス
+    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"], //けがれた狂風
+    anotherSkills: ["マインドブレス"],
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 2 },
@@ -10428,6 +10430,17 @@ const skill = [
     ignoreProtection: true,
   },
   {
+    name: "マインドブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 195,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    appliedEffect: { fear: { probability: 0.26 } },
+  },
+  {
     name: "ヘブンリーブレス",
     type: "breath",
     howToCalculate: "fix",
@@ -11125,6 +11138,29 @@ const skill = [
     targetTeam: "ally",
     MPcost: 15,
     appliedEffect: { intUp: { strength: 1 } },
+  },
+  {
+    name: "ベホマラー",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 65,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      const int = skillUser.currentStatus.int;
+      let healAmount = 110;
+      if (int < 200) {
+        healAmount = 110;
+      } else if (int > 500) {
+        healAmount = 272;
+      } else {
+        healAmount = 0.54 * (int - 200) + 110;
+      }
+      healAmount *= 1.15;
+      applyHeal(skillTarget, healAmount);
+    },
   },
   {
     name: "天の裁き",
