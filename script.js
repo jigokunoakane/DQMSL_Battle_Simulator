@@ -2629,7 +2629,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await sleep(400);
     displayMessage(`${skillUser.name}は`, "ファラオの幻刃 をはなった！");
     await sleep(150);
-    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"));
+    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"), null, false, null, false, true);
   }
 
   // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
