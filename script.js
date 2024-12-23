@@ -873,8 +873,7 @@ async function startTurn() {
       monster.abilities.attackAbilities.nextTurnAbilitiesToExecute = [...monster.abilities.attackAbilities.nextTurnAbilities];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
       monster.abilities.attackAbilities.nextTurnAbilities = [];
-      // みがわり削除後に更新
-      await updateMonsterBuffsDisplay(monster);
+      // みがわり削除後の更新はremoveExpiredBuffsAtTurnStart内で
     }
   }
   // ぼうぎょタグを削除
@@ -3281,7 +3280,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // isDamageExistingはfalseで送る
     await processAppliedEffectWave(skillTarget, executingSkill, false);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    await updateMonsterBuffsDisplay(skillTarget);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
     checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
@@ -3410,8 +3408,6 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
-  // 失望の光舞でくじけぬ解除表示が更新されない対策(いては効果と連続でupdateしているため？)
-  await updateMonsterBuffsDisplay(skillTarget);
 
   // monsterActionまたはAI追撃のとき、反撃対象にする
   if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
@@ -7736,7 +7732,7 @@ const skill = [
         skillTarget.buffs.isUnbreakable.left = 1;
         skillTarget.buffs.isUnbreakable.isToukon = true;
         skillTarget.buffs.isUnbreakable.isBroken = true;
-        await updateMonsterBuffsDisplay(skillTarget);
+        // await updateMonsterBuffsDisplay(skillTarget);
       }
     },
   },
