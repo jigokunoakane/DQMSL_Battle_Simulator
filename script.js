@@ -5429,6 +5429,26 @@ const monsters = [
     resistance: { fire: 1.5, ice: 0, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "スライダーキッズ", //最強
+    id: "kids",
+    rank: 9,
+    race: "スライム",
+    weight: 14,
+    status: { HP: 743, MP: 196, atk: 434, def: 391, spd: 459, int: 277 },
+    initialSkill: ["みがわり・マインドバリア", "竜の眼光", "ザオリク", "光のはどう"],
+    defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        damageLimit: { strength: 250, keepOnDeath: true, iconSrc: "none" },
+      },
+    },
+    seed: { atk: 20, def: 25, spd: 75, int: 0 },
+    ls: { atk: 1.1, def: 1.1 },
+    lsTarget: "スライム",
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 0, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 1, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルナイト",
     id: "skull",
     rank: 8,
@@ -8172,6 +8192,25 @@ const skill = [
     },
   },
   {
+    name: "みがわり・マインドバリア",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    excludeTarget: "self",
+    MPcost: 11,
+    order: "preemptive",
+    preemptiveGroup: 4,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, skillTarget);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(100);
+      applyBuff(skillUser, { mindBarrier: { duration: 4 } });
+    },
+  },
+  {
     name: "超魔滅光",
     type: "martial",
     howToCalculate: "fix",
@@ -9758,6 +9797,16 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 56,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "竜の眼光",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 50,
     appliedEffect: "divineWave",
   },
   {
