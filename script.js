@@ -914,6 +914,7 @@ async function startTurn() {
           }
           await ability.act(monster);
         }
+        await updateMonsterBuffsDisplay(monster);
       }
     }
     await sleep(600);
@@ -11624,12 +11625,12 @@ const gear = [
 // 必要ならばasyncにするのに注意
 const gearAbilities = {
   waveNail: {
-    initialAbilities: function (skillUser) {
+    initialAbilities: async function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
     },
   },
   clownHat: {
-    initialAbilities: function (skillUser) {
+    initialAbilities: async function (skillUser) {
       skillUser.abilities.additionalCounterAbilities.push({
         name: "帽子反撃",
         message: function (skillUser) {
@@ -11644,7 +11645,7 @@ const gearAbilities = {
     },
   },
   pharaohBracelet: {
-    initialAbilities: function (skillUser) {
+    initialAbilities: async function (skillUser) {
       if (skillUser.race === "ゾンビ") {
         skillUser.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
         skillUser.attribute.additionalEvenTurnBuffs = {
@@ -11658,7 +11659,7 @@ const gearAbilities = {
   },
   familyNailRadiantWave: {
     // 直接挿入で良いのか 存在しない場合生成
-    initialAbilities: function (skillUser) {
+    initialAbilities: async function (skillUser) {
       if (!skillUser.abilities.supportAbilities.evenTurnAbilities) {
         skillUser.abilities.supportAbilities.evenTurnAbilities = [];
       }
