@@ -5452,7 +5452,7 @@ const monsters = [
     race: "スライム",
     weight: 14,
     status: { HP: 743, MP: 196, atk: 434, def: 391, spd: 459, int: 277 },
-    initialSkill: ["みがわり・マインドバリア", "竜の眼光", "ザオリク", "光のはどう"],
+    initialSkill: ["みがわり・マインドバリア", "竜の眼光", "ザオリク", "カオスストーム"],
     defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
     attribute: {
@@ -11174,6 +11174,22 @@ const skill = [
         intUp: { strength: 1 },
       };
     },
+  },
+  {
+    name: "カオスストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 220,
+    skillPlus: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 75,
+    appliedEffect: { fear: { probability: 0.36 } },
   },
   {
     name: "ピオリム",
