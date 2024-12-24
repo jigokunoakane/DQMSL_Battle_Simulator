@@ -5063,7 +5063,7 @@ const monsters = [
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
-    anotherSkills: ["神速メラガイアー"],
+    anotherSkills: ["神速メラガイアー", "メダパニバリア"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -10338,6 +10338,18 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { mindBarrier: { duration: 4 } },
+  },
+  {
+    name: "メダパニバリア",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 54,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { mindBarrier: { duration: 4 }, confusionBarrier: { duration: 4 } },
   },
   {
     name: "あんこくのはばたき",
