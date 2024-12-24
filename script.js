@@ -8475,7 +8475,7 @@ const skill = [
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}は`, "攻撃に対して 反撃する状態になった！");
     },
-    appliedEffect: { counterAttack: { keepOnDeath: true, decreaseTurnEnd: true, duration: 1 } },
+    appliedEffect: { counterAttack: { keepOnDeath: true, divineDispellable: true, decreaseTurnEnd: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities.push({
         name: "冥王の構え反撃状態",
