@@ -5048,7 +5048,7 @@ const monsters = [
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
-    anotherSkills: ["テンペストブレス", "神速メラガイアー"],
+    anotherSkills: ["テンペストブレス", "神速メラガイアー", "竜の呪文見切り"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -5120,7 +5120,7 @@ const monsters = [
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
-    anotherSkills: ["テンペストブレス"],
+    anotherSkills: ["テンペストブレス", "竜の呪文見切り"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -10246,6 +10246,25 @@ const skill = [
         displayMiss(skillTarget);
       }
       applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+    },
+  },
+  {
+    name: "竜の呪文見切り",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 69,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.race === "ドラゴン") {
+        applyBuff(skillTarget, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+      } else {
+        displayMiss(skillTarget);
+      }
+      applyBuff(skillUser, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
     },
   },
   {
