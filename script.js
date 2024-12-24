@@ -2552,6 +2552,11 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await ability.act(monster);
       await sleep(200);
     }
+    if (monster.buffs.continuousMPHealing) {
+      await sleep(300);
+      applyHeal(monster, 50, true);
+      await sleep(200);
+    }
   }
   // 自動HPMP回復
   if (skillUser.commandInput !== "skipThisTurn") {
@@ -4301,8 +4306,10 @@ async function executeDeathAbilities(monster) {
 }
 
 // モンスターを蘇生させる関数
-async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false) {
-  await sleep(400);
+async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, skipSleep = false) {
+  if (!skipSleep) {
+    await sleep(400);
+  }
   if (!monster.flags.isDead) {
     displayMiss(monster);
     return;
@@ -4348,7 +4355,9 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false) {
   updateMonsterBar(monster);
   updateBattleIcons(monster);
   await updateMonsterBuffsDisplay(monster);
-  await sleep(300);
+  if (!skipSleep) {
+    await sleep(300);
+  }
 }
 
 // モンスターを亡者化させる関数
@@ -11089,8 +11098,8 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          reviveMonster(monster); //awaitしない
-          // MP回復付与
+          await reviveMonster(monster, 1, false, true); // 間隔skip
+          applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 3 } });
         }
       }
       await sleep(740);
