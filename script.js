@@ -2165,7 +2165,7 @@ async function processMonsterAction(skillUser) {
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
       if (
-        !availableSkillsOnAIthisTurn.includes(skillName) ||
+        !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
@@ -2277,7 +2277,7 @@ async function processMonsterAction(skillUser) {
       const MPcost = calculateMPcost(skillUser, skillInfo);
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
       if (
-        !availableSkillsOnAIthisTurn.includes(skillName) ||
+        !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
