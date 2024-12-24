@@ -4568,100 +4568,115 @@ function adjustStatusAndSkillDisplay() {
 }
 
 function addSkillOptions() {
+  const monster = selectingParty[currentTab];
+  const initialSkills = monster.initialSkill;
+  const anotherSkills = monster.anotherSkills;
+  const familySkills = {
+    ドラゴン: ["テンペストブレス", "ほとばしる暗闇", "竜の呪文見切り"],
+    ゾンビ: ["ヴェレマータ", "防壁反転"],
+    悪魔: ["イオナルーン"],
+  }[monster.race];
+  const superSkills = [
+    "メゾラゴン",
+    "メラゾロス",
+    "バギラ",
+    "昇天斬り",
+    "おぞましいおたけび",
+    "天の裁き",
+    "聖魔拳",
+    "ダイヤモンドダスト",
+    "スパークふんしゃ",
+    "体技封じの息",
+    "キャンセルステップ",
+    "体砕きの斬舞",
+    "防刃の守り",
+    "精霊の守り・強",
+    "タップダンス",
+    "マインドバリア",
+    "ピオリム",
+    "バイシオン",
+    "バイキルト",
+    "インテラ",
+    "ベホマラー",
+    "ザオリク",
+    "リザオラル",
+    "光のはどう",
+    "斬撃よそく",
+    "体技よそく",
+    "踊りよそく",
+    "マホカンタ",
+    "おいかぜ",
+    "獄炎斬り",
+    "氷獄斬り",
+    "轟雷斬り",
+    "暴風斬り",
+    "爆砕斬り",
+    "極光斬り",
+    "暗獄斬り",
+  ];
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
-    const initialSkills = selectingParty[currentTab].initialSkill;
-    const anotherSkills = selectingParty[currentTab].anotherSkills;
-    const superSkills = [
-      "メゾラゴン",
-      "メラゾロス",
-      "バギラ",
-      "昇天斬り",
-      "おぞましいおたけび",
-      "天の裁き",
-      "聖魔拳",
-      "ダイヤモンドダスト",
-      "スパークふんしゃ",
-      "体技封じの息",
-      "キャンセルステップ",
-      "体砕きの斬舞",
-      "防刃の守り",
-      "精霊の守り・強",
-      "タップダンス",
-      "マインドバリア",
-      "ピオリム",
-      "バイシオン",
-      "バイキルト",
-      "インテラ",
-      "ベホマラー",
-      "ザオリク",
-      "リザオラル",
-      "光のはどう",
-      "斬撃よそく",
-      "体技よそく",
-      "踊りよそく",
-      "マホカンタ",
-      "おいかぜ",
-      "獄炎斬り",
-      "氷獄斬り",
-      "轟雷斬り",
-      "暴風斬り",
-      "爆砕斬り",
-      "極光斬り",
-      "暗獄斬り",
-    ];
+    selectElement.innerHTML = "";
 
-    let defaultOptGroup = selectElement.querySelector("optgroup[label='固有特技']");
-    defaultOptGroup.innerHTML = "";
-
-    let anotherOptGroup = selectElement.querySelector("optgroup[label='その他特技']");
-    let superOptGroup = selectElement.querySelector("optgroup[label='超マス特技']");
+    const option = document.createElement("option");
+    option.value = "";
+    option.hidden = true;
+    option.disabled = true;
+    option.textContent = "選択してください";
+    selectElement.appendChild(option);
 
     // 固有特技を追加 (ここはdefaultではなくinitial)
-    for (let i = 0; i < initialSkills.length; i++) {
-      if (initialSkills[i]) {
-        const option = document.createElement("option");
-        option.value = initialSkills[i];
-        option.text = initialSkills[i];
-        defaultOptGroup.appendChild(option);
-      }
+    defaultOptGroup = document.createElement("optgroup");
+    defaultOptGroup.label = "固有特技";
+    for (const skill of initialSkills) {
+      const option = document.createElement("option");
+      option.value = skill;
+      option.text = skill;
+      defaultOptGroup.appendChild(option);
     }
+    selectElement.appendChild(defaultOptGroup);
 
     // その他特技を追加
     if (anotherSkills) {
-      if (!anotherOptGroup) {
-        anotherOptGroup = document.createElement("optgroup");
-        anotherOptGroup.label = "その他特技";
-        selectElement.insertBefore(anotherOptGroup, superOptGroup); // 超マス特技の前に挿入
+      anotherOptGroup = document.createElement("optgroup");
+      anotherOptGroup.label = "その他特技";
+      for (const skill of anotherSkills) {
+        const option = document.createElement("option");
+        option.value = skill;
+        option.text = skill;
+        anotherOptGroup.appendChild(option);
       }
-      anotherOptGroup.innerHTML = "";
-      for (let i = 0; i < anotherSkills.length; i++) {
-        if (anotherSkills[i]) {
-          const option = document.createElement("option");
-          option.value = anotherSkills[i];
-          option.text = anotherSkills[i];
-          anotherOptGroup.appendChild(option);
-        }
-      }
-    } else if (anotherOptGroup) {
-      anotherOptGroup.remove();
+      selectElement.appendChild(anotherOptGroup);
     }
 
-    // 超マス特技を追加 (初回のみ)
-    if (!superOptGroup) {
+    // 系統特技を追加
+    if (familySkills && monster.rank === 10) {
+      familyOptGroup = document.createElement("optgroup");
+      familyOptGroup.label = "系統特技";
+      for (const skill of familySkills) {
+        const option = document.createElement("option");
+        option.value = skill;
+        option.text = skill;
+        familyOptGroup.appendChild(option);
+      }
+      selectElement.appendChild(familyOptGroup);
+    }
+
+    // 超マス特技を追加
+    if (monster.race !== "超魔王" && monster.race !== "超伝説") {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
-      selectElement.appendChild(superOptGroup); // 末尾に追加
       for (const skill of superSkills) {
         const option = document.createElement("option");
         option.value = skill;
         option.text = skill;
         superOptGroup.appendChild(option);
       }
+      selectElement.appendChild(superOptGroup); // 末尾に追加
     }
 
     // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultをselect要素に代入
-    document.getElementById(`skill${j}`).value = selectingParty[currentTab].defaultSkill[j];
+    document.getElementById(`skill${j}`).value = monster.defaultSkill[j];
   }
   // タブ遷移や初期選択で挿入されたselect要素のskillに応じてcheckBoxを変更
   adjustCheckBox();
@@ -5048,7 +5063,7 @@ const monsters = [
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
-    anotherSkills: ["テンペストブレス", "神速メラガイアー", "竜の呪文見切り"],
+    anotherSkills: ["神速メラガイアー"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -5068,7 +5083,7 @@ const monsters = [
     weight: 28,
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
-    anotherSkills: ["テンペストブレス", "サンダーボルト", "ほとばしる暗闇"],
+    anotherSkills: ["サンダーボルト"],
     defaultGear: "killerEarrings",
     attribute: {
       initialBuffs: {
@@ -5096,7 +5111,6 @@ const monsters = [
     weight: 28,
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
-    anotherSkills: ["テンペストブレス"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -5120,7 +5134,6 @@ const monsters = [
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
-    anotherSkills: ["テンペストブレス", "竜の呪文見切り"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -6117,7 +6130,7 @@ const monsters = [
     weight: 30,
     status: { HP: 927, MP: 280, atk: 385, def: 646, spd: 495, int: 283 },
     initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "スパークふんしゃ"],
-    anotherSkills: ["毒性深化", "防壁反転"],
+    anotherSkills: ["毒性深化"],
     attribute: {
       initialBuffs: {
         poisonedBreak: { keepOnDeath: true, strength: 2 },
@@ -6180,7 +6193,6 @@ const monsters = [
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ヴェレマータ"],
-    anotherSkills: ["防壁反転"],
     initialAIDisabledSkills: ["れんごくの翼"],
     attribute: {
       initialBuffs: {
@@ -6202,7 +6214,6 @@ const monsters = [
     weight: 25,
     status: { HP: 812, MP: 286, atk: 561, def: 283, spd: 531, int: 407 },
     initialSkill: ["ヒートヴェノム", "腐乱の波動", "仁王溶かしの息", "スパークふんしゃ"],
-    anotherSkills: ["防壁反転"],
     defaultGear: "metalNail",
     attribute: {
       initialBuffs: {
@@ -6222,7 +6233,6 @@ const monsters = [
     weight: 27,
     status: { HP: 812, MP: 304, atk: 393, def: 625, spd: 325, int: 504 },
     initialSkill: ["メガントマータ", "防壁反転", "亡者の儀式", "鮮烈な稲妻"],
-    anotherSkills: ["ヴェレマータ"],
     attribute: {
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
