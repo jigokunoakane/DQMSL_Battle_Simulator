@@ -140,7 +140,7 @@ async function prepareBattle() {
 
       // skill生成
       monster.skill = [...monster.defaultSkill];
-      monster.turnStartSkills = [...monster.defaultSkill];
+      monster.availableSkillsOnAIthisTurn = [...monster.skill];
 
       // ステータス処理
       monster.defaultStatus = {};
@@ -1185,12 +1185,18 @@ async function startTurn() {
     await executeAbility(monster, "attackAbilities");
   }
 
-  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除 ターン開始・コマンド開始時点のskillを記録
+  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
   for (const party of parties) {
     for (const monster of party) {
       delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
       delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
-      monster.turnStartSkills = [...monster.skill];
+      // ターン開始・コマンド開始時点に使用可能だったskillを使用可能skillリストに記録
+      // 変身したターンにAIで絶望の天舞や超伝説変身後特技は使用しない 供物はOK
+      monster.availableSkillsOnAIthisTurn = [...monster.skill];
+      // 供物になっている場合は元skillを使用可能リストに含める
+      if (monster.availableSkillsOnAIthisTurn[3] === "供物をささげる") {
+        monster.availableSkillsOnAIthisTurn[3] = monster.defaultSkill[3];
+      }
     }
   }
 
@@ -2154,12 +2160,12 @@ async function processMonsterAction(skillUser) {
       });
     }
 
-    // 変身したターンにAIで絶望の天舞や超伝説変身後特技は使用しない
-    for (const skillName of skillUser.turnStartSkills) {
+    for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
 
       if (
+        !availableSkillsOnAIthisTurn.includes(skillName) ||
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
@@ -2266,11 +2272,12 @@ async function processMonsterAction(skillUser) {
     const availableReviveSkills = [];
     const availableAllHealSkills = [];
     const availableSingleHealSkills = [];
-    for (const skillName of skillUser.turnStartSkills) {
+    for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
       const MPcost = calculateMPcost(skillUser, skillInfo);
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
       if (
+        !availableSkillsOnAIthisTurn.includes(skillName) ||
         isSkillUnavailableForAI(skillName) ||
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
