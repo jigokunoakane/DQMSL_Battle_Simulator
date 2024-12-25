@@ -913,7 +913,7 @@ async function startTurn() {
           }
           await ability.act(monster);
         }
-        await updateMonsterBuffsDisplay(monster);
+        updateMonsterBuffsDisplay(monster);
       }
     }
     await sleep(600);
@@ -1121,7 +1121,7 @@ async function startTurn() {
       } else {
         displayMessage("死のカウントダウンが すすんだ！");
         monster.buffs.countDown.count--;
-        await updateMonsterBuffsDisplay(monster);
+        updateMonsterBuffsDisplay(monster);
       }
       await sleep(150);
     }
