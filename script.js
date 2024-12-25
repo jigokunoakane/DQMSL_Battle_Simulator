@@ -8082,7 +8082,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 524,
+    MPcost: 500,
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
