@@ -2499,7 +2499,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
   // 7-3. AI追撃処理
   if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
-    const noAIskills = ["黄泉の封印", "神獣の封印"];
+    const noAIskills = ["黄泉の封印", "神獣の封印", "供物をささげる"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       await sleep(300);
       let attackTimes =
