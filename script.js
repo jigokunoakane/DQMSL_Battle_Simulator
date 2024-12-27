@@ -5151,12 +5151,12 @@ const monsters = [
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "神獣王WORLD", //最速
+    name: "神獣王WORLD", //最強
     id: "world",
     rank: 10,
     race: "???",
     weight: 30,
-    status: { HP: 809, MP: 332, atk: 659, def: 473, spd: 470, int: 324 },
+    status: { HP: 810, MP: 334, atk: 661, def: 473, spd: 470, int: 325 },
     initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
     defaultGear: "kudaki",
     attribute: {
