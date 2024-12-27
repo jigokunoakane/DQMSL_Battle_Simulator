@@ -11226,7 +11226,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 58,
     act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget);
+      await reviveMonster(skillTarget, 0.5);
       skillTarget.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
       skillTarget.attribute.additionalEvenTurnBuffs = {
         ...skillTarget.attribute.additionalEvenTurnBuffs,
