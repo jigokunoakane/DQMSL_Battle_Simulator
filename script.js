@@ -5624,7 +5624,7 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 100, def: 10, spd: 10, int: 0 },
+    seed: { atk: 95, def: 15, spd: 10, int: 0 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [3, 4],
