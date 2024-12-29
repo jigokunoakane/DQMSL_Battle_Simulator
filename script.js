@@ -2966,6 +2966,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
 async function executeSkill(skillUser, executingSkill, assignedTarget = null, isProcessMonsterAction = false, damagedMonsters = null, isAIattack = false, ignoreAbnormalityCheck = false) {
   let currentSkill = executingSkill;
+  let isMonsterAction = isProcessMonsterAction;
   // 実行済skillを格納
   let executedSkills = [];
   let isFollowingSkill = false;
@@ -3010,7 +3011,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isProcessMonsterAction, damagedMonsters, isAIattack);
+    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack);
 
     // currentSkill実行後、生存にかかわらず実行するact 行動skip判定前に実行
     if (currentSkill.afterActionAct) {
@@ -3054,6 +3055,8 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
       }
       currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName(executingSkill));
       isFollowingSkill = true;
+      // 追撃特性はmonsterActionではないので連携や反撃対象にしない
+      isMonsterAction = false;
       // 次のloopに入ってability実行後は、ここには入らずnull指定されて終了
       hasExecutedFollowingAbilities = true;
     } else {
