@@ -2740,9 +2740,9 @@ function hasAbnormality(monster) {
 }
 
 //吸収以外の錬金が乗る回復
-function applyHeal(target, healAmount, isMPheal = false) {
+function applyHeal(target, healAmount, isMPheal = false, ignoreHealBoost = false) {
   let calculatedHealAmount = healAmount;
-  if (target.gear && target.gear.healBoost) {
+  if (!ignoreHealBoost && target.gear && target.gear.healBoost) {
     calculatedHealAmount *= target.gear.healBoost;
   }
   applyDamage(target, calculatedHealAmount, -1, isMPheal);
@@ -3994,7 +3994,10 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  damage *= damageModifier;
+  // MP依存以外で加減算を反映
+  if (executingSkill.howToCalculate !== "MP") {
+    damage *= damageModifier;
+  }
 
   // ダメージ付与処理
   damage = Math.floor(damage);
@@ -5141,6 +5144,7 @@ const monsters = [
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
+    anotherSkills: ["かえんりゅう"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -6105,6 +6109,26 @@ const monsters = [
     lsTarget: "魔獣",
     AINormalAttack: [2, 3],
     resistance: { fire: 0.5, ice: 1, thunder: -1, wind: 0.5, io: 0, light: 1.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 0, spellSeal: 1, breathSeal: 0.5 },
+  },
+  {
+    name: "極彩鳥にじくじゃく", //4
+    id: "nijiku",
+    rank: 10,
+    race: "魔獣",
+    weight: 28,
+    status: { HP: 862, MP: 289, atk: 316, def: 523, spd: 515, int: 473 },
+    initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "タップダンス"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
+    seed: { atk: 0, def: 10, spd: 80, int: 30 },
+    ls: { HP: 1.2, MP: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0.5, thunder: 0, wind: 1, io: 1, light: 0.5, dark: 0.5, poisoned: 0.5, asleep: 1, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0.5 },
   },
   {
     name: "ドラ猫親分ドラジ",
@@ -7493,6 +7517,50 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    nijiku: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "七色の魔力",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        1: [
+          {
+            name: "獣衆の速攻",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "魔獣") {
+                  applyBuff(monster, { spdUp: { strength: 1 } });
+                }
+              }
+            },
+          },
+          {
+            name: "虹のベール",
+            act: async function (skillUser) {
+              applyBuff(skillUser, { spdUp: { strength: 1 } });
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { confusionBarrier: { duration: 3 } });
+                await sleep(150);
+              }
+            },
+          },
+        ],
+      },
+      afterActionHealAbilities: [
+        {
+          name: "七色の魔力",
+          act: async function (skillUser) {
+            applyHeal(skillUser, 100, true);
+          },
+        },
+      ],
     },
     skullspider: {
       initialAbilities: [
@@ -10739,6 +10807,42 @@ const skill = [
     },
   },
   {
+    name: "レインマダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPratio: 1.62,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: "all",
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+  },
+  {
+    name: "かえんりゅう",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 300,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 106,
+    damageByLevel: true,
+    appliedEffect: { paralyzed: { probability: 0.5775 } },
+  },
+  {
+    name: "天雷の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 236,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 72,
+    appliedEffect: { breathBarrier: { strength: -1 } },
+  },
+  {
     name: "抜刀魔獣刃",
     type: "slash",
     howToCalculate: "atk",
@@ -12670,6 +12774,18 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     mindBarrier: {
       start: "行動停止系の効果が  効かなくなった！",
       message: "",
+    },
+    sleepBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "ねむりの効果が 効かなくなった！",
+    },
+    confusionBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "こんらんの効果が 効かなくなった！",
+    },
+    paralyzeBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "マヒの効果が 効かなくなった！",
     },
     protection: {
       start: `${buffTarget.name}の`,
