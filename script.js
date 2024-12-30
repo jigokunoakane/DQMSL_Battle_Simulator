@@ -6199,6 +6199,28 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "スライダーガール", //4
+    id: "suragirl",
+    rank: 10,
+    race: "スライム",
+    weight: 28,
+    status: { HP: 758, MP: 287, atk: 538, def: 615, spd: 494, int: 275 },
+    initialSkill: ["ばくれつドライブ", "スパークふんしゃ", "カオスストーム", "息よそく"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        ioBreak: { keepOnDeath: true, strength: 1 },
+        thunderBreak: { keepOnDeath: true, strength: 1 },
+        damageLimit: { strength: 250, keepOnDeath: true, iconSrc: "none" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { spd: 1.2 },
+    lsTarget: "スライム",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 1, thunder: -1, wind: 0.5, io: 0, light: 0, dark: 1.5, poisoned: 1.5, asleep: 1, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スラ・ブラスター", //4
     id: "surabura",
     rank: 10,
@@ -7626,6 +7648,31 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    suragirl: {
+      initialAbilities: [
+        {
+          name: "スライダーヒール",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "スライム") {
+                applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "オートリペア",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
     },
     surabura: {
       initialAbilities: [
@@ -10987,6 +11034,18 @@ const skill = [
     ignoreBaiki: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
+  },
+  {
+    name: "ばくれつドライブ",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.82,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 60,
+    ignoreProtection: true,
   },
   {
     name: "S・ブラスター",
