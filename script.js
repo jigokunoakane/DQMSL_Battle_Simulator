@@ -4649,7 +4649,7 @@ function addSkillOptions() {
     "暗獄斬り",
   ];
   let targetCollabSkills = null;
-  const hosigoronSkills = ["竜の眼光", "カオスストーム"];
+  const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ"];
   const hosigoronTargets = ["DARK", "まものテリー&ミレーユ", "スライダーガール", "スライダーヒーロー", "極彩鳥にじくじゃく", "スライダーキッズ", "マジェス・ドレアム", "支配王レゾム・レザーム"];
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
@@ -6160,7 +6160,7 @@ const monsters = [
     race: "魔獣",
     weight: 28,
     status: { HP: 862, MP: 289, atk: 316, def: 523, spd: 515, int: 473 },
-    initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "タップダンス"],
+    initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "防刃の守り"],
     defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
@@ -11531,6 +11531,18 @@ const skill = [
     appliedEffect: { danceReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
   },
   {
+    name: "息よそく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    MPcost: 5,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    appliedEffect: { breathReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+  },
+  {
     name: "超息よそく",
     type: "martial",
     howToCalculate: "none",
@@ -11640,6 +11652,124 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 28,
     weakness18: true,
+  },
+  {
+    name: "ゆうきの旋風",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 328,
+    element: "wind",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 83,
+    followingSkill: "ゆうきの旋風後半",
+  },
+  {
+    name: "ゆうきの旋風後半",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 271,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
+    name: "ほうしの嵐",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 95,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 39,
+    damageByLevel: true,
+    appliedEffect: { asleep: { probability: 0.39 }, paralyzed: { probability: 0.1667 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.asleep || skillTarget.buffs.paralyzed || skillTarget.buffs.maso) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "クラスマダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 3.45,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 1,
+    ignoreReflection: true,
+  },
+  {
+    name: "がんせきおとし",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    damageByLevel: true,
+  },
+  {
+    name: "ステテコダンス",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 162,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 41,
+    appliedEffect: { confused: { probability: 0.404 } },
+  },
+  {
+    name: "ベホマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 42,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      const int = skillUser.currentStatus.int;
+      let healAmount = 330;
+      if (int < 200) {
+        healAmount = 330;
+      } else if (int > 500) {
+        healAmount = 975;
+      } else {
+        healAmount = 2.15 * (int - 200) + 330;
+      }
+      healAmount *= 1.15;
+      applyHeal(skillTarget, healAmount);
+    },
+  },
+  {
+    name: "ベホイマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 42,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      const int = skillUser.currentStatus.int;
+      let healAmount = 330;
+      if (int < 200) {
+        healAmount = 330;
+      } else if (int > 500) {
+        healAmount = 975;
+      } else {
+        healAmount = 2.15 * (int - 200) + 330;
+      }
+      healAmount *= 1.15;
+      applyHeal(skillTarget, healAmount);
+    },
   },
   {
     name: "debugbreath",
