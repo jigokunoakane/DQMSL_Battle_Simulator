@@ -4650,7 +4650,7 @@ function addSkillOptions() {
     "暗獄斬り",
   ];
   let targetCollabSkills = null;
-  const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ"];
+  const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ", "封印の光"];
   const hosigoronTargets = ["DARK", "まものテリー&ミレーユ", "スライダーガール", "スライダーヒーロー", "極彩鳥にじくじゃく", "スライダーキッズ", "マジェス・ドレアム", "支配王レゾム・レザーム"];
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
