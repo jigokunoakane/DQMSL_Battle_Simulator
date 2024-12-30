@@ -4621,6 +4621,7 @@ function addSkillOptions() {
     "ダイヤモンドダスト",
     "スパークふんしゃ",
     "体技封じの息",
+    "しゃくねつ",
     "キャンセルステップ",
     "体砕きの斬舞",
     "防刃の守り",
@@ -11483,6 +11484,16 @@ const skill = [
         deleteUnbreakable(skillTarget);
       }
     },
+  },
+  {
+    name: "しゃくねつ",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 245,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 110,
   },
   {
     name: "体技封じの息",
