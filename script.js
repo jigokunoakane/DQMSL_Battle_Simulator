@@ -2191,7 +2191,7 @@ async function processMonsterAction(skillUser) {
             skipSkill = true;
             break;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true, false, null, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
           totalDamage += damage;
           if (damage >= target.currentStatus.HP) {
@@ -2215,7 +2215,7 @@ async function processMonsterAction(skillUser) {
           if (killableCount === 1) {
             continue;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
 
           // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
@@ -2394,9 +2394,9 @@ async function processMonsterAction(skillUser) {
   }
 
   // 5. 消費MP確認
-  const calcMPcost = calculateMPcost(skillUser, executingSkill);
-  if (skillUser.currentStatus.MP >= calcMPcost) {
-    skillUser.currentStatus.MP -= calcMPcost;
+  const MPused = calculateMPcost(skillUser, executingSkill);
+  if (skillUser.currentStatus.MP >= MPused) {
+    skillUser.currentStatus.MP -= MPused;
     updateMonsterBar(skillUser);
   } else {
     console.log("しかし、MPが足りなかった！");
@@ -2462,7 +2462,7 @@ async function processMonsterAction(skillUser) {
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === null ? null : skillTargetTeam[skillUser.commandTargetInput];
-  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false);
+  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false, false, MPused);
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
   if (executingSkill.isOneTimeUse) {
@@ -2517,7 +2517,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         // 追撃の種類を決定
         let NormalAttackName = getNormalAttackName(skillUser);
         // 通常攻撃を実行
-        await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser), false, damagedMonsters, true);
+        await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser), false, damagedMonsters, true, false, null);
         // 戦闘終了check
         if (isBattleOver()) {
           return;
@@ -2658,7 +2658,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await sleep(400);
     displayMessage(`${skillUser.name}は`, "ファラオの幻刃 をはなった！");
     await sleep(150);
-    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"), null, false, null, false, true);
+    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"), null, false, null, false, true, null);
   }
 
   // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
@@ -2964,7 +2964,16 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   }
 }
 
-async function executeSkill(skillUser, executingSkill, assignedTarget = null, isProcessMonsterAction = false, damagedMonsters = null, isAIattack = false, ignoreAbnormalityCheck = false) {
+async function executeSkill(
+  skillUser,
+  executingSkill,
+  assignedTarget = null,
+  isProcessMonsterAction = false,
+  damagedMonsters = null,
+  isAIattack = false,
+  ignoreAbnormalityCheck = false,
+  MPused = null
+) {
   let currentSkill = executingSkill;
   let isMonsterAction = isProcessMonsterAction;
   // 実行済skillを格納
@@ -3011,7 +3020,7 @@ async function executeSkill(skillUser, executingSkill, assignedTarget = null, is
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack);
+    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack, MPused);
 
     // currentSkill実行後、生存にかかわらず実行するact 行動skip判定前に実行
     if (currentSkill.afterActionAct) {
@@ -3078,7 +3087,8 @@ async function processHitSequence(
   executedSingleSkillTarget = null,
   isProcessMonsterAction = false,
   damagedMonsters = null,
-  isAIattack = false
+  isAIattack = false,
+  MPused
 ) {
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
@@ -3113,7 +3123,7 @@ async function processHitSequence(
         if (eachTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
           eachTarget = parties.flat().find((monster) => monster.monsterId === eachTarget.flags.hasSubstitute.targetMonsterId);
         }
-        await processHit(skillUser, executingSkill, eachTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+        await processHit(skillUser, executingSkill, eachTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       }
       break;
     case "single":
@@ -3148,7 +3158,7 @@ async function processHitSequence(
           return;
         }
       }
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       break;
     case "random":
       // ランダム攻撃
@@ -3161,22 +3171,22 @@ async function processHitSequence(
       if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.howToCalculate === "none" && executingSkill.targetTeam === "ally")) {
         skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
       }
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       break;
     case "self":
       // 自分自身をターゲット
       skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       break;
     case "field":
       // meと同様
       skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       break;
     case "dead":
       // 蘇生特技
       skillTarget = assignedTarget;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack);
+      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
       break;
     default:
       console.error("無効なターゲットタイプ:", executingSkill.targetType);
@@ -3218,7 +3228,7 @@ async function processHitSequence(
     // 次のヒット処理
     currentHit++;
     await sleep(70);
-    await processHitSequence(skillUser, executingSkill, assignedTarget, excludedTargets, killedByThisSkill, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack);
+    await processHitSequence(skillUser, executingSkill, assignedTarget, excludedTargets, killedByThisSkill, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
   }
 }
 
@@ -3254,7 +3264,7 @@ function determineRandomTarget(target, skillUser, executingSkill, excludedTarget
 }
 
 // ヒット処理を実行する関数
-async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack) {
+async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused) {
   let skillTarget = assignedSkillTarget;
   let skillUser = assignedSkillUser;
   let isReflection = false;
@@ -3392,7 +3402,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // ダメージ計算 反射などで変更されたuser targetおよび耐性を踏まえて計算
-  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType);
+  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType, MPused);
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
   let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
@@ -3452,7 +3462,17 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
 }
 
-function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction = false, isSimulatedCalculation = false, isReflection = false, reflectionType = null) {
+function calculateDamage(
+  skillUser,
+  executingSkill,
+  skillTarget,
+  resistance,
+  isProcessMonsterAction = false,
+  isSimulatedCalculation = false,
+  isReflection = false,
+  reflectionType = null,
+  MPused = null
+) {
   let baseDamage = 0;
   let isCriticalHit = false;
   if (executingSkill.howToCalculate === "fix") {
@@ -3463,6 +3483,10 @@ function calculateDamage(skillUser, executingSkill, skillTarget, resistance, isP
       const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
       baseDamage = Math.floor(executingSkill.damage * randomMultiplier);
     }
+  } else if (executingSkill.howToCalculate === "MP") {
+    // マダンテ系 呪文会心なし 乱数なし メタルボディの消費MP増加では増えない 連携倍率乗らない
+    const MPbase = MPused === null ? calculateMPcost(skillUser, executingSkill) : MPused;
+    baseDamage = Math.floor(executingSkill.MPDamageRatio * MPbase);
   } else if (executingSkill.ratio) {
     const status = {
       atk: skillUser.currentStatus.atk,
@@ -7683,7 +7707,7 @@ function getMonsterAbilities(monsterId) {
           name: "邪悪な残り火",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true);
+            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, null);
           },
         },
       ],
@@ -7757,8 +7781,9 @@ const skill = [
     name: "sample",
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
-    howToCalculate: "", //atk int fix def spd
+    howToCalculate: "", //atk int fix def spd MP
     ratio: 1,
+    MPdamageRatio: 1.5,
     damage: 142,
     minInt: 500,
     minIntDamage: 222,
@@ -7771,6 +7796,7 @@ const skill = [
     excludeTarget: "self",
     hitNum: 3,
     MPcost: 76,
+    MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費
     order: "", //preemptive anchor
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
@@ -10810,11 +10836,11 @@ const skill = [
     name: "レインマダンテ",
     type: "spell",
     howToCalculate: "MP",
-    MPratio: 1.62,
+    MPDamageRatio: 1.62,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: "all",
+    MPcostRatio: 1,
     ignoreReflection: true,
     ignoreSubstitute: true,
   },
@@ -12646,7 +12672,9 @@ function preloadImages() {
 
 // MPcostを返す スキル選択時と実行時
 function calculateMPcost(skillUser, executingSkill) {
-  if (executingSkill.MPcost === "all") {
+  if (executingSkill.MPcostRatio) {
+    return Math.floor(skillUser.currentStatus.MP * executingSkill.MPcostRatio); // 現在MPに対する割合 切り捨て
+  } else if (executingSkill.MPcost === "all") {
     return skillUser.currentStatus.MP;
   }
   let calcMPcost = executingSkill.MPcost;
@@ -12943,7 +12971,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
-        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true);
+        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, null);
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
