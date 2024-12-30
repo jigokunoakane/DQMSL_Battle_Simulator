@@ -6199,6 +6199,26 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "スラ・ブラスター", //4
+    id: "surabura",
+    rank: 10,
+    race: "スライム",
+    weight: 28,
+    status: { HP: 796, MP: 434, atk: 368, def: 608, spd: 468, int: 315 },
+    initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "光のはどう"],
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        mpCostMultiplier: { strength: 2, keepOnDeath: true },
+        ioBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.3 },
+    lsTarget: "スライム",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルスパイダー",
     id: "skullspider",
     rank: 10,
@@ -7606,6 +7626,51 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    surabura: {
+      initialAbilities: [
+        {
+          name: "空の要塞",
+          act: async function (skillUser) {
+            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3)) {
+              applyBuff(skillUser, { spellReflection: { strength: 1, duration: 3, unDispellable: true, removeAtTurnStart: true } });
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        1: [
+          {
+            name: "スライムのとばり",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3),
+            act: async function (skillUser) {
+              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
+                for (const monster of parties[skillUser.teamID]) {
+                  if (monster.race === "スライム") {
+                    applyBuff(monster, { spellBarrier: { strength: 2 } });
+                    await sleep(150);
+                  }
+                }
+              } else {
+                for (const monster of parties[skillUser.teamID]) {
+                  if (monster.race === "スライム") {
+                    applyBuff(monster, { spellBarrier: { strength: 1 } });
+                    await sleep(150);
+                  }
+                }
+              }
+            },
+          },
+        ],
+        3: [
+          {
+            name: "ハイパーチャージ",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+            },
+          },
+        ],
+      },
     },
     skullspider: {
       initialAbilities: [
@@ -10922,6 +10987,29 @@ const skill = [
     ignoreBaiki: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
+  },
+  {
+    name: "S・ブラスター",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 146,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    damageByLevel: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "インパクトキャノン",
+    type: "spell",
+    howToCalculate: "fix",
+    damage: 700,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreProtection: true,
   },
   {
     name: "ヴェノムパニック",
