@@ -4648,6 +4648,12 @@ function addSkillOptions() {
     "極光斬り",
     "暗獄斬り",
   ];
+  let targetCollabSkills = null;
+  const hosigoronSkills = ["竜の眼光", "カオスストーム"];
+  const hosigoronTargets = ["DARK", "まものテリー&ミレーユ", "スライダーガール", "スライダーヒーロー", "極彩鳥にじくじゃく", "スライダーキッズ", "マジェス・ドレアム", "支配王レゾム・レザーム"];
+  if (hosigoronTargets.includes(monster.name)) {
+    targetCollabSkills = hosigoronSkills;
+  }
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
     selectElement.innerHTML = "";
@@ -4696,6 +4702,19 @@ function addSkillOptions() {
       selectElement.appendChild(familyOptGroup);
     }
 
+    // コラボ特技を追加
+    if (targetCollabSkills) {
+      collabOptGroup = document.createElement("optgroup");
+      collabOptGroup.label = "コラボ卵特技";
+      for (const skill of targetCollabSkills) {
+        const option = document.createElement("option");
+        option.value = skill;
+        option.text = skill;
+        collabOptGroup.appendChild(option);
+      }
+      selectElement.appendChild(collabOptGroup);
+    }
+
     // 超マス特技を追加
     if (monster.race !== "超魔王" && monster.race !== "超伝説") {
       superOptGroup = document.createElement("optgroup");
@@ -4706,7 +4725,7 @@ function addSkillOptions() {
         option.text = skill;
         superOptGroup.appendChild(option);
       }
-      selectElement.appendChild(superOptGroup); // 末尾に追加
+      selectElement.appendChild(superOptGroup);
     }
 
     // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultをselect要素に代入
