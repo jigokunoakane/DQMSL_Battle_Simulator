@@ -5293,7 +5293,7 @@ const monsters = [
     weight: 25,
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
-    anotherSkills: ["真・氷魔の力", "アイスエイジ", "地獄の火炎"],
+    anotherSkills: ["真・氷魔の力", "アイスエイジ", "地獄の火炎", "雷電波"],
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
@@ -8806,6 +8806,16 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { prismVeil: { strength: 1, duration: 3 } },
+  },
+  {
+    name: "雷電波",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 78,
   },
   {
     name: "でんせつのギガデイン",
