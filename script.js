@@ -2200,7 +2200,7 @@ async function processMonsterAction(skillUser) {
             skipSkill = true;
             break;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true, false, null, null);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true, false, null, 1, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
           totalDamage += damage;
           if (damage >= target.currentStatus.HP) {
@@ -2224,7 +2224,7 @@ async function processMonsterAction(skillUser) {
           if (killableCount === 1) {
             continue;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, null);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, 1, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
 
           // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
@@ -3391,6 +3391,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
+  let reflectionStrength = 1;
   if (resistance !== -1) {
     // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
     if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
@@ -3405,6 +3406,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       addMirrorEffect(skillTarget.iconElementId);
       //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
       const skillType = executingSkill.type === "notskill" ? "slash" : executingSkill.type;
+      reflectionStrength = skillTarget.buffs[skillType + "Reflection"].strength || 1;
       if (skillTarget.buffs[skillType + "Reflection"].isKanta) {
         skillUser = skillTarget;
         reflectionType = "kanta";
@@ -3418,7 +3420,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // ダメージ計算 反射などで変更されたuser targetおよび耐性を踏まえて計算
-  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType, MPused);
+  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType, reflectionStrength, MPused);
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
   let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
@@ -3487,6 +3489,7 @@ function calculateDamage(
   isSimulatedCalculation = false,
   isReflection = false,
   reflectionType = null,
+  reflectionStrength = 1,
   MPused = null
 ) {
   let baseDamage = 0;
@@ -3537,7 +3540,7 @@ function calculateDamage(
       if (skillUser.gear?.name === "魔神のかなづち") {
         baseDamage *= 2;
       }
-      col("かいしんのいちげき");
+      if (!isSimulatedCalculation) col("かいしんのいちげき");
     } else {
       // 会心の一撃が発生しない場合
       const statusRatio = targetDef / status;
@@ -3639,11 +3642,16 @@ function calculateDamage(
       if (isCriticalHit) {
         // 暴走成功時
         baseDamage *= 1.6;
-        col("呪文がぼうそうした");
+        if (!isSimulatedCalculation) col("呪文がぼうそうした");
       }
     }
   }
   let damage = baseDamage;
+
+  // 反射倍率
+  if (isReflection) {
+    damage *= reflectionStrength;
+  }
 
   //会心完全ガード
   if (isCriticalHit && skillTarget.buffs.criticalGuard) {
