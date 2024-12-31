@@ -4628,6 +4628,7 @@ function addSkillOptions() {
     "しゃくねつ",
     "キャンセルステップ",
     "体砕きの斬舞",
+    "ダメージバリア",
     "防刃の守り",
     "精霊の守り・強",
     "タップダンス",
@@ -6262,10 +6263,33 @@ const monsters = [
         ioBreak: { keepOnDeath: true, strength: 1 },
       },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 20, def: 5, spd: 95, int: 0 },
     ls: { HP: 1.3 },
     lsTarget: "スライム",
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "はぐれロイヤルキング", //44 +HP50
+    id: "haguki",
+    rank: 10,
+    race: "スライム",
+    weight: 30,
+    status: { HP: 298, MP: 521, atk: 325, def: 889, spd: 502, int: 542 },
+    initialSkill: ["キングストーム", "メタ・マダンテ", "ベホマラー", "ダメージバリア"],
+    anotherSkills: ["ブレードターン", "苛烈な暴風", "みがわり"],
+    defaultGear: "familyNailRadiantWave",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.25, isMetal: true },
+        mpCostMultiplier: { strength: 2.5, keepOnDeath: true },
+        ioBreak: { keepOnDeath: true, strength: 1 },
+      },
+    },
+    seed: { atk: 40, def: 5, spd: 75, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルスパイダー",
@@ -7770,6 +7794,58 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    haguki: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "あふれる光",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+            },
+          },
+          {
+            name: "一族のいしん",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "スライム") {
+                  applyBuff(monster, { powerCharge: { strength: 1.2 } });
+                  await sleep(150);
+                  applyBuff(monster, { manaBoost: { strength: 1.2 } });
+                  await sleep(150);
+                  applyBuff(monster, { baiki: { strength: 1 } });
+                  await sleep(150);
+                  applyBuff(monster, { defUp: { strength: 1 } });
+                  await sleep(150);
+                  applyBuff(monster, { intUp: { strength: 1 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+        permanentAbilities: [
+          {
+            name: "ロイヤルのかがやき",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { confusionBarrier: { duration: 4 } });
+                await sleep(150);
+                applyBuff(monster, { mindBarrier: { duration: 4 } });
+                await sleep(150);
+              }
+            },
+          },
+        ],
+      },
+      followingAbilities: {
+        name: "王のつとめ",
+        availableIf: (skillUser, executingSkill) => executingSkill.type === "spell" && hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
+        followingSkillName: (executingSkill) => {
+          return "におうだち";
+        },
+      },
+    },
     skullspider: {
       initialAbilities: [
         {
@@ -8460,6 +8536,18 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "ダメージバリア",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 37,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
   },
   {
     name: "ラヴァフレア",
@@ -9515,6 +9603,16 @@ const skill = [
     targetTeam: "ally",
     MPcost: 42,
     appliedEffect: { martialReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
+  },
+  {
+    name: "ブレードターン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 42,
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
   },
   {
     name: "かがやく息",
@@ -11157,6 +11255,48 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     ignoreProtection: true,
+  },
+  {
+    name: "キングストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 45,
+    appliedEffect: { windResistance: { strength: -1, probability: 0.57 }, reviveBlock: { duration: 1 } }, //todo: slime5体限定
+  },
+  {
+    name: "メタ・マダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 1.2,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcostRatio: 0.5,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    damageMultiplier: function (skillUser, skillTarget) {
+      const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+      let reflectionCount = 0;
+      for (const reflectionBuff of reflectionMap) {
+        if (skillTarget.buffs[reflectionBuff]) {
+          reflectionCount++;
+        }
+      }
+      if (reflectionCount >= 2) {
+        return 7;
+      } else if (reflectionCount === 1) {
+        return 2.5;
+      }
+    },
   },
   {
     name: "ヴェノムパニック",
