@@ -4634,7 +4634,7 @@ function addSkillOptions() {
     ドラゴン: ["テンペストブレス", "ほとばしる暗闇", "竜の呪文見切り"],
     ゾンビ: ["ヴェレマータ", "防壁反転"],
     悪魔: ["イオナルーン"], //冷酷
-    //スライム: ["アイアンゲイザー", "ふしぎなとばり"],
+    スライム: ["アイアンゲイザー", "ふしぎなとばり"],
     //自然: ["やすらぎの光", "天光の裁き"],
     //魔獣: ["ラピッドショット", "聖なる息吹"],
     //物質: ["氷撃波", "れっぱの息吹", "リベンジアーツ"],
@@ -6306,7 +6306,7 @@ const monsters = [
     race: "スライム",
     weight: 28,
     status: { HP: 796, MP: 434, atk: 368, def: 608, spd: 468, int: 315 },
-    initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "光のはどう"],
+    initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "アイアンゲイザー"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
@@ -10853,6 +10853,18 @@ const skill = [
     appliedEffect: { mindBarrier: { duration: 4 }, confusionBarrier: { duration: 4 } },
   },
   {
+    name: "ふしぎなとばり",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 39,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { mindBarrier: { duration: 4 }, spellBarrier: { strength: 1, probability: 0.56 } },
+  },
+  {
     name: "あんこくのはばたき",
     type: "martial",
     howToCalculate: "none",
@@ -11363,6 +11375,17 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 30,
+  },
+  {
+    name: "アイアンゲイザー",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 2.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 33,
+    ignoreEvasion: true,
   },
   {
     name: "アイアンロンド",
