@@ -3789,6 +3789,10 @@ function calculateDamage(
   if (executingSkill.damageByHpPercent) {
     damage *= skillUser.currentStatus.HP / skillUser.defaultStatus.HP;
   }
+  // HP割合反転依存
+  if (executingSkill.lowHpDamageMultiplier) {
+    damage *= -(skillUser.currentStatus.HP / skillUser.defaultStatus.HP) + 2;
+  }
   // 反射特攻系
   if (executingSkill.name === "体砕きの斬舞" && skillTarget.buffs.martialReflection) {
     damage *= 3;
@@ -4632,6 +4636,7 @@ function addSkillOptions() {
     "バイシオン",
     "バイキルト",
     "インテラ",
+    "スクルト",
     "ベホマラー",
     "ベホマ",
     "ザオリク",
@@ -6199,6 +6204,28 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "スライダーヒーロー", //4
+    id: "surahero",
+    rank: 10,
+    race: "スライム",
+    weight: 28,
+    status: { HP: 721, MP: 281, atk: 421, def: 649, spd: 510, int: 381 },
+    initialSkill: ["アイアンロンド", "ヒーロースパーク", "神のはどう", "息よそく"],
+    anotherSkills: ["スキルターン"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { spd: 1.2 },
+    lsTarget: "スライム",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: -1, light: 0, dark: 1, poisoned: 1.5, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スライダーガール", //4
     id: "suragirl",
     rank: 10,
@@ -7648,6 +7675,30 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    surahero: {
+      supportAbilities: {
+        1: [
+          {
+            name: "スライムの守り手",
+            act: async function (skillUser) {
+              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
+                for (const monster of parties[skillUser.teamID]) {
+                  applyBuff(monster, { defUp: { strength: 1 } });
+                  await sleep(150);
+                  applyBuff(monster, { martialBarrier: { strength: 1 } });
+                  await sleep(150);
+                }
+              } else {
+                for (const monster of parties[skillUser.teamID]) {
+                  applyBuff(monster, { defUp: { strength: 1 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     suragirl: {
       initialAbilities: [
@@ -9456,6 +9507,16 @@ const skill = [
     appliedEffect: { breathReflection: { strength: 1, duration: 1, decreaseTurnEnd: true } },
   },
   {
+    name: "スキルターン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 42,
+    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
+  },
+  {
     name: "かがやく息",
     type: "breath",
     howToCalculate: "fix",
@@ -11036,6 +11097,33 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
+    name: "アイアンロンド",
+    type: "dance",
+    howToCalculate: "def",
+    ratio: 0.82,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 48,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+  },
+  {
+    name: "ヒーロースパーク",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 254,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    hitNum: 2,
+    MPcost: 100,
+    lowHpDamageMultiplier: true,
+    damageByLevel: true,
+    ignoreReflection: true,
+  },
+  {
     name: "ばくれつドライブ",
     type: "martial",
     howToCalculate: "def",
@@ -11602,6 +11690,16 @@ const skill = [
     targetTeam: "ally",
     MPcost: 15,
     appliedEffect: { intUp: { strength: 1 } },
+  },
+  {
+    name: "スクルト",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 21,
+    appliedEffect: { defUp: { strength: 1 } },
   },
   {
     name: "ベホマラー",
