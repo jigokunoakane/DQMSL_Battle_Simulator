@@ -1946,6 +1946,10 @@ function updateCurrentStatus(monster) {
   if (monster.buffs.goddessDefUp) {
     defMultiplier += monster.buffs.goddessDefUp.strength;
   }
+  // 系統爪防御力20%錬金
+  if (monster.gear?.name === "系統爪ザキ&防御力20%") {
+    defMultiplier += 0.2;
+  }
   monster.currentStatus.def *= defMultiplier;
 
   // 素早さ
@@ -3064,13 +3068,9 @@ async function executeSkill(
         isMonsterAction = false;
         executedSingleSkillTarget = [];
       }
-    } else if (
-      skillUser.abilities.followingAbilities &&
-      !hasExecutedFollowingAbilities &&
-      executingSkill.howToCalculate !== "none" &&
-      skillUser.abilities.followingAbilities.availableIf(skillUser, executingSkill)
-    ) {
+    } else if (skillUser.abilities.followingAbilities && !hasExecutedFollowingAbilities && skillUser.abilities.followingAbilities.availableIf(skillUser, executingSkill)) {
       // followingSkillがないかつ追撃特性所持時にそれを実行
+      // executingSkill.howToCalculate !== "none"は悪魔衆の踊りなど個別で判定
       // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
       // executingSkillを渡してskillNameを返り値でもらう
       await sleep(350);
@@ -6264,7 +6264,7 @@ const monsters = [
     status: { HP: 721, MP: 281, atk: 421, def: 649, spd: 510, int: 381 },
     initialSkill: ["アイアンロンド", "ヒーロースパーク", "神のはどう", "息よそく"],
     anotherSkills: ["スキルターン"],
-    defaultGear: "ryujinNail",
+    defaultGear: "familyNailSlime",
     attribute: {
       initialBuffs: {
         lightBreak: { keepOnDeath: true, strength: 2 },
@@ -6328,7 +6328,6 @@ const monsters = [
     status: { HP: 298, MP: 521, atk: 325, def: 889, spd: 502, int: 542 },
     initialSkill: ["キングストーム", "メタ・マダンテ", "ベホマラー", "ダメージバリア"],
     anotherSkills: ["ブレードターン", "苛烈な暴風", "みがわり"],
-    defaultGear: "familyNailRadiantWave",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -7522,7 +7521,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "悪魔衆の踊り",
-        availableIf: (skillUser, executingSkill) => executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
+        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
         followingSkillName: (executingSkill) => {
           return "ディバインフェザー";
         },
@@ -12480,6 +12479,12 @@ const gear = [
     initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" } },
   },
   {
+    name: "系統爪ザキ&防御力20%",
+    id: "familyNailSlime",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+  },
+  {
     name: "おうごんのツメ",
     id: "goldenNail",
     weight: 5,
@@ -13820,7 +13825,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "心砕き攻撃";
   } else if (skillUser.gear?.name === "昇天のヤリ") {
     NormalAttackName = "昇天槍攻撃";
-  } else if (skillUser.gear?.name === "系統爪ザキ") {
+  } else if (skillUser.gear?.name === "系統爪ザキ" || skillUser.gear?.name === "系統爪ザキ&防御力20%") {
     NormalAttackName = "通常攻撃ザキ攻撃";
   } else if (skillUser.gear?.name === "キラーピアス" || skillUser.gear?.name === "源氏の小手") {
     NormalAttackName = "はやぶさ攻撃弱";
