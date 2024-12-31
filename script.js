@@ -7757,7 +7757,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race === "スライム") {
-                applyBuff(monster, { goddessLightMetal: { keepOnDeath: true, strength: 0.75 } });
+                applyBuff(monster, { goddessLightMetal: { keepOnDeath: true, strength: 0.75 }, mpCostMultiplier: { strength: 1.2, keepOnDeath: true } });
               }
             }
           },
