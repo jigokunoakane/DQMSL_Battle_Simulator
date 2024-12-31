@@ -2559,7 +2559,11 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
     if (monster.buffs.continuousMPHealing) {
       await sleep(300);
-      applyHeal(monster, 50, true);
+      let healAmount = 50;
+      if (monster.buffs.continuousMPHealing.strength) {
+        healAmount = monster.buffs.continuousMPHealing.strength * monster.defaultStatus.HP;
+      }
+      applyHeal(monster, healAmount, true);
       await sleep(200);
     }
   }
@@ -6330,7 +6334,6 @@ const monsters = [
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.25, isMetal: true },
         mpCostMultiplier: { strength: 2.5, keepOnDeath: true },
-        ioBreak: { keepOnDeath: true, strength: 1 },
       },
     },
     seed: { atk: 40, def: 5, spd: 75, int: 0 },
@@ -7777,7 +7780,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race === "スライム") {
                   applyBuff(monster, { goddessDefUp: { divineDispellable: true, duration: 3 } });
                   await sleep(150);
-                  applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 3 } });
+                  applyBuff(monster, { continuousMPHealing: { strength: 0.2, removeAtTurnStart: true, duration: 3 } });
                 }
               }
             },
@@ -11314,10 +11317,8 @@ const skill = [
     followingSkill: "クアトロマダンテ3発目",
     afterActionAct: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
-      col(MPused);
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
-      col(skillUser.currentStatus.MP);
     },
   },
   {
@@ -11333,10 +11334,8 @@ const skill = [
     followingSkill: "クアトロマダンテ4発目",
     afterActionAct: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
-      col(MPused);
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
-      col(skillUser.currentStatus.MP);
     },
   },
   {
@@ -11351,10 +11350,8 @@ const skill = [
     ignoreReflection: true,
     afterActionAct: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
-      col(MPused);
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
-      col(skillUser.currentStatus.MP);
     },
   },
   {
