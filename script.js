@@ -1944,7 +1944,7 @@ function updateCurrentStatus(monster) {
   }
   // ゴッデス
   if (monster.buffs.goddessDefUp) {
-    defMultiplier += 0.4;
+    defMultiplier += monster.buffs.goddessDefUp.strength;
   }
   monster.currentStatus.def *= defMultiplier;
 
@@ -7778,7 +7778,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race === "スライム") {
-                  applyBuff(monster, { goddessDefUp: { divineDispellable: true, duration: 3 } });
+                  applyBuff(monster, { goddessDefUp: { strength: 0.4, divineDispellable: true, duration: 3 } });
                   await sleep(150);
                   applyBuff(monster, { continuousMPHealing: { strength: 0.2, removeAtTurnStart: true, duration: 3 } });
                 }
@@ -7807,6 +7807,13 @@ function getMonsterAbilities(monsterId) {
                   await sleep(150);
                 }
               }
+            },
+          },
+          {
+            name: "孤高の使命",
+            unavailableIf: (skillUser) => hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3),
+            act: async function (skillUser) {
+              applyBuff(skillUser, { goddessDefUp: { strength: 0.2, divineDispellable: true, duration: 3, iconSrc: "heroDefUp" } });
             },
           },
         ],
