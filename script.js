@@ -1300,7 +1300,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1544,6 +1544,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "tempted") {
         delete buffTarget.buffs.defUp;
         delete buffTarget.buffs.heavenlyBreath;
+        delete buffTarget.buffs.goddessDefUp;
       }
       //みがわり解除 みがわられは解除しない
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
@@ -1940,6 +1941,10 @@ function updateCurrentStatus(monster) {
   // シャムダ
   if (monster.buffs.shamuDef) {
     defMultiplier += monster.buffs.shamuDef.strength;
+  }
+  // ゴッデス
+  if (monster.buffs.goddessDefUp) {
+    defMultiplier += 0.4;
   }
   monster.currentStatus.def *= defMultiplier;
 
@@ -2972,7 +2977,7 @@ async function executeSkill(
   damagedMonsters = null,
   isAIattack = false,
   ignoreAbnormalityCheck = false,
-  MPused = null
+  MPusedParameter = null
 ) {
   let currentSkill = executingSkill;
   let isMonsterAction = isProcessMonsterAction;
@@ -2981,6 +2986,7 @@ async function executeSkill(
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
   let hasExecutedFollowingAbilities = false;
+  let MPused = MPusedParameter;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
   while (
     currentSkill &&
@@ -2993,7 +2999,7 @@ async function executeSkill(
       break;
     }
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
-    if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget[0].flags.isDead) {
+    if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget.length > 0 && executedSingleSkillTarget[0].flags.isDead) {
       break;
     }
 
@@ -3013,8 +3019,8 @@ async function executeSkill(
     }
 
     let skillTarget = assignedTarget;
-    // randomのfollowingSkillのみtargetをnull化してランダムにする(暫定的)
-    if (isFollowingSkill && currentSkill.targetType === "random") {
+    // randomのfollowingSkillのみtargetをnull化してランダムにする(暫定的) クアトロもランダム化
+    if ((isFollowingSkill && currentSkill.targetType === "random") || currentSkill.howToCalculate === "MP") {
       skillTarget = null;
     }
 
@@ -3048,6 +3054,12 @@ async function executeSkill(
       }
       currentSkill = findSkillByName(currentSkill.followingSkill);
       isFollowingSkill = true;
+      // クアトロ用 初撃のMPusedを引き継ぎ続けないようnull化 反撃対象から外す 双撃等のtarget固定を外す target本体のランダム化はrandom特技のfollowingと同時に
+      if (currentSkill.howToCalculate === "MP") {
+        MPused = null;
+        isMonsterAction = false;
+        executedSingleSkillTarget = [];
+      }
     } else if (
       skillUser.abilities.followingAbilities &&
       !hasExecutedFollowingAbilities &&
@@ -3475,6 +3487,7 @@ function calculateDamage(
 ) {
   let baseDamage = 0;
   let isCriticalHit = false;
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (executingSkill.howToCalculate === "fix") {
     if (executingSkill.damageByLevel) {
       const randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
@@ -3737,11 +3750,15 @@ function calculateDamage(
   }
 
   //反射以外の場合にメタル処理
-  if (!isReflection && skillTarget.buffs.metal) {
-    damage *= skillTarget.buffs.metal.strength;
-    //メタルキラー処理
-    if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
-      damage *= skillUser.buffs.metalKiller.strength;
+  if (!isReflection) {
+    if (skillTarget.buffs.metal) {
+      damage *= skillTarget.buffs.metal.strength;
+      //メタルキラー処理
+      if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
+        damage *= skillUser.buffs.metalKiller.strength;
+      }
+    } else if (skillTarget.buffs.goddessLightMetal) {
+      damage *= 0.75;
     }
   }
 
@@ -3824,7 +3841,6 @@ function calculateDamage(
   }
 
   // 以下加算処理
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   let damageModifier = 1;
 
   // skillUser対象バフ
@@ -3987,6 +4003,11 @@ function calculateDamage(
     if (skillTarget.gear.name === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
       damageModifier -= 0.5;
     }
+  }
+
+  // ゴッデスLS
+  if (parties[skillTarget.teamID][0].name === "メタルゴッデス" && skillTarget.race === "スライム" && AllElements.includes(executingSkill.element)) {
+    damageModifier -= 0.3;
   }
 
   //全ダメージ軽減
@@ -5067,6 +5088,10 @@ document.getElementById("akumapa").addEventListener("click", function () {
 
 document.getElementById("beastpa").addEventListener("click", function () {
   selectAllPartyMembers(["azu", "gorago", "tenkai", "reopa", "kingreo"]);
+});
+
+document.getElementById("surapa").addEventListener("click", function () {
+  selectAllPartyMembers(["goddess", "surahero", "suragirl", "surabura", "haguki"]);
 });
 
 document.getElementById("zombiepa").addEventListener("click", function () {
@@ -6203,6 +6228,28 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "メタルゴッデス", //44
+    id: "goddess",
+    rank: 10,
+    race: "スライム",
+    weight: 30,
+    status: { HP: 208, MP: 490, atk: 601, def: 775, spd: 461, int: 492 },
+    initialSkill: ["クアトロマダンテ", "アイアンスラッシュ", "ベホマラー", "ザオリク"],
+    anotherSkills: ["女神のはばたき"],
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.25, isMetal: true },
+        mpCostMultiplier: { strength: 2.5, keepOnDeath: true },
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 40, def: 5, spd: 75, int: 0 },
+    ls: { HP: 1.2, def: 1.2, spd: 1.2 },
+    lsTarget: "スライム",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スライダーヒーロー", //4
@@ -7699,6 +7746,44 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    goddess: {
+      initialAbilities: [
+        {
+          name: "スラ・ライトメタルガード",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race === "スライム") {
+                applyBuff(monster, { goddessLightMetal: { keepOnDeath: true, strength: 0.75 } });
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "あふれる光",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+            },
+          },
+        ],
+        permanentAbilities: [
+          {
+            name: "一族のきずな",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "スライム") {
+                  applyBuff(monster, { goddessDefUp: { divineDispellable: true, duration: 3 } });
+                  await sleep(150);
+                  applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 3 } });
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     surahero: {
       supportAbilities: {
@@ -10246,6 +10331,16 @@ const skill = [
     appliedEffect: "divineWave",
   },
   {
+    name: "女神のはばたき",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 49,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "プチ神のはどう",
     type: "martial",
     howToCalculate: "none",
@@ -10985,7 +11080,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 71,
-    appliedEffect: { heavenlyBreath: { divineDispellable: true, probability: 0.42 } },
+    appliedEffect: { heavenlyBreath: { divineDispellable: true, duration: 3, probability: 0.42 } },
   },
   {
     name: "裁きの極光",
@@ -11195,6 +11290,84 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
+    name: "クアトロマダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 10.75,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 0.1,
+    ignoreReflection: true,
+    followingSkill: "クアトロマダンテ2発目",
+  },
+  {
+    name: "クアトロマダンテ2発目",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 10.75,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 0.1,
+    ignoreReflection: true,
+    followingSkill: "クアトロマダンテ3発目",
+    afterActionAct: async function (skillUser) {
+      const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
+      col(MPused);
+      skillUser.currentStatus.MP -= MPused;
+      updateMonsterBar(skillUser);
+      col(skillUser.currentStatus.MP);
+    },
+  },
+  {
+    name: "クアトロマダンテ3発目",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 10.75,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 0.1,
+    ignoreReflection: true,
+    followingSkill: "クアトロマダンテ4発目",
+    afterActionAct: async function (skillUser) {
+      const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
+      col(MPused);
+      skillUser.currentStatus.MP -= MPused;
+      updateMonsterBar(skillUser);
+      col(skillUser.currentStatus.MP);
+    },
+  },
+  {
+    name: "クアトロマダンテ4発目",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 10.75,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 0.1,
+    ignoreReflection: true,
+    afterActionAct: async function (skillUser) {
+      const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
+      col(MPused);
+      skillUser.currentStatus.MP -= MPused;
+      updateMonsterBar(skillUser);
+      col(skillUser.currentStatus.MP);
+    },
+  },
+  {
+    name: "アイアンスラッシュ",
+    type: "slash",
+    howToCalculate: "def",
+    ratio: 1.8,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 30,
+  },
+  {
     name: "アイアンロンド",
     type: "dance",
     howToCalculate: "def",
@@ -11206,6 +11379,7 @@ const skill = [
     MPcost: 48,
     ignoreEvasion: true,
     ignoreDazzle: true,
+    criticalHitProbability: 0,
   },
   {
     name: "ヒーロースパーク",
@@ -13430,6 +13604,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     darkDomain: {
       start: `${buffTarget.name}の`,
       message: "ドルマ系のダメージが あがった！",
+    },
+    goddessDefUp: {
+      start: `${buffTarget.name}の`,
+      message: "防御力が あがった！",
     },
   };
 
