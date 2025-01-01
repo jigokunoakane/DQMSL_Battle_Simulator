@@ -13018,7 +13018,7 @@ document.getElementById("resetBtn").addEventListener("click", async function () 
   fieldState.isBattleOver = true;
   // 戦闘終了フラグを立て、既存のsleep処理を中断、skip状態化、skip解除表示
   setSkipMode(true);
-  await originalSleep(30);
+  await originalSleep(150);
   await prepareBattle();
   // skip状態の解除と表示戻し: コマンド画面になったら
   setSkipMode(false);
