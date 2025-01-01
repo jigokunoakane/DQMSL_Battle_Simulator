@@ -7233,7 +7233,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               applyHeal(skillUser, skillUser.defaultStatus.HP * 0.4);
               await sleep(400);
-              applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
+              applyHeal(skillUser, 45, true);
             },
           },
         ],
