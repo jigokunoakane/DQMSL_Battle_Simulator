@@ -7775,7 +7775,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "あふれる光",
             act: async function (skillUser) {
-              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+              applyHeal(skillUser, 45, true);
             },
           },
         ],
@@ -7902,7 +7902,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "あふれる光",
             act: async function (skillUser) {
-              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+              applyHeal(skillUser, 45, true);
             },
           },
           {
