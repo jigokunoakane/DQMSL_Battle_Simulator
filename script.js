@@ -7599,6 +7599,23 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "一族の爪牙",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "魔獣") {
+                  applyBuff(monster, { speedBasedAttack: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+                  await sleep(150);
+                } else {
+                  displayMiss(monster);
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     gorago: {
       initialAbilities: [
@@ -13649,6 +13666,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}の`,
       message: "防御力が あがった！",
     },
+    speedBasedAttack: {
+      start: `${buffTarget.name}は`,
+      message: "通常攻撃が 素早さ依存になった！",
+    },
   };
 
   const stackableBuffs = {
@@ -13841,7 +13862,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "おうごんのツメ攻撃";
   } else if (skillUser.buffs.alwaysCrit) {
     NormalAttackName = "会心通常攻撃";
-  } else if (skillUser.race === "魔獣" && parties[skillUser.teamID].some((monster) => monster.name === "キングアズライル")) {
+  } else if (skillUser.buffs.speedBasedAttack) {
     NormalAttackName = "魔獣の追撃";
   } else if (skillUser.race === "ゾンビ" && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
     NormalAttackName = "一族のけがれ攻撃";
