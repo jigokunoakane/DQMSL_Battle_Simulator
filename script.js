@@ -1312,7 +1312,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned) {
       continue;
     }
-    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡以外は付与しない
+    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡 死肉の怨嗟以外は付与しない
     if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
@@ -6497,7 +6497,7 @@ const monsters = [
         anchorAction: {},
       },
     },
-    seed: { atk: 95, def: 0, spd: 0, int: 0 },
+    seed: { atk: 95, def: 0, spd: 0, int: 20 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [2],
@@ -8195,6 +8195,38 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+    },
+    tyomazombie: {
+      initialAbilities: [
+        {
+          name: "死肉の怨嗟",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+            skillUser.flags.zombifyActName = "死肉の怨嗟";
+          },
+        },
+      ],
+      afterActionAbilities: [
+        {
+          name: "超魔の再生力",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill == null || executingSkill.type === "notskill" || fieldState.turnNum > 5,
+          act: async function (skillUser, executingSkill) {
+            ascension(skillUser);
+            skillUser.currentStatus.MP -= 50;
+            if (skillUser.currentStatus.MP < 0) {
+              skillUser.currentStatus.MP = 0;
+            }
+            updateMonsterBar(skillUser);
+            await reviveMonster(skillUser, 0.5);
+          },
+        },
+      ],
+      zombifyAct: async function (monster, zombifyActName) {
+        if (zombifyActName === "死肉の怨嗟") {
+          applyBuff(monster, { baiki: { strength: 2, keepOnDeath: true, zombieBuffable: true } });
+        }
       },
     },
   };
@@ -12033,6 +12065,35 @@ const skill = [
     appliedEffect: { thunderResistance: { strength: -1, probability: 0.57 } },
   },
   {
+    name: "ボーンスキュル",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.21,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 58,
+    ignoreEvasion: true,
+    afterActionAct: async function (skillUser) {
+      await sleep(200);
+      applyDamage(skillUser, 500, 1);
+      await checkRecentlyKilledFlagForPoison(skillUser);
+      // 全滅させた後にも自傷と蘇生を実行
+    },
+  },
+  {
+    name: "超魔改良",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    MPcost: 18,
+    isOneTimeUse: true,
+    appliedEffect: { powerCharge: { keepOnDeath: true, strength: 3, duration: 2 } },
+  },
+  {
     name: "ヴェレマータ",
     type: "spell",
     howToCalculate: "int",
@@ -13323,37 +13384,20 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     return;
   }
 
-  // 亡者の場合、すべてのbuffIconを非表示化
-  if (monster.flags.isZombie) {
+  // 亡者の場合、敵側のみすべてのbuffIconを非表示化 味方側は一部制限をして通常通り表示
+  if (monster.flags.isZombie && newId.includes("enemy")) {
     buffIcons.forEach((icon) => (icon.style.display = "none"));
-    let iconIndex = 0;
-    // 味方側の場合 亡者、封印、蘇生封じ の順に表示
-    if (newId.includes("ally")) {
-      buffIcons[iconIndex].src = "images/buffIcons/isZombie.png";
-      buffIcons[iconIndex].style.display = "block";
-      iconIndex++;
-      if (monster.buffs.sealed) {
-        buffIcons[iconIndex].src = "images/buffIcons/sealed.png";
-        buffIcons[iconIndex].style.display = "block";
-        iconIndex++;
-      }
-      if (monster.buffs.reviveBlock) {
-        buffIcons[iconIndex].src = monster.buffs.reviveBlock.unDispellableByRadiantWave ? "images/buffIcons/reviveBlockunDispellableByRadiantWave.png" : "images/buffIcons/reviveBlock.png";
-        buffIcons[iconIndex].style.display = "block";
-        iconIndex++;
-      }
-      if (iconIndex < 3 && monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
-        buffIcons[iconIndex].src = "images/buffIcons/atakan.png";
-        buffIcons[iconIndex].style.display = "block";
-        iconIndex++;
-      }
-    }
     return;
   }
 
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
+    // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 封印 蘇生封じ 怨嗟鏡 怨嗟バイキ 超魔改良
+    const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable"];
+    if (monster.flags.isZombie && !(monster.buffs[buffKey]?.zombieBuffable || availableBuffsForZombie.includes(buffKey))) {
+      continue;
+    }
     // 基本のアイコンパス これを編集
     let iconSrc = `images/buffIcons/${buffKey}.png`;
 
@@ -13406,10 +13450,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (fieldState.stonedBlock) {
     activeBuffs.push({ key: "stonedBlock", src: "images/buffIcons/stonedBlock.png" });
   }
-  // 亡者アイコンをpushはせず、亡者アイコンのみに
-  //if (monster.flags.isZombie && newId.includes("ally")) {
-  //  activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
-  //}
+  // 亡者アイコンを先頭に挿入
+  if (monster.flags.isZombie) {
+    activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
+  }
 
   if (activeBuffs.length === 0) {
     // バフがない場合は、すべてのbuffIconを非表示にする
@@ -14168,10 +14212,13 @@ function ascension(monster, ignoreUnAscensionable = false) {
     return;
   }
   delete monster.flags.isZombie;
-  // zombieBuffableのバフを削除
+  // zombieBuffableのバフを削除 現状封印 怨嗟鏡 怨嗟バイキのみ
   delete monster.buffs.sealed;
   if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
     delete monster.buffs.slashReflection;
+  }
+  if (monster.buffs.baiki && monster.buffs.baiki.zombieBuffable) {
+    delete monster.buffs.baiki;
   }
   monster.flags.isDead = true;
   monster.commandInput = "skipThisTurn";
