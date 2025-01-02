@@ -3499,10 +3499,12 @@ function calculateDamage(
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (executingSkill.howToCalculate === "fix") {
     baseDamage = executingSkill.damage;
-    if (executingSkill.damageByLevel) {
-      randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
-    } else {
-      randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+    if (!executingSkill.fixedDamage) {
+      if (executingSkill.damageByLevel) {
+        randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
+      } else {
+        randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+      }
     }
   } else if (executingSkill.howToCalculate === "MP") {
     // マダンテ系 呪文会心なし 乱数なし メタルボディの消費MP増加では増えない 連携倍率乗らない
@@ -4060,8 +4062,8 @@ function calculateDamage(
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  // MP依存以外で加減算を反映
-  if (executingSkill.howToCalculate !== "MP") {
+  // MP依存ではなくかつ完全固定でもないとき、加減算を反映
+  if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
     damage *= damageModifier;
   }
 
@@ -8206,6 +8208,7 @@ const skill = [
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd MP
+    fixedDamage: true, // 完全固定ダメージ ボンスキュ反撃 紅蓮剣 星皇 アルテマ誇り エクスカリパー 針10本 ミルスト ブラジョ 屍大狂乱 キャスリング
     ratio: 1,
     MPdamageRatio: 1.5,
     damage: 142,
@@ -9040,6 +9043,7 @@ const skill = [
     name: "冥王の構え反撃",
     type: "slash",
     howToCalculate: "fix",
+    fixedDamage: true,
     damage: 50,
     element: "none",
     targetType: "single",
