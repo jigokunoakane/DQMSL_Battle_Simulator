@@ -3028,8 +3028,8 @@ async function executeSkill(
     }
 
     let skillTarget = assignedTarget;
-    // randomのfollowingSkillのみtargetをnull化してランダムにする(暫定的) クアトロもランダム化
-    if ((isFollowingSkill && currentSkill.targetType === "random") || currentSkill.howToCalculate === "MP") {
+    // followingSkillのtargetをnull化してランダムにする(暫定的) random特技(イフシバ) および クアトロ
+    if (isFollowingSkill && (currentSkill.targetType === "random" || currentSkill.howToCalculate === "MP")) {
       skillTarget = null;
     }
 
