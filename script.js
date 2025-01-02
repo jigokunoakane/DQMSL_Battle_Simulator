@@ -3781,16 +3781,6 @@ function calculateDamage(
     }
   }
 
-  // そしでん
-  if (skillTarget.buffs.sosidenBarrier) {
-    const reduce80Race = ["???", "超魔王", "超伝説"];
-    if (reduce80Race.includes(skillUser.race)) {
-      damage *= 0.2;
-    } else {
-      damage *= 0.5;
-    }
-  }
-
   // ダメージ軽減
   if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
     damage *= 1 - skillTarget.buffs.protection.strength;
@@ -4062,9 +4052,18 @@ function calculateDamage(
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  // MP依存ではなくかつ完全固定でもないとき、加減算を反映
+  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリアを反映
   if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
     damage *= damageModifier;
+    // そしでん
+    if (skillTarget.buffs.sosidenBarrier) {
+      const reduce80Race = ["???", "超魔王", "超伝説"];
+      if (reduce80Race.includes(skillUser.race)) {
+        damage *= 0.2;
+      } else {
+        damage *= 0.5;
+      }
+    }
   }
 
   // ダメージ付与処理
