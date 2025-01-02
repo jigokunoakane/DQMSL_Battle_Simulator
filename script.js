@@ -6934,7 +6934,7 @@ function getMonsterAbilities(monsterId) {
         evenTurnAbilities: [
           {
             act: async function (skillUser) {
-              applyHeal(skillUser, skillUser.defaultStatus.MP * 0.13, true);
+              applyHeal(skillUser, 45, true);
             },
           },
         ],
@@ -6957,6 +6957,16 @@ function getMonsterAbilities(monsterId) {
                 });
               },
             });
+          },
+        },
+      ],
+    },
+    shamu: {
+      afterActionHealAbilities: [
+        {
+          name: "自動MP回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.05, true);
           },
         },
       ],
@@ -7133,6 +7143,13 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            act: async function (skillUser) {
+              applyHeal(skillUser, 45, true);
             },
           },
         ],
@@ -7574,6 +7591,16 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
+    natsukusha: {
+      afterActionHealAbilities: [
+        {
+          name: "自動MP回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.05, true);
+          },
+        },
+      ],
+    },
     rizu: {
       initialAbilities: [
         {
@@ -7582,6 +7609,14 @@ function getMonsterAbilities(monsterId) {
             if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
               applyBuff(skillUser, { iceBreak: { keepOnDeath: true, strength: 1 }, rizuIceBuff: { duration: 3 } });
             }
+          },
+        },
+      ],
+      afterActionHealAbilities: [
+        {
+          name: "自動MP大回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.1, true);
           },
         },
       ],
