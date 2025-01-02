@@ -3494,15 +3494,15 @@ function calculateDamage(
   MPused = null
 ) {
   let baseDamage = 0;
+  let randomMultiplier = 1;
   let isCriticalHit = false;
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (executingSkill.howToCalculate === "fix") {
+    baseDamage = executingSkill.damage;
     if (executingSkill.damageByLevel) {
-      const randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
-      baseDamage = Math.floor(executingSkill.damage * randomMultiplier);
+      randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
     } else {
-      const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-      baseDamage = Math.floor(executingSkill.damage * randomMultiplier);
+      randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
     }
   } else if (executingSkill.howToCalculate === "MP") {
     // マダンテ系 呪文会心なし 乱数なし メタルボディの消費MP増加では増えない 連携倍率乗らない
@@ -3536,8 +3536,8 @@ function calculateDamage(
 
     if (isCriticalHit) {
       // 会心の一撃成功時 (呪文暴走は別処理)
-      const criticalHitMultiplier = 0.95 + 0.01 * Math.floor(Math.random() * 11);
-      baseDamage = Math.floor(status * criticalHitMultiplier);
+      baseDamage = status;
+      randomMultiplier = 0.95 + 0.01 * Math.floor(Math.random() * 11);
       if (skillUser.gear?.name === "魔神のかなづち") {
         baseDamage *= 2;
       }
@@ -3549,8 +3549,10 @@ function calculateDamage(
       if (statusRatio >= 0 && statusRatio < 1.75) {
         // 割った値が0以上1.75未満の場合
         baseDamage = status / 2 - targetDef / 4;
-        const randomOffset = (Math.random() * baseDamage) / 8 - baseDamage / 16 + Math.random() * 2 - 1;
-        baseDamage = Math.floor(baseDamage + randomOffset);
+        if (!isSimulatedCalculation) {
+          const randomOffset = (Math.random() * baseDamage) / 8 - baseDamage / 16 + Math.random() * 2 - 1;
+          baseDamage = Math.floor(baseDamage + randomOffset);
+        }
       } else if (statusRatio >= 1.75 && statusRatio < 2) {
         // 割った値が1.75以上2未満の場合
         if (Math.random() < 0.75) {
@@ -3611,9 +3613,8 @@ function calculateDamage(
         : intDiff >= 1
         ? 1.1
         : 1;
-    const randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
-    baseDamage = Math.floor(baseDamage * randomMultiplier);
     baseDamage *= executingSkill.skillPlus * intBonus;
+    randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
     //呪文会心
     const noSpellSurgeList = [
       "カオスストーム",
@@ -3647,7 +3648,10 @@ function calculateDamage(
       }
     }
   }
-  let damage = baseDamage;
+  // randomMultiplierを各所で設定(または初期値1) 実際のダメ計の場合のみ乱数をかける randomOffsetのみシミュレーション時以外の乱数振れ幅を既に設定済
+  if (!isSimulatedCalculation) {
+    damage = baseDamage * randomMultiplier;
+  }
 
   // 反射倍率
   if (isReflection) {
