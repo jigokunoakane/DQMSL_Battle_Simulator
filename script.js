@@ -4642,10 +4642,10 @@ function addSkillOptions() {
   const familySkills = {
     ドラゴン: ["テンペストブレス", "ほとばしる暗闇", "竜の呪文見切り"],
     ゾンビ: ["ヴェレマータ", "防壁反転"],
-    悪魔: ["イオナルーン"], //冷酷
+    悪魔: ["イオナルーン", "ギラマータ"], //冷酷
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
+    魔獣: ["一刀両断"], //"ラピッドショット", "聖なる息吹"
     //自然: ["やすらぎの光", "天光の裁き"],
-    //魔獣: ["ラピッドショット", "聖なる息吹"],
     //物質: ["氷撃波", "れっぱの息吹", "リベンジアーツ"],
   }[monster.race];
   const superSkills = [
@@ -11370,6 +11370,17 @@ const skill = [
     ignoreBaiki: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
+  },
+  {
+    name: "一刀両断",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 3.68,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 144,
+    ignoreEvasion: true,
   },
   {
     name: "クアトロマダンテ",
