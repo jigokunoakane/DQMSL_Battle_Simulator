@@ -2327,19 +2327,20 @@ async function processMonsterAction(skillUser) {
       }
     }
     // 蘇生技未所持 または 有効なtargetがいなかった場合
-    // 全体回復技所持時はそれを選んでreturn
-    if (availableAllHealSkills.length > 0) {
-      executingSkill = availableAllHealSkills[0];
-      return;
-    }
-    // 単体乱打回復技所持時
-    if (availableSingleHealSkills.length > 0) {
-      const validTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie);
-      let lowestTarget = null;
-      if (validTargets.length > 0) {
-        lowestTarget = validTargets[0];
-        for (let i = 1; i < validTargets.length; i++) {
-          const currentTarget = validTargets[i];
+    const validHealTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.currentStatus.HP !== monster.defaultStatus.HP);
+    // 回復可能な味方がいる場合は回復技を撃つ
+    if (validHealTargets.length > 0) {
+      // 全体回復技所持時はそれを選んでreturn
+      if (availableAllHealSkills.length > 0) {
+        executingSkill = availableAllHealSkills[0];
+        return;
+      }
+      // 単体乱打回復技所持時
+      if (availableSingleHealSkills.length > 0) {
+        let lowestTarget = null;
+        lowestTarget = validHealTargets[0];
+        for (let i = 1; i < validHealTargets.length; i++) {
+          const currentTarget = validHealTargets[i];
           // 最低値のmonsterに更新
           if (currentTarget.currentStatus.HP / currentTarget.defaultStatus.HP < lowestTarget.currentStatus.HP / lowestTarget.defaultStatus.HP) {
             lowestTarget = currentTarget;
