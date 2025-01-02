@@ -6491,6 +6491,7 @@ const monsters = [
     weight: 28,
     status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
     initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "ザオラル"],
+    defaultGear: "silverFeather",
     attribute: {
       permanentBuffs: {
         anchorAction: {},
@@ -12915,6 +12916,12 @@ const gear = [
     status: { HP: 8, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
     fireGearResistance: 1,
   },
+  {
+    name: "シルバーフェザー",
+    id: "silverFeather",
+    weight: 0,
+    status: { HP: 0, MP: 8, atk: 0, def: 0, spd: 0, int: 0 },
+  },
 ];
 
 // 必要ならばasyncにするのに注意
@@ -12965,6 +12972,22 @@ const gearAbilities = {
         },
         act: async function (skillUser) {
           await executeRadiantWave(skillUser);
+        },
+      });
+    },
+  },
+  silverFeather: {
+    initialAbilities: async function (skillUser) {
+      if (!skillUser.abilities.supportAbilities[3]) {
+        skillUser.abilities.supportAbilities[3] = [];
+      }
+      skillUser.abilities.supportAbilities[3].push({
+        name: "シルバーフェザー",
+        message: function (skillUser) {
+          displayMessage("そうびの特性が発動！");
+        },
+        act: async function (skillUser) {
+          applyHeal(skillUser, 60, true);
         },
       });
     },
