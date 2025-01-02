@@ -960,6 +960,12 @@ async function startTurn() {
     }
   }
 
+  // ラウンド最初の昇天処理・ラザマ処理後に戦闘終了確認
+  if (isBattleOver()) {
+    removeAllStickOut();
+    return;
+  }
+
   // 非同期処理でバフを適用
   async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
     // バフ対象の種類
