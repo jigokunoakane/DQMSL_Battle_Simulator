@@ -6787,6 +6787,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "反撃ののろしダメージバフ"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { deathAbility: { keepOnDeath: true } });
               monster.abilities.additionalDeathAbilities.push({
                 name: "反撃ののろしダメージバフ",
                 message: function (skillUser) {
@@ -7386,6 +7387,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race === "悪魔") {
+                  applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
                     name: "一族のいかり",
                     message: function (skillUser) {
@@ -7700,6 +7702,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.monsterId === skillUser.monsterId) {
                   continue;
                 } else if (monster.race === "魔獣" && !monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "孤高の獣発動")) {
+                  applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
                     name: "孤高の獣発動",
                     isOneTimeUse: true,
@@ -8160,11 +8163,14 @@ function getMonsterAbilities(monsterId) {
             skillUser.flags.zombieProbability = 1;
           },
         },
+      ],
+      initialAttackAbilities: [
         {
           name: "毒素拡散",
           unavailableIf: (skillUser) => parties[skillUser.enemyTeamID].some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "毒素拡散")),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { deathAbility: { keepOnDeath: true } });
               monster.abilities.additionalDeathAbilities.push({
                 name: "毒素拡散",
                 message: function (skillUser) {
