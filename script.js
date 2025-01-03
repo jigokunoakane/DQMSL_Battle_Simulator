@@ -949,6 +949,9 @@ async function startTurn() {
         await sleep(300);
         displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
         await sleep(200);
+        if (monster.buffs.reviveBlock && !monster.buffs.reviveBlock.unDispellableByRadiantWave) {
+          delete monster.buffs.reviveBlock;
+        }
         await reviveMonster(monster, 1, true);
         if (monster.abilities.reviveNextTurnAct) {
           await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
@@ -2018,7 +2021,7 @@ function decideTurnOrder(parties) {
   turnOrder = [];
   //初期化
 
-  if ("isReverse" in fieldState && fieldState.isReverse === true) {
+  if (fieldState.isReverse) {
     // --- リバース状態の処理 ---
     // 各グループのソート処理を関数化
     const sortByPreemptiveGroupAndSpeed = (a, b) => {
