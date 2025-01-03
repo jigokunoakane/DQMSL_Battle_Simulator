@@ -1985,7 +1985,7 @@ function updateCurrentStatus(monster) {
 }
 
 // 行動順を決定する関数 コマンド決定後にstartBattleで起動
-function decideTurnOrder(parties, skills) {
+function decideTurnOrder(parties) {
   // 全てのモンスターを1つの配列にまとめる
   let allMonsters = parties.flat();
 
@@ -1998,7 +1998,7 @@ function decideTurnOrder(parties, skills) {
 
   // 各モンスターの行動順を分類 (skillのorderと特性の複数所持時はskillのorder優先で分類)
   allMonsters.forEach((monster) => {
-    const selectedSkillInfo = skills.find((skill) => skill.name === monster.commandInput);
+    const selectedSkillInfo = findSkillByName(monster.commandInput);
 
     if (selectedSkillInfo?.order === "preemptive") {
       preemptiveMonsters.push(monster);
@@ -2022,8 +2022,8 @@ function decideTurnOrder(parties, skills) {
     // --- リバース状態の処理 ---
     // 各グループのソート処理を関数化
     const sortByPreemptiveGroupAndSpeed = (a, b) => {
-      const skillA = skills.find((skill) => skill.name === a.commandInput);
-      const skillB = skills.find((skill) => skill.name === b.commandInput);
+      const skillA = findSkillByName(a.commandInput);
+      const skillB = findSkillByName(b.commandInput);
       if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
         return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
       } else {
@@ -2035,7 +2035,7 @@ function decideTurnOrder(parties, skills) {
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.commandInput);
+          const skill = findSkillByName(monster.commandInput);
           return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
@@ -2062,7 +2062,7 @@ function decideTurnOrder(parties, skills) {
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.commandInput);
+          const skill = findSkillByName(monster.commandInput);
           return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndSpeed)
@@ -2071,8 +2071,8 @@ function decideTurnOrder(parties, skills) {
     // --- 通常状態の処理 ---
     // 各グループのソート処理を関数化
     const sortByPreemptiveGroupAndReverseSpeed = (a, b) => {
-      const skillA = skills.find((skill) => skill.name === a.commandInput);
-      const skillB = skills.find((skill) => skill.name === b.commandInput);
+      const skillA = findSkillByName(a.commandInput);
+      const skillB = findSkillByName(b.commandInput);
       if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
         return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
       } else {
@@ -2084,7 +2084,7 @@ function decideTurnOrder(parties, skills) {
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.commandInput);
+          const skill = findSkillByName(monster.commandInput);
           return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
@@ -2094,7 +2094,7 @@ function decideTurnOrder(parties, skills) {
     turnOrder.push(
       ...allMonsters
         .filter((monster) => {
-          const skill = skills.find((s) => s.name === monster.commandInput);
+          const skill = findSkillByName(monster.commandInput);
           return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
         })
         .sort(sortByPreemptiveGroupAndReverseSpeed)
