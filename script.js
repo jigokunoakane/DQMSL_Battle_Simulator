@@ -1590,7 +1590,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
         delete buffTarget.buffs.counterAttack;
         delete buffTarget.buffs.sealed;
-        // 防御は解除済なのでみがわりだけ解除
+        // 防御は解除済なのでみがわり・みがわられともに覆うであろうと解除
         deleteSubstitute(buffTarget);
         // 現状、dispellableByAbnormality指定された予測系も解除
       }
@@ -4337,6 +4337,12 @@ async function processDeathAction(skillUser, excludedTargets) {
     const monster = deathActionQueue.shift();
     delete monster.flags.beforeDeathActionCheck;
 
+    // 死亡時発動能力の前に亡者化処理を実行 リザオや変身しない場合のみ
+    if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
+    } else if (monster.flags.willZombify) {
+      await zombifyMonster(monster);
+    }
+
     // 死亡時発動能力の実行
     if (monster.flags.skipDeathAbility) {
       delete monster.flags.skipDeathAbility;
@@ -4347,8 +4353,6 @@ async function processDeathAction(skillUser, excludedTargets) {
     // 復活処理
     if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
-    } else if (monster.flags.willZombify) {
-      await zombifyMonster(monster);
     }
   }
   isProcessingDeathAction = false;
@@ -6506,7 +6510,7 @@ const monsters = [
         anchorAction: {},
       },
     },
-    seed: { atk: 95, def: 0, spd: 0, int: 20 },
+    seed: { atk: 40, def: 10, spd: 0, int: 70 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [2],
