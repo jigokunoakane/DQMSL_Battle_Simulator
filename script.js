@@ -6507,7 +6507,7 @@ const monsters = [
     defaultGear: "silverFeather",
     attribute: {
       permanentBuffs: {
-        anchorAction: {},
+        anchorAction: { probability: 0.2 },
       },
     },
     seed: { atk: 40, def: 10, spd: 0, int: 70 },
