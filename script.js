@@ -9900,7 +9900,7 @@ const skill = [
     MPcost: 34,
     act: async function (skillUser, skillTarget) {
       if (Math.random() < 0.7333) {
-        await reviveMonster(skillTarget);
+        await reviveMonster(skillTarget, 0.5);
       }
     },
   },
