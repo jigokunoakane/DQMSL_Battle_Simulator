@@ -6497,12 +6497,12 @@ const monsters = [
     resistance: { fire: 1.5, ice: 0.5, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "真・冥王ゴルゴナ", //44どこ 全ステ20
+    name: "真・冥王ゴルゴナ", //44 全ステ20
     id: "gorugona",
     rank: 10,
     race: "ゾンビ",
     weight: 25,
-    status: { HP: 824, MP: 305, atk: 287, def: 632, spd: 377, int: 510 },
+    status: { HP: 839, MP: 311, atk: 292, def: 643, spd: 384, int: 519 },
     initialSkill: ["冥府の邪法", "六芒魔法陣", "ザオリク", "斬撃よそく"],
     defaultGear: "silverFeather",
     defaultAiType: "いのちだいじに",
