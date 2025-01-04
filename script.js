@@ -6497,6 +6497,22 @@ const monsters = [
     resistance: { fire: 1.5, ice: 0.5, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "真・冥王ゴルゴナ", //44どこ 全ステ20
+    id: "gorugona",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 25,
+    status: { HP: 824, MP: 305, atk: 287, def: 632, spd: 377, int: 510 },
+    initialSkill: ["冥府の邪法", "六芒魔法陣", "ザオリク", "斬撃よそく"],
+    defaultGear: "silverFeather",
+    defaultAiType: "いのちだいじに",
+    attribute: {},
+    seed: { atk: 0, def: 50, spd: 0, int: 70 },
+    ls: { atk: 1.2, def: 0.95 },
+    lsTarget: "ゾンビ",
+    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 1, io: 1, light: 1.5, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "非道兵器超魔ゾンビ", //4
     id: "tyomazombie",
     rank: 10,
@@ -8215,6 +8231,36 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    gorugona: {
+      initialAbilities: [
+        {
+          name: "冥王の瘴気",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+          },
+        },
+      ],
+      deathAbilities: [
+        {
+          name: "大蜘蛛のあがき",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { poisoned: { probability: 1 }, spellSeal: { probability: 1 } });
+            }
+          },
+        },
+      ],
+      afterActionHealAbilities: [
+        {
+          name: "自動HP大回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.15);
+          },
+        },
+      ],
     },
     tyomazombie: {
       initialAbilities: [
@@ -12066,6 +12112,89 @@ const skill = [
       }
       await sleep(740);
     },
+  },
+  {
+    name: "六芒魔法陣",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 152,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.name === "真・冥王ゴルゴナ") {
+        displayMiss(skillTarget);
+      } else {
+        ascension(skillTarget);
+      }
+    },
+    followingSkill: "六芒魔法陣後半",
+  },
+  {
+    name: "六芒魔法陣後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 0,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          await reviveMonster(monster, 1, false, true); // 間隔skip
+        }
+      }
+      await sleep(740);
+    },
+  },
+  {
+    name: "冥府の邪法",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    isOneTimeUse: true,
+    MPcost: "all",
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.name === "真・冥王ゴルゴナ") {
+        displayMiss(skillTarget);
+      } else {
+        ascension(skillTarget);
+      }
+    },
+    followingSkill: "冥府の邪法後半",
+  },
+  {
+    name: "冥府の邪法後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 0,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          await reviveMonster(monster, 1, false, true); // 間隔skip
+        }
+      }
+      await sleep(740);
+    },
+    followingSkill: "冥府の邪法ボミオス",
+  },
+  {
+    name: "冥府の邪法ボミオス",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.6 } },
   },
   {
     name: "鮮烈な稲妻",
