@@ -3505,6 +3505,7 @@ function calculateDamage(
 ) {
   let baseDamage = 0;
   let randomMultiplier = 1;
+  let damage = 0;
   let isCriticalHit = false;
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (executingSkill.howToCalculate === "fix") {
@@ -3663,6 +3664,8 @@ function calculateDamage(
   // randomMultiplierを各所で設定(または初期値1) 実際のダメ計の場合のみ乱数をかける randomOffsetのみシミュレーション時以外の乱数振れ幅を既に設定済
   if (!isSimulatedCalculation) {
     damage = baseDamage * randomMultiplier;
+  } else {
+    damage = baseDamage;
   }
 
   // 反射倍率
@@ -13513,7 +13516,6 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (isReversed) {
     // monster.iconElementId を入れ替える
     newId = monster.iconElementId.includes("ally") ? monster.iconElementId.replace("ally", "enemy") : monster.iconElementId.replace("enemy", "ally");
-
     // wrapper を新しい要素の親要素に置き換える
     wrapper = document.getElementById(newId).parentElement;
   }
@@ -13537,9 +13539,11 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     }
   }
 
+  // 関数実行時に一旦全て非表示化
+  buffIcons.forEach((icon) => (icon.style.display = "none"));
+
   // isDeadの場合、すべてのbuffIconを非表示化
   if (monster.flags.isDead) {
-    buffIcons.forEach((icon) => (icon.style.display = "none"));
     let iconIndex = 0;
     // 味方側の場合 棺桶、蘇生封じ の順に表示
     if (newId.includes("ally")) {
@@ -13557,7 +13561,6 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 
   // 亡者の場合、敵側のみすべてのbuffIconを非表示化 味方側は一部制限をして通常通り表示
   if (monster.flags.isZombie && newId.includes("enemy")) {
-    buffIcons.forEach((icon) => (icon.style.display = "none"));
     return;
   }
 
