@@ -8229,7 +8229,7 @@ function getMonsterAbilities(monsterId) {
             name: "死者のまねき",
             act: function (skillUser) {
               for (const monster of parties[skillUser.enemyTeamID]) {
-                applyBuff(monster, { zakiResistance: { strength: -1 } });
+                applyBuff(monster, { zakiResistance: { strength: -1, iconSrc: "zakiResistancestr-1" } });
               }
             },
           },
