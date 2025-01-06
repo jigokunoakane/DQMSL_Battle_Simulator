@@ -2516,7 +2516,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
   // 7-3. AI追撃処理
   if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
-    const noAIskills = ["黄泉の封印", "神獣の封印", "供物をささげる"];
+    const noAIskills = ["黄泉の封印", "神獣の封印", "供物をささげる", "超魔改良"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       await sleep(300);
       let attackTimes =
@@ -6373,6 +6373,28 @@ const monsters = [
     ls: { HP: 1 },
     lsTarget: "all",
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ゴーレム", //4 HP+200
+    id: "golem",
+    rank: 10,
+    race: "物質",
+    weight: 28,
+    status: { HP: 1130, MP: 256, atk: 458, def: 677, spd: 393, int: 268 },
+    initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "におうだち"],
+    anotherSkills: ["スキルターン"],
+    defaultGear: "familyNailSlime",
+    attribute: {
+      initialBuffs: {
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { spd: 1.2 },
+    lsTarget: "スライム",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: -1, light: 0, dark: 1, poisoned: 1.5, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルスパイダー",
