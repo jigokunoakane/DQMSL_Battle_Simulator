@@ -4167,15 +4167,15 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     if (distortedResistanceIndex !== 5 && distortedResistanceIndex !== 6) {
       // 装備効果
       if (skillTarget.gear?.[element + "GearResistance"]) {
-        distortedResistanceIndex += skillTarget.gear[element + "GearResistance"];
+        distortedResistanceIndex -= skillTarget.gear[element + "GearResistance"];
       }
       // 属性耐性バフデバフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
-        distortedResistanceIndex += skillTarget.buffs[element + "Resistance"].strength;
+        distortedResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
       }
       // プリズムヴェール
       if (skillTarget.buffs.prismVeil) {
-        normalResistanceIndex += skillTarget.buffs.prismVeil.strength;
+        distortedResistanceIndex -= skillTarget.buffs.prismVeil.strength;
       }
     }
     // インデックスの範囲を制限
