@@ -2676,6 +2676,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     skillUser.buffs.pharaohPower &&
     parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
     !skillUser.flags.isDead &&
+    executedSkills &&
     executedSkills.some((skill) => skill.howToCalculate !== "none" && skill.targetTeam === "enemy")
   ) {
     await sleep(400);
@@ -13563,8 +13564,8 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
-    // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 封印 蘇生封じ 怨嗟鏡 怨嗟バイキ 超魔改良
-    const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable"];
+    // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 封印 蘇生封じ 怨嗟鏡 怨嗟バイキ 超魔改良 ファラオ
+    const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable", "pharaohPower"];
     if (monster.flags.isZombie && !(monster.buffs[buffKey]?.zombieBuffable || availableBuffsForZombie.includes(buffKey))) {
       continue;
     }
