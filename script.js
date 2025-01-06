@@ -12143,7 +12143,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          await reviveMonster(monster, 1, false, true); // 間隔skip
+          await reviveMonster(monster, 0.5, false, true); // 間隔skip
         }
       }
       await sleep(740);
@@ -12179,7 +12179,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          await reviveMonster(monster, 1, false, true); // 間隔skip
+          await reviveMonster(monster, 0.5, false, true); // 間隔skip
         }
       }
       await sleep(740);
