@@ -414,7 +414,7 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
     const MPcost = calculateMPcost(skillUser, skillInfo);
     if (
       skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) ||
-      skillUser.currentStatus.MP < MPcost ||
+      !hasEnoughMpForSkill(skillUser, skillInfo) ||
       (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser)) ||
       skillUser.buffs[skillInfo.type + "Seal"]
     ) {
@@ -2180,7 +2180,6 @@ async function processMonsterAction(skillUser) {
 
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
-      const MPcost = calculateMPcost(skillUser, skillInfo);
 
       if (
         !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
@@ -2188,7 +2187,7 @@ async function processMonsterAction(skillUser) {
         (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
         skillUser.flags.unavailableSkills.includes(skillName) ||
         skillUser.disabledSkillsByPlayer.includes(skillName) ||
-        skillUser.currentStatus.MP < MPcost ||
+        !hasEnoughMpForSkill(skillUser, skillInfo) ||
         skillInfo.howToCalculate === "none" ||
         skillInfo.targetTeam !== "enemy"
       ) {
@@ -2292,7 +2291,6 @@ async function processMonsterAction(skillUser) {
     const availableSingleHealSkills = [];
     for (const skillName of skillUser.skill) {
       const skillInfo = findSkillByName(skillName);
-      const MPcost = calculateMPcost(skillUser, skillInfo);
       // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
       if (
         !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
@@ -2301,7 +2299,7 @@ async function processMonsterAction(skillUser) {
         skillUser.flags.unavailableSkills.includes(skillName) ||
         skillUser.disabledSkillsByPlayer.includes(skillName) ||
         // unavailableIfは様子見
-        skillUser.currentStatus.MP < MPcost
+        !hasEnoughMpForSkill(skillUser, skillInfo)
       ) {
         continue;
       }
@@ -2414,7 +2412,7 @@ async function processMonsterAction(skillUser) {
 
   // 5. 消費MP確認
   const MPused = calculateMPcost(skillUser, executingSkill);
-  if (skillUser.currentStatus.MP >= MPused) {
+  if (hasEnoughMpForSkill(skillUser, executingSkill)) {
     skillUser.currentStatus.MP -= MPused;
     updateMonsterBar(skillUser);
   } else {
@@ -8324,7 +8322,7 @@ const skill = [
     excludeTarget: "self",
     hitNum: 3,
     MPcost: 76,
-    MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費
+    MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費 全消費は1
     order: "", //preemptive anchor
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
@@ -12162,7 +12160,7 @@ const skill = [
     targetTeam: "ally",
     order: "anchor",
     isOneTimeUse: true,
-    MPcost: "all",
+    MPcostRatio: 1,
     act: async function (skillUser, skillTarget) {
       if (skillTarget.name === "真・冥王ゴルゴナ") {
         displayMiss(skillTarget);
@@ -13802,8 +13800,6 @@ function preloadImages() {
 function calculateMPcost(skillUser, executingSkill) {
   if (executingSkill.MPcostRatio) {
     return Math.floor(skillUser.currentStatus.MP * executingSkill.MPcostRatio); // 現在MPに対する割合 切り捨て
-  } else if (executingSkill.MPcost === "all") {
-    return skillUser.currentStatus.MP;
   }
   let calcMPcost = executingSkill.MPcost;
   //メタル
@@ -13822,6 +13818,15 @@ function calculateMPcost(skillUser, executingSkill) {
     calcMPcost = Math.floor(calcMPcost * 0.5);
   }
   return calcMPcost;
+}
+
+function hasEnoughMpForSkill(skillUser, executingSkill) {
+  const mpCost = calculateMPcost(skillUser, executingSkill);
+  if (skillUser.currentStatus.MP >= mpCost && !(executingSkill.MPcostRatio && skillUser.currentStatus.MP === 0)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function displayBuffMessage(buffTarget, buffName, buffData) {
