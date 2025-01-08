@@ -797,7 +797,8 @@ select {
   color: #aaa;
 }
 
-.changeSkillWrapper input[type="checkbox"] {
+.changeSkillWrapper input[type="checkbox"],
+#enableBGMCheckbox {
   margin-right: 10px; /* チェックボックスとセレクトボックスの間隔 */
   width: 1.2rem; /* チェックボックスのサイズ */
   height: 1.2rem;
@@ -805,4 +806,8 @@ select {
   border-radius: 4px; /* 角丸 */
   outline: none; /* フォーカス時のアウトラインを削除 */
   vertical-align: middle; /* select要素と垂直方向に中央揃え */
+}
+
+#enableBGMCheckboxContainer {
+  margin-bottom: 0.5rem;
 }

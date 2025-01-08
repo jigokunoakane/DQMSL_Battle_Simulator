@@ -205,6 +205,8 @@ async function prepareBattle() {
   //コマンドボタン無効化 特性演出終了後に有効化
   disableCommandBtn(true);
   removeAllStickOut();
+  //bgmを再生
+  playBGM();
   //field管理用変数の導入はglobalで
   await startTurn();
 }
@@ -13438,6 +13440,7 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
   col("手動で戦闘終了");
   fieldState.isBattleOver = true;
   setSkipMode(true);
+  stopBGM();
   // skip状態の解除と表示戻し: 次のplayerBのパテ選択決定時に
 });
 
@@ -14517,6 +14520,7 @@ function isBattleOver() {
       col("敵全滅により戦闘終了フラグが立てられました");
       displayMessage("相手が試合をあきらめた");
     }
+    stopBGM();
     return true;
   } else {
     return false;
@@ -14613,3 +14617,64 @@ function intensityPoisonDepth(skillTarget) {
     skillTarget.buffs.poisonDepth.strength = Math.min(skillTarget.buffs.poisonDepth.strength + 2, 7);
   }
 }
+
+let YTplayer;
+let iframe; // iframe要素への参照を保持
+function onYouTubeIframeAPIReady() {
+  YTplayer = new YT.Player("YTbgm", {
+    events: {
+      onReady: function () {
+        console.log("Player is ready");
+        iframe = document.getElementById("YTbgm"); // iframe要素を取得
+      },
+    },
+  });
+}
+
+function toggleBGM() {
+  if (YTplayer.getPlayerState() === YT.PlayerState.PLAYING) {
+    stopBGM();
+  } else {
+    playBGM();
+  }
+}
+function playBGM() {
+  if (YTplayer) {
+    if (document.getElementById("enableBGMCheckbox").checked) {
+      YTplayer.seekTo(0); // 動画の先頭にシーク
+      YTplayer.playVideo();
+      if (iframe) {
+        iframe.blur();
+      }
+    }
+  }
+}
+
+function stopBGM() {
+  if (YTplayer && YTplayer.getPlayerState() === YT.PlayerState.PLAYING) {
+    initialVolume = YTplayer.getVolume(); // フェードアウト開始時のボリュームを保存
+    let volume = initialVolume;
+    const fadeOutInterval = 50; // フェードアウト間隔（ミリ秒）
+    const fadeOutStep = 5; // ボリュームを減らすステップ
+
+    let fadeOut = setInterval(() => {
+      if (volume > 0) {
+        volume = Math.max(0, volume - fadeOutStep); // ボリュームを減らす
+        YTplayer.setVolume(volume);
+      } else {
+        clearInterval(fadeOut); // フェードアウト終了
+        YTplayer.pauseVideo(); // 動画を停止
+        if (iframe) {
+          iframe.blur();
+        }
+        YTplayer.setVolume(initialVolume); // ボリュームを元に戻す
+      }
+    }, fadeOutInterval);
+  }
+}
+
+// YouTube Iframe API をロード
+var tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName("script")[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
