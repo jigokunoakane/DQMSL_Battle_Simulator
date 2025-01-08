@@ -830,6 +830,12 @@ async function startTurn() {
       }
     }
   }
+  // ラウンド最初の昇天処理後に戦闘終了確認
+  if (isBattleOver()) {
+    removeAllStickOut();
+    await processReviveNextTurn(true); //戦闘終了時は演出skipで蘇生を実行して終了
+    return;
+  }
   fieldState.turnNum++;
   console.log(`ラウンド${fieldState.turnNum}`);
   const turnNum = fieldState.turnNum;
@@ -943,31 +949,32 @@ async function startTurn() {
   await sleep(300);
 
   // ラザマ等
-  for (const party of parties) {
-    for (const monster of party) {
-      if (monster.flags.isDead && monster.flags.reviveNextTurn) {
-        await sleep(300);
-        displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
-        await sleep(200);
-        if (monster.buffs.reviveBlock && !monster.buffs.reviveBlock.unDispellableByRadiantWave) {
-          delete monster.buffs.reviveBlock;
+  async function processReviveNextTurn(skipSleep = false) {
+    for (const party of parties) {
+      for (const monster of party) {
+        if (monster.flags.isDead && monster.flags.reviveNextTurn) {
+          if (!skipSleep) {
+            await sleep(300);
+            displayMessage(`${monster.name}の特性`, `${monster.flags.reviveNextTurn} が発動！`);
+            await sleep(200);
+          }
+          if (monster.buffs.reviveBlock && !monster.buffs.reviveBlock.unDispellableByRadiantWave) {
+            delete monster.buffs.reviveBlock;
+          }
+          await reviveMonster(monster, 1, true, skipSleep, skipSleep);
+          if (!skipSleep) {
+            if (monster.abilities.reviveNextTurnAct) {
+              await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
+            } else {
+              applyDamage(monster, monster.defaultStatus.MP, -1, true); //actある場合はact内で、それ以外はここでMP全回復
+            }
+          }
+          delete monster.flags.reviveNextTurn;
         }
-        await reviveMonster(monster, 1, true);
-        if (monster.abilities.reviveNextTurnAct) {
-          await monster.abilities.reviveNextTurnAct(monster, monster.flags.reviveNextTurn);
-        } else {
-          applyDamage(monster, monster.defaultStatus.MP, -1, true); //actある場合はact内で、それ以外はここでMP全回復
-        }
-        delete monster.flags.reviveNextTurn;
       }
     }
   }
-
-  // ラウンド最初の昇天処理・ラザマ処理後に戦闘終了確認
-  if (isBattleOver()) {
-    removeAllStickOut();
-    return;
-  }
+  await processReviveNextTurn(false);
 
   // 非同期処理でバフを適用
   async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
@@ -4394,7 +4401,7 @@ async function executeDeathAbilities(monster) {
 }
 
 // モンスターを蘇生させる関数
-async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, skipSleep = false) {
+async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, skipSleep = false, skipMessage = false) {
   if (!skipSleep) {
     await sleep(400);
   }
@@ -4421,7 +4428,9 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
     // 蘇生封じなしの場合は蘇生
     delete monster.flags.isDead;
     console.log(`なんと${monster.name}が生き返った！`);
-    displayMessage(`なんと${monster.name}が生き返った！`);
+    if (!skipMessage) {
+      displayMessage(`なんと${monster.name}が生き返った！`);
+    }
 
     // リザオの場合の処理
     if (monster.buffs.revive) {
@@ -14501,7 +14510,13 @@ function isBattleOver() {
   } else if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn))) {
     // どちらかのパテで、全員が死亡かつ次ターン蘇生もない場合 戦闘終了フラグを立てる
     fieldState.isBattleOver = true;
-    col("全滅により戦闘終了フラグが立てられました");
+    if (parties[0].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn)) {
+      col("味方全滅により戦闘終了フラグが立てられました");
+      displayMessage("試合をあきらめた");
+    } else {
+      col("敵全滅により戦闘終了フラグが立てられました");
+      displayMessage("相手が試合をあきらめた");
+    }
     return true;
   } else {
     return false;
