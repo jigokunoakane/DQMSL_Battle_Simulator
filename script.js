@@ -1478,8 +1478,17 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
         }
       }
-      //耐性と確率処理で失敗したら次へ
-      if (Math.random() > probability * abnormalityResistance) {
+      // 種族数依存
+      let sameRaceCount = 1;
+      if (buffData.probabilityMultiplierBySameRace) {
+        if (isReflection) {
+          sameRaceCount = buffTarget ? countSameRaceMonsters(buffTarget) : 1;
+        } else {
+          sameRaceCount = skillUser ? countSameRaceMonsters(skillUser) : 1;
+        }
+      }
+      // 耐性と確率処理で失敗したら次へ
+      if (Math.random() > probability * abnormalityResistance * sameRaceCount) {
         continue;
       }
     } else {
@@ -11547,7 +11556,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
-    appliedEffect: { tempted: { probability: 0.78 } },
+    appliedEffect: { tempted: { probabilityMultiplierBySameRace: true, probability: 0.157 } }, //0.785
   },
   {
     name: "ビーストアイ",
@@ -12175,7 +12184,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: { asleep: { probability: 0.405 }, confused: { probability: 0.428 } },
+    appliedEffect: { asleep: { probabilityMultiplierBySameRace: true, probability: 0.081 }, confused: { probabilityMultiplierBySameRace: true, probability: 0.0856 } },
+    //0.405, 0.428
   },
   {
     name: "仁王溶かしの息",
