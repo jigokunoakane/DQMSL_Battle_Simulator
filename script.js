@@ -11501,7 +11501,8 @@ const skill = [
     name: "浄化の風",
     type: "breath",
     howToCalculate: "fix",
-    damage: 144,
+    damage: 29, //144
+    damageMultiplierBySameRace: true,
     element: "wind",
     targetType: "single",
     targetTeam: "enemy",
