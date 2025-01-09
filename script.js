@@ -1591,8 +1591,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       //石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
-        // 力ため系は削除 禁忌および天使のしるしはいてはとは異なりkeep
-        const keepKeys = ["tabooSeal", "angelMark", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
+        // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしはkeep/damageLimitはkeepOnDeath以外削除
+        const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
           //以下は残す
@@ -1622,10 +1622,6 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
         delete buffTarget.buffs.counterAttack;
         delete buffTarget.buffs.sealed;
-        // ゴルアスのみ50バリア削除
-        if (buffData.isGolden) {
-          delete buffTarget.buffs.protection;
-        }
         // 防御は解除済なのでみがわり・みがわられともに覆うであろうと解除
         deleteSubstitute(buffTarget);
         // 現状、dispellableByAbnormality指定された予測系も解除
@@ -6440,26 +6436,23 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "ゴーレム", //4 HP+200
+    name: "守護神ゴーレム", //4 HP+200
     id: "golem",
     rank: 10,
     race: "物質",
     weight: 28,
     status: { HP: 1130, MP: 256, atk: 458, def: 677, spd: 393, int: 268 },
-    initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "におうだち"],
-    anotherSkills: ["スキルターン"],
-    defaultGear: "familyNailSlime",
+    initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "ザオリク"],
+    anotherSkills: ["アンカースパーク", "メルキドの守護神"],
+    defaultAiType: "いのちだいじに",
     attribute: {
-      initialBuffs: {
-        lightBreak: { keepOnDeath: true, strength: 2 },
-        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
-      },
+      initialBuffs: { defUp: { strength: 2, keepOnDeath: true } },
     },
-    seed: { atk: 0, def: 25, spd: 95, int: 0 },
-    ls: { spd: 1.2 },
-    lsTarget: "スライム",
-    AINormalAttack: [2, 3],
-    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: -1, light: 0, dark: 1, poisoned: 1.5, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+    seed: { atk: 0, def: 65, spd: 55, int: 0 },
+    ls: { atk: 1.2, spd: 0.9 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 1.5, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルスパイダー",
@@ -8156,6 +8149,31 @@ function getMonsterAbilities(monsterId) {
         },
       },
     },
+    golem: {
+      supportAbilities: {
+        1: [
+          {
+            name: "物質衆のまもり",
+            act: async function (skillUser) {
+              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 4)) {
+                applyBuff(skillUser, { martialBarrier: { strength: 2 } });
+              } else {
+                applyBuff(skillUser, { martialBarrier: { strength: 1 } });
+              }
+            },
+          },
+        ],
+      },
+      afterActionAbilities: [
+        {
+          name: "超回復",
+          disableMessage: true,
+          act: async function (skillUser, executingSkill, executedSkills) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
+          },
+        },
+      ],
+    },
     skullspider: {
       initialAbilities: [
         {
@@ -8714,6 +8732,16 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+  },
+  {
+    name: "防御力依存攻撃",
+    type: "notskill",
+    howToCalculate: "def",
+    ratio: 0.45,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
   },
   {
     name: "ぼうぎょ",
@@ -11977,6 +12005,69 @@ const skill = [
     },
   },
   {
+    name: "マテリアルガード",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 34,
+    order: "preemptive",
+    preemptiveGroup: 3,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, skillTarget, true);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+        await sleep(100);
+        skillUser.flags.hasUsedMaterialGuard = true;
+        applyBuff(skillUser, { damageLimit: { strength: 200, duration: 3, removeAtTurnStart: true } });
+      }
+    },
+  },
+  {
+    name: "アースクラッシュ",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.84,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 38,
+    criticalHitProbability: 0,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    appliedEffect: { fear: { probability: 0.28 } },
+  },
+  {
+    name: "メルキドの守護神",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 114,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.race === "物質") {
+        applyBuff(skillTarget, { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true }, criticalGuard: { duration: 2, removeAtTurnStart: true } });
+      }
+    },
+  },
+  {
+    name: "アンカースパーク",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 440,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 58,
+    order: "anchor",
+    anchorBonus: 2,
+  },
+  {
     name: "ヴェノムパニック",
     type: "martial",
     howToCalculate: "fix",
@@ -13190,7 +13281,7 @@ const gear = [
     id: "familyNailCriticalGuard",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
-    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, criticalGuard: { duration: 3 } },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, criticalGuard: { unDispellable: true, duration: 3 } },
   },
   {
     name: "系統爪超魔王錬金",
@@ -14047,7 +14138,7 @@ async function executeRadiantWave(monster, skipMissDisplay = false) {
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
 async function executeWave(monster, isDivine = false, isDamageExisting = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
   const newBuffs = {};
   let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
@@ -14078,6 +14169,10 @@ async function executeWave(monster, isDivine = false, isDamageExisting = false) 
 function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false) {
   //石化へのみがわり失敗はprocessHit内の石化無効化で判定
   if (isAll) {
+    //自分が覆い隠す中の場合の仁王はreturn 下の条件は仁王途中のreturnを防ぐために自分自身が身代わり中の場合通してしまう
+    if (skillUser.flags.isSubstituting && skillUser.flags.isSubstituting.cover) {
+      return;
+    }
     //自分以外に身代わりisSubstitutingがあるときは仁王立ち失敗で毎回return (hasだと初回付与したらそれ以降引っかかり連続処理が止まるのでこう処理)
     for (const monster of parties[skillUser.teamID]) {
       if (monster.flags.isSubstituting && monster.monsterId !== skillUser.monsterId) {
@@ -14577,6 +14672,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "一族のけがれ攻撃";
   } else if (skillUser.flags.orugoDispelleUnbreakableAttack) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
+  } else if (skillUser.name === "守護神ゴーレム") {
+    NormalAttackName = "防御力依存攻撃";
   }
   return NormalAttackName;
 }
