@@ -1200,7 +1200,9 @@ async function startTurn() {
   }
   const abilityOrder = decideAbilityOrder();
   for (const monster of abilityOrder) {
-    await executeAbility(monster, "attackAbilities");
+    if (!monster.buffs.stoned) {
+      await executeAbility(monster, "attackAbilities");
+    }
   }
 
   // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
@@ -1326,11 +1328,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     const buffData = { ...newBuff[buffName] };
 
     // 1. バフ非上書き条件の処理
-    // 1-1. 石化には付与しない
-    if (buffTarget.buffs.stoned) {
+    // 1-1. 石化には重ねがけ以外付与しない
+    if (buffTarget.buffs.stoned && buffName !== "stoned") {
       continue;
     }
-    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡 死肉の怨嗟以外は付与しない
+    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡 死肉の怨嗟 憎悪の怨嗟以外は付与しない
     if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
@@ -1589,6 +1591,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           ) {
             delete buffTarget.buffs[existingBuffName];
           }
+          if (buffData.isGolden && (stackableBuffs.hasOwnProperty(existingBuffName) || familyBuffs.includes(existingBuffName))) {
+            delete buffTarget.buffs[existingBuffName];
+          }
         }
         // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealedは問答無用で削除
         if (buffTarget.buffs.revive && !buffTarget.buffs.revive.unDispellable) {
@@ -1599,6 +1604,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
         delete buffTarget.buffs.counterAttack;
         delete buffTarget.buffs.sealed;
+        // ゴルアスのみ50バリア削除
+        if (buffData.isGolden) {
+          delete buffTarget.buffs.protection;
+        }
         // 防御は解除済なのでみがわり・みがわられともに覆うであろうと解除
         deleteSubstitute(buffTarget);
         // 現状、dispellableByAbnormality指定された予測系も解除
@@ -3305,7 +3314,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let reflectionType = "yosoku";
 
   // 対象が石化かつダメージなしいてはでなければ無効化
-  if (skillTarget.buffs.stoned && !(executingSkill.howToCalculate === "none" && (executingSkill.appliedEffect === "divineWave" || executingSkill.appliedEffect === "disruptiveWave"))) {
+  if (
+    skillTarget.buffs.stoned &&
+    !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) &&
+    !(executingSkill.howToCalculate === "none" && (executingSkill.appliedEffect === "divineWave" || executingSkill.appliedEffect === "disruptiveWave"))
+  ) {
     applyDamage(skillTarget, 0);
     return;
   }
@@ -4526,7 +4539,6 @@ function findLowestHPRateTarget(candidates) {
 
 function hasAbnormalityOfAINormalAttack(monster) {
   const abnormalityKeys = ["confused", "paralyzed", "asleep"];
-  //Todo: 麻痺どうだっけ
   for (const key of abnormalityKeys) {
     if (monster.buffs[key]) {
       return true;
@@ -5561,7 +5573,7 @@ const monsters = [
         mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
       },
       1: {
-        dodgeBuff: { strength: 0.5, duration: 4 },
+        dodgeBuff: { strength: 0.5, duration: 3 },
         martialReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
         preemptiveAction: {},
       },
@@ -5824,7 +5836,7 @@ const monsters = [
       initialBuffs: {
         mindBarrier: { duration: 3 },
       },
-      evenTurnBuffs: {
+      2: {
         defUp: { strength: 1 },
         spellBarrier: { strength: 1 },
         breathBarrier: { strength: 1 },
@@ -6554,7 +6566,7 @@ const monsters = [
     race: "ゾンビ",
     weight: 28,
     status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
-    initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "ザオラル"],
+    initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "スパークふんしゃ"],
     defaultGear: "silverFeather",
     attribute: {
       permanentBuffs: {
@@ -6584,6 +6596,29 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2],
     resistance: { fire: 1, ice: 0, thunder: 1, wind: 1, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "邪教の使徒ゲマ", //4 新生S+50
+    id: "gema",
+    rank: 10,
+    race: "ゾンビ",
+    weight: 28,
+    status: { HP: 784, MP: 333, atk: 528, def: 411, spd: 443, int: 528 },
+    initialSkill: ["業火のロンド", "非道の儀式", "闇討ちの魔弾", "石化の呪い"],
+    anotherSkills: ["メラゾストーム", "死神の大鎌"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { duration: 3 },
+        spellReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
+      },
+      evenTurnBuffs: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1.15 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 1, light: 1.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "やきとり",
@@ -8327,6 +8362,41 @@ function getMonsterAbilities(monsterId) {
         if (zombifyActName === "死肉の怨嗟") {
           applyBuff(monster, { baiki: { strength: 2, keepOnDeath: true, zombieBuffable: true } });
         }
+      },
+    },
+    gema: {
+      initialAbilities: [
+        {
+          name: "憎悪の怨嗟",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.zombieProbability = 1;
+            skillUser.flags.zombifyActName = "憎悪の怨嗟";
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "部下呼び",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+      zombifyAct: async function (monster, zombifyActName) {
+        if (zombifyActName === "憎悪の怨嗟") {
+          applyBuff(monster, { paralyzedBreak: { strength: 2, keepOnDeath: true, zombieBuffable: true } });
+        }
+      },
+      followingAbilities: {
+        name: "教団の光",
+        availableIf: (skillUser, executingSkill) => executingSkill.type === "ritual" && hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 2),
+        followingSkillName: (executingSkill) => {
+          return "光のはどう"; //行動停止でも封じでも発動
+        },
       },
     },
   };
@@ -12347,6 +12417,101 @@ const skill = [
     },
   },
   {
+    name: "業火のロンド",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 208,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 60,
+    appliedEffect: { paralyzed: { probability: 0.6 } },
+  },
+  {
+    name: "非道の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 435,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 48,
+    RaceBane: ["???"],
+    RaceBaneValue: 5,
+    damageByLevel: true,
+    ignoreProtection: true,
+  },
+  {
+    name: "闇討ちの魔弾",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 53,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    appliedEffect: { manaReduction: { strength: 0.5, duration: 2 } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { dodgeBuff: { strength: 0.5 } });
+    },
+  },
+  {
+    name: "石化の呪い",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 54,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { stoned: { duration: 2, isGolden: true } },
+  },
+  {
+    name: "メラゾストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 220,
+    skillPlus: 1.09,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    appliedEffect: { spellBarrier: { strength: -1, probability: 0.25 } },
+  },
+  {
+    name: "死神の大鎌",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.3,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 50,
+    zakiProbability: 0.4413,
+    appliedEffect: { poisoned: { probability: 0.7 }, paralyzed: { probability: 0.4192 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
+        return 2;
+      } else if (skillTarget.buffs.maso) {
+        return 1.5;
+      }
+    },
+  },
+  {
     name: "カオスストーム",
     type: "spell",
     howToCalculate: "int",
@@ -14518,7 +14683,7 @@ function isBattleOver() {
       displayMessage("試合をあきらめた");
     } else {
       col("敵全滅により戦闘終了フラグが立てられました");
-      displayMessage("相手が試合をあきらめた");
+      displayMessage(`${parties[1][0].name}たちを やっつけた！`);
     }
     stopBGM();
     return true;
@@ -14606,6 +14771,7 @@ function isSkillUnavailableForAI(skillName) {
     "クロスマダンテ",
     "圧縮マダンテ",
     "呪いのベホマズン",
+    "死神の大鎌",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
