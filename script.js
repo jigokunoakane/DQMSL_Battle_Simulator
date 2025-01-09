@@ -2226,7 +2226,7 @@ async function processMonsterAction(skillUser) {
             skipSkill = true;
             break;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, target, resistance, true, true, false, null, 1, null);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, target, resistance, true, true, false, null, 1, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
           totalDamage += damage;
           if (damage >= target.currentStatus.HP) {
@@ -2250,7 +2250,7 @@ async function processMonsterAction(skillUser) {
           if (killableCount === 1) {
             continue;
           }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, 1, null);
+          const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, 1, null);
           const damage = damagePerHit * (skillInfo.hitNum || 1);
 
           // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
@@ -3451,7 +3451,19 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // ダメージ計算 反射などで変更されたuser targetおよび耐性を踏まえて計算
-  let { damage, isCriticalHit } = calculateDamage(skillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType, reflectionStrength, MPused);
+  let { damage, isCriticalHit } = calculateDamage(
+    skillUser,
+    assignedSkillUser,
+    executingSkill,
+    skillTarget,
+    resistance,
+    isProcessMonsterAction,
+    false,
+    isReflection,
+    reflectionType,
+    reflectionStrength,
+    MPused
+  );
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
   let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
@@ -3513,6 +3525,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
 function calculateDamage(
   skillUser,
+  assignedSkillUser,
   executingSkill,
   skillTarget,
   resistance,
@@ -3702,6 +3715,12 @@ function calculateDamage(
   //弱点1.8倍処理
   if (resistance === 1.5 && executingSkill.weakness18) {
     damage *= 1.2;
+  }
+
+  // 種族数依存処理 これは反射時も元のskillUserを参照
+  if (executingSkill.damageMultiplierBySameRace) {
+    const sameRaceCount = countSameRaceMonsters(assignedSkillUser);
+    damage *= sameRaceCount;
   }
 
   //耐性処理
@@ -8414,6 +8433,7 @@ const skill = [
     ratio: 1,
     MPdamageRatio: 1.5,
     damage: 142,
+    damageMultiplierBySameRace: true,
     minInt: 500,
     minIntDamage: 222,
     maxInt: 1000,
@@ -8662,7 +8682,8 @@ const skill = [
     name: "涼風一陣後半",
     type: "breath",
     howToCalculate: "fix",
-    damage: 420,
+    damage: 84, //420
+    damageMultiplierBySameRace: true,
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -11705,7 +11726,8 @@ const skill = [
     name: "アイアンスラッシュ",
     type: "slash",
     howToCalculate: "def",
-    ratio: 1.8,
+    ratio: 0.36, //1.8
+    damageMultiplierBySameRace: true,
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
@@ -12120,7 +12142,8 @@ const skill = [
     name: "ヒートヴェノム",
     type: "breath",
     howToCalculate: "fix",
-    damage: 200,
+    damage: 40, //200
+    damageMultiplierBySameRace: true,
     element: "fire",
     targetType: "random",
     targetTeam: "enemy",
@@ -14438,6 +14461,17 @@ function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
     }
   }
   return count >= requiredCount;
+}
+
+// モンスター数を返す
+function countSameRaceMonsters(monster) {
+  let count = 0;
+  for (const teamMonster of parties[monster.teamID]) {
+    if (teamMonster && teamMonster.race === monster.race) {
+      count++;
+    }
+  }
+  return count;
 }
 
 // 竜気 行動後に上げる
