@@ -2967,8 +2967,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     !(target.buffs.revive && !target.buffs.reviveBlock) &&
     !target.buffs.zombifyBlock &&
     (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ") &&
-    ((target.flags.zombieProbability && Math.random() < target.flags.zombieProbability) ||
-      (target.race === "ゾンビ" && target.name !== "ラザマナス" && fieldState.turnNum < 3 && parties[target.teamID].some((target) => target.name === "ラザマナス")))
+    (target.buffs.zombification || (target.flags.zombieProbability && Math.random() < target.flags.zombieProbability))
   ) {
     target.flags.willZombify = true;
   }
@@ -8228,6 +8227,16 @@ function getMonsterAbilities(monsterId) {
       supportAbilities: {
         1: [
           {
+            name: "一族のうらみ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
+                  applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
+                }
+              }
+            },
+          },
+          {
             name: "死者の解放",
             unavailableIf: (skillUser) => {
               parties[skillUser.teamID].some(
@@ -8270,6 +8279,18 @@ function getMonsterAbilities(monsterId) {
                   });
                 } else {
                   displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+        2: [
+          {
+            name: "一族のうらみ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
+                  applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
                 }
               }
             },
@@ -13908,7 +13929,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
     // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 封印 蘇生封じ 怨嗟鏡 怨嗟バイキ 超魔改良 ファラオ
-    const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable", "pharaohPower"];
+    const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable", "pharaohPower", "mindBarrier"];
     if (monster.flags.isZombie && !(monster.buffs[buffKey]?.zombieBuffable || availableBuffsForZombie.includes(buffKey))) {
       continue;
     }
