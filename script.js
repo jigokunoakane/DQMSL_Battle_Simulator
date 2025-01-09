@@ -2485,18 +2485,19 @@ async function processMonsterAction(skillUser) {
 
   // 6. スキル実行処理
   console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
+  const skillName = executingSkill.displayName || executingSkill.name;
   if (executingSkill.specialMessage) {
-    executingSkill.specialMessage(skillUser.name, executingSkill.name);
+    executingSkill.specialMessage(skillUser.name, skillName);
   } else if (executingSkill.type === "spell") {
-    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を となえた！`);
+    displayMessage(`${skillUser.name}は`, `${skillName}を となえた！`);
   } else if (executingSkill.type === "slash") {
-    displayMessage(`${skillUser.name}は`, `${executingSkill.name}を はなった！`);
+    displayMessage(`${skillUser.name}は`, `${skillName}を はなった！`);
   } else if (executingSkill.name === "ぼうぎょ") {
     displayMessage(`${skillUser.name}は身を守っている！`);
   } else if (executingSkill.type === "notskill") {
     displayMessage(`${skillUser.name}の攻撃！`);
   } else {
-    displayMessage(`${skillUser.name}の`, `${executingSkill.name}！`);
+    displayMessage(`${skillUser.name}の`, `${skillName}！`);
   }
   if (executingSkill.name === "ぼうぎょ") {
     await sleep(40); // スキル実行前に待機時間を設ける
@@ -3045,6 +3046,11 @@ async function executeSkill(
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
     if (isFollowingSkill && currentSkill.targetType === "single" && executedSingleSkillTarget.length > 0 && executedSingleSkillTarget[0].flags.isDead) {
       break;
+    }
+
+    // skill変更条件を確認
+    if (currentSkill.reviseIf && currentSkill.reviseIf(skillUser)) {
+      currentSkill = findSkillByName(currentSkill.reviseIf(skillUser));
     }
 
     // 実行済みスキルを配列末尾に追加
@@ -8435,6 +8441,7 @@ function getMonsterAbilities(monsterId) {
 const skill = [
   {
     name: "sample",
+    displayName: "hoge", //任意 ある場合はこちらがdisplayされる
     id: "number?",
     type: "", //spell slash martial breath ritual notskill
     howToCalculate: "", //atk int fix def spd MP
@@ -8503,6 +8510,11 @@ const skill = [
       return 2; //初期値は1
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    reviseIf: function (skillUser) {
+      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
+        return "ツイスター下位";
+      }
+    },
   },
   {
     name: "通常攻撃",
@@ -8717,6 +8729,27 @@ const skill = [
     MPcost: 65,
     substituteBreaker: 3,
     appliedEffect: "divineWave",
+    reviseIf: function (skillUser) {
+      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
+        return "神楽の術下位";
+      }
+    },
+  },
+  {
+    name: "神楽の術下位",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 500,
+    minIntDamage: 222,
+    maxInt: 1000,
+    maxIntDamage: 310,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    substituteBreaker: 3,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "昇天斬り",
@@ -11496,6 +11529,23 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 72,
     appliedEffect: "divineWave",
+    reviseIf: function (skillUser) {
+      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
+        return "ツイスター下位";
+      }
+    },
+  },
+  {
+    name: "ツイスター下位",
+    displayName: "ツイスター",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 250,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 72,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "浄化の風",
@@ -11831,7 +11881,28 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 45,
-    appliedEffect: { windResistance: { strength: -1, probability: 0.57 }, reviveBlock: { duration: 1 } }, //todo: slime5体限定
+    appliedEffect: { windResistance: { strength: -1, probability: 0.57 }, reviveBlock: { duration: 1 } },
+    reviseIf: function (skillUser) {
+      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
+        return "キングストーム下位";
+      }
+    },
+  },
+  {
+    name: "キングストーム下位",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 45,
+    appliedEffect: { windResistance: { strength: -1, probability: 0.57 } },
   },
   {
     name: "メタ・マダンテ",
@@ -12021,6 +12092,19 @@ const skill = [
     MPcost: 86,
     order: "preemptive",
     preemptiveGroup: 7,
+    damageByLevel: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "ネクロゴンドの衝撃非先制",
+    displlayName: "ネクロゴンドの衝撃",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 160,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 86,
     damageByLevel: true,
     appliedEffect: "divineWave",
   },
@@ -14800,9 +14884,11 @@ function isSkillUnavailableForAI(skillName) {
     "エンドブレス",
     "浄化の風",
     "神楽の術",
+    "神楽の術下位",
     "閃く短刀",
     "けがれた狂風",
     "キングストーム",
+    "キングストーム下位",
     "ミナデイン",
     "ダークミナデイン",
     "グランドショット",
