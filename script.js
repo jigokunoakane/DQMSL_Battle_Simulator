@@ -6,6 +6,8 @@ const allParties = Array(10)
 const parties = [];
 
 let selectingPartyNum = 0;
+let playerASelectedPartyNumber = 0;
+let playerBSelectedPartyNumber = 5;
 let selectingParty = allParties[0];
 let currentPlayer = "A";
 //モンスター装備変更用
@@ -70,13 +72,15 @@ function decideParty() {
     // playerBの選択に移行
     currentPlayer = "B";
     document.getElementById("playerAorB").textContent = "player B";
+    // 保存
+    playerASelectedPartyNumber = selectingPartyNum;
     // selectのoptionを変更
     for (let i = 6; i <= 10; i++) {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
-    document.getElementById("switchParty").value = 5;
+    document.getElementById("switchParty").value = playerBSelectedPartyNumber; //保存していた番号に切替え
     switchParty();
   } else {
     // 対戦用partiesにcopy 空monsterは削除
@@ -86,13 +90,15 @@ function decideParty() {
     // playerAの選択に戻す
     currentPlayer = "A";
     document.getElementById("playerAorB").textContent = "player A";
+    // 保存
+    playerBSelectedPartyNumber = selectingPartyNum;
     // selectのoptionを変更
     for (let i = 1; i <= 5; i++) {
       switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
     }
     switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
     // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
-    document.getElementById("switchParty").value = 0;
+    document.getElementById("switchParty").value = playerASelectedPartyNumber; //保存していた番号に切替え
     switchParty();
 
     //displayで全体切り替え、battle画面へ
