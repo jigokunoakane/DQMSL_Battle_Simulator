@@ -410,12 +410,13 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
   const skillUser = parties[currentTeamIndex][currentMonsterIndex];
   for (let i = 0; i < 4; i++) {
     const selectSkillBtn = document.getElementById(`selectSkillBtn${i}`);
-    selectSkillBtn.textContent = skillUser.skill[i];
-    // スキル情報を取得
-    const skillInfo = findSkillByName(skillUser.skill[i]);
+    const skillName = skillUser.skill[i];
+    const skillInfo = findSkillByName(skillName);
     const MPcost = calculateMPcost(skillUser, skillInfo);
+    // 表示更新
+    selectSkillBtn.textContent = skillInfo.displayName || skillName;
     if (
-      skillUser.flags.unavailableSkills.includes(skillUser.skill[i]) ||
+      skillUser.flags.unavailableSkills.includes(skillName) ||
       !hasEnoughMpForSkill(skillUser, skillInfo) ||
       (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser)) ||
       skillUser.buffs[skillInfo.type + "Seal"]
@@ -443,12 +444,14 @@ function selectCommand(selectedSkillNum) {
   //commandInputに格納
   skillUser.commandInput = selectedSkillName;
   const selectedSkill = findSkillByName(selectedSkillName);
+  //表示用
+  const displaySkillName = selectedSkill.displayName || selectedSkillName;
   const selectedSkillTargetType = selectedSkill.targetType;
   const selectedSkillTargetTeam = selectedSkill.targetTeam;
   const MPcost = calculateMPcost(skillUser, selectedSkill);
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (selectedSkillTargetType === "random" || selectedSkillTargetType === "single" || selectedSkillTargetType === "dead") {
-    displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
+    displayMessage(`${displaySkillName}＋3【消費MP：${MPcost}】`);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
     if (selectedSkillTargetTeam === "ally") {
@@ -466,11 +469,11 @@ function selectCommand(selectedSkillNum) {
     }
     document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
   } else if (selectedSkillTargetType === "all" || selectedSkillTargetType === "field") {
-    displayMessage(`${selectedSkillName}＋3【消費MP：${MPcost}】`);
+    displayMessage(`${displaySkillName}＋3【消費MP：${MPcost}】`);
     //targetがallのとき、all(yes,no)画面を起動
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //allならmonster名は隠すのみ
-    document.getElementById("selectSkillTargetAllText").textContent = selectedSkillName + "+3を使用しますか？";
+    document.getElementById("selectSkillTargetAllText").textContent = displaySkillName + "+3を使用しますか？";
     document.getElementById("selectSkillTargetAll").style.visibility = "visible";
   } else {
     //targetがmeのとき、そのまま終了
@@ -8190,6 +8193,20 @@ function getMonsterAbilities(monsterId) {
             }
           },
         },
+        {
+          name: "ネクロゴンド変更",
+          disableMessage: true,
+          act: async function (skillUser) {
+            if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5)) {
+              skillUser.skill = skillUser.skill.map((name) => {
+                if (name === "ネクロゴンドの衝撃") {
+                  return "ネクロゴンドの衝撃下位";
+                }
+                return name;
+              });
+            }
+          },
+        },
       ],
     },
     razama: {
@@ -8737,6 +8754,7 @@ const skill = [
   },
   {
     name: "神楽の術下位",
+    displayName: "神楽の術",
     type: "spell",
     howToCalculate: "int",
     minInt: 500,
@@ -11890,6 +11908,7 @@ const skill = [
   },
   {
     name: "キングストーム下位",
+    displayName: "キングストーム",
     type: "spell",
     howToCalculate: "int",
     minInt: 100,
@@ -12096,8 +12115,8 @@ const skill = [
     appliedEffect: "divineWave",
   },
   {
-    name: "ネクロゴンドの衝撃非先制",
-    displlayName: "ネクロゴンドの衝撃",
+    name: "ネクロゴンドの衝撃下位",
+    displayName: "ネクロゴンドの衝撃",
     type: "martial",
     howToCalculate: "fix",
     damage: 160,
