@@ -1334,7 +1334,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "matterBuffAtk", "matterBuffSpd"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1593,6 +1593,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.defUp;
         delete buffTarget.buffs.heavenlyBreath;
         delete buffTarget.buffs.goddessDefUp;
+        delete buffTarget.buffs.castleDefUp;
       }
       //みがわり解除 みがわられは解除しない
       if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
@@ -2000,6 +2001,10 @@ function updateCurrentStatus(monster) {
   // ゴッデス
   if (monster.buffs.goddessDefUp) {
     defMultiplier += monster.buffs.goddessDefUp.strength;
+  }
+  // 城
+  if (monster.buffs.castleDefUp) {
+    defMultiplier += monster.buffs.castleDefUp.strength;
   }
   // 系統爪防御力20%錬金
   if (monster.gear?.name === "系統爪ザキ&防御力20%") {
@@ -5236,6 +5241,10 @@ document.getElementById("surapa").addEventListener("click", function () {
   selectAllPartyMembers(["goddess", "surahero", "suragirl", "surabura", "haguki"]);
 });
 
+document.getElementById("materialpa").addEventListener("click", function () {
+  selectAllPartyMembers(["matter", "him", "weapon", "castle", "golem"]);
+});
+
 document.getElementById("zombiepa").addEventListener("click", function () {
   selectAllPartyMembers(["skullspider", "barazon", "razama", "maen", "desuso"]);
 });
@@ -6544,6 +6553,34 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2],
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 1, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ヘルクラウド", //4
+    id: "castle",
+    rank: 10,
+    race: "物質",
+    weight: 28,
+    status: { HP: 864, MP: 340, atk: 216, def: 620, spd: 462, int: 483 },
+    initialSkill: ["ろうじょうのかまえ", "報復の大嵐", "スパークプレス", "苛烈な暴風"],
+    defaultGear: "waveNail",
+    attribute: {
+      initialBuffs: {
+        windBreak: { keepOnDeath: true, strength: 1 },
+        dodgeBuff: { strength: 1 },
+        mindBarrier: { keepOnDeath: true },
+        spdUp: { strength: 2 },
+      },
+      2: {
+        intUp: { strength: 2 },
+      },
+      3: {
+        manaBoost: { strength: 2 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1.2 },
+    lsTarget: "物質",
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
     name: "守護神ゴーレム", //4 HP+200
@@ -8393,6 +8430,25 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    castle: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "物質衆のよろい",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 3),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { castleDefUp: { strength: 0.3, divineDispellable: true, duration: 3 } });
+                  await sleep(100);
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
+
     golem: {
       initialAbilities: [
         {
@@ -12459,6 +12515,61 @@ const skill = [
     },
   },
   {
+    name: "ろうじょうのかまえ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 50,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    isOneTimeUse: true,
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.race === "物質") {
+        applyBuff(skillTarget, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
+      } else {
+        displayMiss(skillTarget);
+      }
+      applyBuff(skillUser, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
+    },
+  },
+  {
+    name: "報復の大嵐",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 280,
+    skillPlus: 1,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 114,
+    ignoreReflection: true,
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (!skillUser.buffs.dodgeBuff || skillUser.buffs.dodgeBuff.strength !== 1) {
+        return 3;
+      }
+    },
+  },
+  {
+    name: "スパークプレス",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 2.15,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 38,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    ignoreReflection: true,
+    criticalHitProbability: 0,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "マテリアルガード",
     type: "martial",
     howToCalculate: "none",
@@ -14950,6 +15061,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       message: "ドルマ系のダメージが あがった！",
     },
     goddessDefUp: {
+      start: `${buffTarget.name}の`,
+      message: "防御力が あがった！",
+    },
+    castleDefUp: {
       start: `${buffTarget.name}の`,
       message: "防御力が あがった！",
     },
