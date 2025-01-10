@@ -2661,9 +2661,13 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     executedSkills.some((skill) => skill && skill.element !== "none" && skill.element !== "notskill")
   ) {
     await sleep(400);
-    const damage = Math.floor(skillUser.defaultStatus.HP * 0.7);
-    console.log(`${skillUser.name}は属性断罪の刻印で${damage}のダメージを受けた！`);
-    applyDamage(skillUser, damage);
+    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * 0.7);
+    //damage上限
+    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
+      dotDamageValue = skillUser.buffs.damageLimit.strength;
+    }
+    console.log(`${skillUser.name}は属性断罪の刻印で${dotDamageValue}のダメージを受けた！`);
+    applyDamage(skillUser, dotDamageValue);
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
@@ -2677,20 +2681,28 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       poisonMessage = "どくにおかされている！";
     }
     const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-    const damage = Math.floor(skillUser.defaultStatus.HP * baseRatio * poisonDepth);
-    console.log(`${skillUser.name}は毒で${damage}のダメージを受けた！`);
+    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * baseRatio * poisonDepth);
+    //damage上限
+    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
+      dotDamageValue = skillUser.buffs.damageLimit.strength;
+    }
+    console.log(`${skillUser.name}は毒で${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, `${poisonMessage}`);
     await sleep(200);
-    applyDamage(skillUser, damage);
+    applyDamage(skillUser, dotDamageValue);
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
     await sleep(400);
-    const damage = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
-    console.log(`${skillUser.name}は継続ダメージで${damage}のダメージを受けた！`);
+    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
+    //damage上限
+    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
+      dotDamageValue = skillUser.buffs.damageLimit.strength;
+    }
+    console.log(`${skillUser.name}は継続ダメージで${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
     await sleep(200);
-    applyDamage(skillUser, damage);
+    applyDamage(skillUser, dotDamageValue);
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
