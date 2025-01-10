@@ -1418,6 +1418,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffName === "poisoned" && currentBuff && !currentBuff.isLight && buffData.isLight) {
       continue;
     }
+    // ラススタ 使用済みラススタ 砕けラススタ(toukon) 不屈 使用済み不屈 砕け不屈(toukon) とうこん 使用済みとうこん
+    // 既存のバフがある場合: とうこんは何も上書きしない(brokenは上書きするかもしれないが無視) 不屈はとうこん(broken含)のみ上書き 不屈・ラススタの新品/使用済みは上書きしない
+    if (buffName === "isUnbreakable" && currentBuff && (buffData.isToukon || (buffData.left === 1 && !currentBuff.isToukon))) {
+      continue;
+    }
 
     // buffData 内に probability が存在するかチェックして用意
     const probability = buffData.probability ?? 10;
@@ -4029,6 +4034,10 @@ function calculateDamage(
   if (skillUser.buffs.tabooSeal) {
     damageModifier -= 0.5;
   }
+  // 一族のつるぎ
+  if (skillUser.buffs.weaponBuff) {
+    damageModifier += skillUser.buffs.weaponBuff.strength;
+  }
   // リズ
   if (skillUser.buffs.rizuIceBuff && executingSkill.element === "ice") {
     damageModifier += 0.4;
@@ -4115,6 +4124,10 @@ function calculateDamage(
   }
   if (skillTarget.buffs.murakumo && executingSkill.type === "breath") {
     damageModifier += 0.5;
+  }
+  // 一族のつるぎ
+  if (skillTarget.buffs.weaponBuff) {
+    damageModifier += skillTarget.buffs.weaponBuff.strength;
   }
   // バラゾン
   if (skillTarget.name === "怨恨の骸バラモスゾンビ") {
@@ -6448,6 +6461,25 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ファイナルウェポン", //44
+    id: "weapon",
+    rank: 10,
+    race: "物質",
+    weight: 30,
+    status: { HP: 797, MP: 308, atk: 691, def: 431, spd: 492, int: 309 },
+    initialSkill: ["羅刹斬", "デッドリースパーク", "破滅プロトコル", "スパークふんしゃ"],
+    anotherSkills: ["一刀両断"],
+    defaultGear: "kudaki",
+    attribute: {
+      isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.25, spd: 1.15 },
+    lsTarget: "物質",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "守護神ゴーレム", //4 HP+200
     id: "golem",
     rank: 10,
@@ -8161,6 +8193,34 @@ function getMonsterAbilities(monsterId) {
         },
       },
     },
+    weapon: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "ブーストアップ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { spdUp: { strength: 1 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+          {
+            name: "一族のつるぎ",
+            act: async function (skillUser) {
+              const buffStrength = fieldState.turnNum > 2 ? 0.4 : 0.2;
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { weaponBuff: { strength: buffStrength, unDispellable: true, removeAtTurnStart: true, duration: 1 } });
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
     golem: {
       supportAbilities: {
         1: [
@@ -8650,8 +8710,8 @@ const skill = [
         //防壁などによる失敗はないので、通常攻撃成功時はactも100%実行
         displayMessage("そうびの特性により", "くじけぬ心が ゆらいだ！");
         skillTarget.buffs.isUnbreakable.left = 1;
-        skillTarget.buffs.isUnbreakable.isToukon = true;
-        skillTarget.buffs.isUnbreakable.isBroken = true;
+        skillTarget.buffs.isUnbreakable.isToukon = true; //処理用
+        skillTarget.buffs.isUnbreakable.isBroken = true; //アイコン変更用
         // await updateMonsterBuffsDisplay(skillTarget);
       }
     },
@@ -8753,6 +8813,17 @@ const skill = [
     element: "notskill",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
+    name: "アサルトシステム",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 0.25,
+    element: "notskill",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
     MPcost: 0,
   },
   {
@@ -12017,6 +12088,47 @@ const skill = [
     },
   },
   {
+    name: "羅刹斬",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "デッドリースパーク",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 312,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 75,
+    ignoreProtection: true,
+  },
+  {
+    name: "破滅プロトコル",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 54,
+    isOneTimeUse: true,
+    order: "preemptive",
+    preemptiveGroup: 1,
+    act: function (skillUser, skillTarget) {
+      // 自分にも付与
+      if (skillTarget.race === "物質") {
+        applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" }, countDown: { count: 2, unDispellableByRadiantWave: true } });
+      }
+    },
+  },
+  {
     name: "マテリアルガード",
     type: "martial",
     howToCalculate: "none",
@@ -14195,6 +14307,7 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
     if (skillTarget.monsterId == skillUser.monsterId) {
       return;
     }
+    displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
   }
   if (skillTarget.flags.isZombie || skillTarget.flags.thisTurn.substituteSeal) {
     return;
@@ -14397,6 +14510,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     healBlock: {
       start: `${buffTarget.name}は`,
       message: "HPとMPが回復しなくなった！",
+    },
+    countDown: {
+      start: "死のカウントダウンが",
+      message: "はじまった！",
     },
     demonKingBarrier: {
       start: `${buffTarget.name}は`,
@@ -14686,6 +14803,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
   } else if (skillUser.name === "守護神ゴーレム") {
     NormalAttackName = "防御力依存攻撃";
+  } else if (skillUser.name === "ファイナルウェポン") {
+    NormalAttackName = "アサルトシステム";
   }
   return NormalAttackName;
 }
