@@ -3859,7 +3859,7 @@ function calculateDamage(
     breath: "breathBarrier",
   };
   const barrierType = barrierTypes[executingSkill.type];
-  if (skillTarget.buffs[barrierType] && !(executingSkill.criticalHitProbability && isCriticalHit)) {
+  if (skillTarget.buffs[barrierType] && !executingSkill.ignoreBarrier && !(executingSkill.criticalHitProbability && isCriticalHit)) {
     // 確定会心系で会心が出た場合は防御バフ無視
     // strengthの値に応じた倍率を定義
     const strengthMultipliers = {
@@ -8846,6 +8846,7 @@ const skill = [
     ignoreBaiki: true,
     ignoreManaBoost: true,
     ignorePowerCharge: true,
+    ignoreBarrier: true,
     damageByHpPercent: true,
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}は闇に身をささげた！`);
@@ -12414,6 +12415,7 @@ const skill = [
     ignoreReflection: true,
     ignoreTypeEvasion: true,
     ignorePowerCharge: true,
+    ignoreBarrier: true,
   },
   {
     name: "羅刹斬",
