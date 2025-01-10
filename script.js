@@ -3583,7 +3583,7 @@ function calculateDamage(
       if (executingSkill.damageByLevel) {
         randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
       } else {
-        randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+        randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
       }
     }
   } else if (executingSkill.howToCalculate === "MP") {
@@ -3619,7 +3619,7 @@ function calculateDamage(
     if (isCriticalHit) {
       // 会心の一撃成功時 (呪文暴走は別処理)
       baseDamage = status;
-      randomMultiplier = 0.95 + 0.01 * Math.floor(Math.random() * 11);
+      randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
       if (skillUser.gear?.name === "魔神のかなづち") {
         baseDamage *= 2;
       }
@@ -3696,7 +3696,7 @@ function calculateDamage(
         ? 1.1
         : 1;
     baseDamage *= executingSkill.skillPlus * intBonus;
-    randomMultiplier = Math.floor(Math.random() * 11) * 0.005 + 0.975;
+    randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
     //呪文会心
     const noSpellSurgeList = [
       "カオスストーム",
@@ -4806,6 +4806,11 @@ function addSkillOptions() {
   const hosigoronTargets = ["DARK", "まものテリー&ミレーユ", "スライダーガール", "スライダーヒーロー", "極彩鳥にじくじゃく", "スライダーキッズ", "マジェス・ドレアム", "支配王レゾム・レザーム"];
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
+  }
+  const daikoraSkills = ["息よそく", "いやしの光", "一刀両断"];
+  const daikoraTargets = ["竜の騎士ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
+  if (daikoraTargets.includes(monster.name)) {
+    targetCollabSkills = daikoraSkills;
   }
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
@@ -6471,13 +6476,40 @@ const monsters = [
     anotherSkills: ["一刀両断"],
     defaultGear: "kudaki",
     attribute: {
-      isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
     ls: { atk: 1.25, spd: 1.15 },
     lsTarget: "物質",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "魂の継承者ヒム", //4
+    id: "him",
+    rank: 10,
+    race: "物質",
+    weight: 25,
+    status: { HP: 650, MP: 247, atk: 601, def: 573, spd: 504, int: 234 },
+    initialSkill: ["真・闘気拳", "真・グランドクルス", "スパークふんしゃ", "息よそく"],
+    anotherSkills: ["ぶちのめす"],
+    defaultGear: "hunkiNail",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { duration: 3 },
+      },
+      2: {
+        preemptiveAction: {}, //昇格の証
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 1, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "守護神ゴーレム", //4 HP+200
@@ -12129,6 +12161,64 @@ const skill = [
     },
   },
   {
+    name: "真・闘気拳",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 2.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 52,
+    ignoreSubstitute: true,
+    followingSkill: "真・闘気拳後半",
+  },
+  {
+    name: "真・闘気拳後半",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 195,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreSubstitute: true,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "真・グランドクルス",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 460,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 90,
+    isOneTimeUse: true,
+    appliedEffect: { fear: { probability: 0.4233 } },
+    afterActionAct: async function (skillUser) {
+      await sleep(200);
+      const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
+      applyDamage(skillUser, 480 * randomMultiplier, 1);
+      await checkRecentlyKilledFlagForPoison(skillUser);
+      // 全滅させた後にも自傷と蘇生を実行
+    },
+  },
+  {
+    name: "ぶちのめす",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 0.92,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 55,
+    appliedEffect: { defUp: { strength: -1, probability: 0.3 } },
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
     name: "マテリアルガード",
     type: "martial",
     howToCalculate: "none",
@@ -12161,7 +12251,7 @@ const skill = [
     criticalHitProbability: 0,
     ignoreEvasion: true,
     ignoreDazzle: true,
-    appliedEffect: { fear: { probability: 0.28 } },
+    appliedEffect: { fear: { probability: 0.32 } },
   },
   {
     name: "メルキドの守護神",
@@ -12978,6 +13068,30 @@ const skill = [
       healAmount *= 1.15;
       applyHeal(skillTarget, healAmount);
     },
+  },
+  {
+    name: "いやしの光",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 64,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      const int = skillUser.currentStatus.int;
+      let healAmount = 95;
+      if (int < 200) {
+        healAmount = 95;
+      } else if (int > 500) {
+        healAmount = 230;
+      } else {
+        healAmount = 0.45 * (int - 200) + 95;
+      }
+      healAmount *= 1.15;
+      applyHeal(skillTarget, healAmount);
+    },
+    followingSkill: "光のはどう",
   },
   {
     name: "天の裁き",
