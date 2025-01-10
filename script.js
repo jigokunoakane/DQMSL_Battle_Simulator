@@ -1162,6 +1162,11 @@ async function startTurn() {
       await executeAbility(monster, "supportAbilities");
       await executeCountDown(monster);
       await executeContinuousHealing(monster);
+      // 毎カウントダウン後に戦闘終了確認
+      if (isBattleOver()) {
+        removeAllStickOut();
+        return;
+      }
     }
   }
 
@@ -1329,7 +1334,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "matterBuffAtk", "matterBuffSpd"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1973,6 +1978,10 @@ function updateCurrentStatus(monster) {
   if (monster.buffs.shamuAtk) {
     atkMultiplier += monster.buffs.shamuAtk.strength;
   }
+  // マター
+  if (monster.buffs.matterBuffAtk) {
+    atkMultiplier += monster.buffs.matterBuffAtk.strength;
+  }
   monster.currentStatus.atk *= atkMultiplier;
 
   // 防御
@@ -2013,6 +2022,10 @@ function updateCurrentStatus(monster) {
   // シャムダ
   if (monster.buffs.shamuSpd) {
     spdMultiplier += monster.buffs.shamuSpd.strength;
+  }
+  // マター
+  if (monster.buffs.matterBuffSpd) {
+    spdMultiplier += monster.buffs.matterBuffSpd.strength;
   }
   monster.currentStatus.spd *= spdMultiplier;
 
@@ -6466,6 +6479,27 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ダークマター", //44
+    id: "matter",
+    rank: 10,
+    race: "物質",
+    weight: 30,
+    status: { HP: 913, MP: 307, atk: 394, def: 516, spd: 478, int: 406 },
+    initialSkill: ["オーバーホール", "グレネードボム", "防衛指令", "リーサルウェポン"],
+    anotherSkills: ["アイアンクロー"],
+    defaultGear: "familyNail",
+    attribute: {
+      initialBuffs: {
+        ioBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { HP: 1.6, spd: 1.15 },
+    lsTarget: "物質",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 0.5, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 1, paralyzed: 1, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ファイナルウェポン", //44
     id: "weapon",
     rank: 10,
@@ -8221,9 +8255,115 @@ function getMonsterAbilities(monsterId) {
         name: "王のつとめ",
         availableIf: (skillUser, executingSkill) => executingSkill.type === "spell" && hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
         followingSkillName: (executingSkill) => {
-          return "におうだち";
+          return "特性発動用におうだち";
         },
       },
+    },
+    matter: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "一族のまもり",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true } });
+                  await sleep(100);
+                  applyBuff(monster, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+                  await sleep(100);
+                }
+              }
+            },
+          },
+        ],
+        1: [
+          {
+            name: "起爆装置",
+            unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "起爆装置爆発"),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { deathAbility: { keepOnDeath: true } });
+                  monster.abilities.additionalDeathAbilities.push({
+                    name: "起爆装置爆発",
+                    message: function (skillUser) {
+                      displayMessage(`${skillUser.name}は`, "爆発した！");
+                    },
+                    act: async function (skillUser) {
+                      executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
+                    },
+                  });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+          {
+            name: "いきなり斬撃よそく",
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の`, "斬撃よそく！");
+            },
+            act: async function (skillUser) {
+              applyBuff(skillUser, { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } });
+            },
+          },
+        ],
+        3: [
+          {
+            name: "せん滅指令",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { powerCharge: { strength: 2 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+          {
+            name: "ハイパーチャージ",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+            },
+          },
+        ],
+        6: [
+          {
+            name: "せん滅指令",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { powerCharge: { strength: 2 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+        9: [
+          {
+            name: "せん滅指令",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race === "物質") {
+                  applyBuff(monster, { powerCharge: { strength: 2 } });
+                  await sleep(150);
+                }
+              }
+            },
+          },
+        ],
+      },
+      afterActionAbilities: [
+        {
+          name: "超回復",
+          disableMessage: true,
+          act: async function (skillUser, executingSkill, executedSkills) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
+          },
+        },
+      ],
     },
     weapon: {
       supportAbilities: {
@@ -8254,20 +8394,18 @@ function getMonsterAbilities(monsterId) {
       },
     },
     golem: {
-      supportAbilities: {
-        1: [
-          {
-            name: "物質衆のまもり",
-            act: async function (skillUser) {
-              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 4)) {
-                applyBuff(skillUser, { martialBarrier: { strength: 2 } });
-              } else {
-                applyBuff(skillUser, { martialBarrier: { strength: 1 } });
-              }
-            },
+      initialAbilities: [
+        {
+          name: "物質衆のまもり",
+          act: async function (skillUser) {
+            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 4)) {
+              applyBuff(skillUser, { martialBarrier: { strength: 2 } });
+            } else {
+              applyBuff(skillUser, { martialBarrier: { strength: 1 } });
+            }
           },
-        ],
-      },
+        },
+      ],
       afterActionAbilities: [
         {
           name: "超回復",
@@ -9201,6 +9339,18 @@ const skill = [
         await sleep(100);
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
+    },
+  },
+  {
+    name: "特性発動用におうだち",
+    type: "ritual", //封じ無効
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 0,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, skillTarget, true);
     },
   },
   {
@@ -10847,20 +10997,6 @@ const skill = [
     appliedEffect: { statusLock: {} },
   },
   {
-    name: "物質の爆発",
-    type: "martial",
-    howToCalculate: "fix",
-    element: "none",
-    targetType: "all",
-    targetTeam: "enemy",
-    skipDeathCheck: true,
-    skipAbnormalityCheck: true,
-    damage: 100,
-    trigger: "death",
-    ignorePowerCharge: true,
-    MPcost: 0,
-  },
-  {
     name: "いてつくはどう",
     type: "martial",
     howToCalculate: "none",
@@ -12118,6 +12254,110 @@ const skill = [
         return 2.5;
       }
     },
+  },
+  {
+    name: "オーバーホール",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 80,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock && monster.race === "物質") {
+          await reviveMonster(monster, 0.6, false, true); // 間隔skip
+        } else {
+          displayMiss(monster);
+        }
+      }
+      await sleep(740);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.race === "物質") {
+          applyBuff(monster, { matterBuffAtk: { strength: 0.3, divineDispellable: true, duration: 3 }, matterBuffSpd: { strength: 0.3, divineDispellable: true, duration: 3 } });
+        }
+      }
+    },
+  },
+  {
+    name: "グレネードボム",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 534,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 2,
+    MPcost: 54,
+    ignoreProtection: true,
+    appliedEffect: { fear: { probability: 0.3 } },
+  },
+  {
+    name: "防衛指令",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 32,
+    appliedEffect: { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
+    act: async function (skillUser, skillTarget) {
+      skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
+        act: async function (skillUser) {
+          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, true, null);
+        }, // 体技封じ無効 状態異常でも実行するかは不明 todo:物質限定化
+      });
+    },
+  },
+  {
+    name: "リーサルウェポン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 1,
+    minIntDamage: 415,
+    maxInt: 1,
+    maxIntDamage: 415,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 150,
+    order: "anchor",
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+        return 1.5; //todo: 反射時に1.5にならない
+      }
+    },
+  },
+  {
+    name: "アイアンクロー",
+    type: "slash",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 33,
+    ignoreGuard: true,
+    appliedEffect: { fear: { zombieBuffable: true } },
+  },
+  {
+    name: "起爆装置",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 100,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    skipDeathCheck: true,
+    skipAbnormalityCheck: true,
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    ignorePowerCharge: true,
   },
   {
     name: "羅刹斬",
