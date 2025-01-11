@@ -2574,13 +2574,15 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
     const noAIskills = ["黄泉の封印", "神獣の封印", "供物をささげる", "超魔改良"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
-      await sleep(300);
       let attackTimes =
         skillUser.AINormalAttack.length === 1
           ? skillUser.AINormalAttack[0] - 1
           : Math.floor(Math.random() * (skillUser.AINormalAttack[1] - skillUser.AINormalAttack[0] + 1)) + skillUser.AINormalAttack[0] - 1;
       if (skillUser.buffs.aiExtraAttacks) {
         attackTimes += skillUser.buffs.aiExtraAttacks.strength;
+      }
+      if (attackTimes > 0) {
+        await sleep(300);
       }
       for (let i = 0; i < attackTimes; i++) {
         await sleep(300); // 追撃ごとに待機時間
@@ -2874,16 +2876,13 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
   } else {
     // ダメージ処理
     if (isMPdamage) {
-      // 亡者はミス表示して終了
-      if (target.flags.isZombie) {
-        displayMiss(target);
-        return;
-      }
+      // 亡者にも実行
       // MPダメージ 現状値が最大ダメージ
       let mpDamage = Math.min(target.currentStatus.MP, Math.floor(damage));
       target.currentStatus.MP -= mpDamage;
-      console.log(`${target.name}はMPダメージを受けている！`);
-      displayMessage(`${target.name}は MPダメージを受けている！`);
+      console.log(`${target.name}に${mpDamage}のMPダメージ！`);
+      displayMessage(`${target.name}の`, "MPが さがった！");
+      // displayMessage(`${target.name}は MPダメージを受けている！`); 継続MPダメージ
       displayDamage(target, mpDamage, resistance, true);
       updateMonsterBar(target);
       return;
@@ -6593,12 +6592,36 @@ const monsters = [
     anotherSkills: ["アンカースパーク", "メルキドの守護神"],
     defaultAiType: "いのちだいじに",
     attribute: {
-      initialBuffs: { defUp: { strength: 2, keepOnDeath: true } },
+      initialBuffs: {
+        defUp: { strength: 2, keepOnDeath: true },
+      },
     },
     seed: { atk: 0, def: 65, spd: 55, int: 0 },
     ls: { atk: 1.2, spd: 0.9 },
     lsTarget: "all",
     AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 1.5, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "キングミミック", //44
+    id: "kinmimi",
+    rank: 10,
+    race: "物質",
+    weight: 25,
+    status: { HP: 744, MP: 280, atk: 568, def: 621, spd: 364, int: 327 },
+    initialSkill: ["トラウマトラップ", "アンカーラッシュ", "ギガ・マホヘル", "体砕きの斬舞"],
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { keepOnDeath: true },
+      },
+      permanentBuffs: {
+        slashReflection: { strength: 1, duration: 1, unDispellable: true, isKanta: true, dispellableByAbnormality: true },
+      },
+    },
+    seed: { atk: 95, def: 25, spd: 0, int: 0 },
+    ls: { HP: 1.25 },
+    lsTarget: "物質",
+    AINormalAttack: [1, 3],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 1.5, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
@@ -12351,7 +12374,7 @@ const skill = [
     hitNum: 2,
     MPcost: 54,
     ignoreProtection: true,
-    appliedEffect: { fear: { probability: 0.3 } },
+    appliedEffect: { fear: { probability: 0.5 } },
   },
   {
     name: "防衛指令",
@@ -12416,6 +12439,23 @@ const skill = [
     ignoreTypeEvasion: true,
     ignorePowerCharge: true,
     ignoreBarrier: true,
+  },
+  {
+    name: "トラウマトラップ爆発",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 400,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    skipDeathCheck: true,
+    skipAbnormalityCheck: true,
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    ignorePowerCharge: true,
+    ignoreBarrier: true,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "羅刹斬",
@@ -12633,6 +12673,85 @@ const skill = [
     MPcost: 58,
     order: "anchor",
     anchorBonus: 2,
+  },
+  {
+    name: "トラウマトラップ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 18,
+    isOneTimeUse: true,
+    appliedEffect: { traumaTrap: { keepOnDeath: true, duration: 1, removeAtTurnStart: true, iconSrc: "deathAbility" } },
+    act: async function (skillUser, skillTarget) {
+      displayMessage(`${skillUser.name}は`, "みがまえた！");
+      skillUser.abilities.additionalDeathAbilities.push({
+        name: "トラウマトラップ爆発",
+        message: function (skillUser) {
+          displayMessage(`${skillUser.name} がチカラつき`, "トラウマトラップ の効果が発動！");
+        },
+        unavailableIf: (skillUser) => !skillUser.buffs.traumaTrap,
+        isOneTimeUse: true,
+        act: async function (skillUser) {
+          executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null);
+        },
+      });
+    },
+  },
+  {
+    name: "アンカーラッシュ",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.4,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    order: "anchor",
+    anchorBonus: 3,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+  },
+  {
+    name: "ギガ・マホヘル",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 43,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      let damage = getRandomIntInclusive(94, 157);
+      let damageModifier = 1;
+      if (skillTarget.buffs.metal) {
+        damage *= skillTarget.buffs.metal.strength;
+        //メタルキラー処理
+        if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
+          damage *= skillUser.buffs.metalKiller.strength;
+        }
+      } else if (skillTarget.buffs.goddessLightMetal) {
+        damage *= 0.75;
+      }
+      // ダメージ軽減
+      if (skillTarget.buffs.protection) {
+        damage *= 1 - skillTarget.buffs.protection.strength;
+      }
+      // 一族のつるぎ
+      if (skillUser.buffs.weaponBuff) {
+        damageModifier += skillUser.buffs.weaponBuff.strength;
+      }
+      if (skillTarget.buffs.weaponBuff) {
+        damageModifier += skillTarget.buffs.weaponBuff.strength;
+      }
+      damage *= damageModifier;
+      applyDamage(skillTarget, damage, 1, true, false, false);
+    },
   },
   {
     name: "ヴェノムパニック",
@@ -14258,7 +14377,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
     } else {
       // ダメージの場合
       effectImagePath = isMPdamage
-        ? "images/systems/effectImages/MPDamaged.png"
+        ? "images/systems/effectImages/enemyDamaged.png" //MPDamaged?
         : monster.teamID === 0
         ? "images/systems/effectImages/allyDamaged.png"
         : "images/systems/effectImages/enemyDamaged.png";
@@ -14350,7 +14469,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
             ? `images/systems/MPRecoveryNumbers/${digits[i]}.png`
             : `images/systems/HPRecoveryNumbers/${digits[i]}.png`
           : isMPdamage
-          ? `images/systems/MPRecoveryNumbers/${digits[i]}.png` // 本来MPDamageNumbers
+          ? `images/systems/MPDamageNumbers/${digits[i]}.png`
           : `images/systems/HPDamageNumbers/${digits[i]}.png`;
       digitImage.style.maxWidth = "60%";
       if (resistance > 1.4) {
@@ -15720,3 +15839,9 @@ var tag = document.createElement("script");
 tag.src = "https://www.youtube.com/iframe_api";
 var firstScriptTag = document.getElementsByTagName("script")[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+function getRandomIntInclusive(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
+}
