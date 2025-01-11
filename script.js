@@ -154,11 +154,11 @@ async function prepareBattle() {
         // リーダースキル適用
         let statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
-        if ((lsTarget === "all" || monster.race === lsTarget) && leaderSkill[key]) {
+        if ((lsTarget === "all" || monster.race.includes(lsTarget)) && leaderSkill[key]) {
           lsMultiplier = leaderSkill[key];
         }
-        if (key === "spd" && monster.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(monster.race)) {
-          lsMultiplier += 0.05; // 魔獣ドラゴンゾンビ物質
+        if (key === "spd" && monster.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
+          lsMultiplier += 0.05;
         }
         // 装備のstatusMultiplierを適用
         if (monster.gear?.statusMultiplier && monster.gear.statusMultiplier[key]) {
@@ -3896,7 +3896,7 @@ function calculateDamage(
   }
 
   // 特技の種族特効 反射には乗らない
-  if (!isReflection && executingSkill.RaceBane && executingSkill.RaceBane.includes(skillTarget.race)) {
+  if (!isReflection && executingSkill.RaceBane && executingSkill.RaceBane.some((targetRace) => skillTarget.race.includes(targetRace))) {
     damage *= executingSkill.RaceBaneValue;
   }
   // みがわり特効
@@ -3950,7 +3950,7 @@ function calculateDamage(
   if (skillTarget.gear?.name === "トリリオンダガー") {
     damage *= 1.3;
   }
-  if (skillTarget.gear?.name === "ファラオの腕輪" && skillTarget.race === "ゾンビ") {
+  if (skillTarget.gear?.name === "ファラオの腕輪" && skillTarget.race.includes("ゾンビ")) {
     damage *= 2;
   }
 
@@ -3961,27 +3961,27 @@ function calculateDamage(
   // 装備 錬金が一意に定まるように注意
   if (skillUser.gear) {
     // 装備本体 - 竜神のツメ
-    if (skillUser.gear.name === "竜神のツメ" && ["???", "ドラゴン"].includes(skillTarget.race)) {
+    if (skillUser.gear.name === "竜神のツメ" && (skillTarget.race.includes("???") || skillTarget.race.includes("ドラゴン"))) {
       damageModifier += 0.1;
     }
     // 装備本体 - 強戦士ハート・闇
-    if (skillUser.gear.name === "強戦士ハート・闇" && skillUser.race === "悪魔" && executingSkill.type === "spell") {
+    if (skillUser.gear.name === "強戦士ハート・闇" && skillUser.race.includes("悪魔") && executingSkill.type === "spell") {
       damageModifier += 0.15;
     }
     // 装備本体&錬金 - かがやく魔神剣
     if (skillUser.gear.name === "かがやく魔神剣" && executingSkill.type === "slash") {
       damageModifier += 0.05;
-      if (skillTarget.race === "???") {
+      if (skillTarget.race.includes("???")) {
         damageModifier += 0.1;
       }
     }
     // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
     if (skillUser.gear.name === "心砕きのヤリ" || skillUser.gear.name === "昇天のヤリ") {
-      if (skillUser.race === "ドラゴン") {
+      if (skillUser.race.includes("ドラゴン")) {
         if (executingSkill.type === "breath") {
           damageModifier += 0.1;
         }
-      } else if (skillUser.race === "スライム") {
+      } else if (skillUser.race.includes("スライム")) {
         if (executingSkill.type === "breath" && executingSkill.element === "thunder") {
           damageModifier += 0.1;
         }
@@ -3989,8 +3989,8 @@ function calculateDamage(
         damageModifier += 0.05;
       }
     }
-    // 装備錬金 - 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く)
-    if (skillUser.gear.name === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].includes(skillUser.race) && executingSkill.type === "slash") {
+    // 装備錬金 - 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く) todo: 本当は魔獣パの狭間は系統S錬金なので非適用、スラパの狭間には適用すべき
+    if (skillUser.gear.name === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].some((targetRace) => skillUser.race.includes(targetRace)) && executingSkill.type === "slash") {
       damageModifier += 0.05;
     }
     // 装備錬金 - 源氏小手の体技5%斬撃3%錬金
@@ -4014,11 +4014,11 @@ function calculateDamage(
       damageModifier += 0.03;
     }
     // 装備錬金 - 系統爪超魔王錬金
-    if (skillUser.gear.name === "系統爪超魔王錬金" && skillTarget.race === "超魔王") {
+    if (skillUser.gear.name === "系統爪超魔王錬金" && skillTarget.race.includes("超魔王")) {
       damageModifier += 0.3;
     }
     // 装備錬金 - おうごんのツメ ゾンビ息10%
-    if (skillUser.gear.name === "おうごんのツメ" && skillUser.race === "ゾンビ" && executingSkill.type === "breath") {
+    if (skillUser.gear.name === "おうごんのツメ" && skillUser.race.includes("ゾンビ") && executingSkill.type === "breath") {
       damageModifier += 0.1;
     }
 
@@ -4041,11 +4041,11 @@ function calculateDamage(
   }
 
   // デュラン
-  if (skillUser.id === "dhuran" && (skillTarget.race === "超魔王" || skillTarget.race === "超伝説") && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
+  if (skillUser.id === "dhuran" && (skillTarget.race.includes("超魔王") || skillTarget.race.includes("超伝説")) && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
     damageModifier += 0.5;
   }
   // 禁忌の封印
-  if (skillUser.race === "悪魔" && parties[skillUser.teamID].some((monster) => monster.id === "tanisu")) {
+  if (skillUser.race.includes("悪魔") && parties[skillUser.teamID].some((monster) => monster.id === "tanisu")) {
     damageModifier += 0.5;
   }
   if (skillUser.buffs.tabooSeal) {
@@ -4094,11 +4094,11 @@ function calculateDamage(
     damageModifier += 0.2;
   }
   // ラザマLS ゾンビ斬撃息up
-  if (parties[skillUser.teamID][0].name === "ラザマナス" && skillUser.race === "ゾンビ" && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
+  if (parties[skillUser.teamID][0].name === "ラザマナス" && skillUser.race.includes("ゾンビ") && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
     damageModifier += 0.1;
   }
   // スカスパLS 毒10%
-  if (parties[skillUser.teamID][0].name === "スカルスパイダー" && skillUser.race === "ゾンビ" && skillTarget.buffs.poisoned) {
+  if (parties[skillUser.teamID][0].name === "スカルスパイダー" && skillUser.race.includes("ゾンビ") && skillTarget.buffs.poisoned) {
     damageModifier += 0.1;
   }
 
@@ -4124,7 +4124,7 @@ function calculateDamage(
   }
 
   // ゴッデスLS
-  if (parties[skillTarget.teamID][0].name === "メタルゴッデス" && skillTarget.race === "スライム" && AllElements.includes(executingSkill.element)) {
+  if (parties[skillTarget.teamID][0].name === "メタルゴッデス" && skillTarget.race.includes("スライム") && AllElements.includes(executingSkill.element)) {
     damageModifier -= 0.3;
   }
 
@@ -4170,8 +4170,7 @@ function calculateDamage(
     damage *= damageModifier;
     // そしでん
     if (skillTarget.buffs.sosidenBarrier) {
-      const reduce80Race = ["???", "超魔王", "超伝説"];
-      if (reduce80Race.includes(skillUser.race)) {
+      if (["???", "超魔王", "超伝説"].some((targetRace) => skillTarget.race.includes(targetRace))) {
         damage *= 0.2;
       } else {
         damage *= 0.5;
@@ -4784,7 +4783,7 @@ function addSkillOptions() {
     魔獣: ["一刀両断"], //"ラピッドショット", "聖なる息吹"
     //自然: ["やすらぎの光", "天光の裁き"],
     //物質: ["氷撃波", "れっぱの息吹", "リベンジアーツ"],
-  }[monster.race];
+  }[monster.race[0]];
   const superSkills = [
     "メゾラゴン",
     "メラゾロス",
@@ -4879,7 +4878,7 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加
-    if (familySkills && monster.rank === 10) {
+    if (familySkills && monster.rank === 10 && monster.race.length < 2) {
       familyOptGroup = document.createElement("optgroup");
       familyOptGroup.label = "系統特技";
       for (const skill of familySkills) {
@@ -4905,7 +4904,7 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    if (monster.race !== "超魔王" && monster.race !== "超伝説") {
+    if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説")) {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
       for (const skill of superSkills) {
@@ -5106,10 +5105,10 @@ function calcAndAdjustDisplayStatus() {
   const lsTarget = firstMonster.lsTarget;
 
   let lsMultiplier = 1;
-  if ((lsTarget === "all" || target.race === lsTarget) && leaderSkill.spd) {
+  if ((lsTarget === "all" || target.race.includes(lsTarget)) && leaderSkill.spd) {
     lsMultiplier = leaderSkill.spd;
   }
-  if (target.gear?.alchemy && !["超魔王", "超伝説", "???", "スライム", "悪魔", "自然"].includes(target.race)) {
+  if (target.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => target.race.includes(r))) {
     lsMultiplier += 0.05;
   }
   // 装備のstatusMultiplierを適用
@@ -5284,7 +5283,7 @@ const monsters = [
     name: "マスタードラゴン", //44
     id: "masudora",
     rank: 10, // SSが10でそこから下げる
-    race: "ドラゴン",
+    race: ["ドラゴン"],
     weight: 30,
     status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
@@ -5309,7 +5308,7 @@ const monsters = [
     name: "宵の華シンリ", //44
     id: "sinri",
     rank: 10,
-    race: "ドラゴン",
+    race: ["ドラゴン"],
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
@@ -5329,7 +5328,7 @@ const monsters = [
     name: "魔夏姫アンルシア", //44
     id: "rusia",
     rank: 10,
-    race: "ドラゴン",
+    race: ["ドラゴン"],
     weight: 28,
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
@@ -5357,7 +5356,7 @@ const monsters = [
     name: "怪竜やまたのおろち", //4
     id: "orochi",
     rank: 10,
-    race: "ドラゴン",
+    race: ["ドラゴン"],
     weight: 28,
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
@@ -5380,7 +5379,7 @@ const monsters = [
     name: "ヴォルカドラゴン", //44
     id: "voruka",
     rank: 10,
-    race: "ドラゴン",
+    race: ["ドラゴン"],
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
@@ -5401,7 +5400,7 @@ const monsters = [
     name: "神獣王WORLD", //最強
     id: "world",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 30,
     status: { HP: 810, MP: 334, atk: 661, def: 473, spd: 470, int: 325 },
     initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
@@ -5427,7 +5426,7 @@ const monsters = [
     name: "死を統べる者ネルゲル", //44
     id: "nerugeru",
     rank: 10,
-    race: "超魔王",
+    race: ["超魔王"],
     weight: 40,
     status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
@@ -5455,7 +5454,7 @@ const monsters = [
     name: "憎悪のエルギオス", //44
     id: "erugi",
     rank: 10,
-    race: "超魔王",
+    race: ["超魔王"],
     weight: 40,
     status: { HP: 897, MP: 425, atk: 620, def: 619, spd: 564, int: 366 },
     initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
@@ -5484,7 +5483,7 @@ const monsters = [
     name: "氷炎の化身", //44
     id: "ifshiba",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 25,
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
@@ -5507,7 +5506,7 @@ const monsters = [
     name: "そして伝説へ",
     id: "sosiden",
     rank: 10,
-    race: "超伝説",
+    race: ["超伝説"],
     weight: 35,
     status: { HP: 877, MP: 315, atk: 609, def: 495, spd: 505, int: 389 },
     initialSkill: ["でんせつのギガデイン", "いてつくマヒャド", "閃光ジゴデイン", "ロトの剣技"],
@@ -5533,7 +5532,7 @@ const monsters = [
     name: "魔神ダークドレアム",
     id: "dream",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 909, MP: 317, atk: 742, def: 525, spd: 504, int: 408 },
     initialSkill: ["真・魔神の絶技", "すさまじいオーラ", "魔神の構え", "斬撃よそく"],
@@ -5568,7 +5567,7 @@ const monsters = [
     name: "闇竜シャムダ",
     id: "shamu",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 831, MP: 329, atk: 622, def: 653, spd: 505, int: 203 },
     initialSkill: ["魔壊裂き", "闇竜の構え", "崩壊裂き", "闇の天地"],
@@ -5595,7 +5594,7 @@ const monsters = [
     name: "ゴア・サイコピサロ",
     id: "asahaka",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 839, MP: 400, atk: 634, def: 582, spd: 527, int: 245 },
     initialSkill: ["深淵の儀式", "暴風の儀式", "禁忌の左腕", "防壁反転"],
@@ -5619,7 +5618,7 @@ const monsters = [
     name: "剛拳の姫と獅子王", //44
     id: "arina",
     rank: 10,
-    race: "超伝説",
+    race: ["超伝説"],
     weight: 35,
     status: { HP: 871, MP: 375, atk: 624, def: 514, spd: 483, int: 321 },
     initialSkill: ["閃光裂衝拳", "ホワイトアウト", "マヒャドブロウ", "鉄拳の構え"],
@@ -5643,7 +5642,7 @@ const monsters = [
     name: "聖獣ムンババ",
     id: "munbaba",
     rank: 10,
-    race: "自然",
+    race: ["自然"],
     weight: 28,
     status: { HP: 848, MP: 344, atk: 602, def: 550, spd: 414, int: 226 },
     initialSkill: ["ホーリーナックル", "かばう", "いてつくゆきだま", "ムフォムフォダンス"],
@@ -5666,7 +5665,7 @@ const monsters = [
     name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 25,
     status: { HP: 753, MP: 411, atk: 396, def: 391, spd: 501, int: 395 },
     initialSkill: ["真夏の誘惑", "まどいの風", "マホターン", "ぎゃくふう"],
@@ -5690,7 +5689,7 @@ const monsters = [
     name: "虚空の神ナドラガ", //4
     id: "snadoraga",
     rank: 9,
-    race: "???",
+    race: ["???"],
     weight: 23,
     status: { HP: 827, MP: 274, atk: 463, def: 574, spd: 416, int: 328 },
     initialSkill: ["虚空神の福音", "ザオリク", "スパークふんしゃ", "体技よそく"],
@@ -5710,7 +5709,7 @@ const monsters = [
     name: "ディアノーグ", //最強? a45 s75振り
     id: "snogu",
     rank: 9,
-    race: "???",
+    race: ["???"],
     weight: 14,
     status: { HP: 603, MP: 272, atk: 474, def: 290, spd: 535, int: 268 },
     initialSkill: ["かがやく息", "スパークふんしゃ", "おぞましいおたけび", "おいかぜ"],
@@ -5729,7 +5728,7 @@ const monsters = [
     name: "スライダーキッズ", //最強
     id: "kids",
     rank: 9,
-    race: "スライム",
+    race: ["スライム"],
     weight: 14,
     status: { HP: 743, MP: 196, atk: 434, def: 391, spd: 459, int: 277 },
     initialSkill: ["みがわり・マインドバリア", "竜の眼光", "ザオリク", "カオスストーム"],
@@ -5749,7 +5748,7 @@ const monsters = [
     name: "スカルナイト",
     id: "skull",
     rank: 8,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 8,
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
@@ -5767,7 +5766,7 @@ const monsters = [
     name: "魔扉の災禍オムド・レクス", //44
     id: "omudo",
     rank: 10,
-    race: "超魔王",
+    race: ["超魔王"],
     weight: 40,
     status: { HP: 965, MP: 475, atk: 544, def: 684, spd: 272, int: 554 },
     initialSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
@@ -5793,7 +5792,7 @@ const monsters = [
     name: "新たなる神ラプソーン", //44
     id: "rapu",
     rank: 10,
-    race: "超魔王",
+    race: ["超魔王"],
     weight: 40,
     status: { HP: 1108, MP: 470, atk: 392, def: 529, spd: 418, int: 576 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
@@ -5825,7 +5824,7 @@ const monsters = [
     name: "万物の王オルゴ・デミーラ",
     id: "orugo",
     rank: 10,
-    race: "超魔王",
+    race: ["超魔王"],
     weight: 40,
     status: { HP: 1040, MP: 424, atk: 660, def: 507, spd: 497, int: 354 },
     initialSkill: ["もえさかるほむら", "無比なる覇気", "破鏡の円舞", "魔空の一撃"],
@@ -5853,7 +5852,7 @@ const monsters = [
     name: "地獄の帝王エスターク", //最速?
     id: "esta",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
@@ -5881,7 +5880,7 @@ const monsters = [
     name: "邪竜神ナドラガ",
     id: "nadoraga",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 906, MP: 304, atk: 500, def: 619, spd: 454, int: 355 },
     initialSkill: ["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "虚空神の福音"],
@@ -5903,7 +5902,7 @@ const monsters = [
     name: "ダグジャガルマ",
     id: "daguja",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 874, MP: 388, atk: 384, def: 644, spd: 298, int: 522 },
     initialSkill: ["クラックストーム", "属性断罪の刻印", "光のはどう", "ザオリク"],
@@ -5929,7 +5928,7 @@ const monsters = [
     name: "ミステリドール",
     id: "dogu",
     rank: 9,
-    race: "物質",
+    race: ["物質"],
     weight: 16,
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     initialSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
@@ -5957,7 +5956,7 @@ const monsters = [
     name: "闇魔ティトス",
     id: "dorunisu",
     rank: 9,
-    race: "???",
+    race: ["???"],
     weight: 14,
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
@@ -5980,7 +5979,7 @@ const monsters = [
     name: "氷魔フィルグレア",
     id: "hyadonisu",
     rank: 9,
-    race: "???",
+    race: ["???"],
     weight: 14,
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "氷の紋章", "防刃の守り", "ザオリク"],
@@ -6002,7 +6001,7 @@ const monsters = [
     name: "宵闇の魔人",
     id: "yoiyami",
     rank: 9,
-    race: "物質",
+    race: ["物質"],
     weight: 14,
     status: { HP: 864, MP: 264, atk: 367, def: 589, spd: 305, int: 170 },
     initialSkill: ["封印の光", "におうだち", "ザオリク", "防刃の守り"],
@@ -6018,7 +6017,7 @@ const monsters = [
     name: "タイタニス",
     id: "tanisu",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 30,
     status: { HP: 772, MP: 458, atk: 329, def: 495, spd: 462, int: 501 },
     initialSkill: ["邪悪なこだま", "絶氷の嵐", "禁忌のかくせい", "邪道のかくせい"],
@@ -6038,7 +6037,7 @@ const monsters = [
     name: "デュラン",
     id: "dhuran",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 28,
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     initialSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
@@ -6061,7 +6060,7 @@ const monsters = [
     name: "ディアロゴス",
     id: "rogos",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 32,
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "イオナルーン"],
@@ -6090,7 +6089,7 @@ const monsters = [
     name: "涼風の魔女グレイツェル",
     id: "tseru",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 25,
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
     initialSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
@@ -6113,7 +6112,7 @@ const monsters = [
     name: "魔性の道化ドルマゲス",
     id: "magesu",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 25,
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
@@ -6135,7 +6134,7 @@ const monsters = [
     name: "幻惑のムドー",
     id: "mudo",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 28,
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
     initialSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
@@ -6156,7 +6155,7 @@ const monsters = [
     name: "ズイカク&ショウカク",
     id: "zuisho",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 25,
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     initialSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
@@ -6179,7 +6178,7 @@ const monsters = [
     name: "ジャハガロス",
     id: "jaha",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 28,
     status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
     initialSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
@@ -6203,7 +6202,7 @@ const monsters = [
     name: "リーズレット",
     id: "rizu",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 25,
     status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
     initialSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
@@ -6222,7 +6221,7 @@ const monsters = [
     name: "凶ライオネック",
     id: "raio",
     rank: 10,
-    race: "悪魔",
+    race: ["悪魔"],
     weight: 25,
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
     initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"], //けがれた狂風
@@ -6248,7 +6247,7 @@ const monsters = [
     name: "キングアズライル",
     id: "azu",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 30,
     status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
     initialSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
@@ -6268,7 +6267,7 @@ const monsters = [
     name: "ヘルゴラゴ",
     id: "gorago",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 30,
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
     initialSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
@@ -6289,7 +6288,7 @@ const monsters = [
     name: "てんかいじゅう",
     id: "tenkai",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 28,
     status: { HP: 865, MP: 396, atk: 506, def: 428, spd: 513, int: 275 },
     initialSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
@@ -6310,7 +6309,7 @@ const monsters = [
     name: "魔犬レオパルド",
     id: "reopa",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 28,
     status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
     initialSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
@@ -6331,7 +6330,7 @@ const monsters = [
     name: "百獣の王キングレオ",
     id: "kingreo",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 28,
     status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
     initialSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
@@ -6354,7 +6353,7 @@ const monsters = [
     name: "極彩鳥にじくじゃく", //4
     id: "nijiku",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 28,
     status: { HP: 862, MP: 289, atk: 316, def: 523, spd: 515, int: 473 },
     initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "防刃の守り"],
@@ -6374,7 +6373,7 @@ const monsters = [
     name: "ドラ猫親分ドラジ",
     id: "doraji",
     rank: 10,
-    race: "魔獣",
+    race: ["魔獣"],
     weight: 25,
     status: { HP: 745, MP: 291, atk: 593, def: 444, spd: 541, int: 256 },
     initialSkill: ["抜刀魔獣刃", "閃く短刀", "スパークふんしゃ", "防刃の守り"],
@@ -6397,7 +6396,7 @@ const monsters = [
     name: "メタルゴッデス", //44
     id: "goddess",
     rank: 10,
-    race: "スライム",
+    race: ["スライム"],
     weight: 30,
     status: { HP: 208, MP: 490, atk: 601, def: 775, spd: 461, int: 492 },
     initialSkill: ["クアトロマダンテ", "アイアンスラッシュ", "ベホマラー", "ザオリク"],
@@ -6419,7 +6418,7 @@ const monsters = [
     name: "スライダーヒーロー", //4
     id: "surahero",
     rank: 10,
-    race: "スライム",
+    race: ["スライム"],
     weight: 28,
     status: { HP: 721, MP: 281, atk: 421, def: 649, spd: 510, int: 381 },
     initialSkill: ["アイアンロンド", "ヒーロースパーク", "神のはどう", "息よそく"],
@@ -6441,7 +6440,7 @@ const monsters = [
     name: "スライダーガール", //4
     id: "suragirl",
     rank: 10,
-    race: "スライム",
+    race: ["スライム"],
     weight: 28,
     status: { HP: 758, MP: 287, atk: 538, def: 615, spd: 494, int: 275 },
     initialSkill: ["ばくれつドライブ", "スパークふんしゃ", "カオスストーム", "息よそく"],
@@ -6463,7 +6462,7 @@ const monsters = [
     name: "スラ・ブラスター", //4
     id: "surabura",
     rank: 10,
-    race: "スライム",
+    race: ["スライム"],
     weight: 28,
     status: { HP: 796, MP: 434, atk: 368, def: 608, spd: 468, int: 315 },
     initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "アイアンゲイザー"],
@@ -6483,7 +6482,7 @@ const monsters = [
     name: "はぐれロイヤルキング", //44 +HP50
     id: "haguki",
     rank: 10,
-    race: "スライム",
+    race: ["スライム"],
     weight: 30,
     status: { HP: 298, MP: 521, atk: 325, def: 889, spd: 502, int: 542 },
     initialSkill: ["キングストーム", "メタ・マダンテ", "ベホマラー", "ダメージバリア"],
@@ -6504,7 +6503,7 @@ const monsters = [
     name: "ダークマター", //44
     id: "matter",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 30,
     status: { HP: 913, MP: 307, atk: 394, def: 516, spd: 478, int: 406 },
     initialSkill: ["オーバーホール", "グレネードボム", "防衛指令", "リーサルウェポン"],
@@ -6525,7 +6524,7 @@ const monsters = [
     name: "ファイナルウェポン", //44
     id: "weapon",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 30,
     status: { HP: 797, MP: 308, atk: 691, def: 431, spd: 492, int: 309 },
     initialSkill: ["羅刹斬", "デッドリースパーク", "破滅プロトコル", "スパークふんしゃ"],
@@ -6546,7 +6545,7 @@ const monsters = [
     name: "魂の継承者ヒム", //4
     id: "him",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 25,
     status: { HP: 650, MP: 247, atk: 601, def: 573, spd: 504, int: 234 },
     initialSkill: ["真・闘気拳", "真・グランドクルス", "スパークふんしゃ", "息よそく"],
@@ -6571,7 +6570,7 @@ const monsters = [
     name: "ヘルクラウド", //4
     id: "castle",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 28,
     status: { HP: 864, MP: 340, atk: 216, def: 620, spd: 462, int: 483 },
     initialSkill: ["ろうじょうのかまえ", "報復の大嵐", "スパークプレス", "苛烈な暴風"],
@@ -6599,7 +6598,7 @@ const monsters = [
     name: "守護神ゴーレム", //4 HP+200
     id: "golem",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 28,
     status: { HP: 1130, MP: 256, atk: 458, def: 677, spd: 393, int: 268 },
     initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "ザオリク"],
@@ -6620,7 +6619,7 @@ const monsters = [
     name: "キングミミック", //44
     id: "kinmimi",
     rank: 10,
-    race: "物質",
+    race: ["物質"],
     weight: 25,
     status: { HP: 744, MP: 280, atk: 568, def: 621, spd: 364, int: 327 },
     initialSkill: ["トラウマトラップ", "アンカーラッシュ", "ギガ・マホヘル", "体砕きの斬舞"],
@@ -6642,7 +6641,7 @@ const monsters = [
     name: "スカルスパイダー",
     id: "skullspider",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 30,
     status: { HP: 927, MP: 280, atk: 385, def: 646, spd: 495, int: 283 },
     initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "スパークふんしゃ"],
@@ -6662,7 +6661,7 @@ const monsters = [
     name: "ラザマナス",
     id: "razama",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 30,
     status: { HP: 1055, MP: 373, atk: 558, def: 517, spd: 412, int: 253 },
     initialSkill: ["黄金のカギ爪", "紫電の瘴気", "ホラーブレス", "防壁反転"],
@@ -6684,7 +6683,7 @@ const monsters = [
     name: "怨恨の骸バラモスゾンビ",
     id: "barazon",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 28,
     status: { HP: 881, MP: 290, atk: 703, def: 311, spd: 393, int: 403 },
     initialSkill: ["ネクロゴンドの衝撃", "イオナフィスト", "ジェノサイドストーム", "漆黒の儀式"],
@@ -6705,7 +6704,7 @@ const monsters = [
     name: "魔炎鳥",
     id: "maen",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ヴェレマータ"],
@@ -6726,7 +6725,7 @@ const monsters = [
     name: "くさったまじゅう", //44
     id: "kusamaju",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 25,
     status: { HP: 812, MP: 286, atk: 561, def: 283, spd: 531, int: 407 },
     initialSkill: ["ヒートヴェノム", "腐乱の波動", "仁王溶かしの息", "スパークふんしゃ"],
@@ -6745,7 +6744,7 @@ const monsters = [
     name: "デスソシスト",
     id: "desuso",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 27,
     status: { HP: 812, MP: 304, atk: 393, def: 625, spd: 325, int: 504 },
     initialSkill: ["メガントマータ", "防壁反転", "亡者の儀式", "鮮烈な稲妻"],
@@ -6766,7 +6765,7 @@ const monsters = [
     name: "真・冥王ゴルゴナ", //44 全ステ20
     id: "gorugona",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 25,
     status: { HP: 839, MP: 311, atk: 292, def: 643, spd: 384, int: 519 },
     initialSkill: ["冥府の邪法", "六芒魔法陣", "ザオリク", "斬撃よそく"],
@@ -6782,7 +6781,7 @@ const monsters = [
     name: "非道兵器超魔ゾンビ", //4
     id: "tyomazombie",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 28,
     status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
     initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "スパークふんしゃ"],
@@ -6802,7 +6801,7 @@ const monsters = [
     name: "ファラオ・カーメン",
     id: "pharaoh",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 25,
     status: { HP: 747, MP: 253, atk: 565, def: 504, spd: 450, int: 225 },
     initialSkill: ["太陽神の鉄槌", "氷獄斬り", "ファラオの幻刃", "ファラオの召喚"],
@@ -6820,7 +6819,7 @@ const monsters = [
     name: "邪教の使徒ゲマ", //4 新生S+50
     id: "gema",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 28,
     status: { HP: 784, MP: 333, atk: 528, def: 411, spd: 443, int: 528 },
     initialSkill: ["業火のロンド", "非道の儀式", "闇討ちの魔弾", "石化の呪い"],
@@ -6840,15 +6839,42 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 1, light: 1.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "名もなき闇の王", //44
+    id: "hazama",
+    rank: 10,
+    race: ["超魔王", "スライム", "ドラゴン", "自然", "魔獣", "物質", "悪魔", "ゾンビ"],
+    weight: 40,
+    status: { HP: 744, MP: 523, atk: 619, def: 713, spd: 459, int: 440 },
+    initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
+    anotherSkills: ["ベホマラー"],
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.35, MP: 1.35 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0, light: 1, dark: -1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
-    race: "ゾンビ",
+    race: ["ゾンビ"],
     weight: 25,
     status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
     initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
+    initialAIDisabledSkills: ["神のはどう"],
+    anotherSkills: ["ベホマラー"],
+    defaultGear: "ryujinNail",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { duration: 3 },
         asleep: { duration: 999 },
         elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
       },
@@ -6874,7 +6900,7 @@ function getMonsterAbilities(monsterId) {
           name: "全能の加護",
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "ドラゴン") {
+              if (monster.race.includes("ドラゴン")) {
                 applyBuff(monster, { allElementalBoost: { strength: 0.2, duration: 4 } });
               }
             }
@@ -6886,7 +6912,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "天の竜気上昇"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "ドラゴン") {
+              if (monster.race.includes("ドラゴン")) {
                 monster.abilities.additionalAfterActionAbilities.push({
                   name: "天の竜気上昇",
                   disableMessage: true,
@@ -6922,7 +6948,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族の息吹",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "ドラゴン") {
+                if (monster.race.includes("ドラゴン")) {
                   applyBuff(monster, { allElementalBreak: { strength: 1, duration: 4, divineDispellable: true } });
                   await sleep(150);
                 }
@@ -6939,7 +6965,7 @@ function getMonsterAbilities(monsterId) {
             isOneTimeUse: true,
             unavailableIf: (skillUser) => !skillUser.buffs.dragonPreemptiveAction || skillUser.buffs.dragonPreemptiveAction.strength < 3,
             act: async function (skillUser) {
-              const aliveDragons = parties[skillUser.teamID].filter((member) => member.race === "ドラゴン" && !member.flags.isDead);
+              const aliveDragons = parties[skillUser.teamID].filter((member) => member.race.includes("ドラゴン") && !member.flags.isDead);
               for (const member of aliveDragons) {
                 displayMessage("天の竜気の", "効果が発動！");
                 applyBuff(member, { preemptiveAction: {} });
@@ -6978,7 +7004,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "祭の名残付与"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "ドラゴン") {
+              if (monster.race.includes("ドラゴン")) {
                 monster.abilities.additionalAfterActionAbilities.push({
                   name: "祭の名残付与",
                   disableMessage: true,
@@ -7672,7 +7698,7 @@ function getMonsterAbilities(monsterId) {
             name: "強者のいげん",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { martialBarrier: { strength: 1 }, slashBarrier: { strength: 1 } });
                 } else {
                   displayMiss(monster);
@@ -7691,7 +7717,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "一族のいかり"),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
                     name: "一族のいかり",
@@ -7700,7 +7726,7 @@ function getMonsterAbilities(monsterId) {
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
-                        if (!monster.flags.isDead && monster.race === "悪魔") {
+                        if (!monster.flags.isDead && monster.race.includes("悪魔")) {
                           applyBuff(monster, { baiki: { strength: 1 } });
                           await sleep(150);
                           applyBuff(monster, { defUp: { strength: 1 } });
@@ -7730,7 +7756,7 @@ function getMonsterAbilities(monsterId) {
             },
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   // damageには自動的に、spdMultiplierには+0.5  tabooSeal所持時は0.5を引いて無効化
                   applyBuff(monster, { tabooSeal: { keepOnDeath: true }, internalSpdUp: { keepOnDeath: true, strength: 0.5 } }, false, true);
                 } else {
@@ -7748,7 +7774,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "martial",
           act: async function (skillUser, executingSkill, executedSkills) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "悪魔") {
+              if (monster.race.includes("悪魔")) {
                 applyBuff(monster, { revive: { keepOnDeath: true, strength: 0.5 } });
               } else {
                 displayMiss(skillUser);
@@ -7772,7 +7798,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => skillUser.abilities.supportAbilities.additionalPermanentAbilities.some((ability) => ability.name === "偽神の威光実行"),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "悪魔") {
+              if (monster.race.includes("悪魔")) {
                 applyBuff(monster, { autoRadiantWave: { removeAtTurnStart: true, duration: 3 } });
                 monster.abilities.supportAbilities.additionalPermanentAbilities.push({
                   name: "偽神の威光実行",
@@ -7811,21 +7837,21 @@ function getMonsterAbilities(monsterId) {
             name: "道化の舞踏",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { lightResistance: { strength: 1 } });
                 } else {
                   displayMiss(monster);
                 }
               }
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
                 } else {
                   displayMiss(monster);
                 }
               }
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { intUp: { strength: 1 } });
                 } else {
                   displayMiss(monster);
@@ -7837,7 +7863,7 @@ function getMonsterAbilities(monsterId) {
             name: "デビルバーハ",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { breathBarrier: { strength: 2 } });
                 } else {
                   displayMiss(monster);
@@ -7866,7 +7892,7 @@ function getMonsterAbilities(monsterId) {
             name: "魔女のベール",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "悪魔") {
+                if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { slashBarrier: { strength: 1 }, paralyzeBarrier: { duration: 3 } });
                 } else {
                   displayMiss(monster);
@@ -7959,7 +7985,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "魔獣") {
+              if (monster.race.includes("魔獣")) {
                 applyBuff(monster, { aiExtraAttacks: { strength: 1, keepOnDeath: true } });
               }
             }
@@ -7972,7 +7998,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族の爪牙",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "魔獣") {
+                if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { speedBasedAttack: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
                   await sleep(150);
                 } else {
@@ -7990,7 +8016,7 @@ function getMonsterAbilities(monsterId) {
           name: "一族のほこり",
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "魔獣") {
+              if (monster.race.includes("魔獣")) {
                 applyBuff(monster, { goragoAtk: { strength: 0.15, divineDispellable: true } });
                 applyBuff(monster, { goragoSpd: { strength: 0.15, divineDispellable: true } });
               }
@@ -8006,7 +8032,7 @@ function getMonsterAbilities(monsterId) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.monsterId === skillUser.monsterId) {
                   continue;
-                } else if (monster.race === "魔獣" && !monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "孤高の獣発動")) {
+                } else if (monster.race.includes("魔獣") && !monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "孤高の獣発動")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
                     name: "孤高の獣発動",
@@ -8052,7 +8078,7 @@ function getMonsterAbilities(monsterId) {
           disableMessage: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "魔獣") {
+              if (monster.race.includes("魔獣")) {
                 monster.attribute.additionalPermanentBuffs.danceEvasion = { unDispellable: true, duration: 0 };
               }
             }
@@ -8066,7 +8092,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "魔獣") {
+                if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { spdUp: { keepOnDeath: true, strength: 1 } });
                   await sleep(150);
                 }
@@ -8115,7 +8141,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "魔獣") {
+                if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { spdUp: { strength: 1 } });
                 }
               }
@@ -8148,7 +8174,7 @@ function getMonsterAbilities(monsterId) {
           name: "スラ・ライトメタルガード",
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "スライム") {
+              if (monster.race.includes("スライム")) {
                 applyBuff(monster, { goddessLightMetal: { keepOnDeath: true, strength: 0.75 }, mpCostMultiplier: { strength: 1.2, keepOnDeath: true } });
               }
             }
@@ -8169,7 +8195,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のきずな",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "スライム") {
+                if (monster.race.includes("スライム")) {
                   applyBuff(monster, { goddessDefUp: { strength: 0.4, divineDispellable: true, duration: 3 } });
                   await sleep(150);
                   applyBuff(monster, { continuousMPHealing: { strength: 0.2, removeAtTurnStart: true, duration: 3 } });
@@ -8217,7 +8243,7 @@ function getMonsterAbilities(monsterId) {
           name: "スライダーヒール",
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race === "スライム") {
+              if (monster.race.includes("スライム")) {
                 applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
               }
             }
@@ -8255,14 +8281,14 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
                 for (const monster of parties[skillUser.teamID]) {
-                  if (monster.race === "スライム") {
+                  if (monster.race.includes("スライム")) {
                     applyBuff(monster, { spellBarrier: { strength: 2 } });
                     await sleep(150);
                   }
                 }
               } else {
                 for (const monster of parties[skillUser.teamID]) {
-                  if (monster.race === "スライム") {
+                  if (monster.race.includes("スライム")) {
                     applyBuff(monster, { spellBarrier: { strength: 1 } });
                     await sleep(150);
                   }
@@ -8294,7 +8320,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のいしん",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "スライム") {
+                if (monster.race.includes("スライム")) {
                   applyBuff(monster, { powerCharge: { strength: 1.2 } });
                   await sleep(150);
                   applyBuff(monster, { manaBoost: { strength: 1.2 } });
@@ -8340,7 +8366,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のまもり",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true } });
                   await sleep(100);
                   applyBuff(monster, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
@@ -8356,7 +8382,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "起爆装置爆発"),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
                     name: "起爆装置爆発",
@@ -8388,7 +8414,7 @@ function getMonsterAbilities(monsterId) {
             name: "せん滅指令",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
                 }
@@ -8407,7 +8433,7 @@ function getMonsterAbilities(monsterId) {
             name: "せん滅指令",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
                 }
@@ -8420,7 +8446,7 @@ function getMonsterAbilities(monsterId) {
             name: "せん滅指令",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
                 }
@@ -8446,7 +8472,7 @@ function getMonsterAbilities(monsterId) {
             name: "ブーストアップ",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { spdUp: { strength: 1 } });
                   await sleep(150);
                 }
@@ -8458,7 +8484,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               const buffStrength = fieldState.turnNum > 2 ? 0.4 : 0.2;
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { weaponBuff: { strength: buffStrength, unDispellable: true, removeAtTurnStart: true, duration: 1 } });
                 }
               }
@@ -8475,7 +8501,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 3),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "物質") {
+                if (monster.race.includes("物質")) {
                   applyBuff(monster, { castleDefUp: { strength: 0.3, divineDispellable: true, duration: 3 } });
                   await sleep(100);
                 }
@@ -8603,7 +8629,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のうらみ",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
+                if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
                   applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
                 }
               }
@@ -8618,7 +8644,7 @@ function getMonsterAbilities(monsterId) {
             },
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス") {
+                if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス") {
                   monster.abilities.additionalDeathAbilities.push({
                     name: "死者の解放",
                     message: function (skillUser) {
@@ -8626,7 +8652,7 @@ function getMonsterAbilities(monsterId) {
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
-                        if (monster.race === "ゾンビ" && !monster.flags.isDead) {
+                        if (monster.race.includes("ゾンビ") && !monster.flags.isDead) {
                           const newBuffs = {};
                           let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
                           const deleteKeys = ["slashSeal", "martialSeal", "spellSeal", "breathSeal", "reviveBlock", "healBlock"];
@@ -8662,7 +8688,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のうらみ",
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                if (monster.race === "ゾンビ" && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
+                if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
                   applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
                 }
               }
@@ -11231,7 +11257,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 1,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.race === "悪魔" && skillUser.monsterId !== skillTarget.monsterId) {
+      if (skillTarget.race.includes("悪魔") && skillUser.monsterId !== skillTarget.monsterId) {
         applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { strength: 0.33 } });
       }
     },
@@ -11250,7 +11276,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
         for (const monster of parties[skillUser.teamID]) {
-          if (monster.race === "悪魔") {
+          if (monster.race.includes("悪魔")) {
             monster.abilities.supportAbilities.nextTurnAbilities.push({
               act: function (skillUser) {
                 applyBuff(skillUser, { powerCharge: { strength: 3 }, manaBoost: { strength: 3 }, anchorAction: {} });
@@ -11576,7 +11602,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.race === "悪魔") {
+      if (skillTarget.race.includes("悪魔")) {
         applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
       } else {
         displayMiss(skillTarget);
@@ -11595,7 +11621,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.race === "ドラゴン") {
+      if (skillTarget.race.includes("ドラゴン")) {
         applyBuff(skillTarget, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
       } else {
         displayMiss(skillTarget);
@@ -12381,7 +12407,7 @@ const skill = [
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock && monster.race === "物質") {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock && monster.race.includes("物質")) {
           await reviveMonster(monster, 0.6, false, true); // 間隔skip
         } else {
           displayMiss(monster);
@@ -12391,7 +12417,7 @@ const skill = [
     },
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
-        if (monster.race === "物質") {
+        if (monster.race.includes("物質")) {
           applyBuff(monster, { matterBuffAtk: { strength: 0.3, divineDispellable: true, duration: 3 }, matterBuffSpd: { strength: 0.3, divineDispellable: true, duration: 3 } });
         }
       }
@@ -12527,7 +12553,7 @@ const skill = [
     preemptiveGroup: 1,
     act: function (skillUser, skillTarget) {
       // 自分にも付与
-      if (skillTarget.race === "物質") {
+      if (skillTarget.race.includes("物質")) {
         applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" }, countDown: { count: 2, unDispellableByRadiantWave: true } });
       }
     },
@@ -12602,7 +12628,7 @@ const skill = [
     preemptiveGroup: 2,
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.race === "物質") {
+      if (skillTarget.race.includes("物質")) {
         applyBuff(skillTarget, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
       } else {
         displayMiss(skillTarget);
@@ -12691,7 +12717,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     act: async function (skillUser, skillTarget) {
-      if (skillTarget.race === "物質") {
+      if (skillTarget.race.includes("物質")) {
         applyBuff(skillTarget, { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true }, criticalGuard: { duration: 2, removeAtTurnStart: true } });
       }
     },
@@ -14295,7 +14321,7 @@ const gearAbilities = {
   },
   pharaohBracelet: {
     initialAbilities: async function (skillUser) {
-      if (skillUser.race === "ゾンビ") {
+      if (skillUser.race.includes("ゾンビ")) {
         skillUser.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
         skillUser.attribute.additionalEvenTurnBuffs = {
           ...skillUser.attribute.additionalEvenTurnBuffs,
@@ -15010,7 +15036,7 @@ function calculateMPcost(skillUser, executingSkill) {
     calcMPcost = Math.ceil(calcMPcost * skillUser.buffs.mpCostMultiplier.strength);
   }
   //超伝説
-  if (skillUser.race === "超伝説" && !skillUser.buffs.tagTransformation) {
+  if (skillUser.race.includes("超伝説") && !skillUser.buffs.tagTransformation) {
     calcMPcost = Math.ceil(calcMPcost * 1.2);
   }
   //コツの半減
@@ -15421,7 +15447,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.buffs.speedBasedAttack) {
     NormalAttackName = "魔獣の追撃";
-  } else if (skillUser.race === "ゾンビ" && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
+  } else if (skillUser.race.includes("ゾンビ") && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
     NormalAttackName = "一族のけがれ攻撃";
   } else if (skillUser.flags.orugoDispelleUnbreakableAttack) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
@@ -15449,7 +15475,7 @@ function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
   }
   let count = 0;
   for (const monster of party) {
-    if (monster && monster.race === targetRace) {
+    if (monster && monster.race.includes(targetRace)) {
       count++;
     }
   }
@@ -15460,7 +15486,7 @@ function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
 function countSameRaceMonsters(monster) {
   let count = 0;
   for (const teamMonster of parties[monster.teamID]) {
-    if (teamMonster && teamMonster.race === monster.race) {
+    if (teamMonster && teamMonster.race.some((targetRace) => monster.race.includes(targetRace))) {
       count++;
     }
   }
