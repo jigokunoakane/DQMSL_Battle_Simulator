@@ -6636,7 +6636,7 @@ const monsters = [
     ls: { HP: 1.25 },
     lsTarget: "物質",
     AINormalAttack: [1, 3],
-    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 1.5, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルスパイダー",
