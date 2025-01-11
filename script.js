@@ -4470,10 +4470,15 @@ async function executeDeathAbilities(monster) {
   // 各ability配列の中身を展開して追加
   abilitiesToExecute.push(...(monster.abilities.deathAbilities ?? []));
   abilitiesToExecute.push(...(monster.abilities.additionalDeathAbilities ?? []));
-  for (const ability of abilitiesToExecute) {
+  // finalAbilityを持つものを分離
+  const finalAbilities = abilitiesToExecute.filter((ability) => ability.finalAbility);
+  const normalAbilities = abilitiesToExecute.filter((ability) => !ability.finalAbility);
+
+  // ability実行部分の関数
+  const executeAbility = async (ability) => {
     //実行済 または 蘇生かつ常に実行ではない能力 または使用不可能条件に引っかかった場合はcontinue
     if (monster.flags.executedAbilities.includes(ability.name) || (isReviving && !ability.alwaysExecute) || (ability.unavailableIf && ability.unavailableIf(monster))) {
-      continue;
+      return;
     }
     await sleep(500);
     if (!ability.disableMessage) {
@@ -4491,6 +4496,15 @@ async function executeDeathAbilities(monster) {
       monster.flags.executedAbilities.push(ability.name);
     }
     await sleep(200);
+  };
+
+  // 通常のabilityを実行
+  for (const ability of normalAbilities) {
+    await executeAbility(ability);
+  }
+  // finalAbilityを持つabilityを実行
+  for (const ability of finalAbilities) {
+    await executeAbility(ability);
   }
   await sleep(150);
 }
@@ -8491,6 +8505,26 @@ function getMonsterAbilities(monsterId) {
           disableMessage: true,
           act: async function (skillUser, executingSkill, executedSkills) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
+          },
+        },
+      ],
+    },
+    kinmimi: {
+      deathAbilities: [
+        {
+          name: "ふくしゅうの呪い",
+          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn),
+          finalAbility: true,
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.flags.isDead && !monster.buffs.reviveBlock && Math.random() < 0.23) {
+                await reviveMonster(monster, 0.25, false, true); // 間隔skip
+              } else {
+                displayMiss(monster);
+              }
+            }
+            await sleep(440);
           },
         },
       ],
