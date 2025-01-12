@@ -1150,7 +1150,7 @@ async function startTurn() {
         displayMessage("死のカウントダウンの", "効果が 発動！");
         await sleep(100);
         delete monster.buffs.countDown;
-        handleDeath(monster, false, false);
+        handleDeath(monster, false, false, null);
         displayMessage(`${monster.name}は ちからつきた！`);
         await checkRecentlyKilledFlagForPoison(monster);
       } else {
@@ -2700,7 +2700,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       dotDamageValue = skillUser.buffs.damageLimit.strength;
     }
     console.log(`${skillUser.name}は属性断罪の刻印で${dotDamageValue}のダメージを受けた！`);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
@@ -2722,7 +2722,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は毒で${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, `${poisonMessage}`);
     await sleep(200);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
@@ -2735,7 +2735,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は継続ダメージで${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
     await sleep(200);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
@@ -2849,7 +2849,7 @@ function applyHeal(target, healAmount, isMPheal = false, ignoreHealBoost = false
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false, skipDeathAbility = false) {
+function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false, skipDeathAbility = false, perpetrator = null) {
   if (resistance === -1) {
     // 回復処理 基礎値を用意
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
@@ -2924,7 +2924,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
                 delete target.buffs.isUnbreakable;
               }
             } else {
-              handleDeath(target, false, skipDeathAbility);
+              handleDeath(target, false, skipDeathAbility, perpetrator);
             }
           } else {
             if (target.buffs.isUnbreakable.left > 0 && !target.buffs.revive) {
@@ -2936,13 +2936,13 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
               if (Math.random() < 0.75) {
                 handleUnbreakable(target);
               } else {
-                handleDeath(target, false, skipDeathAbility);
+                handleDeath(target, false, skipDeathAbility, perpetrator);
               }
             }
           }
         } else {
           // くじけぬなしは確定死亡
-          handleDeath(target, false, skipDeathAbility);
+          handleDeath(target, false, skipDeathAbility, perpetrator);
         }
       } else {
         updateMonsterBar(target, true); //赤いバー表示
@@ -2963,7 +2963,7 @@ function handleUnbreakable(target) {
   }
 }
 
-function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = false) {
+function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = false, perpetrator = null) {
   if (target.flags.isZombie) {
     return;
   }
@@ -2977,6 +2977,9 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   if (applySkipDeathAbility) {
     target.flags.skipDeathAbility = true;
   }
+  // 加害者が存在して敵teamの場合のみ記録 handleDeath実行のたびに更新
+  const validPerpetrator = perpetrator && target.teamID !== perpetrator.teamID ? perpetrator : null;
+  target.flags.perpetrator = validPerpetrator;
 
   ++fieldState.deathCount[target.teamID];
   // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
@@ -3399,7 +3402,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     //反射は成功時かつ反射時にエフェクト表示のみ実行、失敗時には何事もなかったように再度通常の処理で反射化
     if (Math.random() < zakiResistance * executingSkill.zakiProbability && !zakiTarget.flags.isDead) {
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
-      handleDeath(zakiTarget, false, isZakiReflection);
+      handleDeath(zakiTarget, false, isZakiReflection, null);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
       checkRecentlyKilledFlag(skillUser, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
       return;
@@ -3563,7 +3566,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit, isReflection);
+  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit, isReflection, skillUser);
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
@@ -7724,17 +7727,18 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
-      /*deathAbilities: [
+      deathAbilities: [
         {
           name: "封印の光",
           isOneTimeUse: true,
+          unavailableIf: (skillUser) => !skillUser.flags.perpetrator,
           act: async function (skillUser) {
-            await executeWave(skillUser);
-            applyBuff(skillUser, { statusLock: {} });
+            const skillTarget = skillUser.flags.perpetrator;
+            await executeWave(skillTarget, true, true);
+            applyBuff(skillTarget, { statusLock: {} });
           },
         },
       ],
-      */
     },
     dhuran: {
       supportAbilities: {
@@ -8666,6 +8670,17 @@ function getMonsterAbilities(monsterId) {
                 return name;
               });
             }
+          },
+        },
+      ],
+      deathAbilities: [
+        {
+          name: "死への誘い",
+          isOneTimeUse: true,
+          unavailableIf: (skillUser) => !skillUser.flags.perpetrator,
+          act: async function (skillUser) {
+            const skillTarget = skillUser.flags.perpetrator;
+            applyBuff(skillTarget, { countDown: { count: 2 } });
           },
         },
       ],
@@ -9817,7 +9832,7 @@ const skill = [
     },
     act: function (skillUser, skillTarget) {
       // skipDeathAbility: trueでhandleDeath
-      handleDeath(skillUser, true, true);
+      handleDeath(skillUser, true, true, null);
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
     followingSkill: "供物をささげる死亡",
@@ -9839,7 +9854,7 @@ const skill = [
         delete nerugeru.buffs.stoned;
         // マソ深度5も解除
         // skipDeathAbility: trueでhandleDeath
-        handleDeath(nerugeru, true, true);
+        handleDeath(nerugeru, true, true, null);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
           nerugeru.flags.willTransform = true;
@@ -12714,7 +12729,7 @@ const skill = [
     afterActionAct: async function (skillUser) {
       await sleep(200);
       const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
-      applyDamage(skillUser, 480 * randomMultiplier, 1, false, false, false, false);
+      applyDamage(skillUser, 480 * randomMultiplier, 1, false, false, false, false, null);
       await checkRecentlyKilledFlagForPoison(skillUser);
       // 全滅させた後にも自傷と蘇生を実行
     },
@@ -12929,7 +12944,7 @@ const skill = [
         damageModifier += skillTarget.buffs.weaponBuff.strength;
       }
       damage *= damageModifier;
-      applyDamage(skillTarget, damage, 1, true, false, false, false);
+      applyDamage(skillTarget, damage, 1, true, false, false, false, null);
     },
   },
   {
@@ -13450,7 +13465,7 @@ const skill = [
     ignoreEvasion: true,
     afterActionAct: async function (skillUser) {
       await sleep(200);
-      applyDamage(skillUser, 500, 1, false, false, false, false);
+      applyDamage(skillUser, 500, 1, false, false, false, false, null);
       await checkRecentlyKilledFlagForPoison(skillUser);
       // 全滅させた後にも自傷と蘇生を実行
     },
