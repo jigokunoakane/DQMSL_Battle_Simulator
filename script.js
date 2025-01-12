@@ -15559,13 +15559,13 @@ async function transformTyoma(monster) {
   updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
+  delete monster.buffs.sealed; // 封印は共通で解除
   await executeRadiantWave(monster);
 
   // skill変更と、各種message
   if (monster.name === "憎悪のエルギオス") {
     monster.skill[0] = "絶望の天舞";
     delete monster.buffs.stoned;
-    delete monster.buffs.sealed;
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "死を統べる者ネルゲル") {
     monster.attribute.additionalPermanentBuffs = { spellBarrier: { strength: 2, unDispellable: true, duration: 0 }, breathBarrier: { strength: 2, unDispellable: true, duration: 0 } };
