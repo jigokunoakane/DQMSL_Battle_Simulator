@@ -3956,7 +3956,7 @@ function calculateDamage(
   }
 
   // 以下加算処理
-  let damageModifier = 1;
+  let damageModifier = 0;
 
   // skillUser対象バフ
   // 装備 錬金が一意に定まるように注意
@@ -4168,7 +4168,10 @@ function calculateDamage(
 
   // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリアを反映
   if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
-    damage *= damageModifier;
+    if (executingSkill.name === "混沌のキバ") {
+      damageModifier *= 2;
+    }
+    damage *= damageModifier + 1;
     // そしでん
     if (skillTarget.buffs.sosidenBarrier) {
       if (["???", "超魔王", "超伝説"].some((targetRace) => skillTarget.race.includes(targetRace))) {
@@ -6846,8 +6849,8 @@ const monsters = [
     race: ["超魔王", "スライム", "ドラゴン", "自然", "魔獣", "物質", "悪魔", "ゾンビ"],
     weight: 40,
     status: { HP: 744, MP: 523, atk: 619, def: 713, spd: 459, int: 440 },
-    initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
-    anotherSkills: ["ベホマラー"],
+    initialSkill: ["グランドアビス", "再召喚の儀", "修羅の闇", "殺りくのツメ"],
+    anotherSkills: ["混沌のキバ"],
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 3 },
@@ -13584,6 +13587,122 @@ const skill = [
     },
   },
   {
+    name: "グランドアビス",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 108,
+    appliedEffect: { reviveBlock: { duration: 1 } },
+    ignoreReflection: true,
+    followingSkill: "グランドアビス後半",
+  },
+  {
+    name: "グランドアビス後半",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 310,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    damageModifier: function (skillUser, skillTarget) {
+      const HPratio = skillUser.currentStatus.HP / skillUser.defaultStatus.HP;
+      if (HPratio < 0.25) {
+        return 0.2; //加算らしい
+      } else {
+        return 0;
+      }
+    },
+  },
+  {
+    name: "再召喚の儀",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 108,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock && !["???", "超魔王", "超伝説"].some((targetRace) => monster.race.includes(targetRace))) {
+          await reviveMonster(monster, 1, false, true); // 間隔skip
+          applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: 2 }, spdUp: { strength: 2 }, intUp: { strength: 2 }, countDown: { count: 2 } });
+        }
+      }
+      await sleep(740);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
+    },
+  },
+  {
+    name: "修羅の闇",
+    type: "breath",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 57,
+    appliedEffect: { healBlock: {}, reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    followingSkill: "修羅の闇後半",
+  },
+  {
+    name: "修羅の闇後半",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 370,
+    element: "dark",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    hitNum: 3,
+  },
+  {
+    name: "殺りくのツメ",
+    type: "slash",
+    howToCalculate: "def",
+    ratio: 0.4,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 78,
+    ignoreEvasion: true,
+    ignoreProtection: true,
+    ignoreSubstitute: true,
+    criticalHitProbability: 1,
+  },
+  {
+    name: "混沌のキバ",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.57,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 55,
+  },
+  {
+    name: "名もなき儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 210,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 8,
+    MPcost: 62,
+    ignoreProtection: true,
+    ignoreGuard: true,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "カオスストーム",
     type: "spell",
     howToCalculate: "int",
@@ -15411,6 +15530,7 @@ async function transformTyoma(monster) {
     monster.flags.reviveNextTurn = "怨嗟のうめき";
     displayMessage("＊「オホホホ。", "  おバカさんにも ほどがあるわね。");
   } else if (monster.name === "名もなき闇の王") {
+    monster.skill[2] = "名もなき儀式";
     displayMessage("＊「我に 恐怖に歪む顔を 見せよ…。");
   }
   await sleep(400);
