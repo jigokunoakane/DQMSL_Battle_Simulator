@@ -168,7 +168,12 @@ async function prepareBattle() {
         if (key === "HP" || key === "MP") {
           lsMultiplier += 0.04;
         }
-        monster.defaultStatus[key] = Math.ceil(statusValue * lsMultiplier);
+        // パラディンハート
+        let HPIncrement = 0;
+        if (monster.race.includes("スライム") && monster.gear?.name === "パラディンハート・蒼" && key === "HP") {
+          HPIncrement = 30;
+        }
+        monster.defaultStatus[key] = Math.ceil(statusValue * lsMultiplier) + HPIncrement;
       }
       monster.currentStatus = { ...monster.defaultStatus };
 
@@ -6405,6 +6410,7 @@ const monsters = [
     status: { HP: 208, MP: 490, atk: 601, def: 775, spd: 461, int: 492 },
     initialSkill: ["クアトロマダンテ", "アイアンスラッシュ", "ベホマラー", "ザオリク"],
     anotherSkills: ["女神のはばたき"],
+    defaultGear: "slimeHeart",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -6511,6 +6517,7 @@ const monsters = [
     weight: 16,
     status: { HP: 648, MP: 318, atk: 413, def: 619, spd: 466, int: 412 },
     initialSkill: ["チアフルダンス", "みがわり", "光のはどう", "ザオリク"],
+    defaultGear: "slimeHeart",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -14533,6 +14540,12 @@ const gear = [
     id: "devilSpellHeart",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+  },
+  {
+    name: "パラディンハート・蒼",
+    id: "slimeHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
   },
   {
     name: "竜のうろこ",
