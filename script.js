@@ -13819,17 +13819,7 @@ const skill = [
     MPcost: 65,
     healSkill: true,
     act: async function (skillUser, skillTarget) {
-      const int = skillUser.currentStatus.int;
-      let healAmount = 110;
-      if (int < 200) {
-        healAmount = 110;
-      } else if (int > 500) {
-        healAmount = 272;
-      } else {
-        healAmount = 0.54 * (int - 200) + 110;
-      }
-      healAmount *= 1.15;
-      applyHeal(skillTarget, healAmount);
+      executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
     },
   },
   {
@@ -13842,17 +13832,7 @@ const skill = [
     MPcost: 50,
     healSkill: true,
     act: async function (skillUser, skillTarget) {
-      const int = skillUser.currentStatus.int;
-      let healAmount = 110;
-      if (int < 200) {
-        healAmount = 110;
-      } else if (int > 500) {
-        healAmount = 272;
-      } else {
-        healAmount = 0.54 * (int - 200) + 110;
-      }
-      healAmount *= 1.15;
-      applyHeal(skillTarget, healAmount);
+      executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
     },
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
@@ -13873,17 +13853,7 @@ const skill = [
     MPcost: 64,
     healSkill: true,
     act: async function (skillUser, skillTarget) {
-      const int = skillUser.currentStatus.int;
-      let healAmount = 95;
-      if (int < 200) {
-        healAmount = 95;
-      } else if (int > 500) {
-        healAmount = 230;
-      } else {
-        healAmount = 0.45 * (int - 200) + 95;
-      }
-      healAmount *= 1.15;
-      applyHeal(skillTarget, healAmount);
+      executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
     },
     followingSkill: "光のはどう",
   },
@@ -14186,17 +14156,7 @@ const skill = [
     MPcost: 42,
     healSkill: true,
     act: async function (skillUser, skillTarget) {
-      const int = skillUser.currentStatus.int;
-      let healAmount = 330;
-      if (int < 200) {
-        healAmount = 330;
-      } else if (int > 500) {
-        healAmount = 975;
-      } else {
-        healAmount = 2.15 * (int - 200) + 330;
-      }
-      healAmount *= 1.15;
-      applyHeal(skillTarget, healAmount);
+      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
   },
   {
@@ -14209,17 +14169,7 @@ const skill = [
     MPcost: 42,
     healSkill: true,
     act: async function (skillUser, skillTarget) {
-      const int = skillUser.currentStatus.int;
-      let healAmount = 330;
-      if (int < 200) {
-        healAmount = 330;
-      } else if (int > 500) {
-        healAmount = 975;
-      } else {
-        healAmount = 2.15 * (int - 200) + 330;
-      }
-      healAmount *= 1.15;
-      applyHeal(skillTarget, healAmount);
+      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
   },
   {
@@ -14634,6 +14584,22 @@ const gearAbilities = {
     },
   },
 };
+
+function executeHealSkill(skillUser, skillTarget, minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus = 1.15) {
+  const int = skillUser.currentStatus.int;
+  const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
+  let healAmount;
+  if (int < minInt) {
+    healAmount = minIntHealAmount;
+  } else if (int > maxInt) {
+    healAmount = maxIntHealAmount;
+  } else {
+    healAmount = ((int - minInt) * (maxIntHealAmount - minIntHealAmount)) / (maxInt - minInt) + Number(minIntHealAmount);
+  }
+  healAmount *= skillPlus;
+  healAmount *= randomMultiplier;
+  applyHeal(skillTarget, healAmount);
+}
 
 //画像の暗転と無効化 trueで暗転
 function toggleDarkenAndClick(imgElement, enable) {
