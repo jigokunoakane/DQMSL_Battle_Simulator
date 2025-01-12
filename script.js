@@ -6504,6 +6504,27 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ドラゴメタル", //最強 HP100
+    id: "dorameta",
+    rank: 9,
+    race: ["スライム"],
+    weight: 16,
+    status: { HP: 648, MP: 318, atk: 413, def: 619, spd: 466, int: 412 },
+    initialSkill: ["チアフルダンス", "みがわり", "光のはどう", "ザオリク"],
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        revive: { keepOnDeath: true, strength: 0.5 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
     name: "ダークマター", //44
     id: "matter",
     rank: 10,
@@ -6863,7 +6884,7 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 0, def: 45, spd: 75, int: 0 },
     ls: { HP: 1.35, MP: 1.35 },
     lsTarget: "all",
     AINormalAttack: [3],
@@ -8368,6 +8389,16 @@ function getMonsterAbilities(monsterId) {
           return "特性発動用におうだち";
         },
       },
+    },
+    dorameta: {
+      afterActionHealAbilities: [
+        {
+          name: "自動MP回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.05, true);
+          },
+        },
+      ],
     },
     matter: {
       supportAbilities: {
@@ -13789,6 +13820,37 @@ const skill = [
       }
       healAmount *= 1.15;
       applyHeal(skillTarget, healAmount);
+    },
+  },
+  {
+    name: "チアフルダンス",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 50,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      const int = skillUser.currentStatus.int;
+      let healAmount = 110;
+      if (int < 200) {
+        healAmount = 110;
+      } else if (int > 500) {
+        healAmount = 272;
+      } else {
+        healAmount = 0.54 * (int - 200) + 110;
+      }
+      healAmount *= 1.15;
+      applyHeal(skillTarget, healAmount);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (Math.random() < 0.8) {
+          applyBuff(monster, { defUp: { strength: 1 } });
+          await sleep(100);
+        }
+      }
     },
   },
   {
