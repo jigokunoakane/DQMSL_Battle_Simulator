@@ -2964,6 +2964,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   target.flags.recentlyKilled = true;
   target.flags.beforeDeathActionCheck = true;
   delete target.flags.guard;
+  delete target.flags.hazamaNeverKilled;
   // 供物2種はskipDeathAbilityを付与して死亡時発動を行わない
   if (applySkipDeathAbility) {
     target.flags.skipDeathAbility = true;
@@ -6849,8 +6850,14 @@ const monsters = [
     anotherSkills: ["ベホマラー"],
     attribute: {
       initialBuffs: {
-        fireBreak: { keepOnDeath: true, strength: 1 },
-        mindBarrier: { duration: 3 },
+        darkBreak: { keepOnDeath: true, strength: 3 },
+        mindBarrier: { keepOnDeath: true },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -8874,6 +8881,70 @@ function getMonsterAbilities(monsterId) {
         followingSkillName: (executingSkill) => {
           return "光のはどう"; //行動停止でも封じでも発動
         },
+      },
+    },
+    hazama: {
+      initialAbilities: [
+        {
+          name: "狭間変身条件flag付与",
+          disableMessage: true,
+          act: async function (skillUser) {
+            skillUser.flags.hazamaNeverKilled = true;
+          },
+        },
+      ],
+      initialAttackAbilities: [
+        {
+          name: "光をうばうもの",
+          disableMessage: true,
+          act: function (skillUser) {
+            for (const party of parties) {
+              for (const monster of party) {
+                if (monster.buffs.revive) {
+                  delete monster.buffs.revive;
+                  updateMonsterBuffsDisplay(monster);
+                }
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "名もなき化身",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+          {
+            name: "深淵の衣",
+            act: async function (skillUser) {
+              const targetBuffs = ["baiki", "defUp", "spdUp", "intUp", "slashBarrier", "spellBarrier", "martialBarrier", "breathBarrier"];
+              for (const key of targetBuffs) {
+                const buffData = skillUser.buffs[key];
+                if (buffData && !buffData.keepOnDeath && buffData.strength === 1) {
+                  buffData.strength = 2;
+                }
+              }
+              updateMonsterBuffsDisplay(skillUser);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "狭間変身",
+            disableMessage: true,
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => skillUser.flags.hazamaNeverKilled || skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              await transformTyoma(skillUser);
+            },
+          },
+        ],
       },
     },
   };
@@ -15339,11 +15410,21 @@ async function transformTyoma(monster) {
     monster.flags.zombifyActName = "不滅の美";
     monster.flags.reviveNextTurn = "怨嗟のうめき";
     displayMessage("＊「オホホホ。", "  おバカさんにも ほどがあるわね。");
+  } else if (monster.name === "名もなき闇の王") {
+    displayMessage("＊「我に 恐怖に歪む顔を 見せよ…。");
   }
   await sleep(400);
 
   // 共通バフ
-  applyBuff(monster, { demonKingBarrier: { divineDispellable: true }, nonElementalResistance: {}, protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+  applyBuff(monster, { demonKingBarrier: { divineDispellable: true } });
+  await sleep(150);
+  applyBuff(monster, { nonElementalResistance: {} });
+  await sleep(150);
+  if (monster.name !== "名もなき闇の王") {
+    applyBuff(monster, { protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+    await sleep(150);
+  }
+
   // 各種buff
   if (monster.name === "憎悪のエルギオス") {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
@@ -15354,6 +15435,10 @@ async function transformTyoma(monster) {
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
     applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
+  } else if (monster.name === "名もなき闇の王") {
+    monster.buffs.darkBreak.strength = 4;
+    applyBuff(monster, { internalDefUp: { strength: 1, keepOnDeath: true } });
+    applyBuff(monster, { isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" } });
   }
 
   // 回復
