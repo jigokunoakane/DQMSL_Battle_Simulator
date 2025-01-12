@@ -1150,7 +1150,7 @@ async function startTurn() {
         displayMessage("死のカウントダウンの", "効果が 発動！");
         await sleep(100);
         delete monster.buffs.countDown;
-        handleDeath(monster, true);
+        handleDeath(monster, false, false);
         displayMessage(`${monster.name}は ちからつきた！`);
         await checkRecentlyKilledFlagForPoison(monster);
       } else {
@@ -2700,7 +2700,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       dotDamageValue = skillUser.buffs.damageLimit.strength;
     }
     console.log(`${skillUser.name}は属性断罪の刻印で${dotDamageValue}のダメージを受けた！`);
-    applyDamage(skillUser, dotDamageValue);
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
@@ -2722,7 +2722,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は毒で${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, `${poisonMessage}`);
     await sleep(200);
-    applyDamage(skillUser, dotDamageValue);
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
@@ -2735,7 +2735,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     console.log(`${skillUser.name}は継続ダメージで${dotDamageValue}のダメージを受けた！`);
     displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
     await sleep(200);
-    applyDamage(skillUser, dotDamageValue);
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
@@ -2849,7 +2849,7 @@ function applyHeal(target, healAmount, isMPheal = false, ignoreHealBoost = false
 }
 
 // ダメージを適用する関数
-function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false) {
+function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false, skipDeathAbility = false) {
   if (resistance === -1) {
     // 回復処理 基礎値を用意
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
@@ -2924,7 +2924,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
                 delete target.buffs.isUnbreakable;
               }
             } else {
-              handleDeath(target);
+              handleDeath(target, false, skipDeathAbility);
             }
           } else {
             if (target.buffs.isUnbreakable.left > 0 && !target.buffs.revive) {
@@ -2936,13 +2936,13 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
               if (Math.random() < 0.75) {
                 handleUnbreakable(target);
               } else {
-                handleDeath(target);
+                handleDeath(target, false, skipDeathAbility);
               }
             }
           }
         } else {
           // くじけぬなしは確定死亡
-          handleDeath(target);
+          handleDeath(target, false, skipDeathAbility);
         }
       } else {
         updateMonsterBar(target, true); //赤いバー表示
@@ -2973,7 +2973,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   target.flags.beforeDeathActionCheck = true;
   delete target.flags.guard;
   delete target.flags.hazamaNeverKilled;
-  // 供物2種はskipDeathAbilityを付与して死亡時発動を行わない
+  // 毒 供物 反射でskipDeathAbilityが渡された場合、processDeathAction内で死亡時発動を実行しないマーカーを付与
   if (applySkipDeathAbility) {
     target.flags.skipDeathAbility = true;
   }
@@ -3000,7 +3000,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   deleteSubstitute(target);
 
-  // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与 applySkipDeathAbilityがtrue指定(毒等と供物)の場合は付与しない
+  // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与 applySkipDeathAbilityがtrue指定(毒 供物 反射)の場合は亡者化しない
   if (
     !target.buffs.tagTransformation &&
     !(target.buffs.revive && !target.buffs.reviveBlock) &&
@@ -3399,7 +3399,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     //反射は成功時かつ反射時にエフェクト表示のみ実行、失敗時には何事もなかったように再度通常の処理で反射化
     if (Math.random() < zakiResistance * executingSkill.zakiProbability && !zakiTarget.flags.isDead) {
       if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
-      handleDeath(zakiTarget);
+      handleDeath(zakiTarget, false, isZakiReflection);
       if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
       checkRecentlyKilledFlag(skillUser, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
       return;
@@ -3563,7 +3563,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit);
+  applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit, isReflection);
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
@@ -4390,11 +4390,6 @@ function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killed
     if (!excludedTargets.has(skillTarget)) {
       excludedTargets.add(skillTarget);
       killedByThisSkill.add(skillTarget);
-      // 反射かつ死亡時は、handleDeath内で予約された亡者化を解除する ただし超魔ゾンビやオルゴは反射死でも亡者化
-      if (isReflection && skillTarget.flags.willZombify && !skillTarget.name === "非道兵器超魔ゾンビ" && !skillTarget.buffs.isUnAscensionable) {
-        delete skillTarget.flags.willZombify;
-        skillTarget.commandInput = "skipThisTurn";
-      }
       // ドレアム判定 skillTargetが死亡してかつリザオではない場合、フラグを立てる(リザオ・変身等判定前に判別) 現状ざんよによる倒しは対象外
       if (skillUser && skillUser.name === "魔神ダークドレアム") {
         // reviveしないならば
@@ -4459,11 +4454,9 @@ async function processDeathAction(skillUser, excludedTargets) {
     }
 
     // 死亡時発動能力の実行
-    if (monster.flags.skipDeathAbility) {
-      delete monster.flags.skipDeathAbility;
-    } else {
-      await executeDeathAbilities(monster);
-    }
+    await executeDeathAbilities(monster);
+    // 処理後に、死亡時発動を実行しないマーカーを削除
+    delete monster.flags.skipDeathAbility;
 
     // 復活処理
     if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
@@ -4488,7 +4481,12 @@ async function executeDeathAbilities(monster) {
   // ability実行部分の関数
   const executeAbility = async (ability) => {
     //実行済 または 蘇生かつ常に実行ではない能力 または使用不可能条件に引っかかった場合はcontinue
-    if (monster.flags.executedAbilities.includes(ability.name) || (isReviving && !ability.alwaysExecute) || (ability.unavailableIf && ability.unavailableIf(monster))) {
+    if (
+      monster.flags.executedAbilities.includes(ability.name) ||
+      (isReviving && !ability.executeOnRevive) ||
+      (monster.flags.skipDeathAbility && !ability.ignoreSkipDeathAbilityFlag) ||
+      (ability.unavailableIf && ability.unavailableIf(monster))
+    ) {
       return;
     }
     await sleep(500);
@@ -6748,6 +6746,7 @@ const monsters = [
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ヴェレマータ"],
     initialAIDisabledSkills: ["れんごくの翼"],
+    defaultGear: "pharaohBracelet",
     attribute: {
       initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 1 },
@@ -7770,6 +7769,7 @@ function getMonsterAbilities(monsterId) {
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name} がチカラつき`, "一族のいかり の効果が発動！");
                     },
+                    ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
                         if (!monster.flags.isDead && monster.race.includes("悪魔")) {
@@ -8445,6 +8445,7 @@ function getMonsterAbilities(monsterId) {
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
+                    ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                     act: async function (skillUser) {
                       executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
                     },
@@ -9815,7 +9816,7 @@ const skill = [
       displayMessage(`${skillUserName}は闇に身をささげた！`);
     },
     act: function (skillUser, skillTarget) {
-      // skipDeathAbilityを付与してhandleDeath
+      // skipDeathAbility: trueでhandleDeath
       handleDeath(skillUser, true, true);
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
@@ -9837,7 +9838,7 @@ const skill = [
         delete nerugeru.buffs.poisonDepth;
         delete nerugeru.buffs.stoned;
         // マソ深度5も解除
-        // skipDeathAbilityを付与してhandleDeath
+        // skipDeathAbility: trueでhandleDeath
         handleDeath(nerugeru, true, true);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
         if (nerugeru.flags.isDead) {
@@ -12713,7 +12714,7 @@ const skill = [
     afterActionAct: async function (skillUser) {
       await sleep(200);
       const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
-      applyDamage(skillUser, 480 * randomMultiplier, 1);
+      applyDamage(skillUser, 480 * randomMultiplier, 1, false, false, false, false);
       await checkRecentlyKilledFlagForPoison(skillUser);
       // 全滅させた後にも自傷と蘇生を実行
     },
@@ -12928,7 +12929,7 @@ const skill = [
         damageModifier += skillTarget.buffs.weaponBuff.strength;
       }
       damage *= damageModifier;
-      applyDamage(skillTarget, damage, 1, true, false, false);
+      applyDamage(skillTarget, damage, 1, true, false, false, false);
     },
   },
   {
@@ -13449,7 +13450,7 @@ const skill = [
     ignoreEvasion: true,
     afterActionAct: async function (skillUser) {
       await sleep(200);
-      applyDamage(skillUser, 500, 1);
+      applyDamage(skillUser, 500, 1, false, false, false, false);
       await checkRecentlyKilledFlagForPoison(skillUser);
       // 全滅させた後にも自傷と蘇生を実行
     },
