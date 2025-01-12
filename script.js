@@ -1255,18 +1255,17 @@ async function startBattle() {
   decideTurnOrder(parties, skill);
   //monsterの行動を順次実行
   for (const monster of turnOrder) {
-    // 戦闘終了時: 全てのflowを停止  skipの場合: 毒の処理などはするので通常通りprocessに入る
+    // 戦闘終了時: 順次実行を終了しstartTurn内で終了  skipの場合: 毒の処理などはするので通常通りprocessに入る
     if (isBattleOver()) {
       removeAllStickOut();
-      return;
+      break;
     }
     await processMonsterAction(monster);
     await sleep(450);
   }
-  // 最後のmonsterの行動で戦闘終了時: 全てのflowを停止  skip: 考慮不要
+  // 最後のmonsterの行動で戦闘終了時: startTurn内で終了 skip: 考慮不要
   if (isBattleOver()) {
     removeAllStickOut();
-    return;
   }
   await startTurn();
 }
