@@ -898,6 +898,9 @@ async function startTurn() {
       // みがわり削除後の更新はremoveExpiredBuffsAtTurnStart内で
     }
   }
+  // 前ターンの死亡によるskipThisTurnが残り、防衛指令のにおうだちなどが発動しないのを防止
+  initializeMonsterCommands(0);
+  initializeMonsterCommands(1);
   // ぼうぎょタグを削除
   removeAllRecede();
 
