@@ -494,15 +494,15 @@ function selectCommand(selectedSkillNum) {
 }
 
 function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, selectedSkillTargetTeam, selectedSkill) {
-  const excludeTarget = selectedSkill.excludeTarget || null;
   //target選択、敵画像か味方画像か 通常攻撃かsingle, randomで起動
   for (let i = 0; i < 5; i++) {
     const targetMonsterElement = document.getElementById(`selectSkillTarget${i}`);
     const targetMonsterWrapper = targetMonsterElement.parentNode; // wrapper要素を取得
+    const targetMonster = parties[targetTeamNum][i];
 
     // モンスター情報が存在しない場合、枠を非表示にしてcontinue
-    if (parties[targetTeamNum][i]) {
-      targetMonsterElement.src = parties[targetTeamNum][i].iconSrc;
+    if (targetMonster) {
+      targetMonsterElement.src = targetMonster.iconSrc;
       targetMonsterElement.style.display = "inline";
       targetMonsterWrapper.style.display = "flex";
     } else {
@@ -510,7 +510,6 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
       targetMonsterWrapper.style.display = "none";
       continue; // 次のモンスターの処理へ
     }
-    const targetMonster = parties[targetTeamNum][i];
 
     //モンスター情報が存在する場合、初期化で暗転&無効化解除
     toggleDarkenAndClick(targetMonsterElement, false);
@@ -534,12 +533,13 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
       }
     }
 
-    // スキルが自分を対象外にする場合、自分の画像を暗転&無効化
-    if (excludeTarget && excludeTarget === "self" && currentMonsterIndex === i) {
+    // スキル指定の除外対象
+    if (selectedSkill.excludeTarget && selectedSkill.excludeTarget(targetMonster)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
-    //みがわりの場合、覆う中の対象を暗転&無効化
-    if (selectedSkill.name === "みがわり" && (targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
+    //みがわり系の場合、自分自身と覆う中・覆われ中の対象を暗転&無効化
+    const singleSubstituteSkills = ["みがわり", "かばう", "おおいかくす", "みがわり・マインドバリア"];
+    if (singleSubstituteSkills.includes(selectedSkill.name) && (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -5265,6 +5265,10 @@ document.getElementById("surapa").addEventListener("click", function () {
   selectAllPartyMembers(["goddess", "surahero", "suragirl", "surabura", "haguki"]);
 });
 
+document.getElementById("slimehazama").addEventListener("click", function () {
+  selectAllPartyMembers(["goddess", "surahero", "hazama", "dorameta", "haguki"]);
+});
+
 document.getElementById("materialpa").addEventListener("click", function () {
   selectAllPartyMembers(["matter", "him", "weapon", "castle", "golem"]);
 });
@@ -6882,6 +6886,7 @@ const monsters = [
     status: { HP: 744, MP: 523, atk: 619, def: 713, spd: 459, int: 440 },
     initialSkill: ["グランドアビス", "再召喚の儀", "修羅の闇", "殺りくのツメ"],
     anotherSkills: ["混沌のキバ"],
+    defaultGear: "kanazuchi",
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 3 },
@@ -8436,7 +8441,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
-                    name: "起爆装置爆発",
+                    name: "起爆装置爆発", //リザオ時は爆発しない
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
@@ -9016,7 +9021,7 @@ const skill = [
     element: "", //fire ice thunder io wind light dark
     targetType: "", //single random all self field dead
     targetTeam: "enemy", //ally enemy
-    excludeTarget: "self",
+    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     hitNum: 3,
     MPcost: 76,
     MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費 全消費は1
@@ -9628,7 +9633,6 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "self",
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 4,
@@ -9649,7 +9653,6 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "self",
     MPcost: 11,
     order: "preemptive",
     preemptiveGroup: 4,
@@ -10482,7 +10485,6 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "self",
     MPcost: 9,
     order: "preemptive",
     preemptiveGroup: 3,
@@ -11196,7 +11198,6 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
-    excludeTarget: "self",
     MPcost: 16,
     order: "preemptive",
     preemptiveGroup: 3,
@@ -12558,6 +12559,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     MPcost: 32,
     appliedEffect: { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
     act: async function (skillUser, skillTarget) {
@@ -12738,6 +12740,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     MPcost: 50,
     order: "preemptive",
     preemptiveGroup: 2,
