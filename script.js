@@ -4840,6 +4840,7 @@ function addSkillOptions() {
     "精霊の守り・強",
     "タップダンス",
     "マインドバリア",
+    "メラシールド",
     "ピオリム",
     "バイシオン",
     "バイキルト",
@@ -13982,6 +13983,18 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 32,
     appliedEffect: { martialSeal: { probability: 0.448 } },
+  },
+  {
+    name: "メラシールド",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 36, //+なし
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { elementalShield: { targetElement: "fire", remain: 250, unDispellable: true } },
   },
   {
     name: "斬撃よそく",
