@@ -1552,8 +1552,29 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       } else {
         buffTarget.buffs[buffName] = { ...buffData };
       }
+    } else if (buffName === "maso") {
+      // 3-3. マソ(確率処理を含む)
+      if (currentBuff) {
+        const probability = {
+          1: 0.8,
+          2: 0.6,
+          3: 0.4,
+          4: 0,
+          5: 0,
+        }[currentBuff.strength];
+        // strengthが指定されている場合は確定で指定分だけ上昇
+        if (buffData.strength || Math.random() < probability) {
+          const increment = buffData.strength || 1;
+          buffTarget.buffs.maso.strength = Math.min(currentBuff.strength + increment, buffData.maxDepth);
+        } else {
+          continue;
+        }
+      } else {
+        // 深度1は確定付与 初回付与ではkeepOnDeath付与
+        buffTarget.buffs.maso = { keepOnDeath: true, strength: 1 };
+      }
     } else {
-      // 3-3. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
+      // 3-4. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
         // 3-2-2. currentBuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
         //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
@@ -9851,7 +9872,7 @@ const skill = [
         delete nerugeru.buffs.reviveBlock;
         delete nerugeru.buffs.poisonDepth;
         delete nerugeru.buffs.stoned;
-        // マソ深度5も解除
+        delete nerugeru.buffs.maso; // マソ深度5も解除
         // skipDeathAbility: trueでhandleDeath
         handleDeath(nerugeru, true, true, null);
         //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
@@ -11326,7 +11347,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 50,
     act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget);
+      await executeRadiantWave(skillTarget, false, true); // マソも解除
     },
   },
   {
@@ -15138,7 +15159,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
 }
 
 //光の波動 dispellableByRadiantWave指定以外を残す
-async function executeRadiantWave(monster, skipMissDisplay = false) {
+async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso = false) {
   const newBuffs = {};
   let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
@@ -15150,6 +15171,10 @@ async function executeRadiantWave(monster, skipMissDisplay = false) {
     }
   }
   monster.buffs = newBuffs;
+  if (removeMaso && monster.buffs.maso && monster.buffs.maso.strength !== 5) {
+    delete monster.buffs.maso;
+    debuffRemoved = true;
+  }
 
   if (!debuffRemoved && !skipMissDisplay) {
     displayMiss(monster);
