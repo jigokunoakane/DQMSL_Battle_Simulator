@@ -1554,6 +1554,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
     } else if (buffName === "maso") {
       // 3-3. マソ(確率処理を含む)
+      const increment = buffData.strength || 1;
       if (currentBuff) {
         const probability = {
           1: 0.8,
@@ -1564,14 +1565,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }[currentBuff.strength];
         // strengthが指定されている場合は確定で指定分だけ上昇
         if (buffData.strength || Math.random() < probability) {
-          const increment = buffData.strength || 1;
           buffTarget.buffs.maso.strength = Math.min(currentBuff.strength + increment, buffData.maxDepth);
         } else {
           continue;
         }
       } else {
         // 深度1は確定付与 初回付与ではkeepOnDeath付与
-        buffTarget.buffs.maso = { keepOnDeath: true, strength: 1 };
+        const newStrength = Math.min(increment, buffData.maxDepth);
+        buffTarget.buffs.maso = { keepOnDeath: true, strength: newStrength };
       }
     } else {
       // 3-4. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
@@ -13791,6 +13792,80 @@ const skill = [
     appliedEffect: "divineWave",
   },
   {
+    name: "あらしの乱舞",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 270,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 48,
+    order: "anchor",
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
+  },
+  {
+    name: "マ素のはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 46,
+    appliedEffect: "disruptiveWave",
+    followingSkill: "マ素のはどう後半",
+  },
+  {
+    name: "マ素のはどう後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    appliedEffect: { maso: { maxDepth: 3 } },
+  },
+  {
+    name: "こうせきおとし",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    order: "anchor",
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
+  },
+  {
+    name: "マデュライトナックル",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 290,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 32,
+    damageByLevel: true,
+    masoMultiplier: {
+      1: 2,
+      2: 2.2, // 推測
+      3: 2.4,
+      4: 2.6,
+    },
+  },
+  {
     name: "マガデイン",
     type: "spell",
     howToCalculate: "int",
@@ -13827,11 +13902,54 @@ const skill = [
     MPcost: 70,
     appliedEffect: { maso: { maxDepth: 3 } },
     masoMultiplier: {
-      1: 3, //推測
-      2: 3.1,
+      1: 3,
+      2: 3.1, // 推測
       3: 3.2,
       4: 3.3,
     },
+  },
+  {
+    name: "プチマダンテ・凶",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 3.6,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 0.3,
+    ignoreReflection: true,
+    appliedEffect: { maso: { strength: 3, maxDepth: 3 } },
+  },
+  {
+    name: "マ瘴の爆発",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 73,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 70,
+    damageByLevel: true,
+    appliedEffect: { paralyzed: { probability: 0.3 } },
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
+  },
+  {
+    name: "バイオスタンプ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 136,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 44,
+    damageByLevel: true,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.3 } }, //TODO: ブレイク4体限定
   },
   {
     name: "カオスストーム",
@@ -16196,6 +16314,7 @@ function isSkillUnavailableForAI(skillName) {
     "圧縮マダンテ",
     "呪いのベホマズン",
     "死神の大鎌",
+    "バイオスタンプ",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
