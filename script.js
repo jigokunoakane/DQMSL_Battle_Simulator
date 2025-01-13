@@ -1362,25 +1362,25 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       continue;
     }
     // 1-4. 解除不可状態異常を上書きしない
-    //上位毒・上位回復封じ等以外の、解除不可が設定されていない新規状態異常系バフに対して、光の波動で解除可能なフラグを下処理として付与
+    // 上位毒・上位回復封じ等以外の、解除不可が設定されていない新規状態異常系バフに対して、光の波動で解除可能なフラグを下処理として付与
     if (dispellableByRadiantWaveAbnormalities.includes(buffName) && !buffData.unDispellableByRadiantWave) {
       buffData.dispellableByRadiantWave = true;
     }
-    //封印と石化はデフォルトで解除不可
+    // 封印と石化はデフォルトで解除不可
     if (buffName === "sealed" || buffName === "stoned") {
       buffData.unDispellableByRadiantWave = true;
     }
-    //もし同種状態異常が既存で、かつ既存unDispellableByRadiantWave > 新規付与dispellableByRadiantWave の場合は上書きしない
+    // もし同種状態異常が既存で、かつ既存unDispellableByRadiantWave > 新規付与dispellableByRadiantWave の場合は上書きしない
     if (currentBuff && currentBuff.unDispellableByRadiantWave && buffData.dispellableByRadiantWave) {
       continue;
     }
 
     // 1-5. 順位付け処理の前に自動付与
-    //蘇生封じをkeepOnDeath化
-    if (buffName === "reviveBlock") {
+    // 蘇生封じ・マソをkeepOnDeath化
+    if (buffName === "reviveBlock" || buffName === "maso") {
       buffData.keepOnDeath = true;
     }
-    //breakBoostの追加付与を可能に
+    // breakBoostの追加付与を可能に
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
     }
@@ -7999,6 +7999,23 @@ function getMonsterAbilities(monsterId) {
           }
         }
       },
+    },
+    raio: {
+      deathAbilities: [
+        {
+          name: "ラストハザード",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の`, "ラストハザード！");
+          },
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { maso: { maxDepth: 3 } });
+              await sleep(100);
+            }
+          },
+        },
+      ],
     },
     munbaba: {
       reviveAct: async function (monster, buffName) {
@@ -15437,6 +15454,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     countDown: {
       start: "死のカウントダウンが",
       message: "はじまった！",
+    },
+    maso: {
+      start: `${buffTarget.name}は`,
+      message: "マ素深度があがった！",
     },
     demonKingBarrier: {
       start: `${buffTarget.name}は`,
