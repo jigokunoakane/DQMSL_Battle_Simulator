@@ -14954,6 +14954,12 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
   fieldState.isBattleOver = true;
   setSkipMode(true);
   stopBGM();
+  // buff表示loopを停止
+  for (const party of parties) {
+    for (const monster of party) {
+      stopBuffDisplayLoop(monster);
+    }
+  }
   // skip状態の解除と表示戻し: 次のplayerBのパテ選択決定時に
 });
 
@@ -15051,10 +15057,7 @@ async function imageExists(imageUrl) {
 //global: buffDisplayTimers = {};を使用
 async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 前回のタイマーをクリア
-  if (buffDisplayTimers[monster.monsterId]) {
-    clearTimeout(buffDisplayTimers[monster.monsterId]);
-    buffDisplayTimers[monster.monsterId] = null;
-  }
+  stopBuffDisplayLoop(monster);
 
   let wrapper = document.getElementById(monster.iconElementId).parentElement;
   let newId = monster.iconElementId;
@@ -15206,6 +15209,13 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   showNextBuffs();
+}
+
+function stopBuffDisplayLoop(monster) {
+  if (buffDisplayTimers[monster.monsterId]) {
+    clearTimeout(buffDisplayTimers[monster.monsterId]);
+    buffDisplayTimers[monster.monsterId] = null;
+  }
 }
 
 //光の波動 dispellableByRadiantWave指定以外を残す
