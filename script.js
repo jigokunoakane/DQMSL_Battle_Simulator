@@ -3808,6 +3808,12 @@ function calculateDamage(
     damage *= sameRaceCount;
   }
 
+  // マソ深度特効 TODO: 反射時の対応
+  if (executingSkill.masoMultiplier && skillTarget.buffs.maso) {
+    const masoDepth = skillTarget.buffs.maso.strength === 5 ? 4 : skillTarget.buffs.maso.strength;
+    damage *= executingSkill.masoMultiplier[masoDepth];
+  }
+
   //耐性処理
   damage *= resistance;
 
@@ -6261,8 +6267,8 @@ const monsters = [
     race: ["悪魔"],
     weight: 25,
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
-    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"], //けがれた狂風
-    anotherSkills: ["マインドブレス"],
+    initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"],
+    anotherSkills: ["けがれた狂風", "マインドブレス"],
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 2 },
@@ -12080,22 +12086,6 @@ const skill = [
     appliedEffect: { sealed: {} },
   },
   {
-    name: "マガデイン",
-    type: "spell",
-    howToCalculate: "int",
-    minInt: 100,
-    minIntDamage: 140,
-    maxInt: 500,
-    maxIntDamage: 320,
-    skillPlus: 1.15,
-    element: "light",
-    targetType: "single",
-    targetTeam: "enemy",
-    MPcost: 64,
-    ignoreReflection: true,
-    ignoreProtection: true,
-  },
-  {
     name: "マインドブレス",
     type: "breath",
     howToCalculate: "fix",
@@ -13798,6 +13788,49 @@ const skill = [
     ignoreProtection: true,
     ignoreGuard: true,
     appliedEffect: "divineWave",
+  },
+  {
+    name: "マガデイン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 140,
+    maxInt: 500,
+    maxIntDamage: 320,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 64,
+    ignoreReflection: true,
+    ignoreProtection: true,
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
+  },
+  {
+    name: "けがれた狂風",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 33,
+    maxInt: 500,
+    maxIntDamage: 66,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 70,
+    appliedEffect: { maso: { maxDepth: 3 } },
+    masoMultiplier: {
+      1: 3, //推測
+      2: 3.1,
+      3: 3.2,
+      4: 3.3,
+    },
   },
   {
     name: "カオスストーム",
