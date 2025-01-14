@@ -154,7 +154,7 @@ async function prepareBattle() {
         // リーダースキル適用
         let statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
-        if ((lsTarget === "all" || monster.race.includes(lsTarget)) && leaderSkill[key]) {
+        if ((lsTarget === "all" || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster))) && leaderSkill[key]) {
           lsMultiplier = leaderSkill[key];
         }
         if (key === "spd" && monster.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
@@ -1631,8 +1631,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       //石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
-        // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしはkeep/damageLimitはkeepOnDeath以外削除
-        const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
+        // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしはkeep/damageLimitはkeepOnDeath以外削除 会心ガードは保持
+        const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
           //以下は残す
@@ -4174,6 +4174,10 @@ function calculateDamage(
   if (parties[skillTarget.teamID][0].name === "メタルゴッデス" && skillTarget.race.includes("スライム") && AllElements.includes(executingSkill.element)) {
     damageModifier -= 0.3;
   }
+  // ガルマLS
+  if (parties[skillTarget.teamID][0].name === "ガルマッゾ" && isBreakMonster(skillTarget) && AllElements.includes(executingSkill.element)) {
+    damageModifier -= 0.3;
+  }
 
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
@@ -4212,20 +4216,27 @@ function calculateDamage(
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリアを反映
+  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリア・新たなる神を反映
   if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
     if (executingSkill.name === "混沌のキバ") {
       damageModifier *= 2;
     }
     damage *= damageModifier + 1;
-    // そしでん
+    // そしでん・新たなる神
+    let sosidenBarrierMultiplier = 1;
+    let garumaBarrierMultiplier = 1;
     if (skillTarget.buffs.sosidenBarrier) {
-      if (["???", "超魔王", "超伝説"].some((targetRace) => skillTarget.race.includes(targetRace))) {
-        damage *= 0.2;
+      if (["???", "超魔王", "超伝説"].some((targetRace) => skillUser.race.includes(targetRace))) {
+        sosidenBarrierMultiplier = 0.2;
       } else {
-        damage *= 0.5;
+        sosidenBarrierMultiplier = 0.5;
       }
     }
+    // 新たなる神
+    if (skillTarget.buffs.garumaBarrier && skillUser.buffs.maso) {
+      garumaBarrierMultiplier = 0.6;
+    }
+    damage *= Math.min(sosidenBarrierMultiplier, garumaBarrierMultiplier);
   }
 
   // ダメージ付与処理
@@ -6654,7 +6665,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 1 },
-        dodgeBuff: { strength: 1 },
+        dodgeBuff: { strength: 1, duration: 99 },
         mindBarrier: { keepOnDeath: true },
         spdUp: { strength: 2 },
       },
@@ -6942,6 +6953,57 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0, light: 1, dark: -1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ガルマザード", //44 防御+100
+    id: "garumazard",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 884, MP: 356, atk: 548, def: 633, spd: 427, int: 362 },
+    initialSkill: ["マ素侵食", "ハザードウェポン", "ダークハザード", "ダークハザード"],
+    attribute: {
+      initialBuffs: {
+        darkBreak: { keepOnDeath: true, strength: 2, iconSrc: "darkBreakBoost" },
+        mindAndSealBarrier: { keepOnDeath: true },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.2, atk: 1.1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: -1, poisoned: 0, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ガルマッゾ", //44
+    id: "garumazzo",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 884, MP: 356, atk: 548, def: 533, spd: 427, int: 362 },
+    initialSkill: ["災禍のマ瘴", "レベル4ハザード", "ダークハザード", "マ素汚染"],
+    attribute: {
+      initialBuffs: {
+        mindAndSealBarrier: { keepOnDeath: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+        martialEvasion: { duration: 3, divineDispellable: true },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1.3 },
+    lsTarget: "break",
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: -1, poisoned: 0, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "やきとり",
@@ -9065,6 +9127,103 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    garumazzo: {
+      initialAbilities: [
+        {
+          name: "バイオドレイン付与",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              monster.abilities.additionalDeathAbilities.push({
+                name: "バイオドレイン",
+                message: function (skillUser) {
+                  displayMessage(`${skillUser.name} がチカラつき`, "バイオドレイン の効果が発動！");
+                },
+                finalAbility: true,
+                act: async function (skillUser) {
+                  for (const monster of parties[skillUser.enemyTeamID]) {
+                    const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
+                    applyHeal(monster, 105 * randomMultiplier, false, false); //錬金無視
+                  }
+                },
+              });
+            }
+          },
+        },
+      ],
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "魔界の門",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.enemyTeamID]) {
+                if (monster.buffs.maso) {
+                  if (monster.buffs.maso.strength === 4) {
+                    applyBuff(monster, { maso: { strength: 5, maxDepth: 5 }, sealed: {} });
+                  } else if (monster.buffs.maso.strength < 3) {
+                    applyBuff(monster, { maso: { maxDepth: 3 } });
+                  }
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
+    garumazard: {
+      initialAbilities: [
+        {
+          name: "新たなる神眠り無効",
+          disableMessage: true,
+          unavailableIf: (skillUser) => countBreakMonster(parties[skillUser.teamID]) < 5,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { garumaBarrier: { keepOnDeath: true }, sleepBarrier: { duration: 3 } });
+            }
+          },
+        },
+      ],
+      initialAttackAbilities: [
+        {
+          name: "新たなる神デバフ付与",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の特性`, "新たなる神 の効果が敵に発動！");
+          },
+          unavailableIf: (skillUser) => countBreakMonster(parties[skillUser.teamID]) < 5,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { baiki: { strength: -1 }, intUp: { strength: -1 }, spellBarrier: { strength: -1 } });
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        1: [
+          {
+            name: "星のオーラ",
+            message: function (skillUser) {
+              displayMessage(`${skillUser.name}の特性により`, "MP継続回復効果 が発動！");
+            },
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (isBreakMonster(monster)) {
+                  applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 5 } }); //回復量50
+                }
+              }
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "ブレイクシステム",
+            act: async function (skillUser) {
+              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, null);
+            },
+          },
+        ],
+      },
+    },
   };
 
   return monsterAbilities[monsterId] || {};
@@ -9896,7 +10055,7 @@ const skill = [
     appliedEffect: "divineWave",
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
-      applyBuff(skillUser, { martialEvasion: { duration: 2 } });
+      applyBuff(skillUser, { martialEvasion: { duration: 2, divineDispellable: true } });
     },
   },
   {
@@ -13888,7 +14047,10 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreTypeEvasion: true,
-    appliedEffect: { maso: { maxDepth: 3 }, maso: { probability: 0.3, maxDepth: 3 }, powerWeaken: { strength: 0.5, duration: 3 }, manaReduction: { strength: 0.5, duration: 3 } },
+    appliedEffect: { maso: { maxDepth: 3 }, powerWeaken: { strength: 0.5, duration: 3 }, manaReduction: { strength: 0.5, duration: 3 } },
+    act: async function (skillUser, skillTarget) {
+      applyBuff(skillTarget, { maso: { probability: 0.3, maxDepth: 3 } });
+    },
   },
   {
     name: "マ素汚染",
@@ -13970,9 +14132,9 @@ const skill = [
     appliedEffect: { maso: { maxDepth: 3 } },
     masoMultiplier: {
       1: 2,
-      2: 2.1,
-      3: 2.2,
-      4: 2.3,
+      2: 2.2,
+      3: 2.4,
+      4: 2.6,
     },
   },
   {
@@ -16651,4 +16813,19 @@ function getRandomIntInclusive(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
+}
+
+function countBreakMonster(party) {
+  let count = 0;
+  for (const monster of party) {
+    if (isBreakMonster(monster)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function isBreakMonster(monster) {
+  const breakMonsterList = ["ガルマザード", "ガルマッゾ", "凶帝王エスターク", "凶ライオネック", "凶ブオーン", "凶ウルトラメタキン", "凶スターキメラ", "凶グレートオーラス", "凶アンドレアル"];
+  return breakMonsterList.includes(monster.name);
 }
