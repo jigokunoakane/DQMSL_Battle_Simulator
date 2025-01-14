@@ -3809,11 +3809,19 @@ function calculateDamage(
     damage *= sameRaceCount;
   }
 
+  let masoDamageMultiplier = 1;
+  let abnormalityDamageMultiplier = 1;
   // マソ深度特効 TODO: 反射時の対応
   if (executingSkill.masoMultiplier && skillTarget.buffs.maso) {
     const masoDepth = skillTarget.buffs.maso.strength === 5 ? 4 : skillTarget.buffs.maso.strength;
-    damage *= executingSkill.masoMultiplier[masoDepth];
+    masoDamageMultiplier = executingSkill.masoMultiplier[masoDepth];
   }
+  // skill特有の特殊計算 状態異常特効
+  if (executingSkill.abnormalityMultiplier) {
+    abnormalityDamageMultiplier = executingSkill.abnormalityMultiplier(skillUser, skillTarget) || 1;
+  }
+  // どちらか高い方を適用
+  damage *= Math.max(masoDamageMultiplier, abnormalityDamageMultiplier);
 
   //耐性処理
   damage *= resistance;
@@ -9134,6 +9142,9 @@ const skill = [
     damageMultiplier: function (skillUser, skillTarget) {
       return 2; //初期値は1
     },
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      return 2; //初期値は1 状態異常特効系 マソと競合
+    },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
@@ -9242,10 +9253,16 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
-    damageMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.maso || skillTarget.buffs.paralyzed) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
         return 2.5;
       }
+    },
+    masoMultiplier: {
+      1: 2.5,
+      2: 2.6, // 推測
+      3: 2.7,
+      4: 2.8,
     },
   },
   {
@@ -13074,10 +13091,16 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 4,
     MPcost: 48,
-    damageMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.maso || skillTarget.buffs.paralyzed) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
         return 2.5;
       }
+    },
+    masoMultiplier: {
+      1: 2.5,
+      2: 2.6, // 推測
+      3: 2.7,
+      4: 2.8,
     },
   },
   {
@@ -13180,12 +13203,16 @@ const skill = [
     hitNum: 5,
     MPcost: 98,
     appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.25 } },
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep) {
         return 2.5;
-      } else if (skillTarget.buffs.maso) {
-        return 1.5;
       }
+    },
+    masoMultiplier: {
+      1: 1.5,
+      2: 1.6, // 推測
+      3: 1.7,
+      4: 1.8,
     },
   },
   {
@@ -13214,7 +13241,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.confused || skillTarget.buffs.paralyzed) {
         return 2;
       }
@@ -13290,7 +13317,7 @@ const skill = [
     hitNum: 5,
     MPcost: 55,
     appliedEffect: { poisoned: { probability: 0.8 } },
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned) {
         return 2;
       }
@@ -13525,7 +13552,7 @@ const skill = [
     hitNum: 5,
     MPcost: 73,
     appliedEffect: { poisoned: { isLight: true, probability: 0.8 } },
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned) {
         return 1.2;
       }
@@ -13553,12 +13580,16 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 28,
     ignoreEvasion: true,
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.dazzle) {
         return 3;
-      } else if (skillTarget.buffs.maso) {
-        return 1.5;
       }
+    },
+    masoMultiplier: {
+      1: 1.5,
+      2: 1.6, // 推測
+      3: 1.7,
+      4: 1.8,
     },
   },
   {
@@ -13667,12 +13698,16 @@ const skill = [
     MPcost: 50,
     zakiProbability: 0.4413,
     appliedEffect: { poisoned: { probability: 0.7 }, paralyzed: { probability: 0.4192 } },
-    damageMultiplier: function (skillUser, skillTarget) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
         return 2;
-      } else if (skillTarget.buffs.maso) {
-        return 1.5;
       }
+    },
+    masoMultiplier: {
+      1: 1.5,
+      2: 1.6, // 推測
+      3: 1.7,
+      4: 1.8,
     },
   },
   {
@@ -13841,6 +13876,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 98,
     order: "anchor",
+    damageByLevel: true,
     masoMultiplier: {
       1: 2,
       2: 3,
@@ -14327,10 +14363,16 @@ const skill = [
     MPcost: 39,
     damageByLevel: true,
     appliedEffect: { asleep: { probability: 0.39 }, paralyzed: { probability: 0.1667 } },
-    damageMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.asleep || skillTarget.buffs.paralyzed || skillTarget.buffs.maso) {
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
         return 2;
       }
+    },
+    masoMultiplier: {
+      1: 2,
+      2: 2.1, // 推測
+      3: 2.2,
+      4: 2.3,
     },
   },
   {
