@@ -6976,12 +6976,12 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0, light: 1, dark: -1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "ガルマザード", //44 防御+100
+    name: "ガルマザード", //44 防御+100 A100 S50
     id: "garumazard",
     rank: 10,
     race: ["???"],
     weight: 32,
-    status: { HP: 884, MP: 356, atk: 548, def: 633, spd: 427, int: 362 },
+    status: { HP: 884, MP: 356, atk: 648, def: 633, spd: 477, int: 362 },
     initialSkill: ["マ素侵食", "ハザードウェポン", "ダークハザード", "ダークハザード"],
     attribute: {
       initialBuffs: {
@@ -7061,7 +7061,7 @@ const monsters = [
     race: ["???"],
     weight: 32,
     status: { HP: 748, MP: 329, atk: 571, def: 561, spd: 499, int: 415 },
-    initialSkill: ["凶帝王の双閃", "爆炎の絶技", "凶帝王のかまえ", "ピオリム"],
+    initialSkill: ["凶帝王の双閃", "爆炎の絶技", "凶帝王のかまえ", "スパークふんしゃ"],
     anotherSkills: ["イオマータ"],
     attribute: {
       initialBuffs: {
