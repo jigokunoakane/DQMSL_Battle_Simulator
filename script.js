@@ -7006,6 +7006,34 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: -1, poisoned: 0, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "凶ブオーン", //44
+    id: "buon",
+    rank: 10,
+    race: ["魔獣"],
+    weight: 25,
+    status: { HP: 937, MP: 294, atk: 561, def: 507, spd: 451, int: 135 },
+    initialSkill: ["あらしの乱舞", "マ素のはどう", "こうせきおとし", "ピオリム"],
+    anotherSkills: ["マデュライトナックル"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" },
+        mindBarrier: { duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 2 },
+        intUp: { strength: 2 },
+        defUp: { strength: -1, probability: 0.8 },
+        spellBarrier: { strength: -1, probability: 0.8 },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { HP: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 1, thunder: 0, wind: 1.5, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
@@ -9219,6 +9247,25 @@ function getMonsterAbilities(monsterId) {
             name: "ブレイクシステム",
             act: async function (skillUser) {
               await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, null);
+            },
+          },
+        ],
+      },
+    },
+    buon: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "ブレイクアーマー",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (isBreakMonster(monster)) {
+                  applyBuff(monster, { slashBarrier: { strength: 1 } });
+                  await sleep(100);
+                  applyBuff(monster, { spellBarrier: { strength: 1 } });
+                  await sleep(100);
+                }
+              }
             },
           },
         ],
