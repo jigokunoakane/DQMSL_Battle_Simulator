@@ -1574,8 +1574,16 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         const newStrength = Math.min(increment, buffData.maxDepth);
         buffTarget.buffs.maso = { keepOnDeath: true, strength: newStrength };
       }
+    } else if (buffName === "aiExtraAttacks") {
+      // 3-4. AI攻撃回数追加
+      if (currentBuff) {
+        const newStrength = Math.min(currentBuff.strength + 1, 2);
+        buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
+      } else {
+        buffTarget.buffs[buffName] = { ...buffData };
+      }
     } else {
-      // 3-4. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
+      // 3-5. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
         // 3-2-2. currentBuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
         //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
@@ -5325,6 +5333,10 @@ document.getElementById("zombiepa").addEventListener("click", function () {
   selectAllPartyMembers(["skullspider", "barazon", "razama", "maen", "desuso"]);
 });
 
+document.getElementById("masopa").addEventListener("click", function () {
+  selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
+});
+
 async function selectAllPartyMembers(monsters) {
   for (i = 0; i < monsters.length; i++) {
     selectingMonsterNum = i;
@@ -7034,6 +7046,34 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0, wind: 1.5, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "凶帝王エスターク", //44
+    id: "cursedesta",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 748, MP: 329, atk: 571, def: 561, spd: 499, int: 415 },
+    initialSkill: ["凶帝王の双閃", "爆炎の絶技", "凶帝王のかまえ", "ピオリム"],
+    anotherSkills: ["イオマータ"],
+    attribute: {
+      initialBuffs: {
+        ioBreak: { keepOnDeath: true, strength: 2 },
+        demonKingBarrier: { divineDispellable: true },
+        protection: { strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 2 },
+        intUp: { strength: 2 },
+        defUp: { strength: -1 },
+        aiExtraAttacks: { strength: 1, keepOnDeath: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.18 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 0, dark: 0.5, poisoned: 1, asleep: 1, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 1 },
+  },
+  {
     name: "凶ウルトラメタキン", //44
     id: "ultrametakin",
     rank: 10,
@@ -8222,7 +8262,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.race.includes("魔獣")) {
+              if (monster.race.includes("魔獣") && !monster.buffs.aiExtraAttacks) {
                 applyBuff(monster, { aiExtraAttacks: { strength: 1, keepOnDeath: true } });
               }
             }
@@ -12281,6 +12321,21 @@ const skill = [
     MPcost: 38,
   },
   {
+    name: "イオマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 38,
+  },
+  {
     name: "幻術のひとみ",
     type: "martial",
     howToCalculate: "none",
@@ -14458,6 +14513,23 @@ const skill = [
     },
   },
   {
+    name: "凶帝王の一閃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 45,
+    appliedEffect: { maso: { maxDepth: 3 } },
+    masoMultiplier: {
+      1: 1.5,
+      2: 1.7, // 推測
+      3: 1.9,
+      4: 2.1,
+    },
+  },
+  {
     name: "爆炎の絶技",
     type: "slash",
     howToCalculate: "atk",
@@ -16491,6 +16563,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "防御力依存攻撃";
   } else if (skillUser.name === "ファイナルウェポン") {
     NormalAttackName = "アサルトシステム";
+  } else if (skillUser.name === "凶帝王エスターク") {
+    NormalAttackName = "イオ系攻撃";
   }
   return NormalAttackName;
 }
@@ -16954,6 +17028,17 @@ function countBreakMonster(party) {
 }
 
 function isBreakMonster(monster) {
-  const breakMonsterList = ["ガルマザード", "ガルマッゾ", "凶帝王エスターク", "凶ライオネック", "凶ブオーン", "凶ウルトラメタキン", "凶スターキメラ", "凶グレートオーラス", "凶アンドレアル"];
+  const breakMonsterList = [
+    "ガルマザード",
+    "ガルマッゾ",
+    "凶帝王エスターク",
+    "凶ライオネック",
+    "凶ブオーン",
+    "凶ウルトラメタキン",
+    "凶メタルキング",
+    "凶スターキメラ",
+    "凶グレートオーラス",
+    "凶アンドレアル",
+  ];
   return breakMonsterList.includes(monster.name);
 }
