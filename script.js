@@ -7034,6 +7034,50 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0, wind: 1.5, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "凶ウルトラメタキン", //44
+    id: "ultrametakin",
+    rank: 10,
+    race: ["スライム"],
+    weight: 25,
+    status: { HP: 227, MP: 469, atk: 522, def: 906, spd: 476, int: 302 },
+    initialSkill: ["プチマダンテ・凶", "マ瘴の爆発", "みがわり", "ザオリク"],
+    anotherSkills: ["バイオスタンプ"],
+    defaultGear: "familyNailRadiantWave",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        mpCostMultiplier: { strength: 2, keepOnDeath: true },
+        ioBreak: { keepOnDeath: true, strength: 1 },
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 40, def: 5, spd: 75, int: 0 },
+    ls: { HP: 1.2 },
+    lsTarget: "break",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "凶メタルキング", //4
+    id: "smetakin",
+    rank: 9,
+    race: ["スライム"],
+    weight: 18,
+    status: { HP: 205, MP: 424, atk: 494, def: 856, spd: 439, int: 271 },
+    initialSkill: ["みがわり", "バイオスタンプ", "防刃の守り", "ザオリク"],
+    defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        mpCostMultiplier: { strength: 2, keepOnDeath: true },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.15 },
+    lsTarget: "break",
+    resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
@@ -9169,8 +9213,10 @@ function getMonsterAbilities(monsterId) {
                 finalAbility: true,
                 act: async function (skillUser) {
                   for (const monster of parties[skillUser.enemyTeamID]) {
-                    const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
-                    applyHeal(monster, 105 * randomMultiplier, false, false); //錬金無視
+                    if (isBreakMonster(monster)) {
+                      const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
+                      applyHeal(monster, 105 * randomMultiplier, false, false); //錬金無視
+                    }
                   }
                 },
               });
@@ -9270,6 +9316,41 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    ultrametakin: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "マ素供給",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (isBreakMonster(monster)) {
+                  const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
+                  applyHeal(monster, 110 * randomMultiplier, false, false); //錬金無視
+                }
+              }
+            },
+          },
+        ],
+      },
+      counterAbilities: [
+        {
+          name: "凶メタルボディ",
+          act: async function (skillUser, counterTarget) {
+            applyBuff(counterTarget, { spdUp: { strength: -1 } }, skillUser);
+          },
+        },
+      ],
+    },
+    smetakin: {
+      counterAbilities: [
+        {
+          name: "凶メタルボディ",
+          act: async function (skillUser, counterTarget) {
+            applyBuff(counterTarget, { spdUp: { strength: -1 } }, skillUser);
+          },
+        },
+      ],
     },
   };
 
