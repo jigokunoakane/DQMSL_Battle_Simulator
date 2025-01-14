@@ -9145,6 +9145,12 @@ const skill = [
     abnormalityMultiplier: function (skillUser, skillTarget) {
       return 2; //初期値は1 状態異常特効系 マソと競合
     },
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
@@ -9723,6 +9729,7 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
   {
     name: "みがわり・マインドバリア",
@@ -9741,6 +9748,7 @@ const skill = [
       await sleep(100);
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
   },
   {
     name: "超魔滅光",
@@ -13825,6 +13833,114 @@ const skill = [
     ignoreProtection: true,
     ignoreGuard: true,
     appliedEffect: "divineWave",
+  },
+  {
+    name: "災禍のマ瘴",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 220,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 58,
+    appliedEffect: { maso: { maxDepth: 4 }, martialSeal: { probability: 0.3 } },
+    masoMultiplier: {
+      1: 2,
+      2: 3,
+      3: 4,
+      4: 5,
+    },
+  },
+  {
+    name: "レベル4ハザード",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 34,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { maso: { strength: 4, maxDepth: 4 } },
+  },
+  {
+    name: "マ素侵食",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 93,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { maso: { maxDepth: 3 }, maso: { probability: 0.3, maxDepth: 3 }, powerWeaken: { strength: 0.5, duration: 3 }, manaReduction: { strength: 0.5, duration: 3 } },
+  },
+  {
+    name: "マ素汚染",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 88,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { maso: { maxDepth: 3 } },
+  },
+  {
+    name: "ハザードウェポン",
+    type: "spell",
+    howToCalculate: "fix",
+    damage: 130,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 74,
+    ignoreProtection: true,
+    masoMultiplier: {
+      1: 5,
+      2: 6.5,
+      3: 8,
+      4: 9.5,
+    },
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.maso && skillTarget.buffs.maso.strength < 5) {
+        delete skillTarget.buffs.maso;
+      }
+    },
+  },
+  {
+    name: "ダークハザード",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.66,
+    element: "dark",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    ignoreReflection: true,
+    ignoreEvasion: true,
+    appliedEffect: { maso: { maxDepth: 4 } },
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
+        return 3;
+      }
+    },
+    masoMultiplier: {
+      1: 3,
+      2: 3.2,
+      3: 3.4,
+      4: 3.6,
+    },
   },
   {
     name: "あらしの乱舞",
