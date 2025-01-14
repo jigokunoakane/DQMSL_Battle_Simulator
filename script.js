@@ -5016,18 +5016,25 @@ function adjustCheckBox() {
 for (let i = 0; i < 4; i++) {
   document.getElementById(`skill${i}`).addEventListener("change", function (event) {
     const skillIndex = parseInt(event.target.id.replace("skill", ""), 10);
-    const oldSkillName = selectingParty[currentTab].defaultSkill[skillIndex];
-    // select表示は更新済なので内部データを更新
-    selectingParty[currentTab].defaultSkill[skillIndex] = event.target.value;
-    // 前のskillを記録 更新後もし4枠内に存在しない場合はdisabledSkillsByPlayerから削除
-    if (!selectingParty[currentTab].defaultSkill.includes(oldSkillName)) {
-      selectingParty[currentTab].disabledSkillsByPlayer = selectingParty[currentTab].disabledSkillsByPlayer.filter((skillName) => skillName !== oldSkillName);
-    }
-    // 新規選択skill(event.target.value)をdisabledSkillsByPlayerから削除
-    selectingParty[currentTab].disabledSkillsByPlayer = selectingParty[currentTab].disabledSkillsByPlayer.filter((skillName) => skillName !== event.target.value);
-    // checkBox全体を更新
-    adjustCheckBox();
+    const newSkillName = event.target.value;
+    // 現在のtabのmonsterのskillを変更する
+    changeDefaultSkill(selectingParty[currentTab], skillIndex, newSkillName);
   });
+}
+
+// 関数実行時はselect表示が更新されないので注意 currentTabでないmonsterを変更するのは問題ないが
+function changeDefaultSkill(monster, skillIndex, newSkillName) {
+  const oldSkillName = monster.defaultSkill[skillIndex];
+  // select表示は更新済なので内部データを更新
+  monster.defaultSkill[skillIndex] = newSkillName;
+  // 前のskillを記録 更新後もし4枠内に存在しない場合はdisabledSkillsByPlayerから削除
+  if (!monster.defaultSkill.includes(oldSkillName)) {
+    monster.disabledSkillsByPlayer = monster.disabledSkillsByPlayer.filter((skillName) => skillName !== oldSkillName);
+  }
+  // 新規選択skill(event.target.value)をdisabledSkillsByPlayerから削除してAI使用可能にする
+  monster.disabledSkillsByPlayer = monster.disabledSkillsByPlayer.filter((skillName) => skillName !== newSkillName);
+  // checkBox全体を更新
+  adjustCheckBox();
 }
 
 // skillEnabled0 から skillEnabled3 までの checkbox の変更イベントリスナーを設定
@@ -5299,6 +5306,7 @@ document.getElementById("yuzupa").addEventListener("click", function () {
 
 document.getElementById("siragapa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "erugi", "sosiden", "dream", "skull"]);
+  changeDefaultSkill(selectingParty[0], 3, "スパークふんしゃ");
 });
 
 document.getElementById("omudopa").addEventListener("click", function () {
@@ -5335,6 +5343,7 @@ document.getElementById("zombiepa").addEventListener("click", function () {
 
 document.getElementById("masopa").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
+  changeDefaultSkill(selectingParty[3], 1, "けがれた狂風");
 });
 
 async function selectAllPartyMembers(monsters) {
