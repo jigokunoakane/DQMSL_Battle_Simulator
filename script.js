@@ -2880,13 +2880,17 @@ function applyHeal(target, healAmount, isMPheal = false, ignoreHealBoost = false
 // ダメージを適用する関数
 function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false, skipDeathAbility = false, perpetrator = null) {
   if (resistance === -1) {
-    // 回復処理 基礎値を用意
-    let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
+    // 死者は終了
+    if (target.flags.isDead) {
+      return;
+    }
     // 亡者はミス表示して終了
     if (target.flags.isZombie) {
       displayMiss(target);
       return;
     }
+    // 回復処理 基礎値を用意
+    let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
     // 回復封じ処理
     if (target.buffs.healBlock) {
       displayDamage(target, 0, -1, isMPdamage);
@@ -2913,7 +2917,11 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
   } else {
     // ダメージ処理
     if (isMPdamage) {
-      // 亡者にも実行
+      // MP 死者は終了
+      if (target.flags.isDead) {
+        return;
+      }
+      // MP 亡者には実行
       // MPダメージ 現状値が最大ダメージ
       let mpDamage = Math.min(target.currentStatus.MP, Math.floor(damage));
       target.currentStatus.MP -= mpDamage;
