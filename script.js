@@ -5343,7 +5343,7 @@ document.getElementById("zombiepa").addEventListener("click", function () {
 
 document.getElementById("masopa").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
-  changeDefaultSkill(selectingParty[3], 1, "けがれた狂風");
+  changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
 });
 
 async function selectAllPartyMembers(monsters) {
@@ -7089,7 +7089,7 @@ const monsters = [
     race: ["スライム"],
     weight: 25,
     status: { HP: 227, MP: 469, atk: 522, def: 906, spd: 476, int: 302 },
-    initialSkill: ["プチマダンテ・凶", "マ瘴の爆発", "みがわり", "ザオリク"],
+    initialSkill: ["プチマダンテ・凶", "マ瘴の爆発", "みがわり", "光のはどう"],
     anotherSkills: ["バイオスタンプ"],
     defaultGear: "familyNailRadiantWave",
     attribute: {
