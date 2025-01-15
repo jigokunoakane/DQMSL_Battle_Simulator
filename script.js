@@ -4195,6 +4195,11 @@ function calculateDamage(
     damageModifier -= 0.3;
   }
 
+  // 全属性軽減
+  if (skillTarget.buffs.allElementalBarrier && AllElements.includes(executingSkill.element)) {
+    damageModifier -= skillTarget.buffs.allElementalBarrier.strength;
+  }
+
   //全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
     damageModifier -= 0.3;
@@ -5730,6 +5735,35 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "闇の覇者りゅうおう", //44
+    id: "tyoryu",
+    rank: 10,
+    race: ["超魔王"],
+    weight: 40,
+    status: { HP: 935, MP: 361, atk: 558, def: 658, spd: 447, int: 521 },
+    initialSkill: ["邪悪なともしび", "正体をあらわす", "蘇生封じの術", "覇者の怒り"],
+    defaultGear: "tyoryuHeart",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        allElementalBarrier: { strength: 0.5, unDispellable: true, duration: 1 },
+        demonKingBarrier: { divineDispellable: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.25 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: -1, ice: 1, thunder: 0.5, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 0, breathSeal: 0 },
   },
   {
     name: "聖獣ムンババ",
@@ -7560,6 +7594,45 @@ function getMonsterAbilities(monsterId) {
         }
       },
     },
+    tyoryu: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "闇の炎の化身",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+          {
+            name: "闇の闘気",
+            unavailableIf: (skillUser) => skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              if (!skillUser.buffs.tyoryuLevel) {
+                applyBuff(skillUser, { tyoryuLevel: { keepOnDeath: true, strength: 1 } });
+              } else {
+                const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
+                skillUser.buffs.tyoryuLevel.strength = newStrength;
+                updateMonsterBuffsDisplay(skillUser);
+              }
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "超竜王変身",
+            disableMessage: true,
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => skillUser.buffs.tyoryuLevel?.strength < 3 || skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              await transformTyoma(skillUser);
+            },
+          },
+        ],
+      },
+    },
     dream: {
       supportAbilities: {
         evenTurnAbilities: [
@@ -7645,6 +7718,7 @@ function getMonsterAbilities(monsterId) {
               delete fieldState.isReverse;
               delete fieldState.isPermanentDistorted;
               delete fieldState.isDistorted;
+              delete fieldState.disableReverse;
               delete fieldState.stonedBlock;
               // リバース封じ解除
               fieldState.psychoField = true;
@@ -7664,6 +7738,7 @@ function getMonsterAbilities(monsterId) {
               delete fieldState.isReverse;
               delete fieldState.isPermanentDistorted;
               delete fieldState.isDistorted;
+              delete fieldState.disableReverse;
               delete fieldState.stonedBlock;
               // リバース封じ解除
               fieldState.psychoField = true;
@@ -7743,7 +7818,7 @@ function getMonsterAbilities(monsterId) {
             },
             act: function (skillUser) {
               displayMessage("全員の 行動順と素早さが", "逆転した！");
-              if (!fieldState.psychoField) {
+              if (!fieldState.psychoField && !fieldState.disableReverse) {
                 fieldState.isReverse = true;
                 adjustFieldStateDisplay();
               }
@@ -10906,6 +10981,182 @@ const skill = [
     appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, removeAtTurnStart: true, duration: 2 } },
   },
   {
+    name: "邪悪なともしび",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 95,
+    maxInt: 1000,
+    maxIntDamage: 230,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 57,
+    appliedEffect: { powerWeaken: { strength: 0.5, duration: 2 } },
+    selfAppliedEffect: async function (skillUser) {
+      const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
+      skillUser.buffs.tyoryuLevel.strength = newStrength;
+      updateMonsterBuffsDisplay(skillUser);
+    },
+  },
+  {
+    name: "正体をあらわす",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 1,
+    MPcost: 0,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      await transformTyoma(skillUser);
+    },
+  },
+  {
+    name: "蘇生封じの術",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 52,
+    appliedEffect: { reviveBlock: { duration: 1 } },
+    followingSkill: "蘇生封じの術後半",
+  },
+  {
+    name: "蘇生封じの術後半",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 180,
+    maxInt: 600,
+    maxIntDamage: 410,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreProtection: true,
+  },
+  {
+    name: "覇者の怒り",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 477,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 71,
+    ignoreReflection: true,
+    appliedEffect: { fear: { probability: 0.6651 } },
+  },
+  {
+    name: "竜牙",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 53,
+    ignoreEvasion: true,
+    criticalHitProbability: 0,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "王の竜牙",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 53,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    criticalHitProbability: 0,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "覇者の竜牙",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 53,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    criticalHitProbability: 1,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "竜の炎",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 260,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 79,
+    ignoreReflection: true,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.enemyTeamID]) {
+        applyBuff(monster, { dotDamage: { strength: 0.2 } });
+      }
+    },
+  },
+  {
+    name: "破滅の炎",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 260,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 7,
+    MPcost: 79,
+    ignoreReflection: true,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.enemyTeamID]) {
+        applyBuff(monster, { dotDamage: { strength: 0.2 } });
+      }
+    },
+  },
+  {
+    name: "終焉の炎",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 260,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 9,
+    MPcost: 79,
+    ignoreReflection: true,
+    ignoreProtection: true,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.enemyTeamID]) {
+        applyBuff(monster, { dotDamage: { strength: 0.2 } });
+      }
+    },
+  },
+  {
     name: "ホーリーナックル",
     type: "martial",
     howToCalculate: "atk",
@@ -11245,7 +11496,7 @@ const skill = [
     order: "anchor",
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      if (!fieldState.psychoField) {
+      if (!fieldState.psychoField && !fieldState.disableReverse) {
         fieldState.isReverse = true;
         fieldState.isPermanentReverse = true;
         adjustFieldStateDisplay();
@@ -15359,6 +15610,12 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
   },
   {
+    name: "闇の覇者ハート",
+    id: "tyoryuHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
+  },
+  {
     name: "竜のうろこ",
     id: "dragonScale",
     weight: 0,
@@ -16255,6 +16512,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "どくにおかされた！",
     },
+    dazzle: {
+      start: `${buffTarget.name}は`,
+      message: "まぼろしに つつまれた！",
+    },
     reviveBlock: {
       start: `${buffTarget.name}は`,
       message: "蘇生を ふうじられた！",
@@ -16407,6 +16668,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
   }
 }
 
+// 引数名はnot skillUser
 async function transformTyoma(monster) {
   // 冗長性
   if (monster.flags.isDead) {
@@ -16452,6 +16714,20 @@ async function transformTyoma(monster) {
   } else if (monster.name === "名もなき闇の王") {
     monster.skill[2] = "名もなき儀式";
     displayMessage("＊「我に 恐怖に歪む顔を 見せよ…。");
+  } else if (monster.name === "闇の覇者りゅうおう") {
+    displayMessage(`${monster.name}の姿が しだいに`, "うすれてゆく……。");
+    await sleep(150);
+    displayMessage(`${monster.name}が しょうたいを`, "あらわした！！");
+    monster.skill[0] = {
+      1: "竜の炎",
+      2: "破滅の炎",
+      3: "終焉の炎",
+    }[monster.buffs.tyoryuLevel.strength];
+    monster.skill[1] = {
+      1: "竜牙",
+      2: "王の竜牙",
+      3: "覇者の竜牙",
+    }[monster.buffs.tyoryuLevel.strength];
   }
   await sleep(400);
 
@@ -16478,6 +16754,16 @@ async function transformTyoma(monster) {
   } else if (monster.name === "名もなき闇の王") {
     monster.buffs.darkBreak.strength = 4;
     applyBuff(monster, { internalDefUp: { strength: 1, keepOnDeath: true } });
+    applyBuff(monster, { isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" } });
+  } else if (monster.name === "闇の覇者りゅうおう") {
+    applyBuff(monster, { fireBreak: { strength: 3, keepOnDeath: true, iconSrc: "fireBreakBoost" } });
+    if (monster.gear?.name === "闇の覇者ハート") {
+      applyBuff(monster, { internalDefUp: { strength: 1, keepOnDeath: true } });
+      await sleep(100);
+    }
+    if (monster.buffs.tyoryuLevel.strength > 1) {
+      applyBuff(monster, { metal: { keepOnDeath: true, strength: 0.66 }, spdUp: { strength: 2, keepOnDeath: true, iconSrc: "spdUpkeepOnDeathstr2" } });
+    }
     applyBuff(monster, { isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" } });
   }
 
@@ -16522,6 +16808,18 @@ async function transformTyoma(monster) {
         }
       }
     }
+  } else if (monster.name === "闇の覇者りゅうおう") {
+    await sleep(400);
+    displayMessage(`${monster.name}の特性`, "闇の世界 が発動！");
+    for (const target of parties[monster.enemyTeamID]) {
+      applyBuff(target, { dazzle: {} });
+    }
+    delete fieldState.isReverse;
+    delete fieldState.isPermanentReverse;
+    if (!fieldState.psychoField) {
+      fieldState.disableReverse = true;
+    }
+    adjustFieldStateDisplay();
   }
   await sleep(400);
 }
@@ -16732,6 +17030,8 @@ function adjustFieldStateDisplay() {
   } else {
     if (fieldState.isReverse) {
       display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
+    } else if (fieldState.disableReverse) {
+      display1Content = "リバース無効 残り6ラウンド";
     }
     if (fieldState.isDistorted) {
       if (display1Content === "") {
@@ -16955,6 +17255,7 @@ function isSkillUnavailableForAI(skillName) {
     "死神の大鎌",
     "凶帝王の双閃",
     "バイオスタンプ",
+    "覇者の竜牙",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
