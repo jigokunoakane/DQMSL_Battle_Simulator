@@ -164,6 +164,9 @@ async function prepareBattle() {
         if (key === "spd" && monster.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
           lsMultiplier += 0.05;
         }
+        if (key === "spd" && isBreakMonster(monster) && monster.gear && monster.gear.name === "ハザードネイル") {
+          lsMultiplier += 0.08;
+        }
         // 装備のstatusMultiplierを適用
         if (monster.gear?.statusMultiplier && monster.gear.statusMultiplier[key]) {
           lsMultiplier += monster.gear.statusMultiplier[key];
@@ -2624,6 +2627,9 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       if (skillUser.buffs.aiExtraAttacks) {
         attackTimes += skillUser.buffs.aiExtraAttacks.strength;
       }
+      if (isBreakMonster(skillUser) && skillUser.gear && skillUser.gear.name === "ハザードネイル") {
+        attackTimes++;
+      }
       if (attackTimes > 0) {
         await sleep(300);
       }
@@ -4098,6 +4104,14 @@ function calculateDamage(
     if (skillUser.gear.name === "おうごんのツメ" && skillUser.race.includes("ゾンビ") && executingSkill.type === "breath") {
       damageModifier += 0.1;
     }
+    // 装備錬金 - ハザードネイルのあらしの乱舞25・バギ呪文10
+    if (skillUser.gear.name === "ハザードネイル") {
+      if (executingSkill.name === "あらしの乱舞") {
+        damageModifier += 0.25;
+      } else if (skillUser.name === "凶ライオネック" && executingSkill.type === "spell" && executingSkill.element === "wind") {
+        damageModifier += 0.1;
+      }
+    }
 
     // 特技錬金の反映(双撃は個別に後半も対象に含める)
     if (skillUser.gear.skillAlchemy) {
@@ -5211,11 +5225,16 @@ function calcAndAdjustDisplayStatus() {
   const lsTarget = firstMonster.lsTarget;
 
   let lsMultiplier = 1;
+  // 狭間lsのようなexcludedLsTarget制限はなし
   if ((lsTarget === "all" || target.race.includes(lsTarget)) && leaderSkill.spd) {
     lsMultiplier = leaderSkill.spd;
   }
+  // key === "spd"はなし
   if (target.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => target.race.includes(r))) {
     lsMultiplier += 0.05;
+  }
+  if (isBreakMonster(target) && target.gear && target.gear.name === "ハザードネイル") {
+    lsMultiplier += 0.08;
   }
   // 装備のstatusMultiplierを適用
   if (target.gear?.statusMultiplier?.spd) {
@@ -9708,6 +9727,17 @@ const skill = [
       3: 2.7,
       4: 2.8,
     },
+  },
+  {
+    name: "ハザードネイル攻撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { maso: { maxDepth: 4 } },
   },
   {
     name: "会心通常攻撃",
@@ -15420,6 +15450,13 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
   },
   {
+    name: "ハザードネイル",
+    id: "hazardNail",
+    weight: 5,
+    noWeightMonsters: ["ガルマザード", "ガルマッゾ", "凶帝王エスターク", "凶ライオネック", "凶ブオーン", "凶ウルトラメタキン", "凶メタルキング", "凶グレートオーラス", "凶アンドレアル"],
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+  },
+  {
     name: "メタルキングの爪",
     id: "metalNail",
     weight: 5,
@@ -16890,6 +16927,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "はやぶさ攻撃弱";
   } else if (skillUser.gear?.name === "おうごんのツメ") {
     NormalAttackName = "おうごんのツメ攻撃";
+  } else if (skillUser.gear?.name === "ハザードネイル") {
+    NormalAttackName = "ハザードネイル攻撃";
   } else if (skillUser.buffs.alwaysCrit) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.buffs.speedBasedAttack) {
