@@ -15677,7 +15677,7 @@ const gearAbilities = {
           displayMessage("そうびの特性により", "光の洗礼 が発動！");
         },
         act: async function (skillUser) {
-          await executeRadiantWave(skillUser);
+          await executeRadiantWave(skillUser, false, true);
         },
       });
     },
