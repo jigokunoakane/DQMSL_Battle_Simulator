@@ -1265,7 +1265,7 @@ async function startBattle() {
     await processMonsterAction(monster);
     await sleep(450);
   }
-  // 最後のmonsterの行動で戦闘終了時: startTurn内で終了 skip: 考慮不要
+  // 最後のmonsterの行動で戦闘終了時: returnせずstartTurn内で終了 skip: 考慮不要
   if (isBattleOver()) {
     removeAllStickOut();
   }
@@ -15972,16 +15972,20 @@ document.getElementById("skipBtn").addEventListener("click", function () {
 });
 
 document.getElementById("resetBtn").addEventListener("click", async function () {
-  col("戦闘リセット");
   document.getElementById("resetBtn").disabled = true;
+  document.getElementById("skipBtn").disabled = true;
+  document.getElementById("finishBtn").disabled = true;
+  col("戦闘リセット");
   fieldState.isBattleOver = true;
   // 戦闘終了フラグを立て、既存のsleep処理を中断、skip状態化、skip解除表示
   setSkipMode(true);
-  await originalSleep(150);
+  await originalSleep(250);
   await prepareBattle();
   // skip状態の解除と表示戻し: コマンド画面になったら
   setSkipMode(false);
   document.getElementById("resetBtn").disabled = false;
+  document.getElementById("skipBtn").disabled = false;
+  document.getElementById("finishBtn").disabled = false;
 });
 
 document.getElementById("finishBtn").addEventListener("click", async function () {
@@ -16001,6 +16005,7 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
     }
   }
   // skip状態の解除と表示戻し: 次のplayerBのパテ選択決定時に
+  // 一定時間対戦開始を封じる
 });
 
 ////////////////
