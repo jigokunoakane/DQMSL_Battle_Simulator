@@ -1150,7 +1150,7 @@ async function startTurn() {
         displayMessage("死のカウントダウンの", "効果が 発動！");
         await sleep(100);
         delete monster.buffs.countDown;
-        handleDeath(monster, false, false, null);
+        handleDeath(monster, false, true, null);
         displayMessage(`${monster.name}は ちからつきた！`);
         await checkRecentlyKilledFlagForPoison(monster);
       } else {
