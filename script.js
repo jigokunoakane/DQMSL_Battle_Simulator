@@ -129,6 +129,7 @@ async function prepareBattle() {
     // リーダースキルの取得
     const leaderSkill = party[0].ls;
     const lsTarget = party[0].lsTarget;
+    const excludeLsTarget = party[0].excludeLsTarget;
 
     for (let j = 0; j < party.length; j++) {
       const monster = party[j];
@@ -154,7 +155,10 @@ async function prepareBattle() {
         // リーダースキル適用
         let statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
-        if ((lsTarget === "all" || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster))) && leaderSkill[key]) {
+        if (
+          leaderSkill[key] &&
+          ((lsTarget === "all" && (!excludeLsTarget || !monster.race.includes(excludeLsTarget))) || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster)))
+        ) {
           lsMultiplier = leaderSkill[key];
         }
         if (key === "spd" && monster.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
@@ -7028,6 +7032,7 @@ const monsters = [
     seed: { atk: 0, def: 45, spd: 75, int: 0 },
     ls: { HP: 1.35, MP: 1.35 },
     lsTarget: "all",
+    excludeLsTarget: "???",
     AINormalAttack: [3],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: 0, light: 1, dark: -1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
