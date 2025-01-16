@@ -3052,7 +3052,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   }
 
   // 蘇生封じ tag変身時は削除 それ以外はpropertyを削除して永久確定化(ただし光の波動解除可能は残すため、亡者化中の光の波動や死者の解放は有効)
-  if (target.buffs.reviveBlock) {
+  if (target.buffs.reviveBlock && !target.buffs.reviveBlock.unDispellableByRadiantWave) {
     if (target.buffs.tagTransformation) {
       delete target.buffs.reviveBlock;
     } else {
@@ -3068,6 +3068,14 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     target.commandInput = "skipThisTurn";
     //次のhitSequenceも実行しない
   }
+
+  // tag変化・リザオ・ゾンビ化・供物による(リザオ所持・未所持にかかわらず)確定蘇生など、当該monsterが蘇生系により戦闘継続する場合、戦闘継続判定のためのflagを付与
+  // 供物は既に付与済 それぞれの実行直前に削除
+  if (target.buffs.tagTransformation || (target.buffs.revive && !target.buffs.reviveBlock) || target.flags.willZombify) {
+    target.flags.waitingForRevive = true;
+  }
+  // 戦闘終了判定 flag所持時は継続と判定する 超魔ゾンビ自傷によるhandleDeath実行後によって戦闘終了しないようここでは実行しない
+  // updateIsBattleOver();
 
   // keepOnDeathを持たないバフと異常を削除 (zombifyBlockの消滅を防ぐため亡者判定後に)
   const newBuffs = {};
@@ -4516,6 +4524,10 @@ async function processDeathAction(skillUser, excludedTargets) {
   while (deathActionQueue.length > 0) {
     const monster = deathActionQueue.shift();
     delete monster.flags.beforeDeathActionCheck;
+    // 亡者化または復活処理に先んじて蘇生待機状態一時フラグを削除 供物のみ、死亡部分の死亡時発動で削除すると変身前に停止してしまうのを防止
+    if (!monster.flags.willTransformNeru) {
+      delete monster.flags.waitingForRevive;
+    }
 
     // 死亡時発動能力の前に亡者化処理を実行 リザオや変身しない場合のみ
     if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
@@ -8919,7 +8931,7 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
-          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn),
+          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive),
           finalAbility: true,
           isOneTimeUse: true,
           act: async function (skillUser) {
@@ -10348,16 +10360,19 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
+        // 生存かつ未変身の場合、リザオ有無にかわらずネルを一度落とす
         delete nerugeru.buffs.reviveBlock;
         delete nerugeru.buffs.poisonDepth;
         delete nerugeru.buffs.stoned;
         delete nerugeru.buffs.maso; // マソ深度5も解除
-        // skipDeathAbility: trueでhandleDeath
-        handleDeath(nerugeru, true, true, null);
-        //生存かつ未変身かつここでリザオ等せずにしっかり死亡した場合、変身許可
-        if (nerugeru.flags.isDead) {
-          nerugeru.flags.willTransform = true;
+        // リザオ予定ではない場合、変身許可
+        if (!nerugeru.buffs.revive) {
+          nerugeru.flags.willTransformNeru = true;
         }
+        // skipDeathAbility: trueでhandleDeath
+        // ラス1で供物死後にisDead判定されてbattleoverになるのを防ぐ 変身時削除
+        nerugeru.flags.waitingForRevive = true;
+        handleDeath(nerugeru, true, true, null);
       }
     },
     followingSkill: "供物をささげる変身",
@@ -10373,17 +10388,14 @@ const skill = [
     skipDeathCheck: true,
     act: async function (skillUser, skillTarget) {
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
-      if (nerugeru.flags.willTransform) {
-        delete nerugeru.flags.willTransform;
+      if (nerugeru.flags.willTransformNeru) {
+        delete nerugeru.flags.willTransformNeru;
         for (const monster of parties[skillUser.teamID]) {
           monster.skill[3] = monster.defaultSkill[3];
         }
         await sleep(200);
-        delete nerugeru.flags.isDead;
-        nerugeru.currentStatus.HP = nerugeru.defaultStatus.HP;
-        updateMonsterBar(nerugeru);
-        updateBattleIcons(nerugeru);
-        await updateMonsterBuffsDisplay(nerugeru);
+        await reviveMonster(nerugeru, 1, true, true, true);
+        delete nerugeru.flags.waitingForRevive;
         await transformTyoma(nerugeru);
       }
     },
@@ -17151,14 +17163,15 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
 }
 
 // 戦闘終了判断
+// updateIsBattleOverを分離してhandleDeathと昇天でisDead付与時に起動する案は保留
 function isBattleOver() {
   if (fieldState.isBattleOver) {
     // 既にこの関数であるいはbtnで終了フラグが立てられている場合
     return true;
-  } else if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn))) {
-    // どちらかのパテで、全員が死亡かつ次ターン蘇生もない場合 戦闘終了フラグを立てる
+  } else if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive))) {
+    // どちらかのパテで、全員が死亡かつ次ターン蘇生もリザオ・tag・亡者化・供物変身による蘇生もない場合 戦闘終了フラグを立てる
     fieldState.isBattleOver = true;
-    if (parties[0].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn)) {
+    if (parties[0].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive)) {
       col("味方全滅により戦闘終了フラグが立てられました");
       displayMessage("試合をあきらめた");
     } else {
@@ -17174,8 +17187,6 @@ function isBattleOver() {
 
 // skip判断
 function skipThisMonsterAction(skillUser) {
-  // 一応最初に更新
-  isBattleOver();
   // 敵全員が死亡または亡者で、かつ1体でも次ターン蘇生がいる場合
   if (
     !fieldState.isBattleOver &&
