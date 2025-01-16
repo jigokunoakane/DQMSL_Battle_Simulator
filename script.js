@@ -16831,7 +16831,7 @@ async function transformTyoma(monster) {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "闇の世界 が発動！");
     for (const target of parties[monster.enemyTeamID]) {
-      applyBuff(target, { dazzle: {} });
+      applyBuff(target, { dazzle: { probability: 1 } });
     }
     delete fieldState.isReverse;
     delete fieldState.isPermanentReverse;
