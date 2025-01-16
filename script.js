@@ -3062,7 +3062,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     if (target.buffs.tagTransformation) {
       delete target.buffs.reviveBlock;
     } else {
-      delete target.buffs.reviveBlock.name;
+      // nameは残し、亡者化予定の場合に鎮魂を解除する
       delete target.buffs.reviveBlock.duration;
       delete target.buffs.reviveBlock.decreaseTurnEnd;
       delete target.buffs.reviveBlock.removeAtTurnStart;
@@ -3363,7 +3363,7 @@ async function processHitSequence(
   }
   // シンリ解除
   // 全体特技ではskillTargetを毎hit変更していない(eachTarget)上に、反射なども反映されない なので、skillUserやskillTargetで判定するよりかは両方について判定
-  // 現状、何度も実行されている
+  // 現状、何度も実行されている 超伝説死亡時にまわりは解除されない
   for (let i = 0; i < 2; i++) {
     if (fieldState.completeDeathCount[i] > 0) {
       for (const monster of parties[i]) {
