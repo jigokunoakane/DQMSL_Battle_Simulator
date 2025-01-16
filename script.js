@@ -868,7 +868,9 @@ async function startTurn() {
     delete fieldState.isDistorted;
   }
   delete fieldState.psychoField;
-  fieldState.stonedBlock--;
+  if (fieldState.stonedBlock) {
+    fieldState.stonedBlock--;
+  }
   if (fieldState.stonedBlock === 0) {
     delete fieldState.stonedBlock;
   }
