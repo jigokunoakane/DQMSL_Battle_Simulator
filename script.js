@@ -8778,11 +8778,10 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
-                    name: "起爆装置爆発", //リザオ時は爆発しない
+                    name: "起爆装置爆発", //リザオ 毒 (反射供物も？)は爆発しない
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
-                    ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                     act: async function (skillUser) {
                       executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
                     },
@@ -9144,6 +9143,7 @@ function getMonsterAbilities(monsterId) {
                 message: function (skillUser) {
                   displayMessage(`${skillUser.name} がチカラつき`, "毒素拡散 の効果が発動！");
                 },
+                ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                 act: async function (skillUser) {
                   for (const monster of parties[skillUser.teamID]) {
                     if (!monster.flags.isDead) {
@@ -9352,7 +9352,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
               monster.abilities.additionalDeathAbilities.push({
-                name: "バイオドレイン",
+                name: "バイオドレイン", // リザオや変身、反射死で発動しない ただしムンの2回目以降は無限回発動
                 message: function (skillUser) {
                   displayMessage(`${skillUser.name} がチカラつき`, "バイオドレイン の効果が発動！");
                 },
