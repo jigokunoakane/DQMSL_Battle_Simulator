@@ -4196,20 +4196,25 @@ function calculateDamage(
   ///////// skillTarget対象バフ
   // 装備 錬金が一意に定まるように注意
   if (skillTarget.gear) {
+    const gearName = skillTarget.gear.name;
     // 装備錬金 - 竜王杖体技10%軽減
-    if (skillTarget.gear.name === "りゅうおうの杖" && executingSkill.type === "martial") {
+    if ((gearName === "りゅうおうの杖" || gearName === "りゅうおうの杖非素早さ錬金") && executingSkill.type === "martial") {
+      damageModifier -= 0.1;
+    }
+    // 斬撃10%軽減は素早さ錬金がない場合に限定
+    if (gearName === "りゅうおうの杖非素早さ錬金" && executingSkill.type === "slash") {
       damageModifier -= 0.1;
     }
     // 装備錬金 - 呪盾体技5%軽減
-    if (skillTarget.gear.name === "呪われし盾" && executingSkill.type === "martial") {
+    if (gearName === "呪われし盾" && executingSkill.type === "martial") {
       damageModifier -= 0.05;
     }
     // 装備効果・錬金 - 聖王の大盾デイン60+5軽減
-    if (skillTarget.gear.name === "聖王の大盾" && executingSkill.element === "light") {
+    if (gearName === "聖王の大盾" && executingSkill.element === "light") {
       damageModifier -= 0.65;
     }
     // 装備効果・錬金 - プラチナシールドメラ息40+10軽減
-    if (skillTarget.gear.name === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
+    if (gearName === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
       damageModifier -= 0.5;
     }
   }
@@ -5857,6 +5862,7 @@ const monsters = [
     weight: 23,
     status: { HP: 827, MP: 274, atk: 463, def: 574, spd: 416, int: 328 },
     initialSkill: ["虚空神の福音", "ザオリク", "スパークふんしゃ", "体技よそく"],
+    defaultGear: "dragonCaneWithoutSpd",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -15520,6 +15526,14 @@ const gear = [
     noWeightMonsters: ["りゅうおう"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
+    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
+  },
+  {
+    name: "りゅうおうの杖非素早さ錬金",
+    id: "dragonCaneWithoutSpd",
+    weight: 5,
+    noWeightMonsters: ["りゅうおう"],
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
   },
   {
