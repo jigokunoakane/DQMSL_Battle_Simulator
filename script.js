@@ -1362,7 +1362,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned && buffName !== "stoned") {
       continue;
     }
-    // 1-2. 亡者の場合 黄泉・神獣・氷の王国封印・亡者の怨嗟・鏡 死肉の怨嗟 憎悪の怨嗟以外は付与しない
+    // 1-2. 亡者の場合 封印(黄泉・神獣・氷の王国) アイアンクロー 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 超魔改良以外は付与しない
     if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
@@ -14216,7 +14216,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 18,
     isOneTimeUse: true,
-    appliedEffect: { powerCharge: { keepOnDeath: true, strength: 3, duration: 2 } },
+    appliedEffect: { powerCharge: { keepOnDeath: true, strength: 3, duration: 2, zombieBuffable: true } },
   },
   {
     name: "ヴェレマータ",
@@ -16214,7 +16214,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 画像が存在するバフのデータのみを格納する配列
   const activeBuffs = [];
   for (const buffKey in monster.buffs) {
-    // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 封印 蘇生封じ 怨嗟鏡 怨嗟バイキ 超魔改良 ファラオ
+    // 亡者時は 亡者時付与可能バフまたは指定されたバフのみ表示 蘇生封じ ファラオなど
     const availableBuffsForZombie = ["reviveBlock", "powerCharge", "isUnbreakable", "pharaohPower", "mindBarrier"];
     if (monster.flags.isZombie && !(monster.buffs[buffKey]?.zombieBuffable || availableBuffsForZombie.includes(buffKey))) {
       continue;
@@ -17145,13 +17145,17 @@ function ascension(monster, ignoreUnAscensionable = false) {
     return;
   }
   delete monster.flags.isZombie;
-  // zombieBuffableのバフを削除 現状封印 怨嗟鏡 怨嗟バイキのみ
+  // zombieBuffableのバフの一部を削除 封印(黄泉・神獣・氷の王国) アイアンクロー 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 超魔改良は残す
   delete monster.buffs.sealed;
+  delete monster.buffs.fear;
   if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
     delete monster.buffs.slashReflection;
   }
   if (monster.buffs.baiki && monster.buffs.baiki.zombieBuffable) {
     delete monster.buffs.baiki;
+  }
+  if (monster.buffs.paralyzedBreak && monster.buffs.paralyzedBreak.zombieBuffable) {
+    delete monster.buffs.paralyzedBreak;
   }
   monster.flags.isDead = true;
   monster.commandInput = "skipThisTurn";
