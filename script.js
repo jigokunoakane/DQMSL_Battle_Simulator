@@ -4109,6 +4109,18 @@ function calculateDamage(
         damageModifier += 0.1;
       }
     }
+    // 装備錬金 - メラ杖
+    if (skillUser.gear.name === "マグマの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+      damageModifier += 0.21;
+    }
+    // 装備錬金 - バギ杖
+    if (skillUser.gear.name === "さばきの杖") {
+      if (executingSkill.name === "バギクロス") {
+        damageModifier += 0.28;
+      } else if (executingSkill.type === "spell" && executingSkill.element === "wind") {
+        damageModifier += 0.21;
+      }
+    }
 
     // 特技錬金の反映(双撃は個別に後半も対象に含める)
     if (skillUser.gear.skillAlchemy) {
@@ -15558,6 +15570,18 @@ const gear = [
     weight: 2,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 78 },
     healBoost: 1.32,
+  },
+  {
+    name: "マグマの杖", //+10 錬金なし
+    id: "fireCane",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
+  },
+  {
+    name: "さばきの杖", //+10 錬金なし
+    id: "windCane",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
     name: "魔神のかなづち",
