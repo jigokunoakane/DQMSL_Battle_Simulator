@@ -7065,7 +7065,8 @@ const monsters = [
     race: ["???"],
     weight: 32,
     status: { HP: 884, MP: 356, atk: 648, def: 633, spd: 477, int: 362 },
-    initialSkill: ["マ素侵食", "ハザードウェポン", "ダークハザード", "ダークハザード"],
+    initialSkill: ["マ素侵食", "ハザードウェポン", "ダークハザード", "ギガ・マホトラ"],
+    defaultGear: "dragonCaneWithoutSpd",
     attribute: {
       initialBuffs: {
         darkBreak: { keepOnDeath: true, strength: 2, iconSrc: "darkBreakBoost" },
@@ -7091,6 +7092,7 @@ const monsters = [
     weight: 32,
     status: { HP: 884, MP: 356, atk: 548, def: 533, spd: 427, int: 362 },
     initialSkill: ["災禍のマ瘴", "レベル4ハザード", "ダークハザード", "マ素汚染"],
+    anotherSkills: ["ギガ・マホトラ"],
     attribute: {
       initialBuffs: {
         mindAndSealBarrier: { keepOnDeath: true },
@@ -13672,6 +13674,22 @@ const skill = [
       }
       damage *= damageModifier;
       applyDamage(skillTarget, damage, 1, true, false, false, false, null);
+    },
+  },
+  {
+    name: "ギガ・マホトラ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 32,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      const damage = getRandomIntInclusive(47, 53);
+      applyDamage(skillTarget, damage, 1, true, false, false, false, null);
+      applyHeal(skillUser, damage, true, true);
     },
   },
   {
