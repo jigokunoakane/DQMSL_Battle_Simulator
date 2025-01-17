@@ -2597,11 +2597,6 @@ async function processMonsterAction(skillUser) {
     skillUser.flags.willTransformOmudo = true;
   }
 
-  // 戦闘終了時は毒や継続ダメージ処理をせずに即時return executeによってskip状態になった場合でもpostActionは実行
-  if (isBattleOver()) {
-    return;
-  }
-
   await postActionProcess(skillUser, executingSkill, executedSkills, damagedMonsters);
 }
 
@@ -2611,7 +2606,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (skillUser.commandInput === "skipThisTurn") {
     return;
   }
-  // 7-2. 戦闘終了確認
+  // 7-2. 戦闘終了確認 毒や継続ダメージ処理をせずに即時return executeによってskip状態になった場合でもpostActionは実行
   if (isBattleOver()) {
     return;
   }
@@ -3146,8 +3141,9 @@ async function executeSkill(
     (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser))
   ) {
     // 6. スキル実行処理
-    // 戦闘終了またはskip時は特に表示せず即時return
-    if (isBattleOver() || skipThisMonsterAction(skillUser)) {
+    // 戦闘終了またはskip時は特に表示せず即時return ただしisBattleOverでも、敵が生存していて起爆装置等ならば実行する
+    const deathSkills = ["起爆装置", "トラウマトラップ爆発"];
+    if (isAllEnemyDead(skillUser) || skipThisMonsterAction(skillUser) || (isBattleOver() && !deathSkills.includes(currentSkill.name))) {
       break;
     }
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
@@ -3190,7 +3186,7 @@ async function executeSkill(
       await currentSkill.afterActionAct(skillUser);
     }
 
-    // afterActionAct実行後に全滅判定
+    // afterActionAct実行後に全滅判定 全滅時も実行する起爆装置等はfollowingがないのでこのままでOK
     if (isBattleOver()) {
       break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfApplieEffectやfollowingは実行しない
     } else if (skipThisMonsterAction(skillUser)) {
@@ -3258,8 +3254,9 @@ async function processHitSequence(
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
+  const deathSkills = ["起爆装置", "トラウマトラップ爆発"];
   // 戦闘終了時のみ即時return skip判定はしない
-  if (isBattleOver()) {
+  if (isAllEnemyDead(skillUser) || (isBattleOver() && !deathSkills.includes(executingSkill.name))) {
     return;
   }
   //毎回deathActionはしているので、停止時はreturnかけてOK
@@ -8813,7 +8810,7 @@ function getMonsterAbilities(monsterId) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
                     act: async function (skillUser) {
-                      executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
+                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
                     },
                   });
                 } else {
@@ -13620,7 +13617,7 @@ const skill = [
         unavailableIf: (skillUser) => !skillUser.buffs.traumaTrap,
         isOneTimeUse: true,
         act: async function (skillUser) {
-          executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null);
+          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null);
         },
       });
     },
@@ -17249,6 +17246,11 @@ function isBattleOver() {
   } else {
     return false;
   }
+}
+
+// 敵全滅判定
+function isAllEnemyDead(monster) {
+  return parties[monster.enemyTeamID].every((monster) => monster.flags.isDead);
 }
 
 // skip判断
