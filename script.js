@@ -15588,6 +15588,20 @@ const gear = [
     fireGearResistance: 1,
   },
   {
+    name: "オーガシールド", //+10 錬金なし
+    id: "thunderShield",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 84, spd: 0, int: 0 },
+    thunderGearResistance: 2,
+  },
+  {
+    name: "こおりの盾", //+10 錬金なし
+    id: "iceShield",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 68, spd: 0, int: 0 },
+    iceGearResistance: 2,
+  },
+  {
     name: "呪われし盾", //+10 体技5軽減
     id: "cursedShield",
     weight: 1,
