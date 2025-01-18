@@ -6844,6 +6844,7 @@ const monsters = [
     status: { HP: 1130, MP: 256, atk: 458, def: 677, spd: 393, int: 268 },
     initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "ザオリク"],
     anotherSkills: ["アンカースパーク", "メルキドの守護神"],
+    defaultGear: "heavenlyClothes",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -15493,6 +15494,13 @@ const gear = [
     initialBuffs: { spdUp: { keepOnDeath: true, strength: 1 } },
   },
   {
+    name: "勇者のつるぎ", //+10 会心5はない
+    id: "yuushaken",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
+    statusMultiplier: { atk: 0.08 },
+  },
+  {
     name: "系統爪パニバリ",
     id: "familyNail",
     weight: 0,
@@ -15847,6 +15855,11 @@ const gearAbilities = {
   waveNail: {
     initialAbilities: async function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
+    },
+  },
+  yuushaken: {
+    initialAbilities: async function (skillUser) {
+      applyBuff(skillUser, { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakdivineDispellable" } }, null, false, true);
     },
   },
   clownHat: {
