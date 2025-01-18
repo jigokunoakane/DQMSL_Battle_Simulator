@@ -153,7 +153,7 @@ async function prepareBattle() {
       monster.defaultStatus = {};
       for (const key in monster.displayStatus) {
         // リーダースキル適用
-        let statusValue = monster.displayStatus[key];
+        const statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
         if (
           leaderSkill[key] &&
@@ -161,15 +161,27 @@ async function prepareBattle() {
         ) {
           lsMultiplier = leaderSkill[key];
         }
-        if (key === "spd" && monster.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
-          lsMultiplier += 0.05;
-        }
-        if (key === "spd" && isBreakMonster(monster) && monster.gear && monster.gear.name === "ハザードネイル") {
-          lsMultiplier += 0.08;
-        }
-        // 装備のstatusMultiplierを適用
-        if (monster.gear?.statusMultiplier && monster.gear.statusMultiplier[key]) {
-          lsMultiplier += monster.gear.statusMultiplier[key];
+        // 装備効果
+        if (monster.gear) {
+          // 素早さ錬金
+          if (key === "spd") {
+            if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
+              lsMultiplier += 0.05;
+            }
+            if (isBreakMonster(monster) && monster.gear.name === "ハザードネイル") {
+              lsMultiplier += 0.08;
+            }
+            if (monster.race.includes("悪魔") && monster.gear.name === "盗賊ハート・闇") {
+              lsMultiplier += 0.05;
+            }
+            if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
+              lsMultiplier += 0.05;
+            }
+          }
+          // 装備のstatusMultiplierを適用
+          if (monster.gear.statusMultiplier && monster.gear.statusMultiplier[key]) {
+            lsMultiplier += monster.gear.statusMultiplier[key];
+          }
         }
         // HPまたはMPの場合、乗数を0.04加算
         if (key === "HP" || key === "MP") {
@@ -5222,24 +5234,24 @@ function seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSe
 
 function calcAndAdjustDisplayStatus() {
   //statusとseedIncrementとgearIncrementを足して、displayStatusを計算、表示値を更新
-  const target = selectingParty[currentTab];
-  const gearStatus = target.gear?.status || {};
+  const monster = selectingParty[currentTab];
+  const gearStatus = monster.gear?.status || {};
 
-  target.displayStatus = {
-    HP: target.status.HP + target.seedIncrement.HP + (gearStatus.HP || 0),
-    MP: target.status.MP + target.seedIncrement.MP + (gearStatus.MP || 0),
-    atk: target.status.atk + target.seedIncrement.atk + (gearStatus.atk || 0),
-    def: target.status.def + target.seedIncrement.def + (gearStatus.def || 0),
-    spd: target.status.spd + target.seedIncrement.spd + (gearStatus.spd || 0),
-    int: target.status.int + target.seedIncrement.int + (gearStatus.int || 0),
+  monster.displayStatus = {
+    HP: monster.status.HP + monster.seedIncrement.HP + (gearStatus.HP || 0),
+    MP: monster.status.MP + monster.seedIncrement.MP + (gearStatus.MP || 0),
+    atk: monster.status.atk + monster.seedIncrement.atk + (gearStatus.atk || 0),
+    def: monster.status.def + monster.seedIncrement.def + (gearStatus.def || 0),
+    spd: monster.status.spd + monster.seedIncrement.spd + (gearStatus.spd || 0),
+    int: monster.status.int + monster.seedIncrement.int + (gearStatus.int || 0),
   };
 
-  document.getElementById("statusInfoDisplayStatusHP").textContent = target.displayStatus.HP;
-  document.getElementById("statusInfoDisplayStatusMP").textContent = target.displayStatus.MP;
-  document.getElementById("statusInfoDisplayStatusatk").textContent = target.displayStatus.atk;
-  document.getElementById("statusInfoDisplayStatusdef").textContent = target.displayStatus.def;
-  document.getElementById("statusInfoDisplayStatusspd").textContent = target.displayStatus.spd;
-  document.getElementById("statusInfoDisplayStatusint").textContent = target.displayStatus.int;
+  document.getElementById("statusInfoDisplayStatusHP").textContent = monster.displayStatus.HP;
+  document.getElementById("statusInfoDisplayStatusMP").textContent = monster.displayStatus.MP;
+  document.getElementById("statusInfoDisplayStatusatk").textContent = monster.displayStatus.atk;
+  document.getElementById("statusInfoDisplayStatusdef").textContent = monster.displayStatus.def;
+  document.getElementById("statusInfoDisplayStatusspd").textContent = monster.displayStatus.spd;
+  document.getElementById("statusInfoDisplayStatusint").textContent = monster.displayStatus.int;
 
   // ウェイト更新
   calculateWeight();
@@ -5259,22 +5271,30 @@ function calcAndAdjustDisplayStatus() {
 
   let lsMultiplier = 1;
   // 狭間lsのようなexcludedLsTarget制限はなし
-  if ((lsTarget === "all" || target.race.includes(lsTarget)) && leaderSkill.spd) {
+  if ((lsTarget === "all" || monster.race.includes(lsTarget)) && leaderSkill.spd) {
     lsMultiplier = leaderSkill.spd;
   }
   // key === "spd"はなし
-  if (target.gear?.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => target.race.includes(r))) {
-    lsMultiplier += 0.05;
+  if (monster.gear) {
+    if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
+      lsMultiplier += 0.05;
+    }
+    if (isBreakMonster(monster) && monster.gear.name === "ハザードネイル") {
+      lsMultiplier += 0.08;
+    }
+    // 盗賊ハート
+    if (monster.race.includes("悪魔") && monster.gear.name === "盗賊ハート・闇") {
+      lsMultiplier += 0.05;
+    }
+    if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
+      lsMultiplier += 0.05;
+    }
+    // 装備のstatusMultiplierを適用
+    if (monster.gear.statusMultiplier?.spd) {
+      lsMultiplier += monster.gear.statusMultiplier.spd;
+    }
   }
-  if (isBreakMonster(target) && target.gear && target.gear.name === "ハザードネイル") {
-    lsMultiplier += 0.08;
-  }
-  // 装備のstatusMultiplierを適用
-  if (target.gear?.statusMultiplier?.spd) {
-    lsMultiplier += target.gear.statusMultiplier.spd;
-  }
-  let predictedSpeed = target.displayStatus.spd;
-  predictedSpeed = Math.ceil(predictedSpeed * lsMultiplier);
+  const predictedSpeed = Math.ceil(monster.displayStatus.spd * lsMultiplier);
   document.getElementById("predictedSpeed").textContent = predictedSpeed;
 }
 
@@ -15786,6 +15806,18 @@ const gear = [
   {
     name: "パラディンハート・蒼",
     id: "slimeHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
+  },
+  {
+    name: "盗賊ハート・闇",
+    id: "devilSpdHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+  },
+  {
+    name: "盗賊ハート・獣",
+    id: "beastSpdHeart",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
   },
