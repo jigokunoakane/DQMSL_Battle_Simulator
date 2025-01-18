@@ -4904,11 +4904,20 @@ function addSkillOptions() {
   const familySkills = {
     ドラゴン: ["テンペストブレス", "ほとばしる暗闇", "竜の呪文見切り"],
     ゾンビ: ["ヴェレマータ", "防壁反転"],
-    悪魔: ["イオナルーン", "ギラマータ"], //冷酷
+    悪魔: ["イオナルーン"], //冷酷
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
-    魔獣: ["一刀両断"], //"ラピッドショット", "聖なる息吹"
+    //魔獣: [], //"ラピッドショット", "聖なる息吹"
     //自然: ["やすらぎの光", "天光の裁き"],
     //物質: ["氷撃波", "れっぱの息吹", "リベンジアーツ"],
+  }[monster.race[0]];
+  const familySkillsAvailableForRankS = {
+    //ドラゴン: [],
+    ゾンビ: ["ポイズンバースト", "ザラキーマ"],
+    悪魔: ["ギラマータ"],
+    //スライム: [],
+    魔獣: ["一刀両断"],
+    //自然: [],
+    //物質: [],
   }[monster.race[0]];
   const superSkills = [
     "メゾラゴン",
@@ -5004,17 +5013,27 @@ function addSkillOptions() {
       selectElement.appendChild(anotherOptGroup);
     }
 
-    // 系統特技を追加
-    if (familySkills && monster.rank === 10 && monster.race.length < 2) {
-      familyOptGroup = document.createElement("optgroup");
-      familyOptGroup.label = "系統特技";
-      for (const skill of familySkills) {
-        const option = document.createElement("option");
-        option.value = skill;
-        option.text = skill;
-        familyOptGroup.appendChild(option);
+    // 系統特技を追加 (狭間を除く)
+    if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS)) {
+      const familySkillsToUse = [];
+      if (monster.rank === 10 && familySkills) {
+        familySkillsToUse.push(...familySkills);
       }
-      selectElement.appendChild(familyOptGroup);
+      if (familySkillsAvailableForRankS) {
+        familySkillsToUse.push(...familySkillsAvailableForRankS);
+      }
+      if (familySkillsToUse.length > 0) {
+        const familyOptGroup = document.createElement("optgroup");
+        familyOptGroup.label = "系統特技";
+
+        for (const skill of familySkillsToUse) {
+          const option = document.createElement("option");
+          option.value = skill;
+          option.text = skill;
+          familyOptGroup.appendChild(option);
+        }
+        selectElement.appendChild(familyOptGroup);
+      }
     }
 
     // コラボ特技を追加
@@ -7229,9 +7248,9 @@ const monsters = [
     rank: 10,
     race: ["ゾンビ"],
     weight: 25,
-    status: { HP: 300000, MP: 328, atk: 400, def: 500, spd: 399, int: 450 },
-    initialSkill: ["ザオリク", "エンドブレス", "debugbreath", "神のはどう"],
-    initialAIDisabledSkills: ["神のはどう"],
+    status: { HP: 300000, MP: 999, atk: 600, def: 450, spd: 300, int: 600 },
+    initialSkill: ["終の流星", "溶熱の儀式", "debugbreath", "神のはどう"],
+    initialAIDisabledSkills: ["永劫の闇冥", "必殺の双撃", "ソウルハーベスト"],
     anotherSkills: ["ベホマラー"],
     defaultGear: "ryujinNail",
     defaultAiType: "いのちだいじに",
@@ -14422,6 +14441,37 @@ const skill = [
     },
   },
   {
+    name: "ポイズンバースト",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 345,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 71,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        return 2;
+      }
+    },
+    masoMultiplier: {
+      1: 1.2,
+      2: 1.3, // 推測
+      3: 1.4,
+      4: 1.5,
+    },
+  },
+  {
+    name: "ザラキーマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 56,
+    zakiProbability: 0.3554,
+  },
+  {
     name: "グランドアビス",
     type: "martial",
     howToCalculate: "none",
@@ -15372,7 +15422,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 524,
+    MPcost: 10,
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
