@@ -15468,39 +15468,6 @@ const gear = [
     iceGearResistance: 2,
   },
   {
-    name: "かがやく魔神剣", //+10 絶技8
-    id: "dreamSword",
-    weight: 5,
-    noWeightMonsters: ["魔神ダークドレアム"],
-    status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
-    skillAlchemy: "真・魔神の絶技",
-    skillAlchemyStrength: 0.08,
-  },
-  {
-    name: "帝王のつるぎ",
-    id: "estaSword",
-    weight: 5,
-    noWeightMonsters: ["地獄の帝王エスターク"],
-    status: { HP: 0, MP: 0, atk: 65, def: 0, spd: 0, int: 0 },
-    statusMultiplier: { atk: 0.08, spd: -0.1 },
-    skillAlchemy: "必殺の双撃",
-    skillAlchemyStrength: 0.3,
-  },
-  {
-    name: "トリリオンダガー", //+7 斬撃3%
-    id: "tririon",
-    weight: 5,
-    status: { HP: 0, MP: 0, atk: 17, def: 0, spd: 30, int: 0 },
-    initialBuffs: { spdUp: { keepOnDeath: true, strength: 1 } },
-  },
-  {
-    name: "勇者のつるぎ", //+10 会心5はない
-    id: "yuushaken",
-    weight: 5,
-    status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
-    statusMultiplier: { atk: 0.08 },
-  },
-  {
     name: "系統爪パニバリ",
     id: "familyNail",
     weight: 0,
@@ -15605,6 +15572,48 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
     turn1buffs: { powerCharge: { strength: 1.1 } },
     alchemy: true,
+  },
+  {
+    name: "大剣豪のつるぎ", //+10
+    id: "daikengou",
+    weight: 20,
+    status: { HP: 0, MP: 0, atk: 90, def: 30, spd: 0, int: 0 },
+    initialBuffs: { slashReflection: { unDispellable: true, strength: 1, removeAtTurnStart: true, duration: 3, isKanta: true } },
+    //"hoge.nameは かまえをといた！"
+  },
+  {
+    name: "かがやく魔神剣", //+10 絶技8
+    id: "dreamSword",
+    weight: 5,
+    noWeightMonsters: ["魔神ダークドレアム"],
+    status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
+    skillAlchemy: "真・魔神の絶技",
+    skillAlchemyStrength: 0.08,
+  },
+  {
+    name: "帝王のつるぎ",
+    id: "estaSword",
+    weight: 5,
+    noWeightMonsters: ["地獄の帝王エスターク"],
+    status: { HP: 0, MP: 0, atk: 65, def: 0, spd: 0, int: 0 },
+    statusMultiplier: { atk: 0.08, spd: -0.1 },
+    skillAlchemy: "必殺の双撃",
+    skillAlchemyStrength: 0.3,
+  },
+  {
+    name: "トリリオンダガー", //+7 斬撃3%
+    id: "tririon",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 17, def: 0, spd: 30, int: 0 },
+    initialBuffs: { spdUp: { keepOnDeath: true, strength: 1 } },
+  },
+  {
+    name: "勇者のつるぎ", //+10 会心5はない
+    id: "yuushaken",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
+    statusMultiplier: { atk: 0.08 },
+    initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakdivineDispellable" } },
   },
   {
     name: "キラーピアス",
@@ -15855,11 +15864,6 @@ const gearAbilities = {
   waveNail: {
     initialAbilities: async function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
-    },
-  },
-  yuushaken: {
-    initialAbilities: async function (skillUser) {
-      applyBuff(skillUser, { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakdivineDispellable" } }, null, false, true);
     },
   },
   clownHat: {
