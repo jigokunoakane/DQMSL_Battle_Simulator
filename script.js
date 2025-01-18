@@ -15704,6 +15704,12 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
   },
   {
+    name: "輝石のベルト", //+7
+    id: "pharaohBelt",
+    weight: 5,
+    status: { HP: 17, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+  },
+  {
     name: "狭間の闇のはごろも",
     id: "hazamaClothes",
     weight: 10,
@@ -15837,6 +15843,17 @@ const gearAbilities = {
           intUp: { strength: 1 },
         };
       }
+    },
+  },
+  pharaohBelt: {
+    initialAbilities: async function (skillUser) {
+      skillUser.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
+      skillUser.attribute.additionalEvenTurnBuffs = {
+        ...skillUser.attribute.additionalEvenTurnBuffs,
+        baiki: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      };
     },
   },
   familyNailRadiantWave: {
