@@ -5415,7 +5415,9 @@ document.getElementById("yuzupa").addEventListener("click", function () {
 
 document.getElementById("siragapa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "erugi", "sosiden", "dream", "skull"]);
-  changeDefaultSkill(selectingParty[0], 3, "スパークふんしゃ");
+  changeDefaultSkill(selectingParty[0], 3, "防刃の守り");
+  changeDefaultSkill(selectingParty[3], 3, "体砕きの斬舞");
+  changeDefaultSkill(selectingParty[4], 3, "体技封じの息");
 });
 
 document.getElementById("omudopa").addEventListener("click", function () {
