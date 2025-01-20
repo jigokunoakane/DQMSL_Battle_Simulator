@@ -893,6 +893,12 @@ async function startTurn() {
   if (fieldState.stonedBlock === 0) {
     delete fieldState.stonedBlock;
   }
+  if (fieldState.disableReverse) {
+    fieldState.disableReverse--;
+  }
+  if (fieldState.disableReverse === 0) {
+    delete fieldState.disableReverse;
+  }
   adjustFieldStateDisplay();
   removeAllStickOut();
 
@@ -17062,7 +17068,7 @@ async function transformTyoma(monster) {
     delete fieldState.isReverse;
     delete fieldState.isPermanentReverse;
     if (!fieldState.psychoField) {
-      fieldState.disableReverse = true;
+      fieldState.disableReverse = 6;
     }
     adjustFieldStateDisplay();
   }
@@ -17278,7 +17284,7 @@ function adjustFieldStateDisplay() {
     if (fieldState.isReverse) {
       display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
     } else if (fieldState.disableReverse) {
-      display1Content = "リバース無効 残り6ラウンド";
+      display1Content = `リバース無効 残り${fieldState.disableReverse}ラウンド`;
     }
     if (fieldState.isDistorted) {
       if (display1Content === "") {
