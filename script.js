@@ -3450,7 +3450,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let isReflection = false;
   let reflectionType = "yosoku";
 
-  // 対象が石化かつダメージなしいてはでなければ無効化
+  // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
   if (
     skillTarget.buffs.stoned &&
     !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) &&
@@ -10214,13 +10214,13 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 14,
     order: "preemptive",
     preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, true);
+      applySubstitute(skillUser, null, true);
     },
     selfAppliedEffect: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
@@ -10234,11 +10234,11 @@ const skill = [
     type: "ritual", //封じ無効
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 0,
     act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, true);
+      applySubstitute(skillUser, null, true);
     },
   },
   {
@@ -11293,9 +11293,9 @@ const skill = [
     targetTeam: "ally",
     MPcost: 9,
     order: "preemptive",
-    preemptiveGroup: 3,
+    preemptiveGroup: 4,
     act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, false, false);
+      applySubstitute(skillUser, skillTarget);
     },
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
@@ -12006,7 +12006,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 16,
     order: "preemptive",
-    preemptiveGroup: 3,
+    preemptiveGroup: 4,
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
@@ -12788,14 +12788,14 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 14,
     order: "preemptive",
     preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
       if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
-        applySubstitute(skillUser, skillTarget, true);
+        applySubstitute(skillUser, null, true);
       }
     },
   },
@@ -13599,13 +13599,13 @@ const skill = [
     type: "martial",
     howToCalculate: "none",
     element: "none",
-    targetType: "all",
+    targetType: "field",
     targetTeam: "ally",
     MPcost: 34,
     order: "preemptive",
     preemptiveGroup: 3,
     act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, true);
+      applySubstitute(skillUser, null, true);
     },
     selfAppliedEffect: async function (skillUser) {
       if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
@@ -16551,42 +16551,56 @@ async function executeWave(monster, isDivine = false, isDamageExisting = false) 
   await updateMonsterBuffsDisplay(monster);
 }
 
-//みがわり付与
+// みがわり系の処理
 function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false) {
-  //石化へのみがわり失敗はprocessHit内の石化無効化で判定
-  if (isAll) {
-    //自分が覆い隠す中の場合の仁王はreturn 下の条件は仁王途中のreturnを防ぐために自分自身が身代わり中の場合通してしまう
-    if (skillUser.flags.isSubstituting && skillUser.flags.isSubstituting.cover) {
-      return;
-    }
-    //自分以外に身代わりisSubstitutingがあるときは仁王立ち失敗で毎回return (hasだと初回付与したらそれ以降引っかかり連続処理が止まるのでこう処理)
-    for (const monster of parties[skillUser.teamID]) {
-      if (monster.flags.isSubstituting && monster.monsterId !== skillUser.monsterId) {
-        return;
-      }
-    }
-    //自分自身は仁王立ちの対象にしない
-    if (skillTarget.monsterId == skillUser.monsterId) {
-      return;
-    }
-    displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
-  }
-  if (skillTarget.flags.isZombie || skillTarget.flags.thisTurn.substituteSeal) {
+  // 自分がみがわりや仁王・覆う中は発動しない isAllの場合for文内の途中でisSubstitutingが付与されるので、あらかじめここで弾く
+  // 仁王立ち後のみがわりは使用者targetともに外れてないとreturn 覆う中の仁王は覆う・覆われ以外に対して仁王付与
+  if (skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute) {
     return;
   }
+  if (isAll) {
+    for (const target of parties[skillUser.teamID]) {
+      processSubstitute(skillUser, target, isAll, isCover);
+    }
+  } else {
+    processSubstitute(skillUser, skillTarget, isAll, isCover);
+  }
+}
+
+// みがわり系の付与
+function processSubstitute(skillUser, skillTarget, isAll, isCover) {
+  // processを経ていないので石化判定なども実行
+  if (
+    skillTarget.flags.isDead ||
+    skillTarget.flags.isZombie ||
+    skillUser.flags.isDead ||
+    skillUser.flags.isZombie ||
+    skillUser.monsterId == skillTarget.monsterId //自分自身は仁王立ちの対象にしない
+  ) {
+    return;
+  }
+  if (skillTarget.buffs.stoned || skillTarget.flags.thisTurn.substituteSeal || skillUser.flags.thisTurn.substituteSeal || skillTarget.flags.isSubstituting || skillTarget.flags.hasSubstitute) {
+    displayMiss(skillTarget);
+    return;
+  }
+  // みがわり仁王成功時
   skillTarget.flags.hasSubstitute = {};
   skillTarget.flags.hasSubstitute.targetMonsterId = skillUser.monsterId;
+  // 初回のみ生成
   if (!skillUser.flags.hasOwnProperty("isSubstituting")) {
     skillUser.flags.isSubstituting = {};
     skillUser.flags.isSubstituting.targetMonsterId = [];
   }
+  // みがわり先をpush
   skillUser.flags.isSubstituting.targetMonsterId.push(skillTarget.monsterId);
   if (isCover) {
     skillTarget.flags.hasSubstitute.cover = true;
     skillUser.flags.isSubstituting.cover = true;
   }
-  updateMonsterBuffsDisplay(skillUser);
-  updateMonsterBuffsDisplay(skillTarget);
+  if (isAll) {
+    displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
+    updateMonsterBuffsDisplay(skillTarget); // isallのときだけfieldなので必要
+  }
 }
 
 function preloadImages() {
