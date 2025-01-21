@@ -182,6 +182,10 @@ async function prepareBattle() {
           if (monster.gear.statusMultiplier && monster.gear.statusMultiplier[key]) {
             lsMultiplier += monster.gear.statusMultiplier[key];
           }
+          // ゾーマローブ
+          if (key === "HP" && monster.race.includes("???") && monster.gear.name === "ゾーマのローブ") {
+            lsMultiplier += 0.1;
+          }
         }
         // HPまたはMPの場合、乗数を0.04加算
         if (key === "HP" || key === "MP") {
