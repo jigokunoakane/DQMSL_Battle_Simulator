@@ -1891,14 +1891,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs[buffName].hasOwnProperty("duration")) {
       //decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
       //うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
-      const decreaseTurnEndBuffs = ["skillTurn", "hogeReflection"];
+      // stackable スキルターン
       //うち、removeAtTurnStart付与： ターン最初に削除  付与されたnターン後のターン最初に切れる
       const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction", "stoned", "damageLimit", "dodgeBuff"];
-      if (removeAtTurnStartBuffs.includes(buffName)) {
+      if (removeAtTurnStartBuffs.includes(buffName) && !buffTarget.buffs[buffName].decreaseTurnEnd && !buffTarget.buffs[buffName].decreaseBeforeAction) {
         buffTarget.buffs[buffName].removeAtTurnStart = true;
       }
-      //stackableBuffs または decreaseTurnEndBuffs内 または removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与) または既に手動設定されている場合
-      if (buffName in stackableBuffs || decreaseTurnEndBuffs.includes(buffName) || buffTarget.buffs[buffName].removeAtTurnStart || buffTarget.buffs[buffName].decreaseTurnEnd) {
+      //stackableBuffs または  removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与) または既に手動設定されている場合
+      if (buffName in stackableBuffs || buffTarget.buffs[buffName].removeAtTurnStart || buffTarget.buffs[buffName].decreaseTurnEnd) {
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
         //decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
@@ -4259,6 +4259,15 @@ function calculateDamage(
   if (parties[skillTarget.teamID][0].name === "ガルマッゾ" && isBreakMonster(skillTarget) && AllElements.includes(executingSkill.element)) {
     damageModifier -= 0.3;
   }
+  // ケトスLS
+  if (parties[skillTarget.teamID][0].name === "神獣王ケトス" && skillUser.race.includes("???")) {
+    damageModifier -= 0.05;
+  }
+
+  // 超セイントボディ
+  if (skillTarget.name === "神獣王ケトス" && skillUser.race.includes("???")) {
+    damageModifier -= 0.5;
+  }
 
   // 全属性軽減
   if (skillTarget.buffs.allElementalBarrier && AllElements.includes(executingSkill.element)) {
@@ -5897,6 +5906,28 @@ const monsters = [
     ls: { HP: 1.3 },
     lsTarget: "all",
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "神獣王ケトス", //4
+    id: "ketosu",
+    rank: 10,
+    race: ["???"],
+    weight: 30,
+    status: { HP: 961, MP: 338, atk: 258, def: 637, spd: 390, int: 378 },
+    initialSkill: ["神獣王の防壁", "空中ふゆう", "みかわしのひやく", "体技よそく"],
+    anotherSkills: ["聖なる流星"],
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75 },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.3 },
+    lsTarget: "all",
+    resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1.5, poisoned: 1.5, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "真夏の女神クシャラミ", //44
@@ -8570,6 +8601,28 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    ketosu: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "おおぞらの加護",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.MP, true);
+            },
+          },
+        ],
+        4: [
+          {
+            name: "光の覚醒",
+            act: async function (skillUser) {
+              applyBuff(skillUser, { internalDefUp: { keepOnDeath: true, strength: 2 } });
+              await sleep(100);
+              applyBuff(skillUser, { lightBreak: { keepOnDeath: true, strength: 1, iconSrc: "lightBreakdivineDispellable" } });
+            },
+          },
+        ],
+      },
     },
     natsukusha: {
       afterActionHealAbilities: [
@@ -11558,6 +11611,68 @@ const skill = [
         applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: -2 } });
       }
     },
+  },
+  {
+    name: "神獣王の防壁",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 94,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { sacredBarrier: {}, slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } },
+    act: async function (skillUser, skillTarget) {
+      await executeRadiantWave(skillTarget, true, true); // マソも解除
+    },
+  },
+  {
+    name: "空中ふゆう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 49,
+    order: "preemptive",
+    preemptiveGroup: 3,
+    act: function (skillUser, skillTarget) {
+      applySubstitute(skillUser, null, true);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
+      }
+    },
+  },
+  {
+    name: "みかわしのひやく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 108,
+    act: async function (skillUser, skillTarget) {
+      await reviveMonster(skillTarget);
+      applyBuff(skillTarget, { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } });
+    },
+  },
+  {
+    name: "聖なる流星",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.3,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 56,
+    ignoreEvasion: true,
+    criticalHitProbability: 0,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
   },
   {
     name: "真夏の誘惑",
