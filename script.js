@@ -1372,7 +1372,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -2100,6 +2100,10 @@ function updateCurrentStatus(monster) {
   // マター
   if (monster.buffs.matterBuffSpd) {
     spdMultiplier += monster.buffs.matterBuffSpd.strength;
+  }
+  // イブール
+  if (monster.buffs.iburuSpdUp) {
+    spdMultiplier += monster.buffs.iburuSpdUp.strength;
   }
   monster.currentStatus.spd *= spdMultiplier;
 
@@ -6536,6 +6540,26 @@ const monsters = [
     resistance: { fire: 1, ice: -1, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "イブール", //4
+    id: "iburu",
+    rank: 10,
+    race: ["悪魔"],
+    weight: 28,
+    status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 449, int: 496 },
+    initialSkill: ["イオナスペル", "神のはどう", "イブールの誘い", "メゾラゴン"],
+    defaultGear: "devilSpdHeart",
+    attribute: {
+      initialBuffs: {
+        breathEvasion: { duration: 3, divineDispellable: true },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1.15, int: 1.15 },
+    lsTarget: "悪魔",
+    resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "フォロボシータ", //4
     id: "sita",
     rank: 10,
@@ -8566,6 +8590,26 @@ function getMonsterAbilities(monsterId) {
           }
         }
       },
+    },
+    iburu: {
+      initialAbilities: [
+        {
+          name: "悪夢の再生",
+          disableMessage: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
+                applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
+                monster.abilities.reviveAct = async function (monster, buffName) {
+                  if (buffName === "悪夢の再生") {
+                    applyBuff(monster, { iburuSpdUp: { divineDispellable: true, duration: 3, strength: 0.5 } });
+                  }
+                };
+              }
+            }
+          },
+        },
+      ],
     },
     raio: {
       deathAbilities: [
@@ -12821,6 +12865,21 @@ const skill = [
     ignoreReflection: true,
   },
   {
+    name: "イオナスペル",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 220,
+    maxInt: 1000,
+    maxIntDamage: 300,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 167,
+    appliedEffect: { confused: { probability: 0.53 } },
+  },
+  {
     name: "ジゴデイン",
     type: "spell",
     howToCalculate: "int",
@@ -13412,6 +13471,16 @@ const skill = [
   },
   {
     name: "暗黒の誘い",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 55,
+    appliedEffect: { tempted: { probabilityMultiplierBySameRace: true, probability: 0.157 } }, //0.785
+  },
+  {
+    name: "イブールの誘い",
     type: "martial",
     howToCalculate: "none",
     element: "none",
