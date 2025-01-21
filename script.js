@@ -4939,7 +4939,7 @@ function addSkillOptions() {
     //スライム: [],
     魔獣: ["一刀両断"],
     //自然: [],
-    //物質: [],
+    物質: ["プロト・スターフレア"],
   }[monster.race[0]];
   const superSkills = [
     "メゾラゴン",
@@ -6966,6 +6966,25 @@ const monsters = [
     lsTarget: "物質",
     AINormalAttack: [1, 3],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ダーティードール", //444 新生全ステ20
+    id: "dirtydoll",
+    rank: 9,
+    race: ["物質"],
+    weight: 16,
+    status: { HP: 672, MP: 291, atk: 562, def: 536, spd: 526, int: 319 },
+    initialSkill: ["オカルトソード", "ダーティーショット", "おぞましいおたけび", "スパークふんしゃ"],
+    attribute: {
+      1: {
+        dodgeBuff: { strength: 0.5, duration: 3 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { spd: 1.15 },
+    lsTarget: "物質",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 1.5, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "スカルスパイダー",
@@ -9126,6 +9145,26 @@ function getMonsterAbilities(monsterId) {
       ],
     },
     kinmimi: {
+      deathAbilities: [
+        {
+          name: "ふくしゅうの呪い",
+          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive),
+          finalAbility: true,
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.flags.isDead && !monster.buffs.reviveBlock && Math.random() < 0.23) {
+                await reviveMonster(monster, 0.25, false, true); // 間隔skip
+              } else {
+                displayMiss(monster);
+              }
+            }
+            await sleep(440);
+          },
+        },
+      ],
+    },
+    dirtydoll: {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
@@ -13975,6 +14014,61 @@ const skill = [
       applyDamage(skillTarget, damage, 1, true, false, false, false, null);
       applyHeal(skillUser, damage, true, true);
     },
+  },
+  {
+    name: "オカルトソード",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.05,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 39,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.paralyzed) {
+        return 2;
+      }
+    },
+    masoMultiplier: {
+      1: 2,
+      2: 2.1, // 推測
+      3: 2.2,
+      4: 2.3,
+    },
+    appliedEffect: { poisoned: { probability: 0.5 }, paralyzed: { probability: 0.2 } },
+  },
+  {
+    name: "ダーティーショット",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.28,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 45,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
+        return 3;
+      }
+    },
+    masoMultiplier: {
+      1: 3,
+      2: 3.1, // 推測
+      3: 3.2,
+      4: 3.3,
+    },
+  },
+  {
+    name: "プロト・スターフレア",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 555,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 84,
   },
   {
     name: "ヴェノムパニック",
