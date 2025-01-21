@@ -1688,7 +1688,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
             delete buffTarget.buffs[existingBuffName];
           }
         }
-        // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealedは問答無用で削除
+        // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealed, 上位毒は問答無用で削除
         if (buffTarget.buffs.revive && !buffTarget.buffs.revive.unDispellable) {
           delete buffTarget.buffs.revive;
         }
@@ -1697,6 +1697,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
         delete buffTarget.buffs.counterAttack;
         delete buffTarget.buffs.sealed;
+        delete buffTarget.buffs.poisoned;
         // 防御は解除済なのでみがわり・みがわられともに覆うであろうと解除
         deleteSubstitute(buffTarget);
         // 現状、dispellableByAbnormality指定された予測系も解除
@@ -2631,7 +2632,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
   // 7-3. AI追撃処理
   if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
-    const noAIskills = ["黄泉の封印", "神獣の封印", "供物をささげる", "超魔改良"];
+    const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       let attackTimes =
         skillUser.AINormalAttack.length === 1
@@ -7189,6 +7190,25 @@ const monsters = [
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 1, light: 1.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "けがれの渦", //最強？
+    id: "dokutama",
+    rank: 9,
+    race: ["ゾンビ"],
+    weight: 16,
+    status: { HP: 627, MP: 381, atk: 367, def: 448, spd: 477, int: 503 },
+    initialSkill: ["けがれの封印", "毒滅の稲妻", "みがわり", "ザラキーマ"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        poisonedBreak: { keepOnDeath: true, strength: 2 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "名もなき闇の王", //44
     id: "hazama",
     rank: 10,
@@ -9517,6 +9537,30 @@ function getMonsterAbilities(monsterId) {
           return "光のはどう"; //行動停止でも封じでも発動
         },
       },
+    },
+    dokutama: {
+      counterAbilities: [
+        {
+          name: "どくどくボディ",
+          act: async function (skillUser, counterTarget) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { poisoned: {} }, skillUser);
+            }
+          },
+        },
+      ],
+      deathAbilities: [
+        {
+          name: "ラストポイズン強",
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              const poisonBuff = hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5) ? { poisoned: { unDispellableByRadiantWave: true } } : { poisoned: {} };
+              applyBuff(monster, poisonBuff, skillUser);
+            }
+          },
+        },
+      ],
     },
     hazama: {
       initialAbilities: [
@@ -14778,6 +14822,49 @@ const skill = [
     abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
         return 2;
+      }
+    },
+    masoMultiplier: {
+      1: 1.5,
+      2: 1.6, // 推測
+      3: 1.7,
+      4: 1.8,
+    },
+  },
+  {
+    name: "けがれの封印",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 98,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        applyBuff(skillTarget, { sealed: {} });
+      } else {
+        displayMiss(skillTarget);
+      }
+    },
+  },
+  {
+    name: "毒滅の稲妻",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 106,
+    maxInt: 600,
+    maxIntDamage: 242,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 86,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.poisoned) {
+        return 1.5;
       }
     },
     masoMultiplier: {
