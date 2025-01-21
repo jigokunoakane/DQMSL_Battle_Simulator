@@ -1418,7 +1418,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // 1-6. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     if (currentBuff) {
       function getBuffPriority(buff) {
-        if (buff.keepOnDeath) return 3;
+        // reviveは必ずkeepOnDeath持ちのため、選考から除外
+        if (buffName !== "revive" && buff.keepOnDeath) return 3;
         if (buff.unDispellable) return 2;
         if (buff.divineDispellable) return 1;
         return 0;
