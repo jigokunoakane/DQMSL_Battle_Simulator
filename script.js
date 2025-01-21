@@ -3827,7 +3827,7 @@ function calculateDamage(
       if (isCriticalHit) {
         // 暴走成功時
         baseDamage *= 1.6;
-        if (!isSimulatedCalculation) col("呪文がぼうそうした");
+        col("呪文がぼうそうした");
       }
     }
   }
@@ -3883,7 +3883,7 @@ function calculateDamage(
   }
 
   //連携
-  if (isProcessMonsterAction && executingSkill.howToCalculate !== "MP") {
+  if (!isSimulatedCalculation && isProcessMonsterAction && executingSkill.howToCalculate !== "MP") {
     const cooperationDamageMultiplier = {
       1: 1,
       2: 1.2,
