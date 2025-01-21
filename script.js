@@ -4319,6 +4319,10 @@ function calculateDamage(
     }
     damage *= Math.min(sosidenBarrierMultiplier, garumaBarrierMultiplier);
   }
+  // やみのころも時ダメージ半減 マダンテにも効く
+  if (skillTarget.name === "闇の大魔王ゾーマ" && skillTarget.gear && skillTarget.gear.name === "ゾーマのローブ") {
+    damage *= 0.5;
+  }
 
   // ダメージ付与処理
   damage = Math.floor(damage);
@@ -6151,6 +6155,33 @@ const monsters = [
     ls: { HP: 1.15, def: 1.15 },
     lsTarget: "all",
     resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 1, poisoned: 0.5, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 0, breathSeal: 0 },
+  },
+  {
+    name: "闇の大魔王ゾーマ", //44 全ステ20 スキルライン: HP50 def100込み
+    id: "zoma",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 794, MP: 404, atk: 518, def: 632, spd: 502, int: 560 },
+    initialSkill: ["サイコストーム", "絶対零度", "真・いてつくはどう", "ザオリク"],
+    defaultGear: "zomaRobe",
+    attribute: {
+      initialBuffs: {
+        demonKingBarrier: { divineDispellable: true },
+        protection: { strength: 0.3, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 70, def: 40, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "聖地竜オリハルゴン", //44
@@ -8128,6 +8159,33 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    zoma: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "偶数ラウンドMP大回復",
+            disableMessage: true,
+            act: async function (skillUser) {
+              applyHeal(skillUser, 60, true);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "偶数ラウンド真いてつくはどう",
+            unavailableIf: (skillUser) => !skillUser.gear || skillUser.gear.name !== "ゾーマのローブ",
+            message: function (skillUser) {
+              displayMessage("そうびの特性により", "真・いてつくはどう が発動！");
+            },
+            act: async function (skillUser) {
+              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, null);
+            },
+          },
+        ],
+      },
     },
     hyadonisu: {
       counterAbilities: [
@@ -11986,6 +12044,32 @@ const skill = [
     appliedEffect: { elementalRetributionMark: {} },
   },
   {
+    name: "サイコストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 280,
+    skillPlus: 1.075,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 80,
+  },
+  {
+    name: "絶対零度",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 364,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 136,
+    appliedEffect: { fear: { probability: 0.213 } },
+  },
+  {
     name: "地殻変動",
     type: "martial",
     howToCalculate: "atk",
@@ -12146,6 +12230,16 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 49,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "真・いてつくはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 36,
     appliedEffect: "divineWave",
   },
   {
@@ -15533,6 +15627,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 10,
+    ignoreProtection: true,
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreGuard: true,
@@ -15828,6 +15923,13 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["真夏の女神クシャラミ", "常夏少女ジェマ", "魔夏姫アンルシア", "涼風の魔女グレイツェル", "ドラ猫親分ドラジ"],
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
+  },
+  {
+    name: "ゾーマのローブ", //+15 偶数真いては ダメージ半減
+    id: "zomaRobe",
+    weight: 5,
+    noWeightMonsters: ["闇の大魔王ゾーマ"],
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 58 },
   },
   {
     name: "輝石のベルト", //+7
@@ -17002,6 +17104,8 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       displayMessage(`${buffTarget.name}の`, "回避率が最大になった！");
     } else if (buffName === "stoned" && buffTarget.commandInput === "アストロンゼロ") {
       displayMessage(`${buffTarget.name}は`, "敵の攻撃をうけなくなった！");
+    } else if (buffName === "stoned" && buffTarget.commandInput === "アストロン") {
+      displayMessage("モンスターたちは", "敵の攻撃をうけなくなった！");
     } else {
       displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
     }
