@@ -5166,7 +5166,7 @@ function changeSeedSelect() {
   const selectSeedSpd = document.getElementById("selectSeedSpd").value;
   const selectSeedInt = document.getElementById("selectSeedInt").value;
 
-  //この新たな値を、selectingParty内の表示中のタブのseed情報に格納
+  // この新たな値を、selectingParty内の表示中のタブのseed情報に格納
   selectingParty[currentTab].seed.atk = selectSeedAtk;
   selectingParty[currentTab].seed.def = selectSeedDef;
   selectingParty[currentTab].seed.spd = selectSeedSpd;
@@ -5174,9 +5174,10 @@ function changeSeedSelect() {
   seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSeedInt);
 
   // 120上限種無効化処理
-  //select変化時、全部の合計値を算出、120-その合計値を算出 = remain
-  const remainingSelectSeedSum = 120 - Number(selectSeedAtk) - Number(selectSeedDef) - Number(selectSeedSpd) - Number(selectSeedInt);
-  //すべてのselectで、現状の値+remainを超える選択肢をdisable化
+  const seedLimit = selectingParty[currentTab].seedLimit || 120;
+  // select変化時、全部の合計値を算出、120-その合計値を算出 = remain
+  const remainingSelectSeedSum = seedLimit - Number(selectSeedAtk) - Number(selectSeedDef) - Number(selectSeedSpd) - Number(selectSeedInt);
+  // すべてのselectで、現状の値+remainを超える選択肢をdisable化
   document.querySelectorAll(".selectSeed").forEach(function (element) {
     const selectedValue = parseInt(element.value);
     const newLimit = remainingSelectSeedSum + selectedValue;
@@ -7245,7 +7246,8 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 30, def: 25, spd: 95, int: 0 },
+    seedLimit: 150,
     ls: { HP: 1.3 },
     lsTarget: "break",
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: -1, poisoned: 0, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
