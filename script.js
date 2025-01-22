@@ -6907,6 +6907,25 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "ボーグ", //最強??
+    id: "bogu",
+    rank: 8,
+    race: ["スライム"],
+    weight: 8,
+    status: { HP: 591, MP: 251, atk: 226, def: 477, spd: 353, int: 304 },
+    initialSkill: ["やいばのまもり", "みがわり", "防刃の守り", "タップダンス"],
+    defaultGear: "familyNail",
+    attribute: {
+      1: {
+        slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 1.5, io: 1, light: 1, dark: 1, poisoned: 0.5, asleep: 0.5, confused: 1, paralyzed: 1, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ダークマター", //44
     id: "matter",
     rank: 10,
@@ -15799,6 +15818,18 @@ const skill = [
     targetType: "self",
     targetTeam: "ally",
     MPcost: 5,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+  },
+  {
+    name: "やいばのまもり",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 32,
     order: "preemptive",
     preemptiveGroup: 5,
     appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
