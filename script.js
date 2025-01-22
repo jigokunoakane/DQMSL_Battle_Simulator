@@ -6054,6 +6054,26 @@ const monsters = [
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ルバンカ", //4?
+    id: "rubanka",
+    rank: 7,
+    race: ["物質"],
+    weight: 6,
+    status: { HP: 486, MP: 335, atk: 175, def: 335, spd: 286, int: 240 },
+    initialSkill: ["はげしい炎", "みがわり", "みがわり", "みがわり"],
+    defaultGear: "familyNail",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.08 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 1, io: 0, light: 1, dark: 0, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "魔扉の災禍オムド・レクス", //44
     id: "omudo",
     rank: 10,
@@ -7794,7 +7814,7 @@ function getMonsterAbilities(monsterId) {
         {
           act: function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.id !== skillUser.id && monster.skill[3] !== "プチ神のはどう") {
+              if (monster.name !== "死を統べる者ネルゲル" && monster.skill[3] !== "プチ神のはどう" && monster.rank > 7) {
                 monster.skill[3] = "供物をささげる";
               }
             }
@@ -10447,6 +10467,16 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 136,
     appliedEffect: { fear: { probability: 0.213 } },
+  },
+  {
+    name: "はげしい炎",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 200,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 55,
   },
   {
     name: "むらくもの息吹",
