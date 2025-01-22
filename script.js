@@ -2122,19 +2122,21 @@ function decideTurnOrder(parties) {
   let allMonsters = parties.flat();
 
   // 各行動順のモンスターを格納する配列を定義
-  let preemptiveMonsters = [];
+  let preemptiveSupportMonsters = [];
+  let preemptiveAttackMonsters = [];
   let preemptiveActionMonsters = [];
-  let anchorMonsters = [];
-  let anchorActionMonsters = [];
   let normalMonsters = [];
+  let anchorActionMonsters = [];
+  let anchorMonsters = [];
 
-  // 各モンスターの行動順を分類 (skillのorderと特性の複数所持時はskillのorder優先で分類)
+  // 各モンスターの行動順を分類 (skillのorderと行動早い・遅いの重複所持時はskillのorder優先で分類)
   allMonsters.forEach((monster) => {
-    const selectedSkillInfo = findSkillByName(monster.commandInput);
-
-    if (selectedSkillInfo?.order === "preemptive") {
-      preemptiveMonsters.push(monster);
-    } else if (selectedSkillInfo?.order === "anchor") {
+    const skillInfo = findSkillByName(monster.commandInput);
+    if (skillInfo?.order === "preemptive" && (skillInfo.preemptiveGroup === 7 || skillInfo.preemptiveGroup === 8)) {
+      preemptiveAttackMonsters.push(monster);
+    } else if (skillInfo?.order === "preemptive") {
+      preemptiveSupportMonsters.push(monster);
+    } else if (skillInfo?.order === "anchor") {
       anchorMonsters.push(monster);
     } else if (monster.buffs.preemptiveAction) {
       preemptiveActionMonsters.push(monster);
@@ -2144,111 +2146,122 @@ function decideTurnOrder(parties) {
       normalMonsters.push(monster);
     }
   });
-  //死亡もしくはAIのモンスターはpreemptiveActionMonsters, anchorActionMonsters, normalMonstersのいずれかに格納される
+  //死亡もしくはAIのモンスターも行動しないだけでpreemptiveActionMonsters, anchorActionMonsters, normalMonstersのいずれかに格納される
 
-  // 行動順を決定
-  turnOrder = [];
   //初期化
+  turnOrder = [];
+
+  // preemptiveSupportMonsters用 preemptiveGroupが小さい順にsort 同じ場合左から (リバース通常共通)
+  const sortByPreemptiveGroup = (a, b) => {
+    const skillA = findSkillByName(a.commandInput);
+    const skillB = findSkillByName(b.commandInput);
+    return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
+  };
 
   if (fieldState.isReverse) {
     // --- リバース状態の処理 ---
-    // 各グループのソート処理を関数化
-    const sortByPreemptiveGroupAndSpeed = (a, b) => {
-      const skillA = findSkillByName(a.commandInput);
-      const skillB = findSkillByName(b.commandInput);
-      if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
-        return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
-      } else {
-        return a.modifiedSpeed - b.modifiedSpeed;
-      }
-    };
-
-    // 1. preemptiveGroup 1-6 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
-    turnOrder.push(
-      ...allMonsters
-        .filter((monster) => {
-          const skill = findSkillByName(monster.commandInput);
-          return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
-        })
-        .sort(sortByPreemptiveGroupAndSpeed)
-    );
-
-    // 2. アンカー技を使うモンスターを追加 (anchorAction所持, 特性未所持, preemptiveAction所持の順、
-    //    各グループ内ではmodifiedSpeedの遅い順)
-    turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)),
-      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => a.modifiedSpeed - b.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0))
-    );
-
-    // 3. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
-    turnOrder.push(...anchorActionMonsters.sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)));
-
-    // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
-    turnOrder.push(...normalMonsters.sort((a, b) => a.modifiedSpeed - b.modifiedSpeed));
-
-    // 5. preemptiveActionを持つモンスターを追加 (currentStatus.spdの遅い順)
-    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0)));
-
-    // 6. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
-    turnOrder.push(
-      ...allMonsters
-        .filter((monster) => {
-          const skill = findSkillByName(monster.commandInput);
-          return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
-        })
-        .sort(sortByPreemptiveGroupAndSpeed)
-    );
-  } else {
-    // --- 通常状態の処理 ---
-    // 各グループのソート処理を関数化
+    // 各グループのソート処理を関数化 遅い順
     const sortByPreemptiveGroupAndReverseSpeed = (a, b) => {
       const skillA = findSkillByName(a.commandInput);
       const skillB = findSkillByName(b.commandInput);
       if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
         return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
+      } else if (a.modifiedSpeed !== b.modifiedSpeed) {
+        return a.modifiedSpeed - b.modifiedSpeed;
       } else {
-        return b.modifiedSpeed - a.modifiedSpeed;
+        return Math.random() - 0.5; // 同じ場合はランダム
       }
     };
 
-    // 1. preemptiveGroup 1-5 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
+    // speedでソートし、同じspeedの場合はランダムにするヘルパー関数
+    const sortBySpeedReverseRandom = (a, b) => {
+      if (a.currentStatus.spd !== b.currentStatus.spd) {
+        return a.currentStatus.spd - b.currentStatus.spd; // 遅い順
+      } else {
+        return Math.random() - 0.5; // 同じ場合はランダム
+      }
+    };
+    const sortByModifiedSpeedReverseRandom = (a, b) => {
+      if (a.modifiedSpeed !== b.modifiedSpeed) {
+        return a.modifiedSpeed - b.modifiedSpeed; // 遅い順
+      } else {
+        return Math.random() - 0.5; // 同じ場合はランダム
+      }
+    };
+
+    // 1. preemptiveGroup 1-6 を追加 (preemptiveGroupの小さい順、modifiedSpeedソートやランダム化はせず左から順)
+    turnOrder.push(...preemptiveSupportMonsters.sort(sortByPreemptiveGroup));
+
+    // 2. アンカー技を使うモンスターを追加 (anchorAction所持, 特性未所持, preemptiveAction所持の順、各グループ内ではspdの遅い順)
     turnOrder.push(
-      ...allMonsters
-        .filter((monster) => {
-          const skill = findSkillByName(monster.commandInput);
-          return skill && skill.preemptiveGroup >= 1 && skill.preemptiveGroup <= 6;
-        })
-        .sort(sortByPreemptiveGroupAndReverseSpeed)
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort(sortBySpeedReverseRandom),
+      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort(sortByModifiedSpeedReverseRandom),
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort(sortBySpeedReverseRandom)
     );
 
-    // 2. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順)
-    turnOrder.push(
-      ...allMonsters
-        .filter((monster) => {
-          const skill = findSkillByName(monster.commandInput);
-          return skill && skill.preemptiveGroup >= 7 && skill.preemptiveGroup <= 8;
-        })
-        .sort(sortByPreemptiveGroupAndReverseSpeed)
-    );
-
-    // 3. preemptiveActionを持つモンスターを追加 (currentStatus.spdの遅い順)
-    turnOrder.push(...preemptiveActionMonsters.sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)));
+    // 3. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...anchorActionMonsters.sort(sortBySpeedReverseRandom));
 
     // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの遅い順)
-    turnOrder.push(...normalMonsters.sort((a, b) => b.modifiedSpeed - a.modifiedSpeed));
+    turnOrder.push(...normalMonsters.sort(sortByModifiedSpeedReverseRandom));
 
-    // 5. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
-    turnOrder.push(...anchorActionMonsters.sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)));
+    // 5. preemptiveActionを持つモンスターを追加 (currentStatus.spdの遅い順)
+    turnOrder.push(...preemptiveActionMonsters.sort(sortBySpeedReverseRandom));
+
+    // 6. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの遅い順) 行動早い持ちの先制特技は加味していない
+    turnOrder.push(...preemptiveAttackMonsters.sort(sortByPreemptiveGroupAndReverseSpeed));
+  } else {
+    // --- 通常状態の処理 ---
+    // 各グループのソート処理を関数化 早い順
+    const sortByPreemptiveGroupAndSpeed = (a, b) => {
+      const skillA = findSkillByName(a.commandInput);
+      const skillB = findSkillByName(b.commandInput);
+      if (skillA?.preemptiveGroup !== skillB?.preemptiveGroup) {
+        return skillA?.preemptiveGroup - skillB?.preemptiveGroup;
+      } else if (a.modifiedSpeed !== b.modifiedSpeed) {
+        return b.modifiedSpeed - a.modifiedSpeed;
+      } else {
+        return Math.random() - 0.5; // 同じ場合はランダム
+      }
+    };
+    // speedでソートし、同じspeedの場合はランダムにするヘルパー関数
+    const sortBySpeedRandom = (a, b) => {
+      if (a.currentStatus.spd !== b.currentStatus.spd) {
+        return b.currentStatus.spd - a.currentStatus.spd; // 早い順
+      } else {
+        return Math.random() - 0.5; // 同じ場合はランダム
+      }
+    };
+    const sortByModifiedSpeedRandom = (a, b) => {
+      if (a.modifiedSpeed !== b.modifiedSpeed) {
+        return b.modifiedSpeed - a.modifiedSpeed; // 早い順
+      } else {
+        return Math.random() - 0.5; // 同じ場合はランダム
+      }
+    };
+
+    // 1. preemptiveGroup 1-6 を追加 (preemptiveGroupの小さい順、modifiedSpeedソートやランダム化はせず左から順)
+    turnOrder.push(...preemptiveSupportMonsters.sort(sortByPreemptiveGroup));
+
+    // 2. preemptiveGroup 7-8 を追加 (preemptiveGroupの小さい順、modifiedSpeedの早い順) 行動早い持ちの先制特技は加味していない
+    turnOrder.push(...preemptiveAttackMonsters.sort(sortByPreemptiveGroupAndSpeed));
+
+    // 3. preemptiveActionを持つモンスターを追加 (currentStatus.spdの早い順)
+    turnOrder.push(...preemptiveActionMonsters.sort(sortBySpeedRandom));
+
+    // 4. 通常の行動順のモンスターを追加 (modifiedSpeedの早い順)
+    turnOrder.push(...normalMonsters.sort(sortByModifiedSpeedRandom));
+
+    // 5. anchorActionを持つモンスターを追加 (currentStatus.spdの早い順)
+    turnOrder.push(...anchorActionMonsters.sort(sortBySpeedRandom));
 
     // 6. アンカー技を使うモンスターを追加 (preemptiveAction持ち-> 通常行動 -> anchorAction持ち)
     turnOrder.push(
-      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0)),
-      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort((a, b) => b.modifiedSpeed - a.modifiedSpeed),
-      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort((a, b) => (b?.currentStatus?.spd || 0) - (a?.currentStatus?.spd || 0))
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort(sortBySpeedRandom),
+      ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort(sortByModifiedSpeedRandom),
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort(sortBySpeedRandom)
     );
   }
-
   console.log(turnOrder);
   return turnOrder;
 }
