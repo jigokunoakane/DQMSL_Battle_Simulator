@@ -699,7 +699,6 @@ select {
 
 .buffIcon {
   width: 33.33%;
-  padding-top: 33.33%; /* アスペクト比を維持するためにパディングトップを使用 */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;

@@ -17113,6 +17113,8 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     buffsToShow.forEach((buff, index) => {
       const buffIcon = buffIcons[index];
       buffIcon.src = buff.src;
+      const buffsmaller = adjustBuffSize(buff.src);
+      buffIcon.style.scale = buffsmaller ? "0.93" : "1";
       buffIcon.style.display = "block"; // 表示する
     });
 
@@ -17128,6 +17130,63 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   }
 
   showNextBuffs();
+}
+
+function adjustBuffSize(buffSrc) {
+  const smallBuffSrcList = [
+    "images/buffIcons/breathBarrierstr2.png",
+    "images/buffIcons/breathBarrierstr-1.png",
+    "images/buffIcons/breathBarrierstr-2.png",
+    "images/buffIcons/iceResistancestr-3.png",
+    "images/buffIcons/tyoryuLevelstr3.png",
+    "images/buffIcons/tyoryuLevelstr2.png",
+    "images/buffIcons/iceResistancestr-2.png",
+    "images/buffIcons/windResistancestr-2.png",
+    "images/buffIcons/windResistancestr-3.png",
+    "images/buffIcons/iceResistancestr-1.png",
+    "images/buffIcons/windResistancestr-1.png",
+    "images/buffIcons/lightResistancestr-3.png",
+    "images/buffIcons/lightResistancestr-2.png",
+    "images/buffIcons/darkResistancestr-3.png",
+    "images/buffIcons/lightResistancestr-1.png",
+    "images/buffIcons/thunderResistancestr-3.png",
+    "images/buffIcons/thunderResistancestr-2.png",
+    "images/buffIcons/darkResistancestr-1.png",
+    "images/buffIcons/fireResistancestr-3.png",
+    "images/buffIcons/thunderResistancestr-1.png",
+    "images/buffIcons/spdUpkeepOnDeathstr2.png",
+    "images/buffIcons/intUpstr-2.png",
+    "images/buffIcons/powerWeaken.png",
+    "images/buffIcons/fireBreakBoost.png",
+    "images/buffIcons/tyoryuLevelstr1.png",
+    "images/buffIcons/dragonPreemptiveAction6.png",
+    "images/buffIcons/dragonPreemptiveAction8.png",
+    "images/buffIcons/pharaohPower.png",
+    "images/buffIcons/dragonPreemptiveAction9.png",
+    "images/buffIcons/dragonPreemptiveAction7.png",
+    "images/buffIcons/intUpstr-1.png",
+    "images/buffIcons/defUpstr-1.png",
+    "images/buffIcons/paralyzedBreakstr2.png",
+    "images/buffIcons/masostr5.png",
+    "images/buffIcons/spdUpstr-2.png",
+    "images/buffIcons/baikistr-1.png",
+    "images/buffIcons/baikistr-2.png",
+    "images/buffIcons/iburuSpdUp.png",
+    "images/buffIcons/masostr3.png",
+    "images/buffIcons/masostr2.png",
+    "images/buffIcons/masostr4.png",
+    "images/buffIcons/masostr1.png",
+    "images/buffIcons/poisonedunDispellableByRadiantWave.png",
+    "images/buffIcons/spellSeal.png",
+    "images/buffIcons/allElementalBarrierstr0.5.png",
+    "images/buffIcons/martialSeal.png",
+    "images/buffIcons/murakumo.png",
+  ];
+  if (smallBuffSrcList.includes(buffSrc)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function stopBuffDisplayLoop(monster) {
