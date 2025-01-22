@@ -6054,6 +6054,25 @@ const monsters = [
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "まものテリー&ミレーユ", //最強
+    id: "terimire",
+    rank: 9,
+    race: ["???"],
+    weight: 6,
+    status: { HP: 604, MP: 285, atk: 327, def: 351, spd: 456, int: 453 },
+    initialSkill: ["しもふりおとし", "防刃の守り", "カオスストーム", "竜の眼光"],
+    defaultGear: "fireCharm",
+    attribute: {
+      initialBuffs: {
+        mpCostMultiplier: { strength: 2, keepOnDeath: true },
+      },
+    },
+    seed: { atk: 20, def: 5, spd: 95, int: 0 },
+    ls: { MP: 1.15 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0.5, thunder: 0, wind: 1, io: 1, light: -1, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 1, zaki: 0.5, dazzle: 1, spellSeal: 0, breathSeal: 0.5 },
+  },
+  {
     name: "ルバンカ", //4?
     id: "rubanka",
     rank: 7,
@@ -16098,6 +16117,17 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 98,
     damageByLevel: true,
+  },
+  {
+    name: "しもふりおとし",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 65,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 35,
+    appliedEffect: { tempted: { probability: 0.2 } },
   },
   {
     name: "ステテコダンス",
