@@ -1233,14 +1233,14 @@ async function startTurn() {
 
     // currentStatus.spd で遅い順にソートし、同速の場合はランダムに並び替える関数
     const sortBySpeedAndRandomize = (a, b) => {
-      const speedDiff = (a?.currentStatus?.spd || 0) - (b?.currentStatus?.spd || 0);
+      const speedDiff = a.modifiedSpeed - b.modifiedSpeed;
       return speedDiff !== 0 ? speedDiff : Math.random() - 0.5;
     };
 
     // isReverseの状態に応じて行動順を決定
     if (fieldState.isReverse) {
       // リバース状態
-      abilityOrder = [...preemptiveActionMonsters.sort(sortBySpeedAndRandomize), ...normalMonsters.sort(sortBySpeedAndRandomize), ...anchorActionMonsters.sort(sortBySpeedAndRandomize)];
+      abilityOrder = [...anchorActionMonsters.sort(sortBySpeedAndRandomize), ...normalMonsters.sort(sortBySpeedAndRandomize), ...preemptiveActionMonsters.sort(sortBySpeedAndRandomize)];
     } else {
       // 通常状態は反転
       abilityOrder = [
@@ -17544,7 +17544,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       displayMessage(`${buffTarget.name}の`, "回避率が最大になった！");
     } else if (buffName === "stoned" && buffTarget.commandInput === "アストロンゼロ") {
       displayMessage(`${buffTarget.name}は`, "敵の攻撃をうけなくなった！");
-    } else if (buffName === "stoned" && buffTarget.commandInput === "アストロン") {
+    } else if (buffName === "stoned" && !buffData.isGolden) {
       displayMessage("モンスターたちは", "敵の攻撃をうけなくなった！");
     } else {
       displayMessage(buffMessages[buffName].start, buffMessages[buffName].message);
