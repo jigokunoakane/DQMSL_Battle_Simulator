@@ -978,6 +978,10 @@ async function startTurn() {
         // 戦闘開始時発動特性 天使のしるしなど敵に付与するもの
         const allInitialAttackAbilities = [...(monster.abilities?.initialAttackAbilities || [])];
         for (const ability of allInitialAttackAbilities) {
+          // 発動不可能条件に当てはまった場合次のabilityへ
+          if (ability.unavailableIf && ability.unavailableIf(monster)) {
+            continue;
+          }
           await sleep(300);
           if (!ability.disableMessage) {
             if (ability.hasOwnProperty("message")) {
