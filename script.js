@@ -514,6 +514,7 @@ function selectCommand(selectedSkillNum) {
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     finishSelectingEachMonstersCommand();
   }
+  displaySkillResistances(skillUser, selectedSkill);
 }
 
 function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, selectedSkillTargetTeam, selectedSkill) {
@@ -569,10 +570,14 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
 }
 
 //all-yesBtnの場合、そのmonsterのコマンド選択終了
-document.getElementById("selectSkillTargetBtnYes").addEventListener("click", finishSelectingEachMonstersCommand);
+document.getElementById("selectSkillTargetBtnYes").addEventListener("click", function () {
+  clearAllSkillResistance();
+  finishSelectingEachMonstersCommand();
+});
 
 //all-noBtn処理
 document.getElementById("selectSkillTargetBtnNo").addEventListener("click", function () {
+  clearAllSkillResistance();
   document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
   document.getElementById("commandPopupWindow").style.visibility = "hidden";
   disableCommandBtn(false);
@@ -583,6 +588,7 @@ document.getElementById("selectSkillTargetBtnNo").addEventListener("click", func
 //skillTarget選択画面
 document.querySelectorAll(".selectSkillTarget").forEach((img) => {
   img.addEventListener("click", () => {
+    clearAllSkillResistance();
     const imgId = img.getAttribute("id");
     parties[currentTeamIndex][currentMonsterIndex].commandTargetInput = parseInt(imgId.replace("selectSkillTarget", ""));
     document.getElementById("selectSkillTargetContainer").style.visibility = "hidden";
@@ -762,6 +768,7 @@ function closeAllPopupContents() {
   document.getElementById("commandPopupWindowAdjustAi").style.visibility = "hidden";
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   document.getElementById("howToCommandEnemy").style.visibility = "hidden";
+  clearAllSkillResistance(); // 耐性表示も削除
 }
 
 //全て閉じてcommandBtnを有効化する関数
@@ -18488,4 +18495,122 @@ function isBreakMonster(monster) {
     "凶アンドレアル",
   ];
   return breakMonsterList.includes(monster.name);
+}
+
+// 耐性表示を全てクリア preparebattleでも実行して初期化
+function clearAllSkillResistance() {
+  const iconElements = ["enemyBattleIcon0", "enemyBattleIcon1", "enemyBattleIcon2", "enemyBattleIcon3", "enemyBattleIcon4"];
+  for (const element of iconElements) {
+    const targetWrapper = document.getElementById(element).parentNode;
+    clearResistanceDisplay(targetWrapper);
+  }
+}
+
+function clearResistanceDisplay(targetWrapper) {
+  const existingResistance = targetWrapper.querySelector(".resistance-container");
+  if (existingResistance) {
+    existingResistance.remove();
+  }
+}
+
+function displaySkillResistances(skillUser, skillInfo) {
+  clearAllSkillResistance();
+  if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
+    return;
+  }
+  for (const target of parties[skillUser.enemyTeamID]) {
+    // 死亡時は削除のみ
+    if (target.flags.isDead) {
+      continue;
+    }
+    let wrapper = document.getElementById(target.iconElementId).parentNode;
+    if (currentTeamIndex === 1) {
+      wrapper = document.getElementById(target.reversedIconElementId).parentNode;
+    }
+
+    const resistanceValue = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
+    let resistanceText;
+    let textColor;
+
+    if (resistanceValue !== -1 && isSkillReflected(skillInfo, target)) {
+      resistanceText = "反射";
+      textColor = "#fbfafc";
+    } else if (resistanceValue === 1) {
+      continue;
+    } else {
+      switch (resistanceValue) {
+        case 2.5:
+          resistanceText = "超弱点";
+          textColor = "rgb(149, 221, 236)";
+          break;
+        case 2:
+          resistanceText = "大弱点";
+          textColor = "rgb(149, 221, 236)";
+          break;
+        case 1.5:
+          resistanceText = "弱点";
+          textColor = "rgb(149, 221, 236)";
+          break;
+        case 0.75:
+          resistanceText = "軽減";
+          textColor = "#feb242";
+          break;
+        case 0.5:
+          resistanceText = "半減";
+          textColor = "#f7772f";
+          break;
+        case 0.25:
+          resistanceText = "激減";
+          textColor = "#d5382e";
+          break;
+        case 0:
+          resistanceText = "無効";
+          textColor = "#d5382e";
+          break;
+        case -1:
+          resistanceText = "吸収";
+          textColor = "#d58afb";
+          break;
+      }
+    }
+
+    // コンテナ要素を作成
+    const container = document.createElement("div");
+    container.classList.add("resistance-container");
+    //container.style.position = "absolute";
+    wrapper.appendChild(container);
+
+    // 属性表示
+    const elementName = {
+      fire: "メラ",
+      ice: "ヒャド",
+      thunder: "ギラ",
+      wind: "バギ",
+      io: "イオ",
+      light: "デイン",
+      dark: "ドルマ",
+    }[skillInfo.element];
+
+    if (elementName && resistanceText !== "反射") {
+      const elementTextElement = document.createElement("div");
+      elementTextElement.classList.add("element-name-text");
+      elementTextElement.textContent = elementName;
+      // elementTextElement.style.position = "relative";
+      elementTextElement.style.color = "#edfd19";
+      elementTextElement.style.fontSize = "0.5rem";
+      elementTextElement.style.zIndex = "11"; //一応
+      container.appendChild(elementTextElement);
+    }
+
+    // 耐性表示
+    const resistanceElement = document.createElement("div");
+    resistanceElement.classList.add("resistance-text");
+    resistanceElement.textContent = resistanceText;
+    //resistanceElement.style.position = "relative";
+    resistanceElement.style.color = textColor;
+    resistanceElement.style.fontSize = "1rem";
+    resistanceElement.style.borderRadius = "3px";
+    resistanceElement.style.zIndex = "10";
+    container.appendChild(resistanceElement);
+  }
 }

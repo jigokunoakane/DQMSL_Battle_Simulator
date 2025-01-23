@@ -810,3 +810,20 @@ select {
 #enableBGMCheckboxContainer {
   margin-bottom: 0.5rem;
 }
+
+.resistance-container {
+  position: absolute;
+  transform: translate(0%, -100%);
+  text-shadow: black 0.3px 0px 0.7px, black -0.3px 0px 0.7px, black 0px -0.3px 0.7px, black 0px 0.3px 0.7px, black 0.3px 0.3px 0.7px, black -0.3px 0.3px 0.7px, black 0.3px -0.3px 0.7px,
+    black -0.3px -0.3px 0.7px;
+}
+
+.resistance-text {
+  position: relative;
+  text-align: center;
+}
+
+.element-name-text {
+  position: relative;
+  text-align: center;
+}
