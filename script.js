@@ -6818,6 +6818,22 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "アントベア",
+    id: "antbear",
+    rank: 8,
+    race: ["魔獣"],
+    weight: 8,
+    status: { HP: 550, MP: 151, atk: 522, def: 234, spd: 495, int: 108 },
+    initialSkill: ["ラピッドショット", "しっぷうづき", "スパークふんしゃ", "防刃の守り"],
+    defaultGear: "ryujinNail",
+    attribute: {},
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { spd: 1.1 },
+    lsTarget: "魔獣",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 1.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "メタルゴッデス", //44
     id: "goddess",
     rank: 10,
@@ -8966,6 +8982,15 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
+    antbear: {
+      followingAbilities: {
+        name: "体技攻撃でなめまわし",
+        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "martial",
+        followingSkillName: (executingSkill) => {
+          return "なめまわし"; //本来は通常攻撃後
+        },
+      },
+    },
     goddess: {
       initialAbilities: [
         {
@@ -10490,10 +10515,10 @@ const skill = [
     appliedEffect: { fear: { probability: 0.213 } },
   },
   {
-    name: "はげしい炎",
+    name: "はげしい炎", //searchとくぎレベルアップ調査から
     type: "breath",
     howToCalculate: "fix",
-    damage: 200,
+    damage: 142,
     element: "fire",
     targetType: "all",
     targetTeam: "enemy",
@@ -13687,6 +13712,39 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 144,
     ignoreEvasion: true,
+  },
+  {
+    name: "ラピッドショット",
+    type: "martial",
+    howToCalculate: "spd",
+    ratio: 0.8,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 49,
+    ignoreSubstitute: true,
+  },
+  {
+    name: "しっぷうづき",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.28,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 18,
+    order: "preemptive",
+    preemptiveGroup: 8,
+  },
+  {
+    name: "なめまわし",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 18,
+    appliedEffect: { tempted: { probability: 0.2 } },
   },
   {
     name: "クアトロマダンテ",
