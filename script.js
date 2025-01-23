@@ -5074,7 +5074,8 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加 (狭間を除く)
-    if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS)) {
+    const noFamilySkillMonsters = ["ルバンカ"];
+    if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) && !noFamilySkillMonsters.includes(monster.name)) {
       const familySkillsToUse = [];
       if (monster.rank === 10 && familySkills) {
         familySkillsToUse.push(...familySkills);
@@ -5110,7 +5111,8 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説")) {
+    const noSuperOptMonsters = ["氷炎の化身"];
+    if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && monster.rank > 7) {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
       for (const skill of superSkills) {
