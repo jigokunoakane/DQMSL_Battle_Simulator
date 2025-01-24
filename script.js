@@ -18595,7 +18595,7 @@ function displaySkillResistances(skillUser, skillInfo) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
-    } else if (resistanceValue === 1) {
+    } else if (skillInfo.element === "none" && resistanceValue === 1) {
       continue;
     } else {
       switch (resistanceValue) {
@@ -18613,6 +18613,11 @@ function displaySkillResistances(skillUser, skillInfo) {
           resistanceText = "弱点";
           textColor = "rgb(149, 221, 236)";
           iconType = "weak";
+          break;
+        case 1:
+          resistanceText = "普通";
+          textColor = "white";
+          //iconTypeは設定しない
           break;
         case 0.75:
           resistanceText = "軽減";
