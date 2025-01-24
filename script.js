@@ -1487,7 +1487,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // 2-1. 耐性ダウンの場合のみ耐性をかけて処理
     if (resistanceBuffElementMap.hasOwnProperty(buffName) && buffData.strength < 0) {
       const buffElement = resistanceBuffElementMap[buffName];
-      const resistance = calculateResistance(null, buffElement, buffTarget, fieldState.isDistorted);
+      const resistance = calculateResistance(null, buffElement, buffTarget, fieldState.isDistorted, null);
 
       if (resistance > 0) {
         // 現在の耐性が無効未満の場合のみ耐性ダウンを適用
@@ -1531,7 +1531,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       let abnormalityResistance = 1;
       //氷の王国・フロスペ等属性処理
       if (buffData.element) {
-        abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget, fieldState.isDistorted);
+        abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget, fieldState.isDistorted, null);
         if (buffName === "sealed" && abnormalityResistance < 0.6) {
           // 氷の王国のみ、使い手込でも半減以上は確定失敗
           abnormalityResistance = -1;
@@ -2355,7 +2355,7 @@ async function processMonsterAction(skillUser) {
       // allの場合 killableCountとtotalDamageは累計 targetは未指定
       if (skillInfo.targetType === "all") {
         for (const target of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
+          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo.type);
           // ひとつでも吸収反射ならばbreak後に次skillにcontinue
           if (resistance < 0 || isSkillReflected(skillInfo, target)) {
             skipSkill = true;
@@ -2372,7 +2372,7 @@ async function processMonsterAction(skillUser) {
         // single randomの場合 killableCountとtotalDamageは個別 target指定
         let bestTargetDamage = 0;
         for (const potentialTarget of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted);
+          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted, skillInfo.type);
           if (resistance < 0 || isSkillReflected(skillInfo, potentialTarget)) {
             // randomの場合、ひとつでも吸収反射ならばbreak後に次skillにcontinue
             if (skillInfo.targetType === "random") {
@@ -3589,7 +3589,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //耐性処理
-  let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted);
+  let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted, executingSkill.type);
 
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
@@ -4278,6 +4278,19 @@ function calculateDamage(
     if (gearName === "プラチナシールド" && executingSkill.element === "fire" && executingSkill.type === "breath") {
       damageModifier -= 0.5;
     }
+    // 狭間系 - 35%軽減
+    if (gearName === "狭間の闇の大剣" && executingSkill.type === "slash") {
+      damageModifier -= 0.35;
+    }
+    if (gearName === "狭間の闇のヤリ" && executingSkill.type === "martial") {
+      damageModifier -= 0.35;
+    }
+    if (gearName === "狭間の闇の盾" && executingSkill.type === "spell") {
+      damageModifier -= 0.35;
+    }
+    if (gearName === "狭間の闇のうでわ" && executingSkill.type === "breath") {
+      damageModifier -= 0.35;
+    }
   }
 
   // ゴッデスLS
@@ -4423,12 +4436,24 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
 }
 
 //damageCalc、耐性表示、耐性ダウン付与、状態異常耐性取得で実行。耐性ダウン確率判定ではskillUserをnull指定
-function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false) {
+function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false, executingSkillType = null) {
   const element = executingSkillElement;
   const baseResistance = skillTarget.resistance[element] ?? 1;
   const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; //状態異常やザキと区別
+  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; // 状態異常やザキと区別
+  let isHazamaReduction = false;
+  if (skillTarget.gear && executingSkillType && (element === "none" || AllElements.includes(element))) {
+    const gearName = skillTarget.gear.name;
+    if (
+      (gearName === "狭間の闇の大剣" && executingSkillType === "slash") ||
+      (gearName === "狭間の闇のヤリ" && executingSkillType === "martial") ||
+      (gearName === "狭間の闇の盾" && executingSkillType === "spell") ||
+      (gearName === "狭間の闇のうでわ" && executingSkillType === "breath")
+    ) {
+      isHazamaReduction = true;
+    }
+  }
 
   // --- 無属性の処理 ---
   if (element === "notskill") {
@@ -4436,15 +4461,16 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
   }
   if (element === "none") {
     let noneResistance = 1; //初期値
-    if (skillTarget.buffs.nonElementalResistance) {
-      noneResistance = 0;
-    }
     if (skillTarget.name === "ダグジャガルマ") {
       if (distorted) {
         noneResistance = 1.5; //歪曲
       } else {
         noneResistance = -1; //非歪曲
       }
+    } else if (skillTarget.buffs.nonElementalResistance) {
+      noneResistance = 0;
+    } else if (isHazamaReduction) {
+      noneResistance = 0.75;
     }
     return noneResistance;
   }
@@ -4458,6 +4484,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       // 装備効果
       if (skillTarget.gear?.[element + "GearResistance"]) {
         distortedResistanceIndex -= skillTarget.gear[element + "GearResistance"];
+      }
+      // 狭間装備
+      if (isHazamaReduction) {
+        distortedResistanceIndex -= 1;
       }
       // 属性耐性バフデバフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
@@ -4506,6 +4536,10 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
       // 装備効果
       if (skillTarget.gear?.[element + "GearResistance"]) {
         normalResistanceIndex -= skillTarget.gear[element + "GearResistance"];
+      }
+      // 狭間装備
+      if (isHazamaReduction) {
+        normalResistanceIndex -= 1;
       }
       // 属性耐性バフデバフ効果
       if (skillTarget.buffs[element + "Resistance"]) {
@@ -16519,6 +16553,30 @@ const gear = [
     statusMultiplier: { spd: -0.2 },
   },
   {
+    name: "狭間の闇の大剣", //+7
+    id: "hazamaSword",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 47, def: 15, spd: 0, int: 0 },
+  },
+  {
+    name: "狭間の闇のヤリ", //+7
+    id: "hazamaSpear",
+    weight: 5,
+    status: { HP: 37, MP: 0, atk: 40, def: 0, spd: 0, int: 0 },
+  },
+  {
+    name: "狭間の闇の盾", //+7
+    id: "hazamaShield",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 0, def: 92, spd: 0, int: 0 },
+  },
+  {
+    name: "狭間の闇のうでわ", //+7
+    id: "hazamaBracelet",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 0, def: 20, spd: 27, int: 0 },
+  },
+  {
     name: "天空のフルート",
     id: "flute",
     weight: 5,
@@ -18528,7 +18586,7 @@ function displaySkillResistances(skillUser, skillInfo) {
       wrapper = document.getElementById(target.reversedIconElementId).parentNode;
     }
 
-    const resistanceValue = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
+    const resistanceValue = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo.type);
     let resistanceText;
     let textColor;
     let iconType = null;
