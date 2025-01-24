@@ -5491,6 +5491,23 @@ function disableSeedSelect(boolean) {
   });
 }
 
+document.getElementById("randomParty").addEventListener("click", function () {
+  function getRandomUniqueMonsterIds(count) {
+    const excludeIds = ["bossmaen"];
+    const filteredMonsters = monsters.filter((monster) => !excludeIds.includes(monster.id));
+    const randomIds = [];
+    while (randomIds.length < count) {
+      const randomIndex = Math.floor(Math.random() * filteredMonsters.length);
+      const randomMonster = filteredMonsters[randomIndex];
+      if (!randomIds.includes(randomMonster.id)) {
+        randomIds.push(randomMonster.id);
+      }
+    }
+    return randomIds;
+  }
+  selectAllPartyMembers(getRandomUniqueMonsterIds(5));
+});
+
 document.getElementById("drapa").addEventListener("click", function () {
   selectAllPartyMembers(["masudora", "sinri", "rusia", "orochi", "voruka"]);
 });

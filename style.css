@@ -94,6 +94,11 @@ img {
   background-color: #d8d8d8;
 }
 
+#randomParty {
+  height: auto;
+  margin-left: 0.3rem;
+}
+
 select {
   -webkit-appearance: none;
   /* ベンダープレフィックス(Google Chrome、Safari用) */
