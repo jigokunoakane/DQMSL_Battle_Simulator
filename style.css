@@ -81,15 +81,16 @@ img {
   font-size: 1rem;
 }
 .debugBtns {
-  margin-top: 0.1rem;
+  margin-top: 0.3rem;
   margin-left: 0rem;
   margin-right: 0rem;
-  padding: 0rem 0.3rem;
-  font-size: 0.9rem;
-}
-#resetBtn,
-#skipBtn,
-#finishBtn {
+  padding: 0.1rem 0.3rem;
+  font-size: 1rem;
+  width: max-content;
+  height: auto;
+  text-align: center;
+  /* box-shadow: 1px 1px 7px 1px #bf5455 inset;*/
+  border-radius: 0.5rem;
   background-color: #d8d8d8;
 }
 
@@ -706,7 +707,14 @@ select {
 
 #upperContainer {
   display: flex;
+  position: relative;
   /*padding-top: 6rem;*/
+}
+
+#debugBtnContainer {
+  position: absolute;
+  right: 0;
+  margin-right: 0.2rem;
 }
 
 #fieldStateContainer {
