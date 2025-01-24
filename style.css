@@ -811,19 +811,26 @@ select {
   margin-bottom: 0.5rem;
 }
 
+/*耐性表示*/
+
 .resistance-container {
+  width: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-flow: column;
+  white-space: nowrap;
   position: absolute;
   transform: translate(0%, -100%);
+  /* text-align: center;*/
   text-shadow: black 0.3px 0px 0.7px, black -0.3px 0px 0.7px, black 0px -0.3px 0.7px, black 0px 0.3px 0.7px, black 0.3px 0.3px 0.7px, black -0.3px 0.3px 0.7px, black 0.3px -0.3px 0.7px,
     black -0.3px -0.3px 0.7px;
 }
 
 .resistance-text {
   position: relative;
-  text-align: center;
 }
 
 .element-name-text {
   position: relative;
-  text-align: center;
 }
