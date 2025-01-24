@@ -18618,7 +18618,11 @@ function displaySkillResistances(skillUser, skillInfo) {
     resistanceElement.textContent = resistanceText;
     //resistanceElement.style.position = "relative";
     resistanceElement.style.color = textColor;
-    resistanceElement.style.fontSize = "1rem";
+    if (iconType === "superWeak" || iconType === "majorWeak") {
+      resistanceElement.style.fontSize = "0.8rem";
+    } else {
+      resistanceElement.style.fontSize = "1rem";
+    }
     resistanceElement.style.borderRadius = "3px";
     resistanceElement.style.zIndex = "10";
     container.appendChild(resistanceElement);
