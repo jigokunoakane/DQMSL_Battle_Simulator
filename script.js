@@ -4921,8 +4921,7 @@ function selectMonster(monsterName) {
 
   //デフォ装備選択
   if (selectingParty[selectingMonsterNum].defaultGear) {
-    selectingGearNum = selectingMonsterNum;
-    selectGear(selectingParty[selectingMonsterNum].defaultGear);
+    selectGear(selectingParty[selectingMonsterNum].defaultGear, selectingMonsterNum);
   }
 }
 
@@ -4961,7 +4960,11 @@ document.querySelectorAll(".gearList").forEach((img) => {
 });
 
 //ポップアップ内各画像クリックで、その装備を代入してウィンドウを閉じる
-function selectGear(gearName) {
+function selectGear(gearName, newSelectingGearNum = null) {
+  // 引数存在時は更新
+  if (newSelectingGearNum !== null) {
+    selectingGearNum = newSelectingGearNum;
+  }
   //表示値計算などはcurrentTabを元に情報を取得するため、タブ遷移しておく
   switchTab(selectingGearNum);
   //選択中partyの該当monsterの装備を変更
@@ -5514,6 +5517,7 @@ document.getElementById("drapa").addEventListener("click", function () {
 
 document.getElementById("yuzupa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "nerugeru", "erugi", "ifshiba", "skull"]);
+  selectGear("holyKingShield", 2);
 });
 
 document.getElementById("siragapa").addEventListener("click", function () {
@@ -5525,6 +5529,7 @@ document.getElementById("siragapa").addEventListener("click", function () {
 
 document.getElementById("omudopa").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
+  selectGear("clownHat", 4);
 });
 
 document.getElementById("omuoru").addEventListener("click", function () {
@@ -5558,6 +5563,7 @@ document.getElementById("zombiepa").addEventListener("click", function () {
 document.getElementById("masopa").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
   changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
+  selectGear("hazardNail", 3);
 });
 
 async function selectAllPartyMembers(monsters) {
