@@ -6139,9 +6139,9 @@ const monsters = [
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 }, // 50が先
         mindBarrier: { keepOnDeath: true },
         ioBreak: { keepOnDeath: true, strength: 2 },
-        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
       },
       evenTurnBuffs: {
         intUp: { strength: 1 },
@@ -6354,7 +6354,7 @@ const monsters = [
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
-        elementalShield: { targetElement: "dark", remain: 250, unDispellable: true, targetType: "ally" },
+        elementalShield: { targetElement: "dark", remain: 250, unDispellable: true, targetType: "ally", iconSrc: "elementalShieldDark" },
         damageLimit: { strength: 250 },
       },
     },
