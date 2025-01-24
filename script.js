@@ -5921,6 +5921,7 @@ const monsters = [
     weight: 35,
     status: { HP: 871, MP: 375, atk: 624, def: 514, spd: 483, int: 321 },
     initialSkill: ["閃光裂衝拳", "ホワイトアウト", "マヒャドブロウ", "鉄拳の構え"],
+    defaultGear: "shoten",
     attribute: {
       initialBuffs: {
         tagTransformation: { keepOnDeath: true, act: "伝説のタッグ4" },
@@ -5998,6 +5999,7 @@ const monsters = [
     status: { HP: 961, MP: 338, atk: 258, def: 637, spd: 390, int: 378 },
     initialSkill: ["神獣王の防壁", "空中ふゆう", "みかわしのひやく", "体技よそく"],
     anotherSkills: ["聖なる流星"],
+    defaultGear: "thunderCharm",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -6064,6 +6066,7 @@ const monsters = [
     weight: 14,
     status: { HP: 603, MP: 272, atk: 474, def: 290, spd: 535, int: 268 },
     initialSkill: ["かがやく息", "スパークふんしゃ", "おぞましいおたけび", "おいかぜ"],
+    defaultGear: "lightCharm",
     attribute: {
       1: {
         preemptiveAction: {},
@@ -6296,6 +6299,7 @@ const monsters = [
     weight: 32,
     status: { HP: 874, MP: 388, atk: 384, def: 644, spd: 298, int: 522 },
     initialSkill: ["クラックストーム", "属性断罪の刻印", "光のはどう", "ザオリク"],
+    defaultGear: "lightCharm",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -6555,7 +6559,7 @@ const monsters = [
     weight: 25,
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
-    defaultGear: "ryujinNail",
+    defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
         spdUp: { strength: 2 },
@@ -6577,6 +6581,7 @@ const monsters = [
     weight: 28,
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
     initialSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         thunderBreak: { keepOnDeath: true, strength: 1 },
@@ -6599,7 +6604,7 @@ const monsters = [
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     initialSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
     anotherSkills: ["みがわり", "会心撃"],
-    defaultGear: "flute",
+    defaultGear: "heavenlyClothes",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
@@ -6645,6 +6650,7 @@ const monsters = [
     weight: 25,
     status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
     initialSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
+    defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
         breathReflection: { keepOnDeath: true, strength: 1 },
@@ -6684,6 +6690,7 @@ const monsters = [
     weight: 27,
     status: { HP: 838, MP: 483, atk: 351, def: 364, spd: 393, int: 499 },
     initialSkill: ["メガントマータ", "ばくえんの秘術", "呪縛の氷撃", "サイコバースト"],
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.5 },
@@ -6709,6 +6716,7 @@ const monsters = [
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
     initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"],
     anotherSkills: ["けがれた狂風", "マインドブレス"],
+    defaultGear: "windCane",
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 2 },
@@ -6860,7 +6868,7 @@ const monsters = [
     weight: 25,
     status: { HP: 745, MP: 291, atk: 593, def: 444, spd: 541, int: 256 },
     initialSkill: ["抜刀魔獣刃", "閃く短刀", "スパークふんしゃ", "防刃の守り"],
-    defaultGear: "kanazuchi",
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         baiki: { strength: 2 },
@@ -7165,6 +7173,7 @@ const monsters = [
     weight: 25,
     status: { HP: 744, MP: 280, atk: 568, def: 621, spd: 364, int: 327 },
     initialSkill: ["トラウマトラップ", "アンカーラッシュ", "ギガ・マホヘル", "体砕きの斬舞"],
+    defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
@@ -7187,6 +7196,7 @@ const monsters = [
     weight: 16,
     status: { HP: 672, MP: 291, atk: 562, def: 536, spd: 526, int: 319 },
     initialSkill: ["オカルトソード", "ダーティーショット", "おぞましいおたけび", "スパークふんしゃ"],
+    defaultGear: "ryujinNail",
     attribute: {
       1: {
         dodgeBuff: { strength: 0.5, duration: 3 },
