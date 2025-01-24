@@ -18531,10 +18531,12 @@ function displaySkillResistances(skillUser, skillInfo) {
     const resistanceValue = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted);
     let resistanceText;
     let textColor;
+    let iconType = null;
 
     if (resistanceValue !== -1 && isSkillReflected(skillInfo, target)) {
       resistanceText = "反射";
-      textColor = "#fbfafc";
+      textColor = "#c9caca"; //fbfafc
+      iconType = "reflect";
     } else if (resistanceValue === 1) {
       continue;
     } else {
@@ -18542,34 +18544,42 @@ function displaySkillResistances(skillUser, skillInfo) {
         case 2.5:
           resistanceText = "超弱点";
           textColor = "rgb(149, 221, 236)";
+          iconType = "superWeak";
           break;
         case 2:
           resistanceText = "大弱点";
           textColor = "rgb(149, 221, 236)";
+          iconType = "majorWeak";
           break;
         case 1.5:
           resistanceText = "弱点";
           textColor = "rgb(149, 221, 236)";
+          iconType = "weak";
           break;
         case 0.75:
           resistanceText = "軽減";
           textColor = "#feb242";
+          iconType = "reduce";
           break;
         case 0.5:
           resistanceText = "半減";
           textColor = "#f7772f";
+          iconType = "half";
           break;
         case 0.25:
           resistanceText = "激減";
           textColor = "#d5382e";
+          iconType = "greatlyReduce";
           break;
         case 0:
           resistanceText = "無効";
           textColor = "#d5382e";
+          iconType = "invalid";
           break;
         case -1:
           resistanceText = "吸収";
           textColor = "#d58afb";
+          iconType = "absorb";
           break;
       }
     }
@@ -18612,5 +18622,175 @@ function displaySkillResistances(skillUser, skillInfo) {
     resistanceElement.style.borderRadius = "3px";
     resistanceElement.style.zIndex = "10";
     container.appendChild(resistanceElement);
+
+    // アイコン表示
+    if (iconType) {
+      const iconElement = createResistanceIcon(iconType, textColor);
+      container.appendChild(iconElement);
+    }
   }
+}
+
+function createResistanceIcon(iconType, color) {
+  const iconContainer = document.createElement("div");
+  iconContainer.classList.add("resistance-icon");
+  iconContainer.style.position = "absolute";
+  iconContainer.style.zIndex = "9"; // resistance-textより下に配置
+  iconContainer.style.height = "2rem";
+  iconContainer.style.width = "2rem";
+  iconContainer.style.display = "flex";
+  iconContainer.style.justifyContent = "center";
+  iconContainer.style.alignItems = "center";
+
+  switch (iconType) {
+    case "reflect":
+      const reflectIcon = document.createElement("div");
+      reflectIcon.style.width = "1.5rem";
+      reflectIcon.style.height = "1.5rem";
+      reflectIcon.style.backgroundColor = color;
+      reflectIcon.style.transform = "rotate(45deg)";
+      reflectIcon.style.border = "1.5px solid black";
+      iconContainer.appendChild(reflectIcon);
+      break;
+    case "absorb":
+      const absorbIcon = document.createElement("div");
+      iconContainer.style.transform = "translate(0%, 15%)";
+      absorbIcon.style.width = "1rem";
+      absorbIcon.style.height = "1rem";
+      absorbIcon.style.border = `0.2rem solid ${color}`;
+      absorbIcon.style.borderRadius = "50%";
+      iconContainer.appendChild(absorbIcon);
+      break;
+    case "invalid":
+      const invalidIcon = document.createElement("div");
+      iconContainer.style.transform = "translate(0%, 14%)";
+      invalidIcon.style.position = "relative";
+      invalidIcon.style.width = "1.9rem";
+      invalidIcon.style.height = "1.9rem";
+
+      const line1 = document.createElement("div");
+      line1.style.position = "absolute";
+      line1.style.top = "50%";
+      line1.style.left = "50%";
+      line1.style.transform = "translate(-50%, -50%) rotate(45deg)";
+      line1.style.width = "1.9rem";
+      line1.style.height = "0.5rem";
+      line1.style.backgroundColor = color;
+
+      const line2 = document.createElement("div");
+      line2.style.position = "absolute";
+      line2.style.top = "50%";
+      line2.style.left = "50%";
+      line2.style.transform = "translate(-50%, -50%) rotate(-45deg)";
+      line2.style.width = "1.9rem";
+      line2.style.height = "0.5rem";
+      line2.style.backgroundColor = color;
+
+      invalidIcon.appendChild(line1);
+      invalidIcon.appendChild(line2);
+      iconContainer.appendChild(invalidIcon);
+      break;
+    case "greatlyReduce":
+      iconContainer.appendChild(createDownArrows(3, color));
+      iconContainer.style.transform = "translate(0%, 55%)";
+      break;
+    case "half":
+      iconContainer.appendChild(createDownArrows(2, color));
+      iconContainer.style.transform = "translate(0%, 55%)";
+      break;
+    case "reduce":
+      iconContainer.appendChild(createDownArrows(1, color));
+      iconContainer.style.transform = "translate(0%, 55%)";
+      break;
+    case "weak":
+      iconContainer.appendChild(createUpArrows(1, color));
+      iconContainer.style.transform = "translate(0%, -30%)";
+      break;
+    case "majorWeak":
+      iconContainer.appendChild(createUpArrows(2, color));
+      iconContainer.style.transform = "translate(0%, -30%)";
+      break;
+    case "superWeak":
+      iconContainer.appendChild(createUpArrows(3, color));
+      iconContainer.style.transform = "translate(0%, -30%)";
+      break;
+  }
+
+  return iconContainer;
+}
+
+function createDownArrows(count, color) {
+  const arrowsContainer = document.createElement("div");
+  arrowsContainer.style.display = "flex";
+
+  for (let i = 0; i < count; i++) {
+    const arrow = document.createElement("div");
+    arrow.style.position = "relative";
+    arrow.style.margin = "-0.2rem";
+    // 真ん中だけ下げる
+    if (count === 3 && i === 1) {
+      arrow.style.transform = "translate(0%, 40%)";
+    }
+
+    // 三角形（傘）部分
+    const triangle = document.createElement("div");
+    triangle.style.width = "0";
+    triangle.style.height = "0";
+    triangle.style.borderLeft = "0.5rem solid transparent";
+    triangle.style.borderRight = "0.5rem solid transparent";
+    triangle.style.borderTop = `0.8rem solid ${color}`;
+
+    // 長方形（柄）部分
+    const rect = document.createElement("div");
+    rect.style.position = "absolute";
+    rect.style.top = "-1.6rem"; // 三角形の下に配置
+    rect.style.left = "50%";
+    rect.style.transform = "translateX(-50%)";
+    rect.style.width = "0.5rem";
+    rect.style.height = "1.6rem";
+    rect.style.backgroundColor = color;
+
+    arrow.appendChild(rect);
+    arrow.appendChild(triangle);
+    arrowsContainer.appendChild(arrow);
+  }
+  return arrowsContainer;
+}
+
+function createUpArrows(count, color) {
+  const arrowsContainer = document.createElement("div");
+  arrowsContainer.style.display = "flex";
+
+  for (let i = 0; i < count; i++) {
+    const arrow = document.createElement("div");
+    arrow.style.position = "relative";
+    arrow.style.margin = "-0.2rem";
+    // 真ん中だけ下げる
+    if (count === 3 && i === 1) {
+      arrow.style.transform = "translate(0%, 40%)";
+    }
+
+    // 三角形（傘）部分
+    const triangle = document.createElement("div");
+    triangle.style.width = "0";
+    triangle.style.height = "0";
+    triangle.style.borderLeft = "0.5rem solid transparent";
+    triangle.style.borderRight = "0.5rem solid transparent";
+    triangle.style.borderBottom = `0.8rem solid ${color}`;
+
+    // 長方形（柄）部分
+    const rect = document.createElement("div");
+    rect.style.position = "absolute";
+
+    rect.style.left = "50%";
+    rect.style.transform = "translateX(-50%)";
+    rect.style.width = "0.5rem";
+    rect.style.height = "1.6rem";
+    rect.style.backgroundColor = color;
+
+    arrow.appendChild(triangle);
+    arrow.appendChild(rect);
+    arrowsContainer.appendChild(arrow);
+  }
+  return arrowsContainer;
 }

@@ -834,3 +834,7 @@ select {
 .element-name-text {
   position: relative;
 }
+
+.resistance-icon {
+  position: absolute;
+}
