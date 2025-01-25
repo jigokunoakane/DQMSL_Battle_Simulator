@@ -5593,6 +5593,7 @@ const monsters = [
     status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
     initialAIDisabledSkills: ["煉獄火炎"],
+    anotherSkills: ["グランブレス", "天地雷鳴", "いてつくはどう"],
     defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
@@ -5617,7 +5618,7 @@ const monsters = [
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
-    anotherSkills: ["神速メラガイアー", "メダパニバリア"],
+    anotherSkills: ["神速メラガイアー", "メダパニバリア", "圧縮イオナズン", "ベホマズン"],
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
@@ -5625,7 +5626,7 @@ const monsters = [
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
-    ls: { HP: 1 },
+    ls: { HP: 1 }, // ドラゴン系呪文息耐性+1
     lsTarget: "ドラゴン",
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0.5 },
   },
@@ -5637,7 +5638,7 @@ const monsters = [
     weight: 28,
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
-    anotherSkills: ["サンダーボルト"],
+    anotherSkills: ["サンダーボルト", "偽りの秘剣"],
     defaultGear: "killerEarrings",
     attribute: {
       initialBuffs: {
@@ -5665,6 +5666,7 @@ const monsters = [
     weight: 28,
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
+    anotherSkills: ["五連竜牙弾", "オーロラブレス"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -5688,7 +5690,7 @@ const monsters = [
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
-    anotherSkills: ["かえんりゅう"],
+    anotherSkills: ["かえんりゅう", "ハッピーブレス"],
     defaultGear: "flute",
     attribute: {
       initialBuffs: {
@@ -5708,7 +5710,7 @@ const monsters = [
     race: ["???"],
     weight: 30,
     status: { HP: 810, MP: 334, atk: 661, def: 473, spd: 470, int: 325 },
-    initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
+    initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"], // ミナデイン
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -6169,6 +6171,7 @@ const monsters = [
     weight: 40,
     status: { HP: 965, MP: 475, atk: 544, def: 684, spd: 272, int: 554 },
     initialSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
+    anotherSkills: ["閃光雷弾"],
     defaultGear: "dragonCane",
     attribute: {
       initialBuffs: {
@@ -6256,6 +6259,7 @@ const monsters = [
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     initialAIDisabledSkills: ["体砕きの斬舞"],
+    anotherSkills: ["いてつくはどう"],
     defaultGear: "estaSword",
     attribute: {
       initialBuffs: {
@@ -6358,7 +6362,8 @@ const monsters = [
     race: ["ドラゴン"],
     weight: 27,
     status: { HP: 820, MP: 324, atk: 558, def: 560, spd: 392, int: 307 },
-    initialSkill: ["地殻変動", "アストロン", "テンペストブレス", "大地の守り"],
+    initialSkill: ["地殻変動", "アストロン", "テンペストブレス", "防刃の守り"],
+    anotherSkills: ["大地の守り"],
     defaultGear: "familyNailCriticalGuard",
     attribute: {
       initialBuffs: {
@@ -6454,6 +6459,7 @@ const monsters = [
     weight: 14,
     status: { HP: 864, MP: 264, atk: 367, def: 589, spd: 305, int: 170 },
     initialSkill: ["封印の光", "におうだち", "ザオリク", "防刃の守り"],
+    anotherSkills: ["息よそく"],
     defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
     attribute: {},
@@ -6470,6 +6476,7 @@ const monsters = [
     weight: 30,
     status: { HP: 772, MP: 458, atk: 329, def: 495, spd: 462, int: 501 },
     initialSkill: ["邪悪なこだま", "絶氷の嵐", "禁忌のかくせい", "邪道のかくせい"],
+    anotherSkills: ["呪縛の氷撃", "バギムーチョ"],
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
@@ -6490,6 +6497,7 @@ const monsters = [
     weight: 28,
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     initialSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
+    anotherSkills: ["滅竜の絶技", "誇りのつるぎ"],
     defaultGear: "shoten",
     attribute: {
       initialBuffs: {
@@ -6676,6 +6684,7 @@ const monsters = [
     weight: 28,
     status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 449, int: 496 },
     initialSkill: ["イオナスペル", "神のはどう", "イブールの誘い", "メゾラゴン"],
+    anotherSkills: ["悪夢の雷鳴"],
     defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
@@ -10535,6 +10544,30 @@ const skill = [
     damageByLevel: true,
   },
   {
+    name: "天地雷鳴",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 315,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    damageByLevel: true,
+  },
+  {
+    name: "偽りの秘剣",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 30,
+    RaceBane: ["???", "自然"],
+    RaceBaneValue: 3,
+    ignoreEvasion: true,
+  },
+  {
     name: "天空竜の息吹",
     type: "breath",
     howToCalculate: "fix",
@@ -10597,6 +10630,17 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
+  },
+  {
+    name: "グランブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 260,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 150,
+    ignoreReflection: true,
   },
   {
     name: "むらくもの息吹",
@@ -10673,6 +10717,40 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "五連竜牙弾",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 150,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    damageByLevel: true,
+    appliedEffect: { fear: { probability: 0.18 } }, // 推測確率
+  },
+  {
+    name: "オーロラブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 264,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 136,
+  },
+  {
+    name: "ハッピーブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 195,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    appliedEffect: { tempted: { probability: 0.4 } },
   },
   {
     name: "ラヴァフレア",
@@ -12861,6 +12939,45 @@ const skill = [
     appliedEffect: "divineWave",
   },
   {
+    name: "滅竜の絶技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.9,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 58,
+    RaceBane: ["ドラゴン"],
+    RaceBaneValue: 2,
+    appliedEffect: { defUp: { strength: -1, probability: 0.3 } },
+  },
+  {
+    name: "誇りのつるぎ",
+    type: "slash",
+    howToCalculate: "fix",
+    fixedDamage: true,
+    damage: 1000,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 71,
+    ignoreReflection: true,
+    followingSkill: "誇りのつるぎ後半",
+  },
+  {
+    name: "誇りのつるぎ後半",
+    type: "slash",
+    howToCalculate: "fix",
+    fixedDamage: true,
+    damage: 145,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+  },
+  {
     name: "カタストロフ",
     type: "spell",
     howToCalculate: "int",
@@ -13067,6 +13184,19 @@ const skill = [
     appliedEffect: { confused: { probability: 0.53 } },
   },
   {
+    name: "悪夢の雷鳴",
+    type: "martial",
+    howToCalculate: "int",
+    ratio: 0.8,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    MPcost: 43,
+    hitNum: 4,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+  },
+  {
     name: "ジゴデイン",
     type: "spell",
     howToCalculate: "int",
@@ -13079,6 +13209,20 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 46,
+  },
+  {
+    name: "圧縮イオナズン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 375,
+    maxInt: 600,
+    maxIntDamage: 750,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 48,
   },
   {
     name: "蠱惑の舞い",
@@ -13347,6 +13491,21 @@ const skill = [
     MPcost: 38,
   },
   {
+    name: "閃光雷弾",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 55,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 48,
+  },
+  {
     name: "イオマータ",
     type: "spell",
     howToCalculate: "int",
@@ -13518,6 +13677,20 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 45,
+  },
+  {
+    name: "バギムーチョ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 180,
+    maxInt: 1000,
+    maxIntDamage: 290,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 102,
   },
   {
     name: "マインドブレス",
@@ -15895,7 +16068,6 @@ const skill = [
     MPcost: 10,
     appliedEffect: { breathBarrier: { strength: 1 } },
   },
-
   {
     name: "ベホマラー",
     type: "spell",
@@ -15907,6 +16079,19 @@ const skill = [
     healSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
+    },
+  },
+  {
+    name: "ベホマズン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 200,
+    healSkill: true,
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
   },
   {
