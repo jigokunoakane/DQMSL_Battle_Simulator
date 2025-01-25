@@ -6443,7 +6443,7 @@ const monsters = [
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
-        elementalShield: { targetElement: "ice", remain: 250, unDispellable: true, targetType: "ally" },
+        elementalShield: { targetElement: "ice", remain: 250, unDispellable: true, targetType: "ally", iconSrc: "elementalShieldIce" },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
