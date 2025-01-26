@@ -12151,6 +12151,7 @@ const skill = [
         },
         unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
         act: async function (skillUser, counterTarget) {
+          delete skillUser.buffs.counterAttack;
           await executeSkill(skillUser, findSkillByName("真・カラミティエンド"), counterTarget);
           await sleep(200);
           await executeSkill(skillUser, findSkillByName("真・カイザーフェニックス反撃用みがわり無視"), counterTarget);
