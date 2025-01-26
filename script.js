@@ -1203,9 +1203,42 @@ async function startTurn() {
       await sleep(150);
     }
   }
+  async function executeTurnStartABilities(monster) {
+    if (monster.flags.isDead || monster.flags.isZombie || !monster.abilities || !monster.abilities.turnStartAbilities) {
+      return;
+    }
+    for (const ability of monster.abilities.turnStartAbilities) {
+      // 発動不可能条件に当てはまった場合次のabilityへ
+      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
+        continue;
+      }
+      await sleep(300);
+      if (!ability.disableMessage) {
+        if (ability.hasOwnProperty("message")) {
+          ability.message(monster);
+          await sleep(300);
+        } else if (ability.hasOwnProperty("name")) {
+          displayMessage(`${monster.name}の特性 ${ability.name}が発動！`);
+          await sleep(300);
+        }
+      }
+      await ability.act(monster);
+      //実行後の記録
+      if (ability.isOneTimeUse) {
+        monster.flags.executedAbilities.push(ability.name);
+      }
+    }
+    await sleep(150);
+  }
 
-  // partiesに順番にバフ適用・supportAbilities発動
   await sleep(700);
+  // 開始時abilityがあれば実行 (バーン変身)
+  for (const party of parties) {
+    for (const monster of party) {
+      await executeTurnStartABilities(monster);
+    }
+  }
+  // partiesに順番にバフ適用・supportAbilities発動
   for (const party of parties) {
     for (const monster of party) {
       await applyBuffsForMonster(monster);
@@ -1625,6 +1658,15 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       } else {
         buffTarget.buffs[buffName] = { ...buffData };
       }
+    } else if (buffName === "kiganLevel") {
+      // 3-5. 鬼眼レベル追加
+      if (currentBuff) {
+        const maxStrength = buffData.maxStrength || 3;
+        const newStrength = Math.min(currentBuff.strength + buffData.strength, maxStrength);
+        buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
+      } else {
+        buffTarget.buffs[buffName] = { ...buffData };
+      }
     } else {
       // 3-5. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
@@ -1633,7 +1675,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         //if (!currentBuff.duration && buffData.duration) {
         //  continue;
         //}
-        // 3-2-3. strengthが両方存在し、かつ負けてるときはcontinue (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与で負けてたら上書きしない)
+        // 3-2-3. strengthが両方存在し、かつ負けてるときは付与しない (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与 上回るまたは同格の場合上書き)
         if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
           continue;
         }
@@ -2951,7 +2993,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
     // 回復処理 基礎値を用意
     let healAmount = Math.floor(Math.abs(damage)); // 小数点以下切り捨て＆絶対値
     // 回復封じ処理
-    if (target.buffs.healBlock) {
+    if (target.buffs.healBlock || target.buffs.specialHealBlock) {
       displayDamage(target, 0, -1, isMPdamage);
       return;
     }
@@ -4353,7 +4395,7 @@ function calculateDamage(
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリア・新たなる神を反映
+  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリア・新たなる神・バーン魔獣化を反映
   if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
     if (executingSkill.name === "混沌のキバ") {
       damageModifier *= 2;
@@ -4362,6 +4404,7 @@ function calculateDamage(
     // そしでん・新たなる神
     let sosidenBarrierMultiplier = 1;
     let garumaBarrierMultiplier = 1;
+    let vearnBarrierMultiplier = 1;
     if (skillTarget.buffs.sosidenBarrier) {
       if (["???", "超魔王", "超伝説"].some((targetRace) => skillUser.race.includes(targetRace))) {
         sosidenBarrierMultiplier = 0.2;
@@ -4373,7 +4416,11 @@ function calculateDamage(
     if (skillTarget.buffs.garumaBarrier && skillUser.buffs.maso) {
       garumaBarrierMultiplier = 0.6;
     }
-    damage *= Math.min(sosidenBarrierMultiplier, garumaBarrierMultiplier);
+    // バーン魔獣化
+    if (skillTarget.buffs.vearnBarrier) {
+      vearnBarrierMultiplier = 0.25;
+    }
+    damage *= Math.min(sosidenBarrierMultiplier, garumaBarrierMultiplier, vearnBarrierMultiplier);
   }
   // やみのころも時ダメージ半減 マダンテにも効く
   if (skillTarget.name === "闇の大魔王ゾーマ" && skillTarget.gear && skillTarget.gear.name === "ゾーマのローブ") {
@@ -5976,6 +6023,36 @@ const monsters = [
     resistance: { fire: -1, ice: 1, thunder: 0.5, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 0, breathSeal: 0 },
   },
   {
+    name: "魔界の神バーン", //44
+    id: "vearn",
+    rank: 10,
+    race: ["超魔王"],
+    weight: 40,
+    status: { HP: 924, MP: 507, atk: 433, def: 538, spd: 501, int: 596 },
+    initialSkill: ["真・カラミティウォール", "イオラの嵐", "真・カイザーフェニックス", "第三の瞳"],
+    anotherSkills: ["大魔王のメラ"],
+    defaultGear: "dragonCaneWithoutSpd",
+    attribute: {
+      initialBuffs: {
+        fireBreak: { keepOnDeath: true, strength: 3 },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+        mindBarrier: { keepOnDeath: true },
+        slashReflection: { strength: 1, duration: 2, divineDispellable: true, removeAtTurnStart: true, isKanta: true, name: "光魔の杖" }, // 混乱でも解除不可
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: 0, light: 1, dark: 0, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
     name: "聖獣ムンババ",
     id: "munbaba",
     rank: 10,
@@ -6058,7 +6135,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33 },
-        healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true, iconSrc: "none" },
+        specialHealBlock: { keepOnDeath: true },
       },
     },
     seed: { atk: 40, def: 5, spd: 75, int: 0 },
@@ -6291,7 +6368,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33 },
-        healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true, iconSrc: "none" },
+        specialHealBlock: { keepOnDeath: true },
         breathEnhancement: { keepOnDeath: true },
         mindBarrier: { duration: 3 },
       },
@@ -8091,6 +8168,106 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    vearn: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "大魔王の魔力",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            name: "鬼眼のチカラ",
+            disableMessage: true,
+            unavailableIf: (skillUser) => !skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              applyHeal(skillUser, 45, true);
+            },
+          },
+        ],
+        1: [
+          {
+            name: "光魔の杖",
+            unavailableIf: (skillUser) => skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              applyDamage(skillUser, 60, 1, true);
+              applyBuff(skillUser, { manaBoost: { strength: 1.2, name: "光魔の杖" } });
+              await sleep(100);
+              applyBuff(skillUser, { powerCharge: { strength: 1.2, name: "光魔の杖" } });
+            },
+          },
+        ],
+        2: [
+          {
+            name: "光魔の杖",
+            unavailableIf: (skillUser) => skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              applyDamage(skillUser, 60, 1, true);
+              applyBuff(skillUser, { manaBoost: { strength: 1.2, name: "光魔の杖" } });
+              await sleep(100);
+              applyBuff(skillUser, { powerCharge: { strength: 1.2, name: "光魔の杖" } });
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "瞳化",
+            unavailableIf: (skillUser) => !skillUser.flags.hasTransformed || skillUser.buffs.vearnBarrier,
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.enemyTeamID]) {
+                if (monster.buffs.kiganLevel && monster.buffs.kiganLevel.strength === 3) {
+                  delete monster.buffs.kiganLevel;
+                  applyBuff(monster, { sealed: {} });
+                }
+              }
+            },
+          },
+        ],
+      },
+      turnStartAbilities: [
+        {
+          name: "若さと力との融合",
+          disableMessage: true,
+          unavailableIf: (skillUser) => !(!skillUser.flags.hasTransformed && (skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5 || fieldState.turnNum > 2)),
+          act: async function (skillUser) {
+            await transformTyoma(skillUser);
+          },
+        },
+        {
+          name: "鬼眼の解放",
+          disableMessage: true,
+          unavailableIf: (skillUser) => !(skillUser.flags.hasTransformed && !skillUser.buffs.vearnBarrier && skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5),
+          act: async function (monster) {
+            // 2回目変身
+            await sleep(200);
+            monster.iconSrc = "images/icons/VearnTransformedBeast.jpeg";
+            updateBattleIcons(monster);
+            monster.currentStatus.MP = 0;
+            updateMonsterBar(monster);
+            delete monster.buffs.sealed;
+            await executeRadiantWave(monster);
+            monster.skill[0] = "うちくだく";
+            monster.skill[1] = "鬼眼砲";
+            monster.attribute.additionalPermanentBuffs = {};
+            displayMessage("＊「お前に勝つことが", "  今の余の全てなのだッ！！！");
+            applyBuff(monster, { vearnBarrier: { keepOnDeath: true, strength: 0.75 } });
+            await sleep(150);
+            displayMessage(`${monster.name}の特性`, "魔獣化 が発動！");
+            await sleep(150);
+            applyBuff(monster, { nonElementalResistance: {} });
+            await sleep(400);
+            applyDamage(monster, monster.defaultStatus.HP, -1);
+            await sleep(400);
+          },
+        },
+      ],
     },
     dream: {
       supportAbilities: {
@@ -10363,6 +10540,19 @@ const skill = [
     MPcost: 0,
   },
   {
+    name: "絶大な力",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 0.2,
+    element: "notskill",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreProtection: true,
+  },
+  {
     name: "ぼうぎょ",
     type: "notskill",
     howToCalculate: "none",
@@ -11827,6 +12017,197 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
+  },
+  {
+    name: "真・カラミティウォール",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 430,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 105,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    damageByLevel: true,
+    appliedEffect: { healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true }, kiganLevel: { keepOnDeath: true, strength: 1 } },
+  },
+  {
+    name: "イオラの嵐",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 128,
+    maxInt: 1000,
+    maxIntDamage: 280,
+    skillPlus: 1.075,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 60,
+    ignoreReflection: true,
+    appliedEffect: { kiganLevel: { keepOnDeath: true, strength: 1, maxStrength: 2, probability: 0.75 } }, //推測確率
+  },
+  {
+    name: "真・カイザーフェニックス",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 270,
+    maxInt: 1000,
+    maxIntDamage: 370,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 50,
+    ignoreProtection: true,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.kiganLevel) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "真・カイザーフェニックス反撃用みがわり無視",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 180,
+    maxInt: 1000,
+    maxIntDamage: 290,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 50,
+    ignoreProtection: true,
+    ignoreSubstitute: true,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.kiganLevel) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "真・カラミティエンド",
+    type: "slash",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 48,
+    ignoreReflection: true,
+    ignoreEvasion: true,
+    ignoreSubstitute: true,
+    ignoreDazzle: true,
+    appliedEffect: { kiganLevel: { keepOnDeath: true, strength: 2 } },
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+    followingSkill: "真・カラミティエンド後半",
+  },
+  {
+    name: "真・カラミティエンド後半",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 550,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreEvasion: true,
+    ignoreSubstitute: true,
+    ignoreDazzle: true,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.healBlock) {
+        return 2;
+      }
+    },
+  },
+  {
+    name: "極・天地魔闘の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    isOneTimeUse: true,
+    MPcost: 82,
+    appliedEffect: { damageLimit: { strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true, removeAtTurnStart: true, duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.additionalCounterAbilities.push({
+        name: "極・天地魔闘の構え反撃状態",
+        message: function (skillUser) {
+          displayMessage(`${skillUser.name}は`, `真・カラミティエンドを はなった！`);
+        },
+        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+        act: async function (skillUser, counterTarget) {
+          await executeSkill(skillUser, findSkillByName("真・カラミティエンド"), counterTarget);
+          await sleep(200);
+          await executeSkill(skillUser, findSkillByName("真・カイザーフェニックス反撃用みがわり無視"), counterTarget);
+        },
+      });
+    },
+  },
+  {
+    name: "うちくだく",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 380,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 0,
+    ignoreProtection: true,
+  },
+  {
+    name: "鬼眼砲",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 750,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    order: "anchor",
+    anchorBonus: 2,
+    MPcost: 0,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "第三の瞳",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 90,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 60,
+    damageByLevel: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "大魔王のメラ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 490,
+    maxInt: 800,
+    maxIntDamage: 908,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 3,
   },
   {
     name: "ホーリーナックル",
@@ -17615,6 +17996,7 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/allElementalBarrierstr0.5.png",
     "images/buffIcons/martialSeal.png",
     "images/buffIcons/murakumo.png",
+    "images/buffIcons/healBlockkeepOnDeath.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
@@ -18024,6 +18406,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "通常攻撃が 素早さ依存になった！",
     },
+    kiganLevel: {
+      start: `${buffTarget.name}は`,
+      message: "鬼眼レベルが あがった！",
+    },
   };
 
   const stackableBuffs = {
@@ -18073,7 +18459,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
 // 引数名はnot skillUser
 async function transformTyoma(monster) {
   // 冗長性
-  if (monster.flags.isDead) {
+  if (monster.flags.isDead || monster.flags.hasTransformed) {
     return;
   }
   await sleep(200);
@@ -18130,6 +18516,24 @@ async function transformTyoma(monster) {
       2: "王の竜牙",
       3: "覇者の竜牙",
     }[monster.buffs.tyoryuLevel.strength];
+  } else if (monster.name === "魔界の神バーン") {
+    displayMessage("＊「今ここに！！！", "  魔の時代来たる！！！！");
+    await sleep(150);
+    displayMessage("＊「さあッ！！！", "  刮目せよっ！！！！");
+    monster.skill[0] = "極・天地魔闘の構え";
+    monster.skill[1] = "真・カラミティエンド";
+    monster.attribute.additionalPermanentBuffs = { slashBarrier: { strength: 2, unDispellable: true, duration: 0 }, martialBarrier: { strength: 2, unDispellable: true, duration: 0 } };
+    // アタカン削除
+    if (monster.buffs.slashReflection && monster.buffs.slashReflection.name === "光魔の杖") {
+      delete monster.buffs.slashReflection;
+    }
+    // 魔力覚醒力ため削除
+    if (monster.buffs.manaBoost && monster.buffs.manaBoost.name === "光魔の杖") {
+      delete monster.buffs.manaBoost;
+    }
+    if (monster.buffs.powerCharge && monster.buffs.powerCharge.name === "光魔の杖") {
+      delete monster.buffs.powerCharge;
+    }
   }
   await sleep(400);
 
@@ -18284,6 +18688,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "アサルトシステム";
   } else if (skillUser.name === "凶帝王エスターク") {
     NormalAttackName = "イオ系攻撃";
+  } else if (skillUser.name === "魔界の神バーン" && skillUser.buffs.vearnBarrier) {
+    NormalAttackName = "絶大な力";
   }
   return NormalAttackName;
 }
@@ -18668,6 +19074,7 @@ function isSkillUnavailableForAI(skillName) {
     "凶帝王の双閃",
     "バイオスタンプ",
     "覇者の竜牙",
+    "第三の瞳",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
   return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
