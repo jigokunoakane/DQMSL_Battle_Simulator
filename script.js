@@ -9925,7 +9925,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
-              applyBuff(monster, { poisoned: { probability: 1 }, spellSeal: { probability: 1 } });
+              applyBuff(monster, { poisoned: { probability: 0.9 }, spellSeal: { probability: 0.8 } });
             }
           },
         },
