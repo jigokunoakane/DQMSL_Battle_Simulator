@@ -4215,6 +4215,10 @@ function calculateDamage(
         damageModifier += 0.21;
       }
     }
+    // 装備錬金 - りゅうおう杖 バーン
+    if (skillUser.name === "魔界の神バーン" && skillUser.gear.name === "りゅうおうの杖非素早さ錬金" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+      damageModifier += 0.1;
+    }
 
     // 特技錬金の反映(双撃は個別に後半も対象に含める)
     if (skillUser.gear.skillAlchemy) {
