@@ -19201,8 +19201,12 @@ function clearResistanceDisplay(targetWrapper) {
   }
 }
 
-function displaySkillResistances(skillUser, skillInfo) {
+function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
+  // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替え
+  const followingSkills = ["昇天斬り", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇"];
+  const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
+
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
     return;
   }
