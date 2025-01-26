@@ -401,12 +401,15 @@ async function setMonsterBarDisplay(isReverse = false) {
 //////////////通常攻撃
 document.getElementById("commandNormalAttackBtn").addEventListener("click", function () {
   disableCommandBtn(true);
-  parties[currentTeamIndex][currentMonsterIndex].commandInput = getNormalAttackName(parties[currentTeamIndex][currentMonsterIndex]);
+  const skillUser = parties[currentTeamIndex][currentMonsterIndex];
+  const normalAttackName = getNormalAttackName(skillUser);
+  skillUser.commandInput = normalAttackName;
   document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
   document.getElementById("commandPopupWindowText").style.visibility = "visible";
   selectSkillTargetToggler(currentTeamIndex === 0 ? 1 : 0, "single", "enemy", findSkillByName("通常攻撃")); //味方画像
   document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
+  displaySkillResistances(skillUser, findSkillByName(normalAttackName));
 });
 
 /////////////ぼうぎょ
@@ -19229,7 +19232,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
-    } else if (skillInfo.element === "none" && resistanceValue === 1) {
+    } else if ((skillInfo.element === "none" || skillInfo.element === "notskill") && resistanceValue === 1) {
       continue;
     } else {
       switch (resistanceValue) {
