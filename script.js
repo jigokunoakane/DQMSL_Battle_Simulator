@@ -8251,7 +8251,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (monster) {
             // 2回目変身
             await sleep(200);
-            monster.iconSrc = "images/icons/VearnTransformedBeast.jpeg";
+            monster.iconSrc = "images/icons/vearnTransformedBeast.jpeg";
             updateBattleIcons(monster);
             monster.currentStatus.MP = 0;
             updateMonsterBar(monster);
