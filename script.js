@@ -8114,7 +8114,7 @@ function getMonsterAbilities(monsterId) {
             },
           });
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
-          applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
+          applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true, iconSrc: "none" } });
         }
       },
     },
