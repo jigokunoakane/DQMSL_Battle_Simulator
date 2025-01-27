@@ -5567,6 +5567,7 @@ document.getElementById("randomParty").addEventListener("click", function () {
 
 document.getElementById("drapa").addEventListener("click", function () {
   selectAllPartyMembers(["masudora", "sinri", "rusia", "orochi", "voruka"]);
+  selectGear("killerEarrings", 2);
 });
 
 document.getElementById("yuzupa").addEventListener("click", function () {
@@ -5617,6 +5618,7 @@ document.getElementById("zombiepa").addEventListener("click", function () {
 document.getElementById("masopa").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
   changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
+  selectGear("hazamaBracelet", 0);
   selectGear("hazardNail", 3);
 });
 
@@ -5693,7 +5695,7 @@ const monsters = [
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
     anotherSkills: ["サンダーボルト", "偽りの秘剣"],
-    defaultGear: "killerEarrings",
+    defaultGear: "familyNailTyoma",
     attribute: {
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
