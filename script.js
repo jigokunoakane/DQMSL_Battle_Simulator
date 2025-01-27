@@ -8154,7 +8154,7 @@ function getMonsterAbilities(monsterId) {
             unavailableIf: (skillUser) => skillUser.flags.hasTransformed,
             act: async function (skillUser) {
               if (!skillUser.buffs.tyoryuLevel) {
-                applyBuff(skillUser, { tyoryuLevel: { keepOnDeath: true, strength: 1 } });
+                applyBuff(skillUser, { tyoryuLevel: { unDispellable: true, strength: 1 } });
               } else {
                 const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
                 skillUser.buffs.tyoryuLevel.strength = newStrength;
@@ -18581,6 +18581,8 @@ async function transformTyoma(monster) {
       applyBuff(monster, { metal: { keepOnDeath: true, strength: 0.66 }, spdUp: { strength: 2, keepOnDeath: true, iconSrc: "spdUpkeepOnDeathstr2" } });
     }
     applyBuff(monster, { isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" } });
+    delete monster.buffs.tyoryuLevel.unDispellable;
+    monster.buffs.tyoryuLevel.keepOnDeath = true;
   }
 
   // 回復
