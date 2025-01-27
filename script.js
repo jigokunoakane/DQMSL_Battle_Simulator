@@ -6113,7 +6113,7 @@ const monsters = [
     rank: 10,
     race: ["???"],
     weight: 25,
-    status: { HP: 753, MP: 411, atk: 396, def: 391, spd: 501, int: 395 },
+    status: { HP: 775, MP: 422, atk: 409, def: 404, spd: 516, int: 408 },
     initialSkill: ["真夏の誘惑", "まどいの風", "マホターン", "ぎゃくふう"],
     defaultGear: "swimSuit",
     attribute: {
@@ -7721,7 +7721,7 @@ const monsters = [
     weight: 16,
     status: { HP: 840, MP: 369, atk: 438, def: 540, spd: 242, int: 354 },
     initialSkill: ["におうだち", "結晶拳・終", "みがわり", "結晶拳・疾風"],
-    defaultGear: "familyNailBeast",
+    defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
     attribute: {
       evenTurnBuffs: {
@@ -7744,7 +7744,7 @@ const monsters = [
     weight: 8,
     status: { HP: 656, MP: 320, atk: 380, def: 427, spd: 221, int: 327 },
     initialSkill: ["みがわり", "結晶拳・疾風", "防刃の守り", "タップダンス"],
-    defaultGear: "familyNailBeast",
+    defaultGear: "familyNail",
     defaultAiType: "いのちだいじに",
     attribute: {
       evenTurnBuffs: {
