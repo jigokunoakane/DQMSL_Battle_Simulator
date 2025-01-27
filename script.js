@@ -5618,7 +5618,7 @@ document.getElementById("zombiepa").addEventListener("click", function () {
 document.getElementById("masopa").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
   changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
-  selectGear("hazamaBracelet", 0);
+  selectGear("holyKingShield", 0);
   selectGear("hazardNail", 3);
 });
 
@@ -11221,6 +11221,7 @@ const skill = [
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         // 生存かつ未変身の場合、リザオ有無にかわらずネルを一度落とす
         delete nerugeru.buffs.reviveBlock;
+        delete nerugeru.buffs.healBlock;
         delete nerugeru.buffs.poisonDepth;
         delete nerugeru.buffs.stoned;
         delete nerugeru.buffs.maso; // マソ深度5も解除
