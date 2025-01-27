@@ -10098,9 +10098,13 @@ function getMonsterAbilities(monsterId) {
           name: "ラストポイズン強",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+              let skillTarget = tempTarget;
+              if (skillTarget.flags.hasSubstitute) {
+                skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+              }
               const poisonBuff = hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5) ? { poisoned: { unDispellableByRadiantWave: true } } : { poisoned: {} };
-              applyBuff(monster, poisonBuff, skillUser);
+              applyBuff(skillTarget, poisonBuff, skillUser);
             }
           },
         },
