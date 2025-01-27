@@ -3149,7 +3149,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     !target.buffs.tagTransformation &&
     !(target.buffs.revive && !target.buffs.reviveBlock) &&
     !target.buffs.zombifyBlock &&
-    (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ") &&
+    (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ" || target.name === "万物の王オルゴ・デミーラ") &&
     (target.buffs.zombification || (target.flags.zombieProbability && Math.random() < target.flags.zombieProbability))
   ) {
     target.flags.willZombify = true;
