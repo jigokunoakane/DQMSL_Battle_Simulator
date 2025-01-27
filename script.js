@@ -7714,6 +7714,52 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "凶グレートオーラス", //444
+    id: "cursedgreatwalrus",
+    rank: 9,
+    race: ["魔獣"],
+    weight: 16,
+    status: { HP: 840, MP: 369, atk: 438, def: 540, spd: 242, int: 354 },
+    initialSkill: ["におうだち", "結晶拳・終", "みがわり", "結晶拳・疾風"],
+    defaultGear: "familyNailBeast",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 },
+        baiki: { strength: -1 },
+        intUp: { strength: -1 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.2 },
+    lsTarget: "魔獣",
+    resistance: { fire: 1.5, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 0.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "凶シーライオン", //44
+    id: "cursedsealion",
+    rank: 8,
+    race: ["魔獣"],
+    weight: 8,
+    status: { HP: 656, MP: 320, atk: 380, def: 427, spd: 221, int: 327 },
+    initialSkill: ["みがわり", "結晶拳・疾風", "防刃の守り", "タップダンス"],
+    defaultGear: "familyNailBeast",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 },
+        baiki: { strength: -1 },
+        intUp: { strength: -1 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.15 },
+    lsTarget: "魔獣",
+    resistance: { fire: 1.5, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 0.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
@@ -8983,8 +9029,33 @@ function getMonsterAbilities(monsterId) {
           },
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
-              applyBuff(monster, { maso: { maxDepth: 3 } });
+            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+              let skillTarget = tempTarget;
+              if (skillTarget.flags.hasSubstitute) {
+                skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+              }
+              applyBuff(skillTarget, { maso: { maxDepth: 3 } });
+              await sleep(100);
+            }
+          },
+        },
+      ],
+    },
+    cursedgreatwalrus: {
+      deathAbilities: [
+        {
+          name: "ラストハザード",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の`, "ラストハザード！");
+          },
+          isOneTimeUse: true,
+          act: async function (skillUser) {
+            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+              let skillTarget = tempTarget;
+              if (skillTarget.flags.hasSubstitute) {
+                skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
+              }
+              applyBuff(skillTarget, { maso: { maxDepth: 3 } });
               await sleep(100);
             }
           },
@@ -16375,6 +16446,44 @@ const skill = [
     },
   },
   {
+    name: "結晶拳・疾風",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 218,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 25,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    damageByLevel: true,
+    masoMultiplier: {
+      1: 2,
+      2: 2.1, // 推測
+      3: 2.2,
+      4: 2.3,
+    },
+  },
+  {
+    name: "結晶拳・終",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 2,
+    MPcost: 85,
+    order: "anchor",
+    damageByLevel: true,
+    masoMultiplier: {
+      1: 2,
+      2: 2.1, // 推測
+      3: 2.2,
+      4: 2.3,
+    },
+  },
+  {
     name: "カオスストーム",
     type: "spell",
     howToCalculate: "int",
@@ -16975,7 +17084,18 @@ const gear = [
     name: "ハザードネイル",
     id: "hazardNail",
     weight: 5,
-    noWeightMonsters: ["ガルマザード", "ガルマッゾ", "凶帝王エスターク", "凶ライオネック", "凶ブオーン", "凶ウルトラメタキン", "凶メタルキング", "凶グレートオーラス", "凶アンドレアル"],
+    noWeightMonsters: [
+      "ガルマザード",
+      "ガルマッゾ",
+      "凶帝王エスターク",
+      "凶ライオネック",
+      "凶ブオーン",
+      "凶ウルトラメタキン",
+      "凶メタルキング",
+      "凶グレートオーラス",
+      "凶シーライオン",
+      "凶アンドレアル",
+    ],
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
   },
   {
@@ -19188,6 +19308,7 @@ function isBreakMonster(monster) {
     "凶メタルキング",
     "凶スターキメラ",
     "凶グレートオーラス",
+    "凶シーライオン",
     "凶アンドレアル",
   ];
   return breakMonsterList.includes(monster.name);
