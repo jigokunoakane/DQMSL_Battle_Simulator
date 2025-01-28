@@ -6848,6 +6848,7 @@ const monsters = [
     weight: 30,
     status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
     initialSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
+    anotherSkills: ["黄金の息吹"],
     defaultGear: "cursedNail",
     attribute: {
       initialBuffs: {
@@ -14214,6 +14215,17 @@ const skill = [
     MPcost: 112,
     damageByLevel: true,
     appliedEffect: { fear: { probability: 0.3663 } },
+  },
+  {
+    name: "黄金の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 62,
   },
   {
     name: "獣王の猛撃",
