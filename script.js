@@ -6290,6 +6290,7 @@ const monsters = [
     status: { HP: 1108, MP: 470, atk: 392, def: 529, spd: 418, int: 576 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
     initialAIDisabledSkills: ["はめつの流星"],
+    anotherSkills: ["絶望の爆炎"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -6664,6 +6665,7 @@ const monsters = [
     weight: 25,
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
+    anotherSkills: ["絶望の爆炎"],
     defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
@@ -6870,6 +6872,7 @@ const monsters = [
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
     initialSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
     initialAIDisabledSkills: ["波状裂き"],
+    anotherSkills: ["ハリケーン"],
     defaultGear: "familyNailBeast",
     attribute: {
       initialBuffs: {
@@ -6932,6 +6935,7 @@ const monsters = [
     weight: 28,
     status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
     initialSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
+    anotherSkills: ["超こうねつガス", "昇天のこぶし"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -6955,6 +6959,7 @@ const monsters = [
     weight: 28,
     status: { HP: 862, MP: 289, atk: 316, def: 523, spd: 515, int: 473 },
     initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "防刃の守り"],
+    anotherSkills: ["極彩鳥のはどう"],
     defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
@@ -7059,6 +7064,7 @@ const monsters = [
     weight: 28,
     status: { HP: 758, MP: 287, atk: 538, def: 615, spd: 494, int: 275 },
     initialSkill: ["ばくれつドライブ", "スパークふんしゃ", "カオスストーム", "息よそく"],
+    anotherSkills: ["ミラーステップ"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -12541,6 +12547,16 @@ const skill = [
     appliedEffect: { slashReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
   },
   {
+    name: "ミラーステップ",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 30,
+    appliedEffect: { danceReflection: { strength: 1.5, duration: 2, decreaseTurnEnd: true } },
+  },
+  {
     name: "かがやく息",
     type: "breath",
     howToCalculate: "fix",
@@ -13285,6 +13301,17 @@ const skill = [
     },
   },
   {
+    name: "極彩鳥のはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    appliedEffect: "disruptiveWave",
+    followingSkill: "光のはどう",
+  },
+  {
     name: "邪悪なこだま",
     type: "martial",
     howToCalculate: "int",
@@ -13628,6 +13655,21 @@ const skill = [
   },
   {
     name: "ばくえんの秘術",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 125,
+    maxInt: 600,
+    maxIntDamage: 250,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 90,
+    ignoreReflection: true,
+  },
+  {
+    name: "絶望の爆炎",
     type: "spell",
     howToCalculate: "int",
     minInt: 200,
@@ -14251,6 +14293,17 @@ const skill = [
     MPcost: 150, // みかわし マヌーサ有効
   },
   {
+    name: "ハリケーン",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 310,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 100,
+    damageByLevel: true,
+  },
+  {
     name: "ツイスター",
     type: "breath",
     howToCalculate: "fix",
@@ -14389,6 +14442,41 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+  },
+  {
+    name: "超こうねつガス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 338,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 136,
+    appliedEffect: { paralyzed: { probability: 0.3906 } },
+  },
+  {
+    name: "昇天のこぶし",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 35,
+    appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      ascension(skillTarget);
+    },
+    followingSkill: "昇天のこぶし後半",
+  },
+  {
+    name: "昇天のこぶし後半",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 2.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
   },
   {
     name: "レインマダンテ",
@@ -19396,7 +19484,7 @@ function clearResistanceDisplay(targetWrapper) {
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
   // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替え
-  const followingSkills = ["昇天斬り", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇"];
+  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇"];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
