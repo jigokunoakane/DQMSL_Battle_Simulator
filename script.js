@@ -2751,6 +2751,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       翠嵐の息吹: "thunderDomain",
       竜の波濤: "iceDomain",
       冥闇の息吹: "darkDomain",
+      業炎の息吹: "fireDomain",
     }[executingSkill.name];
     if (skillUser.buffs[targetDomain]) {
       domainCheck = true;
@@ -6380,6 +6381,7 @@ const monsters = [
     status: { HP: 906, MP: 304, atk: 500, def: 619, spd: 454, int: 355 },
     initialSkill: ["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "虚空神の福音"],
     initialAIDisabledSkills: ["竜の波濤"],
+    anotherSkills: ["業炎の息吹"],
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.33 },
@@ -8674,13 +8676,14 @@ function getMonsterAbilities(monsterId) {
             displayMessage(`${skillUser.name}の特性`, "領界召喚 が発動！");
           },
           unavailableIf: (skillUser, executingSkill, executedSkills) =>
-            !executingSkill || (executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹"),
+            !executingSkill || (executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹" && executingSkill.name !== "業炎の息吹"),
           act: async function (skillUser, executingSkill) {
             await sleep(200);
             const targetDomain = {
               翠嵐の息吹: "thunderDomain",
               竜の波濤: "iceDomain",
               冥闇の息吹: "darkDomain",
+              業炎の息吹: "fireDomain",
             }[executingSkill.name];
             const buffToApply = {};
             buffToApply[targetDomain] = { keepOnDeath: true };
@@ -8688,6 +8691,7 @@ function getMonsterAbilities(monsterId) {
               delete monster.buffs.iceDomain;
               delete monster.buffs.thunderDomain;
               delete monster.buffs.darkDomain;
+              delete monster.buffs.fireDomain;
               applyBuff(monster, buffToApply);
               await sleep(100);
             }
@@ -13023,6 +13027,16 @@ const skill = [
     MPcost: 76,
     ignoreProtection: true,
     appliedEffect: { reviveBlock: { duration: 1 }, dazzle: {} },
+  },
+  {
+    name: "業炎の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 456,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 120,
   },
   {
     name: "虚空神の福音",
@@ -18675,6 +18689,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     darkDomain: {
       start: `${buffTarget.name}の`,
       message: "ドルマ系のダメージが あがった！",
+    },
+    fireDomain: {
+      start: `${buffTarget.name}の`,
+      message: "メラ系のダメージが あがった！",
     },
     goddessDefUp: {
       start: `${buffTarget.name}の`,
