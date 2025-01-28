@@ -3625,7 +3625,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // みかわし・マヌーサ処理
-  if (["atk", "def", "spd"].includes(executingSkill.howToCalculate)) {
+  if (["atk", "def", "spd"].includes(executingSkill.howToCalculate) || (executingSkill.howToCalculate === "fix" && (executingSkill.type === "dance" || executingSkill.type === "slash"))) {
     const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
       applyDamage(skillTarget, 0);
@@ -4444,10 +4444,15 @@ function calculateDamage(
 }
 
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
+  // 固定斬撃・踊りもみかわし処理を実行 skill.filter((skill) => skill.howToCalculate ==="fix" && skill.type ==="dance") or slash
+  // 固定踊りは基本的にhit扱い 例外のみマヌーサとみかわし処理を実行
+  if (!["キャンセルステップ", "ステテコダンス"].includes(executingSkill.name) && executingSkill.howToCalculate === "fix" && executingSkill.type === "dance") {
+    return "hit";
+  }
   // マヌーサ処理
   if (skillUser.buffs.dazzle && !executingSkill.ignoreDazzle) {
     if (Math.random() < 0.36) {
-      console.log(`${skillTarget.name}は目を回して攻撃を外した！`);
+      console.log(`${skillTarget.name}はマヌーサで攻撃を外した！`);
       return "miss";
     }
   }
@@ -4456,7 +4461,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
     // みかわしバフ
     if (skillTarget.buffs.dodgeBuff) {
       if (Math.random() < skillTarget.buffs.dodgeBuff.strength) {
-        console.log(`${skillTarget.name}は攻撃をかわした！`);
+        console.log(`${skillTarget.name}はタップで攻撃をかわした！`);
         return "miss";
       }
     }
@@ -4480,7 +4485,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
       }
 
       if (Math.random() < evasionRate) {
-        console.log(`${skillTarget.name}は攻撃をかわした！`);
+        console.log(`${skillTarget.name}は素早さ差で攻撃をかわした！`);
         return "miss";
       }
     }
@@ -11374,7 +11379,7 @@ const skill = [
     MPcost: 0,
     ignoreReflection: true,
     ignoreSubstitute: true,
-    ignoreEvasion: true,
+    ignoreEvasion: true, // マヌーサ有効
     isCounterSkill: true,
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}の 反撃！`);
@@ -13376,7 +13381,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 78,
-    ignoreEvasion: true,
+    ignoreEvasion: true, // マヌーサ有効
     followingSkill: "無双のつるぎ後半",
   },
   {
@@ -13429,7 +13434,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 71,
-    ignoreReflection: true,
+    ignoreReflection: true, // みかわし マヌーサ有効
     followingSkill: "誇りのつるぎ後半",
   },
   {
@@ -13442,7 +13447,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    ignoreReflection: true,
+    ignoreReflection: true, // みかわし マヌーサ有効
   },
   {
     name: "カタストロフ",
@@ -13751,6 +13756,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 41,
+    ignoreEvasion: true, // マヌーサ有効
     damageByLevel: true,
     appliedEffect: "disruptiveWave",
   },
@@ -14214,7 +14220,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     hitNum: 5,
-    MPcost: 150,
+    MPcost: 150, // みかわし マヌーサ有効
   },
   {
     name: "ツイスター",
@@ -15748,7 +15754,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 28,
-    ignoreEvasion: true,
+    ignoreEvasion: true, // マヌーサ有効
     abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.poisoned || skillTarget.buffs.dazzle) {
         return 3;
@@ -16962,6 +16968,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 41,
+    ignoreDazzle: true, // みかわし有効
     appliedEffect: { confused: { probability: 0.404 } },
   },
   {
