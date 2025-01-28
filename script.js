@@ -5065,11 +5065,11 @@ function addSkillOptions() {
   const familySkills = {
     ドラゴン: ["テンペストブレス", "ほとばしる暗闇", "竜の呪文見切り"],
     ゾンビ: ["ヴェレマータ", "防壁反転"],
-    悪魔: ["イオナルーン"], //冷酷
+    悪魔: ["イオナルーン", "冷酷な氷撃"],
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
-    //魔獣: [], //"ラピッドショット", "聖なる息吹"
+    魔獣: ["ラピッドショット", "聖なる息吹"],
     //自然: ["やすらぎの光", "天光の裁き"],
-    //物質: ["氷撃波", "れっぱの息吹", "リベンジアーツ"],
+    物質: ["れっぱの息吹"], //"リベンジアーツ" 氷撃波
   }[monster.race[0]];
   const familySkillsAvailableForRankS = {
     //ドラゴン: [],
@@ -14059,6 +14059,22 @@ const skill = [
     appliedEffect: { windResistance: { strength: -1, probability: 0.57 } },
   },
   {
+    name: "冷酷な氷撃",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 45,
+    appliedEffect: { iceResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
     name: "魔の忠臣",
     type: "martial",
     howToCalculate: "none",
@@ -14443,6 +14459,19 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 49,
     ignoreSubstitute: true,
+  },
+  {
+    name: "聖なる息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 138,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 45,
+    RaceBane: ["???"],
+    RaceBaneValue: 2,
   },
   {
     name: "しっぷうづき",
@@ -15157,6 +15186,17 @@ const skill = [
       3: 3.2,
       4: 3.3,
     },
+  },
+  {
+    name: "れっぱの息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 35,
   },
   {
     name: "プロト・スターフレア",
