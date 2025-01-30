@@ -11458,7 +11458,7 @@ const skill = [
   },
   {
     name: "光速の連打",
-    type: "dance",
+    type: "martial",
     howToCalculate: "atk",
     ratio: 0.9,
     element: "light",
