@@ -9873,8 +9873,8 @@ function getMonsterAbilities(monsterId) {
                     },
                     act: async function (skillUser) {
                       for (const monster of parties[skillUser.teamID]) {
-                        // ラザマ以外に付与 自分自身または生存者ならば封じ解除
-                        if (monster.race.includes("ゾンビ") && (!monster.flags.isDead || skillUser.monsterId === monster.monsterId)) {
+                        // ラザマ以外に付与 死亡以外(生存or亡者)ならば封じ解除
+                        if (monster.race.includes("ゾンビ") && !monster.flags.isDead) {
                           const newBuffs = {};
                           let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
                           const deleteKeys = ["slashSeal", "martialSeal", "spellSeal", "breathSeal", "reviveBlock", "healBlock"];
