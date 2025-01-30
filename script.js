@@ -19353,7 +19353,8 @@ function isSkillUnavailableForAI(skillName) {
   const skillInfo = findSkillByName(skillName);
   const unavailableSkillsOnAI = [
     "エンドブレス",
-    "浄化の風",
+    "ツイスター",
+    "ツイスター下位",
     "神楽の術",
     "神楽の術下位",
     "閃く短刀",
