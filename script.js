@@ -19,6 +19,9 @@ let currentTab = 0;
 let currentMonsterIndex = 0;
 let currentTeamIndex = 0;
 
+// プリセットコマンドを記録
+const presetCommands = [];
+
 //戦闘中に使用
 let fieldState = {};
 let turnOrder = [];
@@ -242,6 +245,12 @@ async function prepareBattle() {
   //bgmを再生
   playBGM();
   //field管理用変数の導入はglobalで
+  // プリセット存在時のみプリセットを用いた戦闘開始を可能に
+  if (presetCommands.length > 0) {
+    document.getElementById("startBattleWithPresetCommandBtn").style.display = "flex";
+  } else {
+    document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
+  }
   await startTurn();
 }
 //finish prepareBattle 開始時処理終了
@@ -400,6 +409,7 @@ async function setMonsterBarDisplay(isReverse = false) {
 //////////////////////////////////////////////////////////////コマンド選択フロー
 //////////////通常攻撃
 document.getElementById("commandNormalAttackBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   disableCommandBtn(true);
   const skillUser = parties[currentTeamIndex][currentMonsterIndex];
   const normalAttackName = getNormalAttackName(skillUser);
@@ -414,12 +424,14 @@ document.getElementById("commandNormalAttackBtn").addEventListener("click", func
 
 /////////////ぼうぎょ
 document.getElementById("commandGuardBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   parties[currentTeamIndex][currentMonsterIndex].commandInput = "ぼうぎょ";
   finishSelectingEachMonstersCommand();
 });
 
 ////////////AI
 document.getElementById("commandAIBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   // 進捗状況を管理する変数tempSelectingMonsterIndexを現在値にセットしてstart
   let tempSelectingMonsterIndex = currentMonsterIndex;
 
@@ -442,6 +454,7 @@ document.getElementById("commandAIBtn").addEventListener("click", function () {
 
 // startSelectingCommand() とくぎ選択開始
 document.getElementById("commandSelectSkillBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   disableCommandBtn(true);
   //party内該当monsterのskillのn番目要素をそのまま表示
   const skillUser = parties[currentTeamIndex][currentMonsterIndex];
@@ -724,6 +737,7 @@ function adjustMonsterIconStickOut() {
 }
 
 document.getElementById("commandBackBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   // 現在選択中のモンスターより前に行動可能なモンスターがいるか確認
   let previousActionableMonsterIndex = currentMonsterIndex - 1;
   while (previousActionableMonsterIndex >= 0) {
@@ -744,6 +758,7 @@ document.getElementById("commandBackBtn").addEventListener("click", function () 
 
 // AI調整画面を開く
 document.getElementById("commandAdjustAIBtn").addEventListener("click", function () {
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   disableCommandBtn(true);
   document.getElementById("commandPopupWindowAdjustAiText").textContent = `現在のAI: ${parties[currentTeamIndex][currentMonsterIndex].currentAiType}`;
   document.getElementById("commandPopupWindowAdjustAi").style.visibility = "visible";
@@ -803,6 +818,7 @@ function askFinishCommand() {
   document.getElementById("commandPopupWindow").style.visibility = "visible"; //最後が防御の場合に枠を新規表示
   displayMessage("モンスターたちはやる気だ！");
   disableCommandBtn(true);
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none"; // 一応全部コマンド選択不可対応
 }
 
 //コマンド選択終了画面でno選択時、yes,no選択画面とpopup全体を閉じて5体目コマンド選択前に戻す
@@ -827,9 +843,16 @@ document.getElementById("askFinishCommandBtnNo").addEventListener("click", funct
 
 //コマンド選択終了画面でyes選択時、コマンド選択を終了
 document.getElementById("askFinishCommandBtnYes").addEventListener("click", async function () {
+  await handleYesButtonClick();
+});
+async function handleYesButtonClick() {
   document.getElementById("askFinishCommandBtnNo").disabled = false;
   document.getElementById("askFinishCommand").style.visibility = "hidden";
   if (currentTeamIndex === 1) {
+    // 初ターンのみ選択コマンドを記録
+    if (fieldState.turnNum === 1) {
+      recordPresetCommands();
+    }
     //敵も選択終了後は、startBattleへ
     currentMonsterIndex = 0;
     currentTeamIndex = 0;
@@ -848,7 +871,7 @@ document.getElementById("askFinishCommandBtnYes").addEventListener("click", asyn
     //味方選択のみ終了時はyes,no選択画面を閉じ、敵のコマンド選択方法選択画面を表示
     document.getElementById("howToCommandEnemy").style.visibility = "visible";
   }
-});
+}
 
 //敵のコマンド選択方法-player
 document.getElementById("howToCommandEnemyBtnPlayer").addEventListener("click", function () {
@@ -17988,6 +18011,8 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
   fieldState.isBattleOver = true;
   setSkipMode(true);
   stopBGM();
+  // コマンドプリセットを削除
+  presetCommands.length = 0;
   // buff表示loopを停止
   for (const party of parties) {
     for (const monster of party) {
@@ -19801,4 +19826,41 @@ function createUpArrows(count, color) {
     arrowsContainer.appendChild(arrow);
   }
   return arrowsContainer;
+}
+
+// global: presetCommands = []を使用 1ラウンド目のコマンド決定時に自動更新
+function recordPresetCommands() {
+  presetCommands.length = 0;
+  for (const party of parties) {
+    const partyPreset = [];
+    for (const monster of party) {
+      partyPreset.push({
+        command: monster.commandInput,
+        target: monster.commandTargetInput,
+      });
+    }
+    presetCommands.push(partyPreset);
+  }
+}
+
+// 記録したコマンドで対戦開始
+document.getElementById("startBattleWithPresetCommandBtn").addEventListener("click", function () {
+  // 非表示化 プリセット存在時に再戦等でpreparebattleが実行されれば再表示 finishBtn実行時はプリセット削除 一体でもコマンドを開始したらbtnは非表示
+  document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
+  startBattleWithPresetCommands();
+});
+
+function startBattleWithPresetCommands() {
+  for (let partyIndex = 0; partyIndex < parties.length; partyIndex++) {
+    const party = parties[partyIndex];
+    const partyPreset = presetCommands[partyIndex];
+    for (let monsterIndex = 0; monsterIndex < party.length; monsterIndex++) {
+      if (partyPreset && partyPreset[monsterIndex]) {
+        party[monsterIndex].commandInput = partyPreset[monsterIndex].command;
+        party[monsterIndex].commandTargetInput = partyPreset[monsterIndex].target;
+      }
+    }
+  }
+  currentTeamIndex = 1;
+  handleYesButtonClick();
 }
