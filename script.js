@@ -1431,7 +1431,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned && buffName !== "stoned") {
       continue;
     }
-    // 1-2. 亡者の場合 封印(黄泉・神獣・氷の王国) アイアンクロー 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 超魔改良以外は付与しない
+    // 1-2. 亡者の場合 封印(黄泉・神獣・氷の王国) 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 超魔改良 蘇生封じの術 グランドアビス以外は付与しない
     if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
@@ -9207,6 +9207,7 @@ function getMonsterAbilities(monsterId) {
                   monster.abilities.additionalDeathAbilities.push({
                     name: "孤高の獣発動",
                     isOneTimeUse: true,
+                    ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name} がチカラつき`, "孤高の獣 の効果が発動！");
                     },
@@ -11987,7 +11988,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 52,
-    appliedEffect: { reviveBlock: { duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     followingSkill: "蘇生封じの術後半",
   },
   {
@@ -14908,7 +14909,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 33,
     ignoreGuard: true,
-    appliedEffect: { fear: { zombieBuffable: true } },
+    appliedEffect: { fear: {} },
   },
   {
     name: "起爆装置",
@@ -16121,7 +16122,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 108,
-    appliedEffect: { reviveBlock: { duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     ignoreReflection: true,
     followingSkill: "グランドアビス後半",
   },
@@ -16175,7 +16176,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 57,
-    appliedEffect: { healBlock: {}, reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1 }, healBlock: {}, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
     followingSkill: "修羅の闇後半",
   },
   {
@@ -19182,9 +19183,8 @@ function ascension(monster, ignoreUnAscensionable = false) {
     return;
   }
   delete monster.flags.isZombie;
-  // zombieBuffableのバフの一部を削除 封印(黄泉・神獣・氷の王国) アイアンクロー 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 超魔改良は残す
+  // zombieBuffableのバフの一部を個別に削除  全削除：封印(黄泉・神獣・氷の王国)  個別削除：亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 蘇生封じの術 グランドアビス 超魔改良は残す
   delete monster.buffs.sealed;
-  delete monster.buffs.fear;
   if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
     delete monster.buffs.slashReflection;
   }
