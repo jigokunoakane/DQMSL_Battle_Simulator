@@ -1431,7 +1431,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffTarget.buffs.stoned && buffName !== "stoned") {
       continue;
     }
-    // 1-2. 亡者の場合 封印(黄泉・神獣・氷の王国) 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 超魔改良 蘇生封じの術 グランドアビス 修羅の闇以外は付与しない
+    // 1-2. 亡者の場合 封印(黄泉・神獣・氷の王国) 亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 反撃ののろし 超魔改良 蘇生封じの術 グランドアビス 修羅の闇以外は付与しない
     if (buffTarget.flags.isZombie && !buffData.zombieBuffable) {
       continue;
     }
@@ -1512,6 +1512,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // ラススタ 使用済みラススタ 砕けラススタ(toukon) 不屈 使用済み不屈 砕け不屈(toukon) とうこん 使用済みとうこん
     // 既存のバフがある場合: とうこんは何も上書きしない(brokenは上書きするかもしれないが無視) 不屈はとうこん(broken含)のみ上書き 不屈・ラススタの新品/使用済みは上書きしない
     if (buffName === "isUnbreakable" && currentBuff && (buffData.isToukon || (buffData.left === 1 && !currentBuff.isToukon))) {
+      continue;
+    }
+    // darkにworldBuffを付与しない
+    if (buffName === "worldBuff" && buffTarget.buffs.darkBuff) {
       continue;
     }
 
@@ -1666,6 +1670,15 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (currentBuff) {
         const maxStrength = buffData.maxStrength || 3;
         const newStrength = Math.min(currentBuff.strength + buffData.strength, maxStrength);
+        buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
+      } else {
+        buffTarget.buffs[buffName] = { ...buffData };
+      }
+    } else if (buffName === "worldBuff") {
+      // 3-5. 反撃ののろし追加
+      if (currentBuff) {
+        const maxStrength = 0.15;
+        const newStrength = Math.min(currentBuff.strength + 0.05, maxStrength);
         buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
       } else {
         buffTarget.buffs[buffName] = { ...buffData };
@@ -8034,24 +8047,15 @@ function getMonsterAbilities(monsterId) {
             for (const monster of parties[skillUser.teamID]) {
               applyBuff(monster, { deathAbility: { keepOnDeath: true } });
               monster.abilities.additionalDeathAbilities.push({
-                name: "反撃ののろしダメージバフ",
+                name: "反撃ののろしダメージバフ", // 毒供物カウントリザオカンダタ1回目は発動せず 2回目は発動 死者に付与せず亡者は自己含め付与 発動回数制限なし
                 message: function (skillUser) {
                   displayMessage(`${skillUser.name} がチカラつき`, "反撃ののろし の効果が発動！");
                 },
                 act: async function (skillUser) {
                   for (const monster of parties[skillUser.teamID]) {
-                    //直接挿入
-                    if (!monster.buffs.worldBuff) {
-                      monster.buffs.worldBuff = { keepOnDeath: true, strength: 0.05 };
-                    } else if (monster.buffs.worldBuff.strength === 0.05) {
-                      monster.buffs.worldBuff.strength = 0.1;
-                    } else {
-                      monster.buffs.worldBuff.strength = 0.15;
-                    }
                     if (!monster.flags.isDead) {
-                      displayMessage(`${monster.name}の`, "与えるダメージが 上がった！");
-                      await updateMonsterBuffsDisplay(monster);
-                      await sleep(150);
+                      applyBuff(monster, { worldBuff: { keepOnDeath: true, strength: 0.05, zombieBuffable: true } });
+                      await sleep(100);
                     }
                   }
                 },
@@ -18711,6 +18715,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "鬼眼レベルが あがった！",
     },
+    worldBuff: {
+      start: `${buffTarget.name}の`,
+      message: "与えるダメージが 上がった！",
+    },
   };
 
   const stackableBuffs = {
@@ -19183,7 +19191,7 @@ function ascension(monster, ignoreUnAscensionable = false) {
     return;
   }
   delete monster.flags.isZombie;
-  // zombieBuffableのバフの一部を個別に削除  全削除：封印(黄泉・神獣・氷の王国)  個別削除：亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 蘇生封じの術 グランドアビス 修羅の闇 超魔改良は残す
+  // zombieBuffableのバフの一部を個別に削除  全削除：封印(黄泉・神獣・氷の王国)  個別削除：亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 反撃ののろし 超魔改良 蘇生封じの術 グランドアビス 修羅の闇は残す
   delete monster.buffs.sealed;
   if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
     delete monster.buffs.slashReflection;
