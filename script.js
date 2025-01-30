@@ -6091,12 +6091,12 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "神獣王ケトス", //4
+    name: "神獣王ケトス", //最強 (最強増分320421)
     id: "ketosu",
     rank: 10,
     race: ["???"],
     weight: 30,
-    status: { HP: 961, MP: 338, atk: 258, def: 637, spd: 390, int: 378 },
+    status: { HP: 964, MP: 340, atk: 258, def: 641, spd: 392, int: 379 },
     initialSkill: ["神獣王の防壁", "空中ふゆう", "みかわしのひやく", "体技よそく"],
     anotherSkills: ["聖なる流星"],
     defaultGear: "thunderCharm",
@@ -6793,12 +6793,12 @@ const monsters = [
     resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "フォロボシータ", //4
+    name: "フォロボシータ", //最強 (最強増分213022)
     id: "sita",
     rank: 10,
     race: ["悪魔"],
     weight: 27,
-    status: { HP: 838, MP: 483, atk: 351, def: 364, spd: 393, int: 499 },
+    status: { HP: 840, MP: 484, atk: 354, def: 364, spd: 395, int: 501 },
     initialSkill: ["メガントマータ", "ばくえんの秘術", "呪縛の氷撃", "サイコバースト"],
     defaultGear: "ryujinNail",
     attribute: {
