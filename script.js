@@ -1592,7 +1592,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //耐性を参照して確率判定
       let abnormalityResistance = 1;
-      //氷の王国・フロスペ等属性処理
+      //氷の王国・フロスペ・氷縛等属性処理
       if (buffData.element) {
         abnormalityResistance = calculateResistance(skillUser, buffData.element, buffTarget, fieldState.isDistorted, null);
         if (buffName === "sealed" && abnormalityResistance < 0.6) {
@@ -5969,6 +5969,32 @@ const monsters = [
     resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "DARK", //4
+    id: "dark",
+    rank: 10,
+    race: ["???"],
+    weight: 30,
+    status: { HP: 774, MP: 307, atk: 634, def: 480, spd: 483, int: 291 },
+    initialSkill: ["魔手黒闇", "ダークミナデイン", "無情な連撃", "神獣の氷縛"],
+    defaultGear: "hunkiNail",
+    attribute: {
+      initialBuffs: {
+        darkBreak: { keepOnDeath: true, strength: 2 },
+        isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" },
+        demonKingBarrier: { divineDispellable: true },
+        protection: { divineDispellable: true, strength: 0.4, duration: 3, iconSrc: "protectiondivineDispellablestr0.4" }, //クリミス対象
+      },
+      buffsFromTurn2: {
+        darkBreakBoost: { strength: 1, maxStrength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { spd: 1.15, atk: 1.1, def: 0.75 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 1, io: 0.5, light: 1, dark: -1, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "闇竜シャムダ",
     id: "shamu",
     rank: 10,
@@ -8396,6 +8422,19 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    dark: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "闇の増幅",
+            act: async function (skillUser) {
+              const newStrength = Math.min(0.2 * fieldState.turnNum, 0.6);
+              applyBuff(skillUser, { darkBuff: { keepOnDeath: true, strength: newStrength } });
+            },
+          },
+        ],
+      },
     },
     shamu: {
       afterActionHealAbilities: [
@@ -11766,6 +11805,77 @@ const skill = [
       spellEvasion: { duration: 3, unDispellable: true },
       breathEvasion: { duration: 3, unDispellable: true },
     },
+  },
+  {
+    name: "魔手黒闇",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 2,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    criticalHitProbability: 0,
+    ignoreSubstitute: true,
+    ignoreReflection: true,
+    RaceBane: ["???"],
+    RaceBaneValue: 3,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "ダークミナデイン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 60,
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.monsterId !== skillUser.monsterId) {
+        applyDamage(skillTarget, 60, 1, true, false, false, false, null);
+      }
+    },
+    followingSkill: "ダークミナデイン後半",
+  },
+  {
+    name: "ダークミナデイン後半",
+    type: "spell",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreProtection: true,
+    lowHpDamageMultiplier: true,
+    appliedEffect: { confused: { probability: 0.5313 } },
+  },
+  {
+    name: "無情な連撃",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 140,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 15,
+    MPcost: 62,
+    appliedEffect: { paralyzed: { probability: 0.08 }, fear: { probability: 0.1 } },
+  },
+  {
+    name: "神獣の氷縛",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 48,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { stoned: { probability: 1, duration: 2, isGolden: true, element: "ice" } },
   },
   {
     name: "魔壊裂き",
