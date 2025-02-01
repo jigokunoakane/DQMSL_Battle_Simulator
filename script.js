@@ -14083,7 +14083,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { mindBarrier: { duration: 4 }, confusionBarrier: { duration: 4 } },
+    appliedEffect: { confusionBarrier: { duration: 4 }, mindBarrier: { duration: 4 } },
   },
   {
     name: "ふしぎなとばり",
@@ -17332,14 +17332,14 @@ const gear = [
     id: "familyNail",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
-    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, confusionBarrier: { duration: 3 } },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, confusionBarrier: { duration: 3 }, mindBarrier: { duration: 3 } },
   },
   {
     name: "系統爪暗夜",
     id: "familyNailBeast",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
-    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, mindBarrier: { duration: 3 }, sleepBarrier: { duration: 3 } },
+    initialBuffs: { isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" }, sleepBarrier: { duration: 3 }, mindBarrier: { duration: 3 } },
   },
   {
     name: "系統爪ザキ",
@@ -20254,6 +20254,7 @@ function gerSkillTypeName(skillType) {
 }
 
 function getBuffName(appliedEffect) {
+  // 何段階上げる/下げると表記される群
   const stackableBuffNameList = {
     baiki: "攻撃力",
     defUp: "防御力",
@@ -20275,15 +20276,14 @@ function getBuffName(appliedEffect) {
     maso: "マソ深度",
   };
 
+  // まとめて--状態とつけられる群
   const abnormalityBuffNameList = {
-    //revive: "自動復活状態",
     //powerChargeなどとpowerWeakenなど
     //damageLimit: `被ダメージ上限値${buffData.strength}`
     //statusLock: "状態変化を封じる",
     //反射
     //familybuff
     //dodgeBuff protection
-    //バリア系
     //crimsonMist
 
     spellSeal: "呪文封じ",
@@ -20306,6 +20306,10 @@ function getBuffName(appliedEffect) {
     countDown: "カウントダウン",
     murakumo: "息被ダメージ上昇",
 
+    revive: "自動復活",
+    sacredBarrier: "状態異常無効",
+    confusionBarrier: "混乱無効",
+    mindBarrier: "行動停止無効",
     /*
     spellEvasion: "呪文無効状態",
     slashEvasion: "斬撃無効状態",
