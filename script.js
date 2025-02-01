@@ -19563,7 +19563,7 @@ function isSkillUnavailableForAI(skillName) {
     "覇者の竜牙",
     "第三の瞳",
   ];
-  const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
+  const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
     unavailableSkillsOnAI.includes(skillName) ||
     isWaveSkill(skillInfo) ||
