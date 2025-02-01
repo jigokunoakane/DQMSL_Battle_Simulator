@@ -3567,11 +3567,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let reflectionType = "yosoku";
 
   // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
-  if (
-    skillTarget.buffs.stoned &&
-    !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) &&
-    !(executingSkill.howToCalculate === "none" && (executingSkill.appliedEffect === "divineWave" || executingSkill.appliedEffect === "disruptiveWave"))
-  ) {
+  if (skillTarget.buffs.stoned && !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) && !isWaveSkill(executingSkill)) {
     applyDamage(skillTarget, 0);
     return;
   }
@@ -19557,7 +19553,13 @@ function isSkillUnavailableForAI(skillName) {
     "第三の瞳",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド"];
-  return unavailableSkillsOnAI.includes(skillName) || skillInfo.order !== undefined || skillInfo.isOneTimeUse || (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName));
+  return (
+    unavailableSkillsOnAI.includes(skillName) ||
+    isWaveSkill(skillInfo) ||
+    skillInfo.order !== undefined ||
+    skillInfo.isOneTimeUse ||
+    (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName))
+  );
 }
 
 function intensityPoisonDepth(skillTarget) {
@@ -20054,7 +20056,7 @@ function createSDproperties(skillInfo) {
   if (skillInfo.ignoreSubstitute) {
     ignoreProperties.push("みがわり無視");
   }
-  if (skillInfo.ignoreReflection) {
+  if (skillInfo.ignoreReflection || isWaveSkill(skillInfo)) {
     ignoreProperties.push("反射無視");
   }
   if (skillInfo.ignoreProtection) {
@@ -20302,7 +20304,6 @@ function getBuffName(appliedEffect) {
     healBlock: "回復封じ",
     reviveBlock: "蘇生封じ",
     zombifyBlock: "執念封じ",
-    countDown: "カウントダウン",
     murakumo: "息被ダメージ上昇",
     crimsonMist: "被ダメージ33%上昇", // 波濤 深淵の儀式
     manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
@@ -20326,6 +20327,11 @@ function getBuffName(appliedEffect) {
     ritualReflection: "儀式反射状態",
     danceReflection: "踊り反射状態",
     */
+  };
+
+  const specialBuffHandlers = {
+    protection: (buffData) => `ダメージ${buffData.strength * 100}%軽減`,
+    countDown: (buffData) => `カウント${buffData.count}`,
   };
 
   let stackableBuffsToApply = [];
@@ -20353,24 +20359,26 @@ function getBuffName(appliedEffect) {
       if (buffData.probability || (buffName === "maso" && !buffData.strength)) {
         stackableProbabilityExists = true;
       }
-    } else if (abnormalityBuffNameList[buffName] || ["protection"].includes(buffName)) {
+    } else {
       let text;
-      if (buffName === "protection") {
-        text = `ダメージ${buffData.strength * 100}%軽減`;
-      } else {
+      if (specialBuffHandlers[buffName]) {
+        text = specialBuffHandlers[buffName](buffData);
+      } else if (abnormalityBuffNameList[buffName]) {
         text = abnormalityBuffNameList[buffName];
       }
-      // 調整
-      if (buffName === "poisoned" && buffData.isLight) {
-        text = "毒";
-      }
-      if (["poisoned", "healBlock", "reviveBlock", "countDown"].includes(buffName) && buffData.unDispellableByRadiantWave) {
-        text = `解除不可の${text}`;
-      }
-      abnormalityBuffsToApply.push(`${text}`);
-      // "確率で"表示をするか
-      if (buffData.probability) {
-        abnormalityProbabilityExists = true;
+      if (text) {
+        // 調整
+        if (buffName === "poisoned" && buffData.isLight) {
+          text = "毒";
+        }
+        if (["poisoned", "healBlock", "reviveBlock", "countDown"].includes(buffName) && buffData.unDispellableByRadiantWave) {
+          text = `解除不可の${text}`;
+        }
+        abnormalityBuffsToApply.push(`${text}`);
+        // "確率で"表示をするか
+        if (buffData.probability) {
+          abnormalityProbabilityExists = true;
+        }
       }
     }
   }
@@ -20408,4 +20416,8 @@ function getBuffName(appliedEffect) {
   }
 
   return [discriptionText, isStackableBuffExisting];
+}
+
+function isWaveSkill(skillInfo) {
+  return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
 }
