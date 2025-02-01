@@ -20278,13 +20278,12 @@ function getBuffName(appliedEffect) {
 
   // まとめて--状態とつけられる群
   const abnormalityBuffNameList = {
-    //powerChargeなどとpowerWeakenなど
+    //powerChargeなど
     //damageLimit: `被ダメージ上限値${buffData.strength}`
     //statusLock: "状態変化を封じる",
     //反射
     //familybuff
     //dodgeBuff protection
-    //crimsonMist
 
     spellSeal: "呪文封じ",
     breathSeal: "息封じ",
@@ -20305,6 +20304,9 @@ function getBuffName(appliedEffect) {
     zombifyBlock: "執念封じ",
     countDown: "カウントダウン",
     murakumo: "息被ダメージ上昇",
+    crimsonMist: "被ダメージ33%上昇", // 波濤 深淵の儀式
+    manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
+    powerWeaken: "攻撃ダメージ50%減少", // 浸食 邪悪な灯火
 
     revive: "自動復活",
     sacredBarrier: "状態異常無効",
