@@ -20182,7 +20182,7 @@ function createSDappliedEffect(skillInfo) {
       skillDiscriptionText += "命中時　状態変化解除(上位効果)・くじけぬ心解除　";
     } else if (skillInfo.name === "天の裁き") {
       skillDiscriptionText += "命中時　確率でくじけぬ心を解除する　";
-    } else if (skillInfo.name === "ほとばしる暗闇") {
+    } else if (skillInfo.name === "ほとばしる暗闇" || skillInfo.name === "すさまじいオーラ") {
       skillDiscriptionText += "命中時　状態変化・ため状態を解除する　";
     } else if (appliedEffectText) {
       skillDiscriptionText += `命中時　${appliedEffectText}`;
@@ -20325,7 +20325,10 @@ function getBuffName(appliedEffect) {
   let stackableBuffsStrength = 1;
   let stackabledeBuffsToApply = [];
   let stackabledeBuffsStrength = 1;
+  let stackableProbabilityExists = false;
   let abnormalityBuffsToApply = [];
+  let abnormalityProbabilityExists = false;
+
   let discriptionText = "";
 
   for (const buffName in appliedEffect) {
@@ -20339,6 +20342,10 @@ function getBuffName(appliedEffect) {
         stackabledeBuffsToApply.push(`${stackableBuffNameList[buffName]}`);
         stackabledeBuffsStrength = buffData.strength * -1 || 1;
       }
+      // "確率で"表示をするか
+      if (buffData.probability || (buffName === "maso" && !buffData.strength)) {
+        stackableProbabilityExists = true;
+      }
     } else if (abnormalityBuffNameList[buffName]) {
       let text = abnormalityBuffNameList[buffName];
       // 調整
@@ -20349,6 +20356,10 @@ function getBuffName(appliedEffect) {
         text = `解除不可の${text}`;
       }
       abnormalityBuffsToApply.push(`${text}`);
+      // "確率で"表示をするか
+      if (buffData.probability) {
+        abnormalityProbabilityExists = true;
+      }
     }
   }
 
@@ -20358,6 +20369,7 @@ function getBuffName(appliedEffect) {
     shouldFixLastWord = true;
     isStackableBuffExisting = true;
     let text = `${stackableBuffsToApply.join("・")}を${stackableBuffsStrength}段階上げ　`;
+    text = stackableProbabilityExists ? `確率で${text}` : text;
     // マソのみ重複がないのでここで完全に置換
     if (stackableBuffsToApply[0] === "マソ深度" && appliedEffect.maso.strength) {
       isStackableBuffExisting = false;
@@ -20369,11 +20381,14 @@ function getBuffName(appliedEffect) {
     shouldFixLastWord = true;
     isStackableBuffExisting = true;
     let text = `${stackabledeBuffsToApply.join("・")}を${stackabledeBuffsStrength}段階下げ　`;
+    text = stackableProbabilityExists && stackableBuffsToApply.length <= 0 ? `確率で${text}` : text;
     discriptionText += `${text}`;
   }
   if (abnormalityBuffsToApply.length > 0) {
     shouldFixLastWord = false; // 置換不要
-    discriptionText += `${abnormalityBuffsToApply.join("・")}状態にする　`;
+    let text = `${abnormalityBuffsToApply.join("・")}状態にする　`;
+    text = abnormalityProbabilityExists && !(stackableProbabilityExists && (stackableBuffsToApply.length > 0 || stackabledeBuffsToApply.length > 0)) ? `確率で${text}` : text;
+    discriptionText += `${text}`;
   }
   // 必要ならば最後の文字を置換
   if (shouldFixLastWord) {
