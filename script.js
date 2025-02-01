@@ -20012,11 +20012,11 @@ function startBattleWithPresetCommands() {
   handleYesButtonClick();
 }
 
-function displaySkillDiscription(skillUser, selectedSkill, displaySkillName) {
-  const MPcost = calculateMPcost(skillUser, selectedSkill);
-  const SDproperties = createSDproperties(selectedSkill);
-  const SDmain = createSDmain(selectedSkill);
-  const SDappliedEffect = createSDappliedEffect(selectedSkill);
+function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
+  const MPcost = calculateMPcost(skillUser, skillInfo);
+  const SDproperties = createSDproperties(skillInfo);
+  const SDmain = createSDmain(skillInfo);
+  const SDappliedEffect = createSDappliedEffect(skillInfo);
 
   const args = [`${displaySkillName}＋3【消費MP：${MPcost}】`];
   if (SDproperties) {
@@ -20027,6 +20027,17 @@ function displaySkillDiscription(skillUser, selectedSkill, displaySkillName) {
   }
   if (SDappliedEffect) {
     args.push(SDappliedEffect);
+  }
+
+  // 元skillのdiscriptionが存在している場合のみ 現状はみだしているものが多い
+  if ((SDmain || SDappliedEffect) && skillInfo.followingSkill && !["クアトロマダンテ"].includes(skillInfo.name)) {
+    const followingSkill = findSkillByName(skillInfo.followingSkill);
+    let Fmain = createSDmain(followingSkill);
+    let FappliedEffect = createSDappliedEffect(followingSkill);
+    const followingDiscription = Fmain || FappliedEffect ? `その後　${Fmain}${FappliedEffect}` : null;
+    if (followingDiscription) {
+      args.push(followingDiscription);
+    }
   }
   displayskillMessage(...args);
 }
