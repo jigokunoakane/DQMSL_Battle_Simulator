@@ -19686,6 +19686,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
     return;
   }
+  const targetElement = ["氷の王国", "神獣の氷縛"].includes(skillInfo.name) ? "ice" : skillInfo.element;
   for (const target of parties[skillUser.enemyTeamID]) {
     // 死亡時は削除のみ
     if (target.flags.isDead) {
@@ -19696,7 +19697,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       wrapper = document.getElementById(target.reversedIconElementId).parentNode;
     }
 
-    const resistanceValue = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo.type);
+    const resistanceValue = calculateResistance(skillUser, targetElement, target, fieldState.isDistorted, skillInfo.type);
     let resistanceText;
     let textColor;
     let iconType = null;
@@ -19705,7 +19706,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
-    } else if ((skillInfo.element === "none" || skillInfo.element === "notskill") && resistanceValue === 1) {
+    } else if ((targetElement === "none" || targetElement === "notskill") && resistanceValue === 1) {
       continue;
     } else {
       switch (resistanceValue) {
@@ -19772,7 +19773,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       io: "イオ",
       light: "デイン",
       dark: "ドルマ",
-    }[skillInfo.element];
+    }[targetElement];
 
     if (elementName && resistanceText !== "反射") {
       const elementTextElement = document.createElement("div");
