@@ -463,16 +463,20 @@ select {
 }
 
 #consoleScreenContainer {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 1.85rem;
+  margin-bottom: 1.85rem;
 }
 
 #consoleScreen {
-  position: relative; /* 文字を絶対配置するため */
-  transform: translate(0%, -50%);
+  position: absolute; /* 絶対配置 */
+  bottom: 0; /* 下部を固定 */
   width: 96%;
   height: 3.7rem;
+  min-height: 3.7rem;
   background-color: black;
   border: 2px solid white;
   border-radius: 10px;
@@ -486,7 +490,9 @@ select {
 }
 
 #message-line1,
-#message-line2 {
+#message-line2,
+#message-line3,
+#message-line4 {
   width: auto;
   margin: 0;
   font-size: 0.9rem; /* 文字サイズを調整 */

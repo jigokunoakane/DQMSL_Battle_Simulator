@@ -498,10 +498,10 @@ function selectCommand(selectedSkillNum) {
   const displaySkillName = selectedSkill.displayName || selectedSkillName;
   const selectedSkillTargetType = selectedSkill.targetType;
   const selectedSkillTargetTeam = selectedSkill.targetTeam;
-  const MPcost = calculateMPcost(skillUser, selectedSkill);
+
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (selectedSkillTargetType === "random" || selectedSkillTargetType === "single" || selectedSkillTargetType === "dead") {
-    displayMessage(`${displaySkillName}＋3【消費MP：${MPcost}】`);
+    displaySkillDiscription(skillUser, selectedSkill, displaySkillName);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
     if (selectedSkillTargetTeam === "ally") {
@@ -519,7 +519,7 @@ function selectCommand(selectedSkillNum) {
     }
     document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
   } else if (selectedSkillTargetType === "all" || selectedSkillTargetType === "field") {
-    displayMessage(`${displaySkillName}＋3【消費MP：${MPcost}】`);
+    displaySkillDiscription(skillUser, selectedSkill, displaySkillName);
     //targetがallのとき、all(yes,no)画面を起動
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -1496,7 +1496,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       const currentBuffPriority = getBuffPriority(currentBuff);
       const newBuffPriority = getBuffPriority(buffData);
-      // currentBuffの方が優先度が高い場合は付与失敗　同格以上ならば上書き
+      // currentBuffの方が優先度が高い場合は付与失敗 同格以上ならば上書き
       if (currentBuffPriority > newBuffPriority) {
         continue;
       }
@@ -1651,7 +1651,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       //重ねがけ可能バフの付与成功時処理
     } else if (breakBoosts.includes(buffName)) {
-      // 3-2. 重ねがけ可能なうち特殊
+      // 3-2. 重ねがけ可能なうち特殊 ブレイク深化
       if (currentBuff) {
         const newStrength = Math.min(currentBuff.strength + buffData.strength, buffData.maxStrength);
         buffTarget.buffs[buffName] = { ...currentBuff, strength: newStrength };
@@ -4301,6 +4301,10 @@ function calculateDamage(
   // world反撃ののろし
   if (skillUser.buffs.worldBuff) {
     damageModifier += skillUser.buffs.worldBuff.strength;
+  }
+  // dark闇の増幅
+  if (skillUser.buffs.darkBuff) {
+    damageModifier += skillUser.buffs.darkBuff.strength;
   }
   // dream
   if (skillUser.buffs.dreamBuff && executingSkill.element === "none") {
@@ -10465,6 +10469,7 @@ const skill = [
     ignorePowerCharge: true,
     ignoreBarrier: true,
     damageByHpPercent: true,
+    lowHpDamageMultiplier: true,
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}は闇に身をささげた！`);
     },
@@ -18138,7 +18143,16 @@ document.getElementById("finishBtn").addEventListener("click", async function ()
 function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine1 = document.getElementById("message-line1");
   const messageLine2 = document.getElementById("message-line2");
+  const messageLine3 = document.getElementById("message-line3");
+  const messageLine4 = document.getElementById("message-line4");
   const consoleScreen = document.getElementById("consoleScreen");
+  // 中身とサイズ・全体高さを初期化
+  messageLine3.textContent = "";
+  messageLine4.textContent = "";
+  messageLine1.style.fontSize = "0.9rem";
+  messageLine2.style.fontSize = "0.9rem";
+  consoleScreen.style.height = "3.7rem";
+
   // 空白を挿入 全角スペース
   if (line1Text) line1Text = line1Text.replace(/ /g, "　");
   if (line2Text) line2Text = line2Text.replace(/ /g, "　");
@@ -18154,6 +18168,26 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
     messageLine1.style.textAlign = "";
     messageLine1.style.fontSize = "0.9rem";
   }
+}
+
+function displayskillMessage(line1Text = "", line2Text = "", line3Text = "", line4Text = "") {
+  const messageLine1 = document.getElementById("message-line1");
+  const messageLine2 = document.getElementById("message-line2");
+  const messageLine3 = document.getElementById("message-line3");
+  const messageLine4 = document.getElementById("message-line4");
+  const consoleScreen = document.getElementById("consoleScreen");
+  // 小さく
+  messageLine1.style.fontSize = "0.88rem";
+  messageLine2.style.fontSize = "0.7rem";
+  messageLine3.style.fontSize = "0.7rem";
+  messageLine4.style.fontSize = "0.7rem";
+
+  consoleScreen.style.height = "auto";
+
+  messageLine1.textContent = line1Text;
+  messageLine2.textContent = line2Text;
+  messageLine3.textContent = line3Text;
+  messageLine4.textContent = line4Text;
 }
 
 function addMirrorEffect(targetImageId) {
@@ -18755,7 +18789,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       message: "あらゆる状態異常が効かなくなった！",
     },
     mindBarrier: {
-      start: "行動停止系の効果が  効かなくなった！",
+      start: "行動停止系の効果が 効かなくなった！",
       message: "",
     },
     sleepBarrier: {
@@ -19973,4 +20007,378 @@ function startBattleWithPresetCommands() {
   }
   currentTeamIndex = 1;
   handleYesButtonClick();
+}
+
+function displaySkillDiscription(skillUser, selectedSkill, displaySkillName) {
+  const MPcost = calculateMPcost(skillUser, selectedSkill);
+  const SDproperties = createSDproperties(selectedSkill);
+  const SDmain = createSDmain(selectedSkill);
+  const SDappliedEffect = createSDappliedEffect(selectedSkill);
+
+  const args = [`${displaySkillName}＋3【消費MP：${MPcost}】`];
+  if (SDproperties) {
+    args.push(SDproperties);
+  }
+  if (SDmain) {
+    args.push(SDmain);
+  }
+  if (SDappliedEffect) {
+    args.push(SDappliedEffect);
+  }
+  displayskillMessage(...args);
+}
+
+// プロパティ生成
+function createSDproperties(skillInfo) {
+  const ignoreProperties = [];
+  let ignorePropertiesText = "";
+  if (["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "業炎の息吹"].includes(skillInfo.name)) {
+    ignoreProperties.push("領界変化");
+  }
+  if (skillInfo.isOneTimeUse) {
+    ignoreProperties.push("戦闘中１回");
+  }
+  if (skillInfo.order === "preemptive") {
+    ignoreProperties.push("先制");
+  }
+  if (skillInfo.order === "anchor") {
+    ignoreProperties.push("アンカー");
+  }
+  if (skillInfo.ignoreEvasion || (skillInfo.howToCalculate === "fix" && skillInfo.name !== "ステテコダンス" && (skillInfo.type === "martial" || skillInfo.type === "dance"))) {
+    ignoreProperties.push("みかわし不可");
+  }
+  if (skillInfo.ignoreDazzle || (skillInfo.howToCalculate === "fix" && skillInfo.name !== "キャンセルステップ" && (skillInfo.type === "martial" || skillInfo.type === "dance"))) {
+    ignoreProperties.push("マヌーサ無効");
+  }
+  if (skillInfo.ignoreSubstitute) {
+    ignoreProperties.push("みがわり無視");
+  }
+  if (skillInfo.ignoreReflection) {
+    ignoreProperties.push("反射無視");
+  }
+  if (skillInfo.ignoreProtection) {
+    ignoreProperties.push("軽減無視");
+  }
+  if (skillInfo.ignoreGuard) {
+    ignoreProperties.push("ぼうぎょ無視");
+  }
+  if (skillInfo.appliedEffect && skillInfo.appliedEffect.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
+    const maxDepth = skillInfo.appliedEffect.maso.maxDepth;
+    ignoreProperties.push(`深度${maxDepth}まで`);
+  }
+  // 動作確認
+  if (skillInfo.masoMultiplier && skillInfo.masoMultiplier[4] >= 5) {
+    ignoreProperties.push("深度特効強");
+  }
+  if (skillInfo.penetrateStoned) {
+    ignoreProperties.push("アストロン貫通");
+  }
+  if (skillInfo.name === "イオラの嵐") {
+    ignoreProperties.push("鬼眼レベル2まで");
+  }
+
+  if (ignoreProperties.length > 0) {
+    for (const property of ignoreProperties) {
+      ignorePropertiesText += `【${property}】`;
+    }
+  }
+  return ignorePropertiesText;
+}
+
+// 主要部分生成
+function createSDmain(skillInfo) {
+  let skillDiscriptionText = "";
+  if (skillInfo.howToCalculate !== "none") {
+    if (skillInfo.MPDamageRatio) {
+      const MPcostText = skillInfo.MPcostRatio === 1 ? "全て" : `${skillInfo.MPcostRatio * 100}%`;
+      skillDiscriptionText += `MPを${MPcostText}消費し　`;
+    }
+    if (skillInfo.targetTeam === "enemy") {
+      skillDiscriptionText += "敵";
+    } else if (skillInfo.targetTeam === "ally") {
+      skillDiscriptionText += "味方";
+    }
+    if (skillInfo.targetType === "single") {
+      skillDiscriptionText += "1体に";
+    } else if (skillInfo.targetType === "all") {
+      skillDiscriptionText += "全体に";
+    } else if (skillInfo.targetType === "random") {
+      skillDiscriptionText = "ランダムに"; //上書き
+    }
+    if (skillInfo.hitNum) {
+      skillDiscriptionText += `${skillInfo.hitNum}回　`;
+    } else {
+      skillDiscriptionText += "　";
+    }
+
+    if (skillInfo.ratio) {
+      if (skillInfo.howToCalculate === "atk") {
+        skillDiscriptionText += "攻撃力依存で　";
+      } else if (skillInfo.howToCalculate === "def") {
+        skillDiscriptionText += "防御力依存で　";
+      } else if (skillInfo.howToCalculate === "spd") {
+        skillDiscriptionText += "素早さ依存で　";
+      } else if (skillInfo.howToCalculate === "int") {
+        skillDiscriptionText += "賢さ依存で　";
+      }
+    } else if (skillInfo.howToCalculate === "fix" && skillInfo.damageByLevel) {
+      skillDiscriptionText += "レベル依存で　";
+    } else if (skillInfo.howToCalculate === "int" && skillInfo.type !== "spell") {
+      skillDiscriptionText += "呪文計算で　";
+    } else if (skillInfo.MPDamageRatio) {
+      skillDiscriptionText += "消費量に応じて　";
+    }
+
+    const elementName = {
+      fire: "メラ系の",
+      ice: "ヒャド系の",
+      thunder: "ギラ系の",
+      wind: "バギ系の",
+      io: "イオ系の",
+      light: "デイン系の",
+      dark: "ドルマ系の",
+      none: "無属性の",
+    }[skillInfo.element];
+    if (elementName) {
+      skillDiscriptionText += `${elementName}`;
+    }
+    const skillTypeName = gerSkillTypeName(skillInfo.type);
+    if (skillTypeName) {
+      skillDiscriptionText += `${skillTypeName}攻撃　`;
+    }
+  }
+  return skillDiscriptionText;
+}
+
+// 追加効果生成
+function createSDappliedEffect(skillInfo) {
+  let skillDiscriptionText = "";
+  let appliedEffectText = "";
+  let isStackableBuffExisting;
+
+  // 追加効果用textを用意
+  if (skillInfo.appliedEffect === "disruptiveWave") {
+    appliedEffectText = "状態変化を解除　";
+    isStackableBuffExisting = true; // "の"にする
+  } else if (skillInfo.appliedEffect === "divineWave") {
+    appliedEffectText = "状態変化を解除(上位効果)　";
+    isStackableBuffExisting = true; // "の"にする
+  } else if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string") {
+    const result = getBuffName(skillInfo.appliedEffect);
+    appliedEffectText = result[0]; // 空白は既に含まれている
+    isStackableBuffExisting = result[1];
+  }
+
+  // ダメージあり
+  if (skillInfo.howToCalculate !== "none") {
+    if (skillInfo.weakness18) {
+      skillDiscriptionText += "弱点倍率が1.8倍　";
+    }
+
+    // 追加効果
+    if (skillInfo.name === "失望の光舞") {
+      skillDiscriptionText += "命中時　状態変化・くじけぬ心解除　";
+    } else if (skillInfo.name === "絶望の天舞") {
+      skillDiscriptionText += "命中時　状態変化解除(上位効果)・くじけぬ心解除　";
+    } else if (skillInfo.name === "天の裁き") {
+      skillDiscriptionText += "命中時　確率でくじけぬ心を解除する　";
+    } else if (skillInfo.name === "ほとばしる暗闇") {
+      skillDiscriptionText += "命中時　状態変化・ため状態を解除する　";
+    } else if (appliedEffectText) {
+      skillDiscriptionText += `命中時　${appliedEffectText}`;
+    } else if (skillInfo.act) {
+      const expectedAct = "function(skillUser,skillTarget){deleteUnbreakable(skillTarget);}"; //ぶちのめす 真カラミは同時にappliedありだが省略
+      const actString = skillInfo.act.toString().replace(/\s/g, "");
+      if (actString === expectedAct) {
+        skillDiscriptionText += "命中時　くじけぬ心を解除する　";
+      }
+    }
+
+    if (skillInfo.RaceBane) {
+      skillDiscriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
+    }
+    // HP割合依存
+    if (skillInfo.damageByHpPercent) {
+      skillDiscriptionText += "自分の残りHPが多いほど　威力大　";
+    }
+    // HP割合反転依存
+    if (skillInfo.lowHpDamageMultiplier) {
+      skillDiscriptionText += "自分の残りHPが少ないほど　威力大　";
+    }
+  } else {
+    // ダメージなしの場合
+    if (appliedEffectText) {
+      // 助詞を選択 stackable存在時またはactがいてはの場合、"の"
+      const josi = isStackableBuffExisting ? "の　" : "を　";
+      // 対象を追加
+      if (skillInfo.targetTeam === "enemy") {
+        skillDiscriptionText += "敵";
+      } else if (skillInfo.targetTeam === "ally") {
+        skillDiscriptionText += "味方";
+      }
+      if (skillInfo.targetType === "single") {
+        skillDiscriptionText += `1体${josi}`;
+      } else if (skillInfo.targetType === "all") {
+        skillDiscriptionText += `全体${josi}`;
+      }
+
+      // ランダムは完全上書き
+      if (skillInfo.targetType === "random") {
+        skillDiscriptionText = "ランダムに　";
+      }
+      // 追加効果textを追加 (命中時表記はしない)
+      skillDiscriptionText += `${appliedEffectText}`;
+    }
+  }
+
+  // ダメージ有無にかかわらず適用
+  if (skillInfo.ignoreTypeEvasion) {
+    const skillTypeName = gerSkillTypeName(skillInfo.type);
+    if (skillTypeName) {
+      skillDiscriptionText += `${skillTypeName}無効状態を貫通する　`;
+    }
+  }
+  return skillDiscriptionText;
+}
+
+function gerSkillTypeName(skillType) {
+  return {
+    spell: "呪文",
+    slash: "斬撃",
+    martial: "体技",
+    breath: "息",
+    ritual: "儀式",
+    dance: "踊り",
+  }[skillType];
+}
+
+function getBuffName(appliedEffect) {
+  const stackableBuffNameList = {
+    baiki: "攻撃力",
+    defUp: "防御力",
+    spdUp: "素早さ",
+    intUp: "賢さ",
+    spellBarrier: "呪文防御",
+    slashBarrier: "斬撃防御",
+    martialBarrier: "体技防御",
+    breathBarrier: "息防御",
+    fireResistance: "メラ耐性",
+    iceResistance: "ヒャド耐性",
+    thunderResistance: "ギラ耐性",
+    windResistance: "バギ耐性",
+    ioResistance: "イオ耐性",
+    lightResistance: "デイン耐性",
+    darkResistance: "ドルマ耐性",
+    zakiResistance: "ザキ耐性",
+    kiganLevel: "鬼眼レベル",
+    maso: "マソ深度",
+  };
+
+  const abnormalityBuffNameList = {
+    //revive: "自動復活状態",
+    //powerChargeなどとpowerWeakenなど
+    //damageLimit: `被ダメージ上限値${buffData.strength}`
+    //statusLock: "状態変化を封じる",
+    //反射
+    //familybuff
+    //dodgeBuff protection
+    //バリア系
+    //crimsonMist
+
+    spellSeal: "呪文封じ",
+    breathSeal: "息封じ",
+    slashSeal: "斬撃封じ",
+    martialSeal: "体技封じ",
+    fear: "行動停止",
+    tempted: "みりょう",
+    sealed: "封印",
+    asleep: "眠り",
+    confused: "混乱",
+    paralyzed: "マヒ",
+    stoned: "石化",
+    dazzle: "マヌーサ",
+    poisoned: "猛毒",
+    dotDamage: "継続ダメージ",
+    healBlock: "回復封じ",
+    reviveBlock: "蘇生封じ",
+    zombifyBlock: "執念封じ",
+    countDown: "カウントダウン",
+    murakumo: "息被ダメージ上昇",
+
+    /*
+    spellEvasion: "呪文無効状態",
+    slashEvasion: "斬撃無効状態",
+    martialEvasion: "体技無効状態",
+    breathEvasion: "息無効状態",
+    ritualEvasion: "儀式無効状態",
+    danceEvasion: "踊り無効状態",
+    spellReflection: "呪文反射状態",
+    slashReflection: "斬撃反射状態",
+    martialReflection: "体技反射状態",
+    breathReflection: "息反射状態",
+    ritualReflection: "儀式反射状態",
+    danceReflection: "踊り反射状態",
+    */
+  };
+
+  let stackableBuffsToApply = [];
+  let stackableBuffsStrength = 1;
+  let stackabledeBuffsToApply = [];
+  let stackabledeBuffsStrength = 1;
+  let abnormalityBuffsToApply = [];
+  let discriptionText = "";
+
+  for (const buffName in appliedEffect) {
+    const buffData = appliedEffect[buffName];
+
+    if (stackableBuffNameList[buffName]) {
+      if (buffData.strength > 0 || buffName === "maso") {
+        stackableBuffsToApply.push(`${stackableBuffNameList[buffName]}`);
+        stackableBuffsStrength = buffData.strength || 1;
+      } else {
+        stackabledeBuffsToApply.push(`${stackableBuffNameList[buffName]}`);
+        stackabledeBuffsStrength = buffData.strength * -1 || 1;
+      }
+    } else if (abnormalityBuffNameList[buffName]) {
+      let text = abnormalityBuffNameList[buffName];
+      // 調整
+      if (buffName === "poisoned" && buffData.isLight) {
+        text = "毒";
+      }
+      if (["poisoned", "healBlock", "reviveBlock", "countDown"].includes(buffName) && buffData.unDispellableByRadiantWave) {
+        text = `解除不可の${text}`;
+      }
+      abnormalityBuffsToApply.push(`${text}`);
+    }
+  }
+
+  let shouldFixLastWord = false;
+  let isStackableBuffExisting = false;
+  if (stackableBuffsToApply.length > 0) {
+    shouldFixLastWord = true;
+    isStackableBuffExisting = true;
+    let text = `${stackableBuffsToApply.join("・")}を${stackableBuffsStrength}段階上げ　`;
+    // マソのみ重複がないのでここで完全に置換
+    if (stackableBuffsToApply[0] === "マソ深度" && appliedEffect.maso.strength) {
+      isStackableBuffExisting = false;
+      text = `マソ深度${appliedEffect.maso.strength}にす　`;
+    }
+    discriptionText += `${text}`;
+  }
+  if (stackabledeBuffsToApply.length > 0) {
+    shouldFixLastWord = true;
+    isStackableBuffExisting = true;
+    let text = `${stackabledeBuffsToApply.join("・")}を${stackabledeBuffsStrength}段階下げ　`;
+    discriptionText += `${text}`;
+  }
+  if (abnormalityBuffsToApply.length > 0) {
+    shouldFixLastWord = false; // 置換不要
+    discriptionText += `${abnormalityBuffsToApply.join("・")}状態にする　`;
+  }
+  // 必要ならば最後の文字を置換
+  if (shouldFixLastWord) {
+    discriptionText = discriptionText.slice(0, -1) + "る　";
+  }
+
+  return [discriptionText, isStackableBuffExisting];
 }
