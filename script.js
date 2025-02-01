@@ -20162,7 +20162,7 @@ function createSDappliedEffect(skillInfo) {
     appliedEffectText = "状態変化を解除　";
     isStackableBuffExisting = true; // "の"にする
   } else if (skillInfo.appliedEffect === "divineWave") {
-    appliedEffectText = "状態変化を解除(上位効果)　";
+    appliedEffectText = "状態変化を解除（上位効果）　";
     isStackableBuffExisting = true; // "の"にする
   } else if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string") {
     const result = getBuffName(skillInfo.appliedEffect);
@@ -20180,7 +20180,7 @@ function createSDappliedEffect(skillInfo) {
     if (skillInfo.name === "失望の光舞") {
       skillDiscriptionText += "命中時　状態変化・くじけぬ心解除　";
     } else if (skillInfo.name === "絶望の天舞") {
-      skillDiscriptionText += "命中時　状態変化解除(上位効果)・くじけぬ心解除　";
+      skillDiscriptionText += "命中時　状態変化解除（上位効果）・くじけぬ心解除　";
     } else if (skillInfo.name === "天の裁き") {
       skillDiscriptionText += "命中時　確率でくじけぬ心を解除する　";
     } else if (skillInfo.name === "ほとばしる暗闇" || skillInfo.name === "すさまじいオーラ") {
@@ -20283,7 +20283,7 @@ function getBuffName(appliedEffect) {
     //statusLock: "状態変化を封じる",
     //反射
     //familybuff
-    //dodgeBuff protection
+    //dodgeBuff
 
     spellSeal: "呪文封じ",
     breathSeal: "息封じ",
@@ -20353,8 +20353,13 @@ function getBuffName(appliedEffect) {
       if (buffData.probability || (buffName === "maso" && !buffData.strength)) {
         stackableProbabilityExists = true;
       }
-    } else if (abnormalityBuffNameList[buffName]) {
-      let text = abnormalityBuffNameList[buffName];
+    } else if (abnormalityBuffNameList[buffName] || ["protection"].includes(buffName)) {
+      let text;
+      if (buffName === "protection") {
+        text = `ダメージ${buffData.strength * 100}%軽減`;
+      } else {
+        text = abnormalityBuffNameList[buffName];
+      }
       // 調整
       if (buffName === "poisoned" && buffData.isLight) {
         text = "毒";
