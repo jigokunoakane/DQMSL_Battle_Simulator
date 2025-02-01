@@ -346,6 +346,13 @@ select {
   width: 2.5rem;
 }
 
+#changeDefualtAiType {
+  height: 1.3rem;
+  padding: 0rem 0.4rem;
+  margin-right: 0rem;
+  width: auto;
+}
+
 #skillFlexContainer {
   display: flex; /*横並び*/
   flex-flow: column;

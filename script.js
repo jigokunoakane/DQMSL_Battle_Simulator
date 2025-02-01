@@ -5093,6 +5093,8 @@ function adjustStatusAndSkillDisplay() {
   document.getElementById("selectSeedInt").value = selectingParty[currentTab].seed.int;
   displayGearIncrement();
   changeSeedSelect();
+  // AI表示変更
+  document.getElementById("changeDefualtAiType").value = selectingParty[currentTab].defaultAiType || "ガンガンいこうぜ";
 }
 
 function addSkillOptions() {
@@ -5513,6 +5515,11 @@ function displayGearIncrement() {
   updateStatus("int");
 }
 
+// AI変更
+document.getElementById("changeDefualtAiType").addEventListener("change", function (event) {
+  selectingParty[currentTab].defaultAiType = event.target.value;
+});
+
 //タブ処理
 
 //tab選択時の詳細や表示中の切り替えだけ
@@ -5542,7 +5549,7 @@ function switchTab(tabNumber) {
     currentTab = tabNumber;
     // タブ自体の詳細/表示中を切り替え
     addTabClass(tabNumber);
-    //各種表示reset
+    // 各種表示reset
     // skill表示空に
     document.getElementById("skill0").value = "";
     document.getElementById("skill1").value = "";
@@ -5552,6 +5559,8 @@ function switchTab(tabNumber) {
       checkbox.disabled = true;
       checkbox.checked = false;
     });
+    // AIreset
+    document.getElementById("changeDefualtAiType").value = "ガンガンいこうぜ";
     // 種表示reset
     document.getElementById("selectSeedAtk").value = 0;
     document.getElementById("selectSeedDef").value = 0;
@@ -5583,9 +5592,9 @@ function switchTab(tabNumber) {
 }
 switchTab(0);
 
-// 特技選択無効化も相乗り
+// 特技選択無効化・AI選択無効化も相乗り
 function disableSeedSelect(boolean) {
-  document.querySelectorAll(".selectSeed, select.changeSkill").forEach((element) => {
+  document.querySelectorAll(".selectSeed, select.changeSkill, #changeDefualtAiType").forEach((element) => {
     element.disabled = boolean;
   });
 }
@@ -7215,6 +7224,7 @@ const monsters = [
     status: { HP: 591, MP: 251, atk: 226, def: 477, spd: 353, int: 304 },
     initialSkill: ["やいばのまもり", "みがわり", "防刃の守り", "タップダンス"],
     defaultGear: "familyNail",
+    defaultAiType: "いのちだいじに",
     attribute: {
       1: {
         slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
@@ -7535,6 +7545,7 @@ const monsters = [
     status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
     initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "スパークふんしゃ"],
     defaultGear: "silverFeather",
+    defaultAiType: "いのちだいじに",
     attribute: {
       permanentBuffs: {
         anchorAction: { probability: 0.2 },
