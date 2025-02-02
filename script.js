@@ -38,6 +38,8 @@ let buffDisplayTimers = {};
 // アクティブなsleep関数のresolve関数を格納する配列
 let sleepResolvers = [];
 let isSkipMode = false;
+// sleep関数にかける倍率
+let waitMultiplier = 1;
 
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
@@ -18065,12 +18067,14 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
 //////////
 
 // 指定 milliseconds だけ処理を一時停止する関数
+// global: waitMultiplierを使用
 function sleep(milliseconds) {
   if (fieldState.isBattleOver || isSkipMode) {
     return Promise.resolve(); // 戦闘終了時とskipSleep設定時は即時解決
   }
+  const adjustedMilliseconds = milliseconds / waitMultiplier; // グローバル変数で調整
   return new Promise((resolve) => {
-    const timeoutId = setTimeout(resolve, milliseconds);
+    const timeoutId = setTimeout(resolve, adjustedMilliseconds);
     sleepResolvers.push({ resolve, timeoutId }); // resolve関数とtimeoutIdを保持して外部からclear可能に
   });
 }
@@ -20443,3 +20447,8 @@ function getBuffName(appliedEffect) {
 function isWaveSkill(skillInfo) {
   return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
 }
+
+// AI変更
+document.getElementById("spdSetting").addEventListener("change", function (event) {
+  waitMultiplier = Number(event.target.value);
+});
