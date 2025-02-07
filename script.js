@@ -270,10 +270,10 @@ function updateBattleIcons(monster, reverseDisplay = false) {
     deleteIconAndBuffDisplay(enemyTargetElementId);
   }
 
-  targetElement.style.display = "flex";
+  targetElement.style.visibility = "visible";
   //上側表示かつ死亡は非表示、下かつ死亡は暗転、亡者は全て中間
   if (monster.teamID === upperTeamId && monster.flags?.isDead) {
-    targetElement.style.display = "none";
+    targetElement.style.visibility = "hidden";
   } else {
     if (monster.flags?.isZombie) {
       targetElement.style.filter = "brightness(80%)"; //todo:不要か？
@@ -294,7 +294,7 @@ function deleteIconAndBuffDisplay(enemyTargetElementId) {
       buffContainer.remove();
     });
   document.getElementById(enemyTargetElementId).src = "";
-  document.getElementById(enemyTargetElementId).style.display = "none";
+  document.getElementById(enemyTargetElementId).style.visibility = "hidden";
 }
 
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
