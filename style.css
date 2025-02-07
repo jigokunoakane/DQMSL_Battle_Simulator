@@ -730,6 +730,7 @@ select {
 }
 
 #debugBtnContainer {
+  text-align: right; /*btnを右揃え*/
   position: absolute;
   right: 0;
   margin-right: 0.2rem;

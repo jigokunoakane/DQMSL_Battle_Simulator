@@ -249,7 +249,7 @@ async function prepareBattle() {
   //field管理用変数の導入はglobalで
   // プリセット存在時のみプリセットを用いた戦闘開始を可能に
   if (presetCommands.length > 0) {
-    document.getElementById("startBattleWithPresetCommandBtn").style.display = "flex";
+    document.getElementById("startBattleWithPresetCommandBtn").style.display = "block";
   } else {
     document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   }
