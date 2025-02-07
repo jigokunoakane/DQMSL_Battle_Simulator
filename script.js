@@ -2438,7 +2438,7 @@ async function processMonsterAction(skillUser) {
       // allの場合 killableCountとtotalDamageは累計 targetは未指定
       if (skillInfo.targetType === "all") {
         for (const target of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo.type);
+          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo);
           // ひとつでも吸収反射ならばbreak後に次skillにcontinue
           if (resistance < 0 || isSkillReflected(skillInfo, target)) {
             skipSkill = true;
@@ -2455,7 +2455,7 @@ async function processMonsterAction(skillUser) {
         // single randomの場合 killableCountとtotalDamageは個別 target指定
         let bestTargetDamage = 0;
         for (const potentialTarget of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted, skillInfo.type);
+          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted, skillInfo);
           if (resistance < 0 || isSkillReflected(skillInfo, potentialTarget)) {
             // randomの場合、ひとつでも吸収反射ならばbreak後に次skillにcontinue
             if (skillInfo.targetType === "random") {
@@ -3669,7 +3669,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   //耐性処理
-  let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted, executingSkill.type);
+  let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted, executingSkill);
 
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
@@ -4533,15 +4533,19 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
   return "hit";
 }
 
-//damageCalc、耐性表示、耐性ダウン付与、状態異常耐性取得で実行。耐性ダウン確率判定ではskillUserをnull指定
-function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false, executingSkillType = null) {
+// 耐性ダウン 氷の王国・フロスペ・氷縛等属性処理 通常状態異常耐性判定 通常属性耐性判定(AI2種) ザキ 実際の通常属性耐性判定 耐性表示で実行 　耐性ダウン確率判定などではskillUserをnull指定
+// 通常属性耐性判定とAIシミュ、耐性表示(うち通常属性耐性判定)のみ、skillInfoを指定
+function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false, skillInfo = null) {
   const element = executingSkillElement;
+  const executingSkillType = skillInfo ? skillInfo.type : null;
+  const isDamageExisting = skillInfo && skillInfo.howToCalculate !== "none" ? true : false;
   const baseResistance = skillTarget.resistance[element] ?? 1;
   const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; // 状態異常やザキと区別
   let isHazamaReduction = false;
-  if (skillTarget.gear && executingSkillType && (element === "none" || AllElements.includes(element))) {
+  // skillInfo存在時(かつ念の為damage存在時)のみ狭間装備を反映
+  if (executingSkillType && isDamageExisting && skillTarget.gear && (element === "none" || AllElements.includes(element))) {
     const gearName = skillTarget.gear.name;
     if (
       (gearName === "狭間の闇の大剣" && executingSkillType === "slash") ||
@@ -4558,17 +4562,21 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
     return 1;
   }
   if (element === "none") {
-    let noneResistance = 1; //初期値
-    if (skillTarget.name === "ダグジャガルマ") {
-      if (distorted) {
-        noneResistance = 1.5; //歪曲
-      } else {
-        noneResistance = -1; //非歪曲
+    let noneResistance = 1; // 初期値
+
+    // 念の為skillInfo存在時かつdamage存在時のみ無属性耐性変化を反映
+    if (isDamageExisting) {
+      if (skillTarget.name === "ダグジャガルマ") {
+        if (distorted) {
+          noneResistance = 1.5; //歪曲
+        } else {
+          noneResistance = -1; //非歪曲
+        }
+      } else if (skillTarget.buffs.nonElementalResistance) {
+        noneResistance = 0;
+      } else if (isHazamaReduction) {
+        noneResistance = 0.75;
       }
-    } else if (skillTarget.buffs.nonElementalResistance) {
-      noneResistance = 0;
-    } else if (isHazamaReduction) {
-      noneResistance = 0.75;
     }
     return noneResistance;
   }
@@ -19696,14 +19704,16 @@ function clearResistanceDisplay(targetWrapper) {
 
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
-  // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替え
+  // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替えて、適切な属性や反射表示を行う
   const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇"];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
     return;
   }
+  // 耐性計算対象となる属性を取得 例外は以下
   const targetElement = ["氷の王国", "神獣の氷縛"].includes(skillInfo.name) ? "ice" : skillInfo.element;
+
   for (const target of parties[skillUser.enemyTeamID]) {
     // 死亡時は削除のみ
     if (target.flags.isDead) {
@@ -19714,7 +19724,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       wrapper = document.getElementById(target.reversedIconElementId).parentNode;
     }
 
-    const resistanceValue = calculateResistance(skillUser, targetElement, target, fieldState.isDistorted, skillInfo.type);
+    const resistanceValue = calculateResistance(skillUser, targetElement, target, fieldState.isDistorted, skillInfo);
     let resistanceText;
     let textColor;
     let iconType = null;
@@ -19723,7 +19733,11 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
-    } else if ((targetElement === "none" || targetElement === "notskill") && resistanceValue === 1) {
+    } else if (targetElement === "notskill" || (targetElement === "none" && resistanceValue === 1)) {
+      // 反射以外で、通常攻撃または無属性かつ耐性普通の場合、非表示
+      continue;
+    } else if (targetElement === "none" && skillInfo.howToCalculate === "none") {
+      // ダメージなし特技で無属性は非表示 氷の王国, 神獣の氷縛などは例外
       continue;
     } else {
       switch (resistanceValue) {
