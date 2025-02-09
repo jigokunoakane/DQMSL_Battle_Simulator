@@ -5827,7 +5827,8 @@ const monsters = [
     race: ["???"],
     weight: 30,
     status: { HP: 810, MP: 334, atk: 661, def: 473, spd: 470, int: 325 },
-    initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"], // ミナデイン
+    initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
+    anotherSkills: ["ミナデイン"],
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
@@ -11873,6 +11874,32 @@ const skill = [
     ignoreProtection: true,
     lowHpDamageMultiplier: true,
     appliedEffect: { confused: { probability: 0.5313 } },
+  },
+  {
+    name: "ミナデイン",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 50,
+    act: function (skillUser, skillTarget) {
+      if (skillTarget.monsterId !== skillUser.monsterId) {
+        applyDamage(skillTarget, 50, 1, true, false, false, false, null);
+      }
+    },
+    followingSkill: "ミナデイン後半",
+  },
+  {
+    name: "ミナデイン後半",
+    type: "spell",
+    howToCalculate: "fix",
+    damage: 338,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreProtection: true,
   },
   {
     name: "無情な連撃",
