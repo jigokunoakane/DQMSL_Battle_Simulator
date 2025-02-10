@@ -2872,6 +2872,8 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       dotDamageValue = skillUser.buffs.damageLimit.strength;
     }
     console.log(`${skillUser.name}は属性断罪の刻印で${dotDamageValue}のダメージを受けた！`);
+    displayMessage(`${skillUser.name}は 刻印の効果で`, "ダメージをうけた！");
+    await sleep(100);
     applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
@@ -18829,6 +18831,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     maso: {
       start: `${buffTarget.name}は`,
       message: "マ素深度があがった！",
+    },
+    elementalRetributionMark: {
+      start: `${buffTarget.name}は`,
+      message: "刻印状態になった！",
     },
     demonKingBarrier: {
       start: `${buffTarget.name}は`,
