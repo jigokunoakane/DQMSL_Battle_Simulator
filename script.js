@@ -2857,60 +2857,45 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await executeAfterActionAbilities(skillUser);
   }
 
-  // 刻印・毒・継続で死亡時に、recentlyKilledを回収して死亡時発動を実行するcheckRecentlyKilledFlag
+  // 刻印・毒・継続の共通処理
+  async function applyDotDamage(skillUser, damageRatio, message, isRetribution = false) {
+    if (skillUser.commandInput === "skipThisTurn") return;
+    await sleep(400);
+    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * damageRatio);
+    // damage上限
+    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
+      dotDamageValue = skillUser.buffs.damageLimit.strength;
+    }
+    const firstMessage = isRetribution ? `${skillUser.name}は 刻印の効果で` : `${skillUser.name}は`;
+    displayMessage(firstMessage, `${message}`);
+    col(`${firstMessage}${message}${dotDamageValue}ダメージ`);
+    await sleep(200);
+    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); // skipDeathAbility
+
+    // recentlyKilledを回収して死亡時発動を実行
+    await checkRecentlyKilledFlagForPoison(skillUser);
+  }
+
   // 7-5. 属性断罪の刻印処理
   if (
     skillUser.commandInput !== "skipThisTurn" &&
     skillUser.buffs.elementalRetributionMark &&
     executedSkills &&
-    executedSkills.some((skill) => skill && skill.element !== "none" && skill.element !== "notskill")
+    executedSkills.some((skill) => skill.element !== "none" && skill.type !== "notskill")
   ) {
-    await sleep(400);
-    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * 0.7);
-    //damage上限
-    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
-      dotDamageValue = skillUser.buffs.damageLimit.strength;
-    }
-    console.log(`${skillUser.name}は属性断罪の刻印で${dotDamageValue}のダメージを受けた！`);
-    displayMessage(`${skillUser.name}は 刻印の効果で`, "ダメージをうけた！");
-    await sleep(100);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
-    await checkRecentlyKilledFlagForPoison(skillUser);
+    await applyDotDamage(skillUser, 0.7, "ダメージをうけた！", true);
   }
 
-  // 7-6. 毒・継続ダメージ処理
+  // 7-6. 毒処理
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
-    await sleep(400);
-    let baseRatio = 0.125;
-    let poisonMessage = "もうどくにおかされている！";
-    if (skillUser.buffs.poisoned.isLight) {
-      baseRatio = 0.0625;
-      poisonMessage = "どくにおかされている！";
-    }
+    const baseRatio = skillUser.buffs.poisoned.isLight ? 0.0625 : 0.125;
+    const poisonMessage = skillUser.buffs.poisoned.isLight ? "どくにおかされている！" : "もうどくにおかされている！";
     const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * baseRatio * poisonDepth);
-    //damage上限
-    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
-      dotDamageValue = skillUser.buffs.damageLimit.strength;
-    }
-    console.log(`${skillUser.name}は毒で${dotDamageValue}のダメージを受けた！`);
-    displayMessage(`${skillUser.name}は`, `${poisonMessage}`);
-    await sleep(200);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
-    await checkRecentlyKilledFlagForPoison(skillUser);
+    await applyDotDamage(skillUser, baseRatio * poisonDepth, poisonMessage);
   }
+  // 7-7 継続ダメージ
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
-    await sleep(400);
-    let dotDamageValue = Math.floor(skillUser.defaultStatus.HP * skillUser.buffs.dotDamage.strength);
-    //damage上限
-    if (skillUser.buffs.damageLimit && dotDamageValue > skillUser.buffs.damageLimit.strength) {
-      dotDamageValue = skillUser.buffs.damageLimit.strength;
-    }
-    console.log(`${skillUser.name}は継続ダメージで${dotDamageValue}のダメージを受けた！`);
-    displayMessage(`${skillUser.name}は`, "HPダメージを 受けている！");
-    await sleep(200);
-    applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); //skipDeathAbility
-    await checkRecentlyKilledFlagForPoison(skillUser);
+    await applyDotDamage(skillUser, skillUser.buffs.dotDamage.strength, "HPダメージを受けている！");
   }
 
   // 7-7. 特殊追加skillの実行
