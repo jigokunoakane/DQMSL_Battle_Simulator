@@ -2737,17 +2737,28 @@ async function processMonsterAction(skillUser) {
 
 // 行動後処理  正常実行後だけでなく 状態異常 特技封じ MP不足等executingSkill未実行でnullの時にerrorにならないよう注意 特にunavailableIf
 async function postActionProcess(skillUser, executingSkill = null, executedSkills = null, damagedMonsters) {
-  // 各処理の前にskipThisTurn所持確認を行う
+  // 7-1. 死亡確認 各処理の前にskipThisTurn所持確認を行う todo: 超伝説の自動MP回復は実行する可能性あり
   if (skillUser.commandInput === "skipThisTurn") {
     return;
   }
-  // 7-2. 戦闘終了確認 毒や継続ダメージ処理をせずに即時return executeによってskip状態になった場合でもpostActionは実行
-  if (isBattleOver()) {
-    return;
+
+  // 7-2. ナドラガ領界判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグを立てておく 死亡判定は後で
+  let domainCheck = false;
+  if (skillUser.name === "邪竜神ナドラガ" && executingSkill) {
+    const targetDomain = {
+      翠嵐の息吹: "thunderDomain",
+      竜の波濤: "iceDomain",
+      冥闇の息吹: "darkDomain",
+      業炎の息吹: "fireDomain",
+    }[executingSkill.name];
+    if (skillUser.buffs[targetDomain]) {
+      domainCheck = true;
+    }
   }
 
-  // 7-3. AI追撃処理
-  if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && skillUser.AINormalAttack && !hasAbnormality(skillUser)) {
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+  // 7-3. AI追撃処理 処理全体の実行前に初回skip確認
+  if (skillUser.AINormalAttack && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && !hasAbnormality(skillUser)) {
     const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       let attackTimes =
@@ -2770,29 +2781,62 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         await sleep(100);
         // 追撃の種類を決定
         let NormalAttackName = getNormalAttackName(skillUser);
-        // 通常攻撃を実行
+        // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
         await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser), false, damagedMonsters, true, false, null);
-        // 戦闘終了check
+        // skill実行完了のたびに確認
         if (isBattleOver()) {
-          return;
+          return; // 毒や継続を実行せず即時return
         } else if (skipThisMonsterAction(skillUser)) {
-          break;
+          break; // skip状態の場合は毒や継続を続けて実行
         }
       }
     }
   }
 
-  // 7-. ナドラガ領界判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグ 死亡判定は後で
-  let domainCheck = false;
-  if (skillUser.name === "邪竜神ナドラガ" && executingSkill) {
-    const targetDomain = {
-      翠嵐の息吹: "thunderDomain",
-      竜の波濤: "iceDomain",
-      冥闇の息吹: "darkDomain",
-      業炎の息吹: "fireDomain",
-    }[executingSkill.name];
-    if (skillUser.buffs[targetDomain]) {
-      domainCheck = true;
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+  // 7-4. AI追撃後発動skill (非反撃対象 非断罪対象) executingSkillがnullの場合は実行しない 処理全体の実行前に初回skip確認
+  if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && executingSkill) {
+    const skillsToExecute = [];
+    // skill本体に依存する追加特技(仮) 反射で状態異常になっても発動 反射死しても使用する模様?   todo: 破壊衝動解除では追加せず、復活後限定
+    if (["昏睡のカギ爪", "殺りくの雷刃"].includes(executingSkill.name)) {
+      skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "破壊衝動の効果により", lastMessage: `もう一度 ${executingSkill.name}を はなった！` });
+    }
+    // 錬金依存の追加特技: 追加で咆哮など
+    //if (skillUser.gear?.alchemy?.some((alchemy) => alchemy.additionalSkillName === executingSkill.name)) {
+    //  skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "装備品の効果により", lastMessage: `${executingSkill.name}を もう一度はなった！` });
+    //}
+    // 条件付き追加特技: 状態異常でも発動(可能性あり)・体技封じ有効  双璧の幻獣・改 悪魔衆の踊り 体技攻撃でなめまわし 教団の光 HP半分ではやての息吹 うさぎドロップキック
+    const targetAbility = skillUser.abilities.followingAbilities;
+    // 各種availableIf内でexecutingSkill.typeがnotskill以外の場合のみ発動するよう指定、通常攻撃で追加特技が発動しないようにしている
+    if (targetAbility && targetAbility.availableIf(skillUser, executingSkill)) {
+      // executingSkillを渡してskillNameを返り値でもらう
+      const skillName = targetAbility.getFollowingSkillName(executingSkill);
+      skillsToExecute.push({ skillInfo: findSkillByName(skillName), firstMessage: `${skillUser.name}の特性により`, lastMessage: `${skillName} が発動！` });
+    }
+    // 直接指定する追加特技: 同上 王のつるぎ
+    if (
+      skillUser.buffs.pharaohPower &&
+      parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
+      executingSkill.type !== "notskill" && // notskill以外であることを直接指定
+      executedSkills.some((skill) => skill.howToCalculate !== "none" && skill.targetTeam === "enemy")
+    ) {
+      skillsToExecute.push({ skillInfo: findSkillByName("ファラオの幻刃"), firstMessage: `${skillUser.name}は`, lastMessage: "ファラオの幻刃 をはなった！" });
+    }
+
+    for (const skill of skillsToExecute) {
+      const { skillInfo, firstMessage, lastMessage } = skill;
+      await sleep(250);
+      displayMessage(firstMessage, lastMessage);
+      await sleep(400);
+      // skill実行 非反撃・連携対象なので damagedMonstersとisProcess, isAIはnullまたはfalse
+      await executeSkill(skillUser, skillInfo, null, false, null, false, false, null);
+      await sleep(200);
+      // skill実行完了のたびに確認
+      if (isBattleOver()) {
+        return; // 毒や継続を実行せず即時return
+      } else if (skipThisMonsterAction(skillUser)) {
+        break; // skip状態の場合は毒や継続を続けて実行
+      }
     }
   }
 
@@ -2903,21 +2947,6 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (!isBattleOver() && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && domainCheck) {
     await sleep(300);
     await executeSkill(skillUser, executingSkill);
-  }
-  // 王のつるぎ処理
-  if (
-    !isBattleOver() &&
-    !skipThisMonsterAction(skillUser) &&
-    skillUser.buffs.pharaohPower &&
-    parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
-    !skillUser.flags.isDead &&
-    executedSkills &&
-    executedSkills.some((skill) => skill.howToCalculate !== "none" && skill.targetTeam === "enemy")
-  ) {
-    await sleep(400);
-    displayMessage(`${skillUser.name}は`, "ファラオの幻刃 をはなった！");
-    await sleep(150);
-    await executeSkill(skillUser, findSkillByName("ファラオの幻刃"), null, false, null, false, true, null);
   }
 
   // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
@@ -3255,7 +3284,6 @@ async function executeSkill(
   let executedSkills = [];
   let isFollowingSkill = false;
   let executedSingleSkillTarget = [];
-  let hasExecutedFollowingAbilities = false;
   let MPused = MPusedParameter;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
   while (
@@ -3295,7 +3323,7 @@ async function executeSkill(
     }
 
     let skillTarget = assignedTarget;
-    // followingSkillのtargetをnull化してランダムにする(暫定的) random特技(イフシバ) および クアトロ
+    // followingSkillのtargetをnull化してランダムにする(暫定的) クアトロのみ random特技(イフシバ)はAI追撃後に移行
     if (isFollowingSkill && (currentSkill.targetType === "random" || currentSkill.howToCalculate === "MP")) {
       skillTarget = null;
     }
@@ -3336,22 +3364,6 @@ async function executeSkill(
         isMonsterAction = false;
         executedSingleSkillTarget = [];
       }
-    } else if (skillUser.abilities.followingAbilities && !hasExecutedFollowingAbilities && skillUser.abilities.followingAbilities.availableIf(skillUser, executingSkill)) {
-      // followingSkillがないかつ追撃特性所持時にそれを実行
-      // executingSkill.howToCalculate !== "none"は悪魔衆の踊りなど個別で判定
-      // todo: isProcessMonsterActionの時に限定 反撃や死亡時skillで発動しないように
-      // executingSkillを渡してskillNameを返り値でもらう
-      await sleep(350);
-      if (skipThisMonsterAction(skillUser)) {
-        waitingMessage(skillUser);
-        break;
-      }
-      currentSkill = findSkillByName(skillUser.abilities.followingAbilities.followingSkillName(executingSkill));
-      isFollowingSkill = true;
-      // 追撃特性はmonsterActionではないので連携や反撃対象にしない
-      isMonsterAction = false;
-      // 次のloopに入ってability実行後は、ここには入らずnull指定されて終了
-      hasExecutedFollowingAbilities = true;
     } else {
       break;
     }
@@ -8211,8 +8223,8 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "双璧の幻獣・改",
-        availableIf: (skillUser, executingSkill) => executingSkill.element === "fire" || executingSkill.element === "ice",
-        followingSkillName: (executingSkill) => {
+        availableIf: (skillUser, executingSkill) => executingSkill.type !== "notskill" && (executingSkill.element === "fire" || executingSkill.element === "ice"),
+        getFollowingSkillName: (executingSkill) => {
           if (executingSkill.element === "fire") return "アイスエイジ";
           if (executingSkill.element === "ice") return "地獄の火炎";
         },
@@ -9066,7 +9078,7 @@ function getMonsterAbilities(monsterId) {
       followingAbilities: {
         name: "悪魔衆の踊り",
         availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
-        followingSkillName: (executingSkill) => {
+        getFollowingSkillName: (executingSkill) => {
           return "ディバインフェザー";
         },
       },
@@ -9418,8 +9430,8 @@ function getMonsterAbilities(monsterId) {
       followingAbilities: {
         name: "体技攻撃でなめまわし",
         availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "martial",
-        followingSkillName: (executingSkill) => {
-          return "なめまわし"; //本来は通常攻撃後
+        getFollowingSkillName: (executingSkill) => {
+          return "なめまわし";
         },
       },
     },
@@ -9609,7 +9621,7 @@ function getMonsterAbilities(monsterId) {
       followingAbilities: {
         name: "王のつとめ",
         availableIf: (skillUser, executingSkill) => executingSkill.type === "spell" && hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
-        followingSkillName: (executingSkill) => {
+        getFollowingSkillName: (executingSkill) => {
           return "特性発動用におうだち";
         },
       },
@@ -10169,8 +10181,8 @@ function getMonsterAbilities(monsterId) {
       followingAbilities: {
         name: "教団の光",
         availableIf: (skillUser, executingSkill) => executingSkill.type === "ritual" && hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 2),
-        followingSkillName: (executingSkill) => {
-          return "光のはどう"; //行動停止でも封じでも発動
+        getFollowingSkillName: (executingSkill) => {
+          return "光のはどう";
         },
       },
     },
