@@ -2803,8 +2803,10 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
     // 錬金依存の追加特技: 追加で咆哮など
     //if (skillUser.gear?.alchemy?.some((alchemy) => alchemy.additionalSkillName === executingSkill.name)) {
-    //  skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "装備品の効果により", lastMessage: `${executingSkill.name}を もう一度はなった！` });
-    //}
+    if (skillUser.gear?.skillAlchemy === executingSkill.name && executingSkill.name === "咆哮") {
+      const followingSkillData = executingSkill.additionalVersion ? findSkillByName(executingSkill.additionalVersion) : executingSkill;
+      skillsToExecute.push({ skillInfo: followingSkillData, firstMessage: "装備品の効果により", lastMessage: `${executingSkill.name}を もう一度はなった！` });
+    }
     // 条件付き追加特技: 状態異常でも発動(可能性あり)・体技封じ有効  双璧の幻獣・改 悪魔衆の踊り 体技攻撃でなめまわし 教団の光 HP半分ではやての息吹 うさぎドロップキック
     const targetAbility = skillUser.abilities.followingAbilities;
     // 各種availableIf内でexecutingSkill.typeがnotskill以外の場合のみ発動するよう指定、通常攻撃で追加特技が発動しないようにしている
@@ -4257,9 +4259,16 @@ function calculateDamage(
       damageModifier += 0.1;
     }
 
-    // 特技錬金の反映(双撃は個別に後半も対象に含める)
-    if (skillUser.gear.skillAlchemy) {
-      if (skillUser.gear.skillAlchemy === executingSkill.name || (skillUser.gear.skillAlchemy === "必殺の双撃" && executingSkill.name === "必殺の双撃後半")) {
+    // 特技錬金の反映
+    const skillAlchemyTarget = skillUser.gear.skillAlchemy;
+    if (skillAlchemyTarget) {
+      // 特定の錬金に対する追加ターゲットの定義
+      const alchemyAdditionalTargets = {
+        必殺の双撃: ["必殺の双撃後半"],
+        咆哮: ["追加用咆哮"],
+      }[skillAlchemyTarget];
+      // 通常のターゲット判定
+      if (skillAlchemyTarget === executingSkill.name || (alchemyAdditionalTargets && alchemyAdditionalTargets.includes(executingSkill.name))) {
         damageModifier += skillUser.gear.skillAlchemyStrength;
       }
     }
@@ -6524,11 +6533,37 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 70, def: 40, spd: 10, int: 0 },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
+    name: "竜王", //44 スキルライン: HP100 atk50込み
+    id: "ryuou",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 925, MP: 503, atk: 631, def: 445, spd: 425, int: 479 },
+    initialSkill: ["くいちぎる", "咆哮", "スパークふんしゃ", "ザオリク"],
+    initialAIDisabledSkills: ["くいちぎる"],
+    defaultGear: "dragonCaneWithoutSpd",
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+        demonKingBarrier: { divineDispellable: true },
+        protection: { strength: 0.3, duration: 3 },
+      },
+      permanentBuffs: {
+        powerCharge: { strength: 1.2 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: -1, light: 0, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "聖地竜オリハルゴン", //44
@@ -10492,6 +10527,7 @@ const skill = [
       displayMessage(`${skillUserName}は闇に身をささげた！`);
     },
     followingSkill: "涼風一陣後半",
+    additionalVersion: "追加用咆哮",
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     zakiProbability: 0.78,
     act: function (skillUser, skillTarget) {
@@ -13295,6 +13331,39 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 136,
     appliedEffect: { fear: { probability: 0.213 } },
+  },
+  {
+    name: "くいちぎる",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.35,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 36,
+    ignoreEvasion: true,
+    appliedEffect: { baiki: { strength: -2, probability: 0.23 }, defUp: { strength: -2, probability: 0.1 } },
+  },
+  {
+    name: "咆哮",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 400,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    additionalVersion: "追加用咆哮",
+  },
+  {
+    name: "追加用咆哮",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 340,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
   },
   {
     name: "地殻変動",
@@ -17553,18 +17622,22 @@ const gear = [
     name: "りゅうおうの杖",
     id: "dragonCane",
     weight: 5,
-    noWeightMonsters: ["りゅうおう"],
+    noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
+    skillAlchemy: "咆哮",
+    skillAlchemyStrength: 0.25,
   },
   {
     name: "りゅうおうの杖非素早さ錬金",
     id: "dragonCaneWithoutSpd",
     weight: 5,
-    noWeightMonsters: ["りゅうおう"],
+    noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
+    skillAlchemy: "咆哮",
+    skillAlchemyStrength: 0.25,
   },
   {
     name: "しゅくふくの杖",
