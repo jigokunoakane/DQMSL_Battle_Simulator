@@ -9618,13 +9618,15 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
-      followingAbilities: {
-        name: "王のつとめ",
-        availableIf: (skillUser, executingSkill) => executingSkill.type === "spell" && hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
-        getFollowingSkillName: (executingSkill) => {
-          return "特性発動用におうだち";
+      afterActionAbilities: [
+        {
+          name: "王のつとめ",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "spell" || !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
+          act: async function (skillUser, executingSkill, executedSkills) {
+            applySubstitute(skillUser, null, true);
+          },
         },
-      },
+      ],
     },
     dorameta: {
       afterActionHealAbilities: [
