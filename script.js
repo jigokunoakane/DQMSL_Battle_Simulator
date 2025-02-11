@@ -19735,7 +19735,7 @@ function clearResistanceDisplay(targetWrapper) {
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
   // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替えて、適切な属性や反射表示を行う
-  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇"];
+  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン"];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
