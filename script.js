@@ -8955,10 +8955,11 @@ function getMonsterAbilities(monsterId) {
             }
           },
         },
+      ],
+      afterActionHealAbilities: [
         {
           name: "超回復",
-          disableMessage: true,
-          act: async function (skillUser, executingSkill, executedSkills) {
+          act: async function (skillUser) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
           },
         },
@@ -9734,11 +9735,10 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
-      afterActionAbilities: [
+      afterActionHealAbilities: [
         {
           name: "超回復",
-          disableMessage: true,
-          act: async function (skillUser, executingSkill, executedSkills) {
+          act: async function (skillUser) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
           },
         },
@@ -9804,11 +9804,10 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
-      afterActionAbilities: [
+      afterActionHealAbilities: [
         {
           name: "超回復",
-          disableMessage: true,
-          act: async function (skillUser, executingSkill, executedSkills) {
+          act: async function (skillUser) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
           },
         },
