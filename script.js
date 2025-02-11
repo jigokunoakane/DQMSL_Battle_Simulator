@@ -2840,33 +2840,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
   }
 
-  // 自動HPMP回復
-  async function executeAfterActionHealAbilities(monster) {
-    const abilitiesToExecute = [];
-    // 各ability配列の中身を展開して追加
-    abilitiesToExecute.push(...(monster.abilities.afterActionHealAbilities ?? []));
-    abilitiesToExecute.push(...(monster.abilities.additionalAfterActionHealAbilities ?? []));
-    for (const ability of abilitiesToExecute) {
-      await sleep(200);
-      await ability.act(monster);
-      await sleep(200);
-    }
-    if (monster.buffs.continuousMPHealing) {
-      await sleep(300);
-      let healAmount = 50;
-      if (monster.buffs.continuousMPHealing.strength) {
-        healAmount = monster.buffs.continuousMPHealing.strength * monster.defaultStatus.HP;
-      }
-      applyHeal(monster, healAmount, true);
-      await sleep(200);
-    }
-  }
-  // 自動HPMP回復
-  if (skillUser.commandInput !== "skipThisTurn") {
-    await executeAfterActionHealAbilities(skillUser);
-  }
-
-  // 7-4. 行動後発動特性の処理 //executingSkillがnullの場合に要注意
+  // 7-5. 行動後発動特性の処理 //executingSkillがnullの場合に要注意
   async function executeAfterActionAbilities(monster) {
     const abilitiesToExecute = [];
     // 各ability配列の中身を展開して追加
@@ -2896,11 +2870,67 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(200);
     }
   }
-  // 行動後特性実行
   if (skillUser.commandInput !== "skipThisTurn") {
     await executeAfterActionAbilities(skillUser);
   }
 
+  // 7-6. 属性断罪の刻印処理
+  if (
+    skillUser.commandInput !== "skipThisTurn" &&
+    skillUser.buffs.elementalRetributionMark &&
+    executedSkills &&
+    executedSkills.some((skill) => skill.element !== "none" && skill.type !== "notskill")
+  ) {
+    await applyDotDamage(skillUser, 0.7, "ダメージをうけた！", true);
+  }
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+
+  // 7-7. 自動HPMP回復
+  async function executeAfterActionHealAbilities(monster) {
+    const abilitiesToExecute = [];
+    // 各ability配列の中身を展開して追加
+    abilitiesToExecute.push(...(monster.abilities.afterActionHealAbilities ?? []));
+    abilitiesToExecute.push(...(monster.abilities.additionalAfterActionHealAbilities ?? []));
+    for (const ability of abilitiesToExecute) {
+      await sleep(200);
+      await ability.act(monster);
+      await sleep(200);
+    }
+    if (monster.buffs.continuousMPHealing) {
+      await sleep(300);
+      let healAmount = 50;
+      if (monster.buffs.continuousMPHealing.strength) {
+        healAmount = monster.buffs.continuousMPHealing.strength * monster.defaultStatus.HP;
+      }
+      applyHeal(monster, healAmount, true);
+      await sleep(200);
+    }
+  }
+  if (skillUser.commandInput !== "skipThisTurn") {
+    await executeAfterActionHealAbilities(skillUser);
+  }
+
+  // 7-8. 特殊追加skillの実行 (ナドラガ竜の心臓による同じ特技追撃)
+  if (!isBattleOver() && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && domainCheck) {
+    await sleep(150);
+    displayMessage("竜の心臓の効果により", `もう一度 ${executingSkill.name}を はなった！`);
+    await sleep(300);
+    await executeSkill(skillUser, executingSkill);
+  }
+
+  // 7-9. 毒処理
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
+    const baseRatio = skillUser.buffs.poisoned.isLight ? 0.0625 : 0.125;
+    const poisonMessage = skillUser.buffs.poisoned.isLight ? "どくにおかされている！" : "もうどくにおかされている！";
+    const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
+    await applyDotDamage(skillUser, baseRatio * poisonDepth, poisonMessage);
+  }
+  // 7-10. 継続ダメージ処理
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
+    await applyDotDamage(skillUser, skillUser.buffs.dotDamage.strength, "HPダメージを受けている！");
+  }
   // 刻印・毒・継続の共通処理
   async function applyDotDamage(skillUser, damageRatio, message, isRetribution = false) {
     if (skillUser.commandInput === "skipThisTurn") return;
@@ -2915,41 +2945,11 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     col(`${firstMessage}${message}${dotDamageValue}ダメージ`);
     await sleep(200);
     applyDamage(skillUser, dotDamageValue, 1, false, false, false, true, null); // skipDeathAbility
-
     // recentlyKilledを回収して死亡時発動を実行
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
-  // 7-5. 属性断罪の刻印処理
-  if (
-    skillUser.commandInput !== "skipThisTurn" &&
-    skillUser.buffs.elementalRetributionMark &&
-    executedSkills &&
-    executedSkills.some((skill) => skill.element !== "none" && skill.type !== "notskill")
-  ) {
-    await applyDotDamage(skillUser, 0.7, "ダメージをうけた！", true);
-  }
-
-  // 7-6. 毒処理
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.poisoned) {
-    const baseRatio = skillUser.buffs.poisoned.isLight ? 0.0625 : 0.125;
-    const poisonMessage = skillUser.buffs.poisoned.isLight ? "どくにおかされている！" : "もうどくにおかされている！";
-    const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
-    await applyDotDamage(skillUser, baseRatio * poisonDepth, poisonMessage);
-  }
-  // 7-7 継続ダメージ
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
-    await applyDotDamage(skillUser, skillUser.buffs.dotDamage.strength, "HPダメージを受けている！");
-  }
-
-  // 7-7. 特殊追加skillの実行
-  // ナドラガ領界追撃
-  if (!isBattleOver() && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && domainCheck) {
-    await sleep(300);
-    await executeSkill(skillUser, executingSkill);
-  }
-
-  // 7-8. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
+  // 7-11. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   for (const monster of parties[skillUser.enemyTeamID]) {
     if (!isBattleOver() && damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
