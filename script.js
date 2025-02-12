@@ -4173,23 +4173,24 @@ function calculateDamage(
   // skillUser対象バフ
   // 装備 錬金が一意に定まるように注意
   if (skillUser.gear) {
+    const gearName = skillUser.gear.name;
     // 装備本体 - 竜神のツメ
-    if (skillUser.gear.name === "竜神のツメ" && (skillTarget.race.includes("???") || skillTarget.race.includes("ドラゴン"))) {
+    if (gearName === "竜神のツメ" && (skillTarget.race.includes("???") || skillTarget.race.includes("ドラゴン"))) {
       damageModifier += 0.1;
     }
     // 装備本体 - 強戦士ハート・闇
-    if (skillUser.gear.name === "強戦士ハート・闇" && skillUser.race.includes("悪魔") && executingSkill.type === "spell") {
+    if (gearName === "強戦士ハート・闇" && skillUser.race.includes("悪魔") && executingSkill.type === "spell") {
       damageModifier += 0.15;
     }
     // 装備本体&錬金 - かがやく魔神剣
-    if (skillUser.gear.name === "かがやく魔神剣" && executingSkill.type === "slash") {
+    if (gearName === "かがやく魔神剣" && executingSkill.type === "slash") {
       damageModifier += 0.05;
       if (skillTarget.race.includes("???")) {
         damageModifier += 0.1;
       }
     }
     // 装備錬金 - 砕き昇天のドラゴン息10, ギラ息10, 体技5%錬金
-    if (skillUser.gear.name === "心砕きのヤリ" || skillUser.gear.name === "昇天のヤリ") {
+    if (gearName === "心砕きのヤリ" || gearName === "昇天のヤリ") {
       if (skillUser.race.includes("ドラゴン")) {
         if (executingSkill.type === "breath") {
           damageModifier += 0.1;
@@ -4203,11 +4204,11 @@ function calculateDamage(
       }
     }
     // 装備錬金 - 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く) todo: 本当は魔獣パの狭間は系統S錬金なので非適用、スラパの狭間には適用すべき
-    if (skillUser.gear.name === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].some((targetRace) => skillUser.race.includes(targetRace)) && executingSkill.type === "slash") {
+    if (gearName === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].some((targetRace) => skillUser.race.includes(targetRace)) && executingSkill.type === "slash") {
       damageModifier += 0.05;
     }
     // 装備錬金 - 源氏小手の体技5%斬撃3%錬金
-    if (skillUser.gear.name === "源氏の小手") {
+    if (gearName === "源氏の小手") {
       if (executingSkill.type === "martial") {
         damageModifier += 0.05;
       } else if (executingSkill.type === "slash") {
@@ -4215,7 +4216,7 @@ function calculateDamage(
       }
     }
     // 装備錬金 - 水着の真夏の誘惑とバギ呪文10
-    if (skillUser.gear.name === "あぶない水着") {
+    if (gearName === "あぶない水着") {
       if (executingSkill.name === "真夏の誘惑") {
         damageModifier += 0.25;
       } else if (skillUser.name === "涼風の魔女グレイツェル" && executingSkill.type === "spell" && executingSkill.element === "wind") {
@@ -4223,19 +4224,19 @@ function calculateDamage(
       }
     }
     // 装備錬金 - 金槌踊り3%
-    if (skillUser.gear.name === "魔神のかなづち" && executingSkill.type === "dance") {
+    if (gearName === "魔神のかなづち" && executingSkill.type === "dance") {
       damageModifier += 0.03;
     }
     // 装備錬金 - 系統爪超魔王錬金
-    if (skillUser.gear.name === "系統爪超魔王錬金" && skillTarget.race.includes("超魔王")) {
+    if (gearName === "系統爪超魔王錬金" && skillTarget.race.includes("超魔王")) {
       damageModifier += 0.3;
     }
     // 装備錬金 - おうごんのツメ ゾンビ息10%
-    if (skillUser.gear.name === "おうごんのツメ" && skillUser.race.includes("ゾンビ") && executingSkill.type === "breath") {
+    if (gearName === "おうごんのツメ" && skillUser.race.includes("ゾンビ") && executingSkill.type === "breath") {
       damageModifier += 0.1;
     }
     // 装備錬金 - ハザードネイルのあらしの乱舞25・バギ呪文10
-    if (skillUser.gear.name === "ハザードネイル") {
+    if (gearName === "ハザードネイル") {
       if (executingSkill.name === "あらしの乱舞") {
         damageModifier += 0.25;
       } else if (skillUser.name === "凶ライオネック" && executingSkill.type === "spell" && executingSkill.element === "wind") {
@@ -4243,11 +4244,11 @@ function calculateDamage(
       }
     }
     // 装備錬金 - メラ杖
-    if (skillUser.gear.name === "マグマの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+    if (gearName === "マグマの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
       damageModifier += 0.21;
     }
     // 装備錬金 - バギ杖
-    if (skillUser.gear.name === "さばきの杖") {
+    if (gearName === "さばきの杖") {
       if (executingSkill.name === "バギクロス") {
         damageModifier += 0.28;
       } else if (executingSkill.type === "spell" && executingSkill.element === "wind") {
@@ -4255,7 +4256,7 @@ function calculateDamage(
       }
     }
     // 装備錬金 - りゅうおう杖 バーン
-    if (skillUser.name === "魔界の神バーン" && skillUser.gear.name === "りゅうおうの杖非素早さ錬金" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+    if (skillUser.name === "魔界の神バーン" && gearName === "りゅうおうの杖非素早さ錬金" && executingSkill.type === "spell" && executingSkill.element === "fire") {
       damageModifier += 0.1;
     }
 
@@ -4326,27 +4327,26 @@ function calculateDamage(
     damageModifier += skillUser.buffs.makaiBoost.strength;
   }
 
+  // skillUserのLSによる増分
+  const allyLeaderName = parties[skillUser.teamID][0].name;
   // シャムダLS
-  if (parties[skillUser.teamID][0].name === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
+  if (allyLeaderName === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
     damageModifier += 0.25;
   }
   // オルゴアリーナネルLS 体技up
-  if (
-    (parties[skillUser.teamID][0].name === "万物の王オルゴ・デミーラ" || parties[skillUser.teamID][0].name === "剛拳の姫と獅子王" || parties[skillUser.teamID][0].name === "死を統べる者ネルゲル") &&
-    executingSkill.type === "martial"
-  ) {
+  if ((allyLeaderName === "万物の王オルゴ・デミーラ" || allyLeaderName === "剛拳の姫と獅子王" || allyLeaderName === "死を統べる者ネルゲル") && executingSkill.type === "martial") {
     damageModifier += 0.2;
   }
   // ネルLS 斬撃up
-  if (parties[skillUser.teamID][0].name === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
+  if (allyLeaderName === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
   }
   // ラザマLS ゾンビ斬撃息up
-  if (parties[skillUser.teamID][0].name === "ラザマナス" && skillUser.race.includes("ゾンビ") && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
+  if (allyLeaderName === "ラザマナス" && skillUser.race.includes("ゾンビ") && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
     damageModifier += 0.1;
   }
   // スカスパLS 毒10%
-  if (parties[skillUser.teamID][0].name === "スカルスパイダー" && skillUser.race.includes("ゾンビ") && skillTarget.buffs.poisoned) {
+  if (allyLeaderName === "スカルスパイダー" && skillUser.race.includes("ゾンビ") && skillTarget.buffs.poisoned) {
     damageModifier += 0.1;
   }
 
@@ -4389,16 +4389,15 @@ function calculateDamage(
     }
   }
 
-  // ゴッデスLS
-  if (parties[skillTarget.teamID][0].name === "メタルゴッデス" && skillTarget.race.includes("スライム") && AllElements.includes(executingSkill.element)) {
+  // skillTargetのLSによる軽減
+  const enemyLeaderName = parties[skillTarget.teamID][0].name;
+  if (enemyLeaderName === "メタルゴッデス" && skillTarget.race.includes("スライム") && AllElements.includes(executingSkill.element)) {
     damageModifier -= 0.3;
   }
-  // ガルマLS
-  if (parties[skillTarget.teamID][0].name === "ガルマッゾ" && isBreakMonster(skillTarget) && AllElements.includes(executingSkill.element)) {
+  if (enemyLeaderName === "ガルマッゾ" && isBreakMonster(skillTarget) && AllElements.includes(executingSkill.element)) {
     damageModifier -= 0.3;
   }
-  // ケトスLS
-  if (parties[skillTarget.teamID][0].name === "神獣王ケトス" && skillUser.race.includes("???")) {
+  if (enemyLeaderName === "神獣王ケトス" && skillUser.race.includes("???")) {
     damageModifier -= 0.05;
   }
 
