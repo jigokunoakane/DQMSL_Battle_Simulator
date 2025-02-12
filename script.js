@@ -12850,6 +12850,8 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       if (Math.random() < 0.7333) {
         await reviveMonster(skillTarget, 0.5);
+      } else {
+        displayMiss(skillTarget);
       }
     },
   },
