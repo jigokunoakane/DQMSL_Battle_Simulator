@@ -1374,10 +1374,13 @@ async function startBattle() {
 }
 
 // バフ追加用関数
-function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, skipMessage = false) {
+function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, skipMessage = false, isDamageExisting = false) {
   if (buffTarget.flags.isDead) {
     return;
   }
+  // バフを一回でも付与したかどうか追跡
+  let hasAppliedBuff = false;
+
   // 重ねがけ可能なバフ stackableとresistanceBuffはobjectなのでhasOwnPropertyでアクセス ほかはincludes
   const stackableBuffs = {
     baiki: { max: 2, min: -2 },
@@ -1640,8 +1643,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         // 重ねがけ可能かつ既にバフが存在する場合はstrength を加算 (上限と下限をチェック)
         const newStrength = Math.max(stackableBuffs[buffName].min, Math.min(currentBuff.strength + buffData.strength, stackableBuffs[buffName].max));
         if (newStrength === 0) {
-          // strength が 0 になったらバフを削除
+          // strength が 0 になったらバフを削除して終了 付与するのにcontinueする唯一の箇所
           delete buffTarget.buffs[buffName];
+          hasAppliedBuff = true;
           continue;
         } else {
           // 0以外の場合はstrengthだけ加算して新しいバフで上書き
@@ -2026,9 +2030,14 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (!skipMessage) {
       displayBuffMessage(buffTarget, buffName, buffData);
     }
+    hasAppliedBuff = true;
   }
   updateCurrentStatus(buffTarget); // バフ全て追加後に該当monsterのcurrentStatusを更新
   updateMonsterBuffsDisplay(buffTarget);
+  // 全部付与失敗時&&ダメージが存在しない場合はmiss表示
+  if (!hasAppliedBuff && !isDamageExisting) {
+    displayMiss(buffTarget);
+  }
 }
 
 // ターン経過でデクリメントするタイプ decreaseTurnEnd
@@ -3648,7 +3657,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   // AppliedEffect指定のうち、applyBuffおよびactを定義
   async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
     if (executingSkill.appliedEffect && executingSkill.appliedEffect !== "radiantWave" && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
-      applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection);
+      applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection, false, isDamageExisting);
     }
     //act処理と、barおよびバフ表示更新
     if (executingSkill.act) {
