@@ -5902,7 +5902,7 @@ const monsters = [
     race: ["ドラゴン"],
     weight: 21,
     status: { HP: 628, MP: 271, atk: 575, def: 492, spd: 518, int: 348 },
-    initialSkill: ["大地斬", "海波斬", "空裂斬", "テンペストブレス"],
+    initialSkill: ["大地斬", "海波斬", "空裂斬", "防刃の守り"],
     defaultGear: "ryujinNail",
     attribute: {},
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
