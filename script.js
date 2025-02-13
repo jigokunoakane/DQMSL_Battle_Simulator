@@ -5192,6 +5192,7 @@ function addSkillOptions() {
     "ジゴデイン",
     "しゃくねつ",
     "聖魔拳",
+    "パニッシュメント",
     "ジゴスパーク",
     "ギガブレイク",
     "獄炎斬り",
@@ -5208,7 +5209,7 @@ function addSkillOptions() {
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
   }
-  const daikoraSkills = ["息よそく", "いやしの光", "一刀両断", "ギラマータ", "イオマータ"];
+  const daikoraSkills = ["息よそく", "ミナカトール", "いやしの光", "黒くかがやく闇", "一刀両断", "ギラマータ", "イオマータ", "バギマータ", "極大消滅呪文"];
   const daikoraTargets = ["竜の騎士ダイ", "アバンの使徒ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
   if (daikoraTargets.includes(monster.name)) {
     targetCollabSkills = daikoraSkills;
@@ -11049,6 +11050,17 @@ const skill = [
     damageByLevel: true,
   },
   {
+    name: "パニッシュメント",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 78,
+    damageByLevel: true,
+  },
+  {
     name: "天地雷鳴",
     type: "martial",
     howToCalculate: "fix",
@@ -11435,6 +11447,16 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 67,
     appliedEffect: { fear: { probability: 0.4278 } },
+  },
+  {
+    name: "黒くかがやく闇",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 295,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 124,
   },
   {
     name: "超魔滅光",
@@ -14125,6 +14147,20 @@ const skill = [
     ignoreReflection: true,
   },
   {
+    name: "極大消滅呪文",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 125,
+    maxInt: 600,
+    maxIntDamage: 250,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 88,
+  },
+  {
     name: "イオナスペル",
     type: "spell",
     howToCalculate: "int",
@@ -14478,6 +14514,21 @@ const skill = [
     MPcost: 38,
   },
   {
+    name: "バギマータ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 38,
+  },
+  {
     name: "幻術のひとみ",
     type: "martial",
     howToCalculate: "none",
@@ -14513,6 +14564,18 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "ミナカトール",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 84,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { protection: { divineDispellable: true, strength: 0.34, duration: 1, removeAtTurnStart: true, iconSrc: "protectiondivineDispellablestr0.34" } },
   },
   {
     name: "巨岩投げ",
@@ -18757,6 +18820,11 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/martialSeal.png",
     "images/buffIcons/murakumo.png",
     "images/buffIcons/healBlockkeepOnDeath.png",
+    "images/buffIcons/darkBuffstr0.6.png",
+    "images/buffIcons/darkBuffstr0.4.png",
+    "images/buffIcons/darkBuffstr0.2.png",
+    "images/buffIcons/protectiondivineDispellablestr0.4.png",
+    "images/buffIcons/protectiondivineDispellablestr0.34.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
