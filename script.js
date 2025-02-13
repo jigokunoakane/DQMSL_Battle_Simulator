@@ -5206,7 +5206,7 @@ function addSkillOptions() {
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
   }
-  const daikoraSkills = ["息よそく", "いやしの光", "一刀両断"];
+  const daikoraSkills = ["息よそく", "いやしの光", "一刀両断", "ギラマータ", "イオマータ"];
   const daikoraTargets = ["竜の騎士ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
   if (daikoraTargets.includes(monster.name)) {
     targetCollabSkills = daikoraSkills;
@@ -5840,6 +5840,31 @@ const monsters = [
     ls: { HP: 1.3 },
     lsTarget: "ドラゴン",
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "陸戦騎ラーハルト", //44
+    id: "haruto",
+    rank: 10,
+    race: ["ドラゴン"],
+    weight: 25,
+    status: { HP: 742, MP: 278, atk: 569, def: 410, spd: 562, int: 337 },
+    initialSkill: ["真・ハーケンディストール", "真・閃光さみだれ突き", "スパークふんしゃ", "いやしの光"],
+    initialAIDisabledSkills: ["真・ハーケンディストール"],
+    defaultGear: "metalNail",
+    attribute: {
+      initialBuffs: {
+        baiki: { strength: 2 },
+        spdUp: { strength: 2 },
+        spellReflection: { strength: 1, removeAtTurnStart: true, duration: 4 }, // 混乱でも保持
+        mindBarrier: { duration: 2 },
+        revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "竜の血に選ばれし者" },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.15, spd: 1.15 },
+    lsTarget: "ドラゴン",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 0, dark: 0.5, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "神獣王WORLD", //最強
@@ -8155,6 +8180,13 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    haruto: {
+      reviveAct: async function (monster, buffName) {
+        if (buffName === "竜の血に選ばれし者") {
+          applyBuff(monster, { spdUp: { strength: 2 } });
+        }
+      },
     },
     world: {
       initialAbilities: [
@@ -11279,6 +11311,39 @@ const skill = [
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+  },
+  {
+    name: "真・ハーケンディストール",
+    type: "slash",
+    howToCalculate: "fix",
+    damage: 86,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 120,
+    RaceBane: ["物質"],
+    RaceBaneValue: 2, // みかわし マヌーサ有効
+  },
+  {
+    name: "真・閃光さみだれ突き",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 56,
+    ignoreEvasion: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.fear || skillTarget.buffs.tempted || skillTarget.buffs.sealed || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
+        return 1.5;
+      }
+    },
   },
   {
     name: "超魔滅光",
