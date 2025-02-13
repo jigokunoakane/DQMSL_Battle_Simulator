@@ -3535,7 +3535,9 @@ async function processHitSequence(
   } else {
     // 次のヒット処理
     currentHit++;
-    await sleep(70);
+    if (!(executingSkill.targetType === "all" && executingSkill.targetTeam === "enemy" && executingSkill.hitNum)) {
+      await sleep(70);
+    }
     await processHitSequence(skillUser, executingSkill, assignedTarget, excludedTargets, killedByThisSkill, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
   }
 }
