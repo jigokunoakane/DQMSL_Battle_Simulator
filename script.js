@@ -5209,7 +5209,7 @@ function addSkillOptions() {
     targetCollabSkills = hosigoronSkills;
   }
   const daikoraSkills = ["息よそく", "いやしの光", "一刀両断", "ギラマータ", "イオマータ"];
-  const daikoraTargets = ["竜の騎士ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
+  const daikoraTargets = ["竜の騎士ダイ", "アバンの使徒ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
   if (daikoraTargets.includes(monster.name)) {
     targetCollabSkills = daikoraSkills;
   }
@@ -5867,6 +5867,48 @@ const monsters = [
     lsTarget: "ドラゴン",
     AINormalAttack: [2, 3],
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 0, dark: 0.5, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "竜の騎士ダイ", //44
+    id: "dai",
+    rank: 10,
+    race: ["ドラゴン"],
+    weight: 30,
+    status: { HP: 690, MP: 300, atk: 620, def: 527, spd: 563, int: 381 },
+    initialSkill: ["アバンストラッシュ", "空裂斬", "海波斬", "テンペストブレス"],
+    anotherSkills: ["大地斬"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3 },
+      },
+      evenTurnBuffs: {
+        powerCharge: { strength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: -1, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "アバンの使徒ダイ", //4
+    id: "sdai",
+    rank: 9,
+    race: ["ドラゴン"],
+    weight: 21,
+    status: { HP: 628, MP: 271, atk: 575, def: 492, spd: 518, int: 348 },
+    initialSkill: ["大地斬", "海波斬", "空裂斬", "テンペストブレス"],
+    defaultGear: "ryujinNail",
+    attribute: {},
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.15 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "神獣王WORLD", //最強
@@ -11346,6 +11388,53 @@ const skill = [
         return 1.5;
       }
     },
+  },
+  {
+    name: "アバンストラッシュ",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.72,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 35,
+    RaceBane: ["???"],
+    RaceBaneValue: 3,
+  },
+  {
+    name: "空裂斬",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.72,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 28,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    ignoreEvasion: true,
+  },
+  {
+    name: "海波斬",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 69,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "大地斬",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 67,
+    appliedEffect: { fear: { probability: 0.4278 } },
   },
   {
     name: "超魔滅光",
