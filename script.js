@@ -14764,7 +14764,8 @@ const skill = [
     ignoreSubstitute: true,
     order: "preemptive",
     preemptiveGroup: 8,
-    appliedEffect: { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } }, // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除
+    appliedEffect: { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } },
+    // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
     act: async function (skillUser, skillTarget) {
       if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
       displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
@@ -14779,7 +14780,7 @@ const skill = [
             const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
             displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
             await sleep(200);
-            applySubstitute(skillUser, randomTarget, false, false, true); // isBoogieをtrueで
+            applySubstitute(skillUser, randomTarget, false, false, true); // isBoogie(光の波動解除フラグ)をtrueで送る
             updateMonsterBuffsDisplay(skillUser);
           } else {
             displayMiss(skillUser);
@@ -18908,6 +18909,10 @@ async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso =
     delete monster.buffs.maso;
     debuffRemoved = true;
   }
+  // ひれつ強制みがわり中の場合、みがわりを解除
+  if (monster.flags.isSubstituting && monster.flags.isSubstituting.isBoogie) {
+    deleteSubstitute(monster);
+  }
 
   if (!debuffRemoved && !skipMissDisplay) {
     displayMiss(monster);
@@ -18987,9 +18992,14 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
   }
   // みがわり先をpush
   skillUser.flags.isSubstituting.targetMonsterId.push(skillTarget.monsterId);
+  // 覆う
   if (isCover) {
     skillTarget.flags.hasSubstitute.cover = true;
     skillUser.flags.isSubstituting.cover = true;
+  }
+  // ブギーフラグ(光の波動解除可能)
+  if (isBoogie) {
+    skillUser.flags.isSubstituting.isBoogie = true;
   }
   if (isAll) {
     displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
