@@ -2618,7 +2618,7 @@ async function processMonsterAction(skillUser) {
   // とくぎつかうな
   function decideAICommandNoSkillUse(skillUser) {
     const targetMonster = decideNormalAttackTarget(skillUser);
-    // もし返り値が反射持ちの場合、防御に設定
+    // 反射持ちをなるべく選択しないようにして選出された返り値さえ反射持ち(つまり全員反射持ち)の場合、防御に設定
     if (targetMonster && targetMonster.buffs.slashReflection && targetMonster.buffs.slashReflection.isKanta) {
       executingSkill = findSkillByName("ぼうぎょ");
     } else {
@@ -5866,7 +5866,7 @@ const monsters = [
       initialBuffs: {
         baiki: { strength: 2 },
         spdUp: { strength: 2 },
-        spellReflection: { strength: 1, removeAtTurnStart: true, duration: 4 }, // 混乱でも保持
+        spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, // 混乱でも保持
         mindBarrier: { duration: 2 },
         revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "竜の血に選ばれし者" },
       },
@@ -6998,6 +6998,29 @@ const monsters = [
     ls: { HP: 1.15, int: 1.15 },
     lsTarget: "悪魔",
     resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "妖魔軍王ブギー", //4
+    id: "boogie",
+    rank: 10,
+    race: ["悪魔"],
+    weight: 28,
+    status: { HP: 810, MP: 382, atk: 389, def: 499, spd: 438, int: 466 },
+    initialSkill: ["ブギウギステップ", "ひれつなさくせん", "スパークふんしゃ", "ギガ・マホトラ"],
+    anotherSkills: ["たつまき"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { keepOnDeath: true },
+        spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true },
+        spdUp: { strength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1.5, dark: -1, poisoned: 0.5, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "フォロボシータ", //最強 (最強増分213022)
@@ -14752,6 +14775,33 @@ const skill = [
     appliedEffect: { fear: { probability: 0.26 } },
   },
   {
+    name: "ブギウギステップ",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 207,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 75,
+    appliedEffect: { fear: { probability: 0.25 } }, // 推測確率
+  },
+  {
+    name: "たつまき",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 90,
+    maxInt: 500,
+    maxIntDamage: 201,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    appliedEffect: { confused: { probability: 0.2 } }, // 推測確率
+  },
+  {
     name: "ひれつなさくせん",
     type: "martial",
     howToCalculate: "none",
@@ -19980,6 +20030,8 @@ function isSkillUnavailableForAI(skillName) {
     "バイオスタンプ",
     "覇者の竜牙",
     "第三の瞳",
+    "ギガ・マホトラ",
+    "ギガ・マホヘル",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
