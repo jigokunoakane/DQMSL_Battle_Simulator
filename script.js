@@ -1591,8 +1591,15 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if ((barrierMap[buffName] && buffTarget.buffs[barrierMap[buffName]]) || (buffName === "stoned" && fieldState.stonedBlock)) {
         continue;
       }
-      //既にほかの行動停止系状態異常にかかっているかつ新規バフがfear, tempted, sealedのときは付与しない ただし封印によるマインド上書きは例外
-      if (!(buffTarget.buffs.fear && buffName === "sealed") && (buffName === "fear" || buffName === "tempted" || buffName === "sealed") && hasAbnormality(buffTarget)) {
+      //既にほかの行動停止系状態異常にかかっているかつ新規バフがfear, tempted, sealedのときは付与しない ただし封印による行動停止上書きは例外
+      const buffsToCheck = buffTarget.buffs;
+      const hasOtherAbnormality = buffsToCheck.paralyzed || buffsToCheck.asleep || buffsToCheck.confused || buffsToCheck.tempted || buffsToCheck.sealed;
+      // 行動停止 魅了の場合、どれかひとつでも所持している時点で失敗
+      if ((buffName === "fear" || buffName === "tempted") && (hasOtherAbnormality || buffsToCheck.fear)) {
+        continue;
+      }
+      // 封印の場合、fear以外の状態異常所持時は失敗 fearのみ上書き
+      if (buffName === "sealed" && hasOtherAbnormality) {
         continue;
       }
       //耐性を参照して確率判定
@@ -3028,6 +3035,7 @@ function hasAbnormality(monster) {
     fear: "動きを ふうじられている！",
     tempted: "動きを ふうじられている！",
     sealed: "動きを ふうじられている！",
+    boogieCurseSubstituting: "動きを ふうじられている！",
   };
 
   for (const key in abnormalityMessages) {
@@ -10645,7 +10653,7 @@ const skill = [
       3: 4,
       4: 5,
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
         return "ツイスター下位";
@@ -11302,6 +11310,7 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "特性発動用におうだち",
@@ -11314,6 +11323,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, null, true);
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "大樹の守り",
@@ -11347,7 +11357,7 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "みがわり・マインドバリア",
@@ -11366,7 +11376,7 @@ const skill = [
       await sleep(100);
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "真・ハーケンディストール",
@@ -12755,7 +12765,7 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { slashBarrier: { strength: 1 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "いてつくゆきだま",
@@ -12851,6 +12861,7 @@ const skill = [
         applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
       }
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "みかわしのひやく",
@@ -13643,7 +13654,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "闇の紋章",
@@ -14636,6 +14647,7 @@ const skill = [
         applySubstitute(skillUser, null, true);
       }
     },
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
   },
   {
     name: "フローズンスペル",
@@ -14738,6 +14750,45 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 58,
     appliedEffect: { fear: { probability: 0.26 } },
+  },
+  {
+    name: "ひれつなさくせん",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 32,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    appliedEffect: { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } }, // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
+      displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
+      skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
+        name: "ひれつなさくせんみがわり実行",
+        disableMessage: true,
+        unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
+        act: async function (skillUser) {
+          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+          // 状態異常でない場合のみみがわり実行
+          if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
+            const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+            displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
+            await sleep(200);
+            applySubstitute(skillUser, randomTarget, false, false, true); // isBoogieをtrueで
+            updateMonsterBuffsDisplay(skillUser);
+          } else {
+            displayMiss(skillUser);
+          }
+          // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
+          applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
+        },
+      });
+    },
   },
   {
     name: "ヘブンリーブレス",
@@ -15365,7 +15416,7 @@ const skill = [
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
           await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, true, null);
-        }, // 体技封じ無効 状態異常でも実行するかは不明 todo:物質限定化
+        }, // 体技封じ無効 状態異常でも実行するかは不明 todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
       });
     },
   },
@@ -18895,7 +18946,7 @@ async function executeWave(monster, isDivine = false, isDamageExisting = false) 
 }
 
 // みがわり系の処理
-function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false) {
+function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false, isBoogie = false) {
   // 自分がみがわりや仁王・覆う中は発動しない isAllの場合for文内の途中でisSubstitutingが付与されるので、あらかじめここで弾く
   // 仁王立ち後のみがわりは使用者targetともに外れてないとreturn 覆う中の仁王は覆う・覆われ以外に対して仁王付与
   if (skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute) {
@@ -18903,15 +18954,15 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false)
   }
   if (isAll) {
     for (const target of parties[skillUser.teamID]) {
-      processSubstitute(skillUser, target, isAll, isCover);
+      processSubstitute(skillUser, target, isAll, isCover, isBoogie);
     }
   } else {
-    processSubstitute(skillUser, skillTarget, isAll, isCover);
+    processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie);
   }
 }
 
 // みがわり系の付与
-function processSubstitute(skillUser, skillTarget, isAll, isCover) {
+function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
   // processを経ていないので石化判定なども実行
   if (
     skillTarget.flags.isDead ||
@@ -18943,6 +18994,8 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover) {
   if (isAll) {
     displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
     updateMonsterBuffsDisplay(skillTarget); // isallのときだけfieldなので必要
+  } else {
+    displayMessage(`${skillTarget.name}は`, "敵の行動をうけなくなった！");
   }
 }
 
