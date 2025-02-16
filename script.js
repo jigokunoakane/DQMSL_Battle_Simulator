@@ -2414,231 +2414,16 @@ async function processMonsterAction(skillUser) {
     return;
   }
 
-  // AIの場合変更されるのでここで定義
-  let executingSkill = findSkillByName(skillUser.commandInput);
+  let executingSkill;
 
-  function decideAICommandShowNoMercy(skillUser) {
-    const availableSkills = [];
-    const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
-    if (validTargets.length === 0) {
-      return;
-    } else {
-      validTargets.sort((a, b) => {
-        const ratioA = a.currentStatus.HP / a.defaultStatus.HP;
-        const ratioB = b.currentStatus.HP / b.defaultStatus.HP;
-        return ratioA === ratioB ? a.currentStatus.HP - b.currentStatus.HP : ratioA - ratioB;
-      });
-    }
-
-    for (const skillName of skillUser.skill) {
-      const skillInfo = findSkillByName(skillName);
-
-      if (
-        !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
-        isSkillUnavailableForAI(skillName) ||
-        (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
-        skillUser.flags.unavailableSkills.includes(skillName) ||
-        skillUser.disabledSkillsByPlayer.includes(skillName) ||
-        !hasEnoughMpForSkill(skillUser, skillInfo) ||
-        skillInfo.howToCalculate === "none" ||
-        skillInfo.targetTeam !== "enemy"
-      ) {
-        continue;
-      }
-
-      let killableCount = 0;
-      let totalDamage = 0;
-      let target = null;
-      let skipSkill = false; // Flag to skip the current skill
-
-      // allの場合 killableCountとtotalDamageは累計 targetは未指定
-      if (skillInfo.targetType === "all") {
-        for (const target of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo);
-          // ひとつでも吸収反射ならばbreak後に次skillにcontinue
-          if (resistance < 0 || isSkillReflected(skillInfo, target)) {
-            skipSkill = true;
-            break;
-          }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, target, resistance, true, true, false, null, 1, null);
-          const damage = damagePerHit * (skillInfo.hitNum || 1);
-          totalDamage += damage;
-          if (damage >= target.currentStatus.HP) {
-            killableCount++;
-          }
-        }
-      } else {
-        // single randomの場合 killableCountとtotalDamageは個別 target指定
-        let bestTargetDamage = 0;
-        for (const potentialTarget of validTargets) {
-          const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted, skillInfo);
-          if (resistance < 0 || isSkillReflected(skillInfo, potentialTarget)) {
-            // randomの場合、ひとつでも吸収反射ならばbreak後に次skillにcontinue
-            if (skillInfo.targetType === "random") {
-              skipSkill = true;
-              break;
-            }
-            continue;
-          }
-          // 倒せる敵を最終決定済の場合、反射吸収判定だけループを継続してランダム特技の使用禁止条件をcheck
-          if (killableCount === 1) {
-            continue;
-          }
-          const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, 1, null);
-          const damage = damagePerHit * (skillInfo.hitNum || 1);
-
-          // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
-          if (damage >= potentialTarget.currentStatus.HP) {
-            killableCount = 1;
-            totalDamage = damage; // killableCountは最大で1 totalDamageは個別
-            target = potentialTarget;
-          } else if (damage > bestTargetDamage) {
-            // 倒せない場合 これまでのbestTargetDamageより大きければ更新して次の判定へ 初回は0なのでダメージが通りさえすれば確定更新
-            bestTargetDamage = damage;
-            totalDamage = bestTargetDamage;
-            target = potentialTarget;
-          }
-        }
-
-        // singleで、もし全てのpotentialTargetに対して反射吸収によるcontinueし続けたならば
-        if (!target) {
-          skipSkill = true;
-        }
-      }
-
-      // 次skillに移行
-      if (skipSkill) continue;
-      // 全ての相手にダメージが通らない場合 (allの累計が0 または single randomで個別の相手に対するdamageが全ての0) 通常攻撃のほうがダメージが出るのでcontinue
-      if (killableCount === 0 && totalDamage === 0) continue;
-
-      availableSkills.push({
-        skillInfo,
-        killableCount,
-        totalDamage,
-        target,
-      });
-    }
-
-    availableSkills.sort((a, b) => {
-      if (a.killableCount !== b.killableCount) {
-        return b.killableCount - a.killableCount;
-      } else {
-        return b.totalDamage - a.totalDamage;
-      }
-    });
-
-    if (availableSkills.length > 0) {
-      const bestSkill = availableSkills[0];
-      executingSkill = bestSkill.skillInfo;
-      skillUser.commandTargetInput = bestSkill.target ? bestSkill.target.index : null;
-    } else {
-      // 全部ダメなら通常攻撃
-      decideAICommandNoSkillUse(skillUser);
-    }
-  }
-
-  function decideAICommandFocusOnHeal(skillUser) {
-    const availableReviveSkills = [];
-    const availableAllHealSkills = [];
-    const availableSingleHealSkills = [];
-    for (const skillName of skillUser.skill) {
-      const skillInfo = findSkillByName(skillName);
-      // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
-      if (
-        !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
-        isSkillUnavailableForAI(skillName) ||
-        (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
-        skillUser.flags.unavailableSkills.includes(skillName) ||
-        skillUser.disabledSkillsByPlayer.includes(skillName) ||
-        // unavailableIfは様子見
-        !hasEnoughMpForSkill(skillUser, skillInfo)
-      ) {
-        continue;
-      }
-      // 分けて格納
-      if (skillInfo.targetType === "dead") {
-        availableReviveSkills.push(skillInfo);
-      } else if (skillInfo.healSkill && skillInfo.targetType === "all") {
-        availableAllHealSkills.push(skillInfo);
-      } else if (skillInfo.healSkill) {
-        availableSingleHealSkills.push(skillInfo); //randomも可能性はある
-      }
-    }
-    // 蘇生技所持時 かつ 蘇生target存在時に蘇生を指定
-    if (availableReviveSkills.length > 0) {
-      const validTargets = parties[skillUser.teamID].filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
-      let fastestTarget = null;
-      // validTargetsが存在するとき、targetを決定してそこに蘇生技を打ってreturn
-      if (validTargets.length > 0) {
-        fastestTarget = validTargets[0];
-        for (let i = 1; i < validTargets.length; i++) {
-          // ランクが高い または 同ランクかつ素早さが高い場合更新
-          if (validTargets[i].rank > fastestTarget.rank) {
-            fastestTarget = validTargets[i];
-          } else if (validTargets[i].rank === fastestTarget.rank && validTargets[i].modifiedSpeed > fastestTarget.modifiedSpeed) {
-            fastestTarget = validTargets[i];
-          }
-        }
-        // 決定したtargetに蘇生技を撃つ commandInputはそのまま
-        executingSkill = availableReviveSkills[0];
-        skillUser.commandTargetInput = fastestTarget.index;
-        return;
-      }
-    }
-    // 蘇生技未所持 または 有効なtargetがいなかった場合
-    const validHealTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.currentStatus.HP !== monster.defaultStatus.HP);
-    // 回復可能な味方がいる場合は回復技を撃つ
-    if (validHealTargets.length > 0) {
-      // 全体回復技所持時はそれを選んでreturn
-      if (availableAllHealSkills.length > 0) {
-        executingSkill = availableAllHealSkills[0];
-        return;
-      }
-      // 単体乱打回復技所持時
-      if (availableSingleHealSkills.length > 0) {
-        let lowestTarget = null;
-        lowestTarget = validHealTargets[0];
-        for (let i = 1; i < validHealTargets.length; i++) {
-          const currentTarget = validHealTargets[i];
-          // 最低値のmonsterに更新
-          if (currentTarget.currentStatus.HP / currentTarget.defaultStatus.HP < lowestTarget.currentStatus.HP / lowestTarget.defaultStatus.HP) {
-            lowestTarget = currentTarget;
-          }
-        }
-        // 決定したtargetに回復技を撃つ commandInputはそのまま
-        executingSkill = availableSingleHealSkills[0];
-        skillUser.commandTargetInput = lowestTarget.index;
-        return;
-      }
-    }
-    // 全部ダメなら通常攻撃
-    decideAICommandNoSkillUse(skillUser);
-  }
-
-  // とくぎつかうな
-  function decideAICommandNoSkillUse(skillUser) {
-    const targetMonster = decideNormalAttackTarget(skillUser);
-    // 反射持ちをなるべく選択しないようにして選出された返り値さえ反射持ち(つまり全員反射持ち)の場合、防御に設定
-    if (targetMonster && targetMonster.buffs.slashReflection && targetMonster.buffs.slashReflection.isKanta) {
-      executingSkill = findSkillByName("ぼうぎょ");
-    } else {
-      // それ以外の場合は通常攻撃を選択
-      executingSkill = findSkillByName(getNormalAttackName(skillUser));
-      skillUser.commandTargetInput = targetMonster ? targetMonster.index : null;
-    }
-  }
-
-  // 状態異常判定をクリア後、normalAICommandの場合はAIタイプごとに応じて特技を設定
+  // 状態異常判定をクリア後、normalAICommandの場合はAIタイプごとに応じて特技とtargetを設定
   if (skillUser.commandInput === "normalAICommand") {
-    if (skillUser.currentAiType === "いのちだいじに") {
-      decideAICommandFocusOnHeal(skillUser);
-      col(`AIいのちで${executingSkill.name}を選択`);
-    } else if (skillUser.currentAiType === "ガンガンいこうぜ") {
-      decideAICommandShowNoMercy(skillUser);
-      col(`AIガンガンで${executingSkill.name}を選択`);
-    } else if (skillUser.currentAiType === "とくぎつかうな") {
-      decideAICommandNoSkillUse(skillUser);
-    }
+    const result = getMonsterAiCommand(skillUser);
+    executingSkill = result[0];
+    skillUser.commandTargetInput = result[1] ? result[1].index : null;
+    col(`AI${skillUser.currentAiType}で${executingSkill.name}を選択`);
+  } else {
+    executingSkill = findSkillByName(skillUser.commandInput);
   }
 
   if (executingSkill.name === "ぼうぎょ") {
@@ -3007,6 +2792,227 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(200); //多め
       return; // 1つだけ実行
     }
+  }
+}
+
+function decideAICommandShowNoMercy(skillUser) {
+  const availableSkills = [];
+  const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+  if (validTargets.length === 0) {
+    return [null, null];
+  } else {
+    validTargets.sort((a, b) => {
+      const ratioA = a.currentStatus.HP / a.defaultStatus.HP;
+      const ratioB = b.currentStatus.HP / b.defaultStatus.HP;
+      return ratioA === ratioB ? a.currentStatus.HP - b.currentStatus.HP : ratioA - ratioB;
+    });
+  }
+
+  for (const skillName of skillUser.skill) {
+    const skillInfo = findSkillByName(skillName);
+
+    if (
+      !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
+      isSkillUnavailableForAI(skillName) ||
+      (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
+      skillUser.flags.unavailableSkills.includes(skillName) ||
+      skillUser.disabledSkillsByPlayer.includes(skillName) ||
+      !hasEnoughMpForSkill(skillUser, skillInfo) ||
+      skillInfo.howToCalculate === "none" ||
+      skillInfo.targetTeam !== "enemy"
+    ) {
+      continue;
+    }
+
+    let killableCount = 0;
+    let totalDamage = 0;
+    let target = null;
+    let skipSkill = false; // Flag to skip the current skill
+
+    // allの場合 killableCountとtotalDamageは累計 targetは未指定
+    if (skillInfo.targetType === "all") {
+      for (const target of validTargets) {
+        const resistance = calculateResistance(skillUser, skillInfo.element, target, fieldState.isDistorted, skillInfo);
+        // ひとつでも吸収反射ならばbreak後に次skillにcontinue
+        if (resistance < 0 || isSkillReflected(skillInfo, target)) {
+          skipSkill = true;
+          break;
+        }
+        const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, target, resistance, true, true, false, null, 1, null);
+        const damage = damagePerHit * (skillInfo.hitNum || 1);
+        totalDamage += damage;
+        if (damage >= target.currentStatus.HP) {
+          killableCount++;
+        }
+      }
+    } else {
+      // single randomの場合 killableCountとtotalDamageは個別 target指定
+      let bestTargetDamage = 0;
+      for (const potentialTarget of validTargets) {
+        const resistance = calculateResistance(skillUser, skillInfo.element, potentialTarget, fieldState.isDistorted, skillInfo);
+        if (resistance < 0 || isSkillReflected(skillInfo, potentialTarget)) {
+          // randomの場合、ひとつでも吸収反射ならばbreak後に次skillにcontinue
+          if (skillInfo.targetType === "random") {
+            skipSkill = true;
+            break;
+          }
+          continue;
+        }
+        // 倒せる敵を最終決定済の場合、反射吸収判定だけループを継続してランダム特技の使用禁止条件をcheck
+        if (killableCount === 1) {
+          continue;
+        }
+        const { damage: damagePerHit } = calculateDamage(skillUser, skillUser, skillInfo, potentialTarget, resistance, true, true, false, null, 1, null);
+        const damage = damagePerHit * (skillInfo.hitNum || 1);
+
+        // 倒せる場合 既にHP低い順にsortされているので、このpotentialTargetに最終決定 ただしランダム特技の反射吸収防止のため、breakはせず反射吸収判定のみ継続
+        if (damage >= potentialTarget.currentStatus.HP) {
+          killableCount = 1;
+          totalDamage = damage; // killableCountは最大で1 totalDamageは個別
+          target = potentialTarget;
+        } else if (damage > bestTargetDamage) {
+          // 倒せない場合 これまでのbestTargetDamageより大きければ更新して次の判定へ 初回は0なのでダメージが通りさえすれば確定更新
+          bestTargetDamage = damage;
+          totalDamage = bestTargetDamage;
+          target = potentialTarget;
+        }
+      }
+
+      // singleで、もし全てのpotentialTargetに対して反射吸収によるcontinueし続けたならば
+      if (!target) {
+        skipSkill = true;
+      }
+    }
+
+    // 次skillに移行
+    if (skipSkill) continue;
+    // 全ての相手にダメージが通らない場合 (allの累計が0 または single randomで個別の相手に対するdamageが全ての0) 通常攻撃のほうがダメージが出るのでcontinue
+    if (killableCount === 0 && totalDamage === 0) continue;
+
+    availableSkills.push({
+      skillInfo,
+      killableCount,
+      totalDamage,
+      target,
+    });
+  }
+
+  availableSkills.sort((a, b) => {
+    if (a.killableCount !== b.killableCount) {
+      return b.killableCount - a.killableCount;
+    } else {
+      return b.totalDamage - a.totalDamage;
+    }
+  });
+
+  if (availableSkills.length > 0) {
+    const bestSkill = availableSkills[0];
+    return [bestSkill.skillInfo, bestSkill.target];
+  } else {
+    // 全部ダメなら通常攻撃
+    return decideAICommandNoSkillUse(skillUser);
+  }
+}
+
+function decideAICommandFocusOnHeal(skillUser) {
+  let executingSkill = null;
+  const availableReviveSkills = [];
+  const availableAllHealSkills = [];
+  const availableSingleHealSkills = [];
+  for (const skillName of skillUser.skill) {
+    const skillInfo = findSkillByName(skillName);
+    // 除外条件のいずれかを満たすとき次へ送る 蘇生か回復技のみに選定
+    if (
+      !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
+      isSkillUnavailableForAI(skillName) ||
+      (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
+      skillUser.flags.unavailableSkills.includes(skillName) ||
+      skillUser.disabledSkillsByPlayer.includes(skillName) ||
+      // unavailableIfは様子見
+      !hasEnoughMpForSkill(skillUser, skillInfo)
+    ) {
+      continue;
+    }
+    // 分けて格納
+    if (skillInfo.targetType === "dead") {
+      availableReviveSkills.push(skillInfo);
+    } else if (skillInfo.healSkill && skillInfo.targetType === "all") {
+      availableAllHealSkills.push(skillInfo);
+    } else if (skillInfo.healSkill) {
+      availableSingleHealSkills.push(skillInfo); //randomも可能性はある
+    }
+  }
+  // 蘇生技所持時 かつ 蘇生target存在時に蘇生を指定
+  if (availableReviveSkills.length > 0) {
+    const validTargets = parties[skillUser.teamID].filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
+    let fastestTarget = null;
+    // validTargetsが存在するとき、targetを決定してそこに蘇生技を打ってreturn
+    if (validTargets.length > 0) {
+      fastestTarget = validTargets[0];
+      for (let i = 1; i < validTargets.length; i++) {
+        // ランクが高い または 同ランクかつ素早さが高い場合更新
+        if (validTargets[i].rank > fastestTarget.rank) {
+          fastestTarget = validTargets[i];
+        } else if (validTargets[i].rank === fastestTarget.rank && validTargets[i].modifiedSpeed > fastestTarget.modifiedSpeed) {
+          fastestTarget = validTargets[i];
+        }
+      }
+      // 決定したtargetに蘇生技を撃つ commandInputはそのまま
+      executingSkill = availableReviveSkills[0];
+      return [executingSkill, fastestTarget];
+    }
+  }
+  // 蘇生技未所持 または 有効なtargetがいなかった場合
+  const validHealTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.currentStatus.HP !== monster.defaultStatus.HP);
+  // 回復可能な味方がいる場合は回復技を撃つ
+  if (validHealTargets.length > 0) {
+    // 全体回復技所持時はそれを選んでreturn
+    if (availableAllHealSkills.length > 0) {
+      executingSkill = availableAllHealSkills[0];
+      return [executingSkill, null];
+    }
+    // 単体乱打回復技所持時
+    if (availableSingleHealSkills.length > 0) {
+      let lowestTarget = null;
+      lowestTarget = validHealTargets[0];
+      for (let i = 1; i < validHealTargets.length; i++) {
+        const currentTarget = validHealTargets[i];
+        // 最低値のmonsterに更新
+        if (currentTarget.currentStatus.HP / currentTarget.defaultStatus.HP < lowestTarget.currentStatus.HP / lowestTarget.defaultStatus.HP) {
+          lowestTarget = currentTarget;
+        }
+      }
+      // 決定したtargetに回復技を撃つ commandInputはそのまま
+      executingSkill = availableSingleHealSkills[0];
+      return [executingSkill, lowestTarget];
+    }
+  }
+  // 全部ダメなら通常攻撃
+  return decideAICommandNoSkillUse(skillUser);
+}
+
+// とくぎつかうな
+function decideAICommandNoSkillUse(skillUser) {
+  let executingSkill;
+  let targetMonster = decideNormalAttackTarget(skillUser);
+  // 反射持ちをなるべく選択しないようにして選出された返り値さえ反射持ち(つまり全員反射持ち)の場合、防御に設定
+  if (targetMonster && targetMonster.buffs.slashReflection && targetMonster.buffs.slashReflection.isKanta) {
+    executingSkill = findSkillByName("ぼうぎょ");
+    targetMonster = null;
+  } else {
+    // それ以外の場合は通常攻撃を選択 targetはそのまま
+    executingSkill = findSkillByName(getNormalAttackName(skillUser));
+  }
+  return [executingSkill, targetMonster];
+}
+
+function getMonsterAiCommand(skillUser) {
+  if (skillUser.currentAiType === "いのちだいじに") {
+    return decideAICommandFocusOnHeal(skillUser);
+  } else if (skillUser.currentAiType === "ガンガンいこうぜ") {
+    return decideAICommandShowNoMercy(skillUser);
+  } else if (skillUser.currentAiType === "とくぎつかうな") {
+    return decideAICommandNoSkillUse(skillUser);
   }
 }
 
