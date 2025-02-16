@@ -2560,7 +2560,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
   // 7-3. AI追撃処理 処理全体の実行前に初回skip確認
   if (skillUser.AINormalAttack && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && !hasAbnormality(skillUser)) {
-    const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良"];
+    const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良", "しはいのさくせん"];
     if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
       let attackTimes =
         skillUser.AINormalAttack.length === 1
@@ -14837,6 +14837,8 @@ const skill = [
     appliedEffect: { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } },
     // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
     act: async function (skillUser, skillTarget) {
+      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
+      await sleep(130);
       if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
       displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
       skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
@@ -18947,6 +18949,7 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/darkBuffstr0.2.png",
     "images/buffIcons/protectiondivineDispellablestr0.4.png",
     "images/buffIcons/protectiondivineDispellablestr0.34.png",
+    "images/buffIcons/aiPursuitCommand.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
@@ -19382,6 +19385,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     worldBuff: {
       start: `${buffTarget.name}の`,
       message: "与えるダメージが 上がった！",
+    },
+    aiPursuitCommand: {
+      start: `${buffTarget.name}は 次の`,
+      message: "AI行動で とくぎを使うようになった！",
     },
   };
 
