@@ -2577,8 +2577,6 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       }
       for (let i = 0; i < attackTimes; i++) {
         await sleep(270); // 追撃ごとに待機時間
-        displayMessage(`${skillUser.name}の攻撃！`);
-        await sleep(130);
         // 追撃の種類とtargetを決定
         let pursuitSkillInfo = findSkillByName(getNormalAttackName(skillUser));
         let pursuitTarget = decideNormalAttackTarget(skillUser);
@@ -2588,10 +2586,16 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
           pursuitSkillInfo = result[0];
           pursuitTarget = result[1];
           col(`${skillUser.name}の追撃${i + 1}回目(さくせん行動) AI${skillUser.currentAiType}により${pursuitSkillInfo.name}で追撃`);
+          // MP消費(MP不足の特技はAI選択内で弾かれているので、単純にMP消費のみ実行)
+          const MPcost = calculateMPcost(skillUser, pursuitSkillInfo);
+          skillUser.currentStatus.MP -= MPcost;
+          updateMonsterBar(skillUser);
         } else {
           col(`${skillUser.name}の追撃${i + 1}回目 ${pursuitSkillInfo.name}で追撃`);
         }
 
+        displayMessage(`${skillUser.name}の攻撃！`);
+        await sleep(130);
         // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
         await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, null);
         // skill実行完了のたびに確認
