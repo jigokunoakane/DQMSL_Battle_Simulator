@@ -4392,6 +4392,28 @@ function calculateDamage(
   if (allyLeaderName === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
   }
+  // そしでんLS 呪文デインup
+  if (allyLeaderName === "そして伝説へ") {
+    if (executingSkill.type === "spell") {
+      damageModifier += 0.2;
+    }
+    if (executingSkill.element === "light") {
+      damageModifier += 0.2;
+    }
+  }
+  // バーンLS 呪文up
+  if (allyLeaderName === "魔界の神バーン" && executingSkill.type === "spell") {
+    damageModifier += 0.25;
+  }
+  // レザームLS 息・乱打up
+  if (allyLeaderName === "支配王レゾム・レザーム") {
+    if (executingSkill.type === "breath") {
+      damageModifier += 0.25;
+    }
+    if (executingSkill.targetType === "random") {
+      damageModifier += 0.1;
+    }
+  }
   // ラザマLS ゾンビ斬撃息up
   if (allyLeaderName === "ラザマナス" && skillUser.race.includes("ゾンビ") && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
     damageModifier += 0.1;
