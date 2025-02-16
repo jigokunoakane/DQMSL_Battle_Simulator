@@ -2576,14 +2576,24 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         await sleep(300);
       }
       for (let i = 0; i < attackTimes; i++) {
-        await sleep(300); // 追撃ごとに待機時間
-        console.log(`${skillUser.name}は通常攻撃で追撃！`);
+        await sleep(270); // 追撃ごとに待機時間
         displayMessage(`${skillUser.name}の攻撃！`);
-        await sleep(100);
-        // 追撃の種類を決定
-        let NormalAttackName = getNormalAttackName(skillUser);
+        await sleep(130);
+        // 追撃の種類とtargetを決定
+        let pursuitSkillInfo = findSkillByName(getNormalAttackName(skillUser));
+        let pursuitTarget = decideNormalAttackTarget(skillUser);
+        // 通常攻撃が変化していない場合のみ、さくせん行動判定をして上書き
+        if (pursuitSkillInfo.name === "通常攻撃" && skillUser.buffs.aiPursuitCommand) {
+          const result = getMonsterAiCommand(skillUser);
+          pursuitSkillInfo = result[0];
+          pursuitTarget = result[1];
+          col(`${skillUser.name}の追撃${i + 1}回目(さくせん行動) AI${skillUser.currentAiType}により${pursuitSkillInfo.name}で追撃`);
+        } else {
+          col(`${skillUser.name}の追撃${i + 1}回目 ${pursuitSkillInfo.name}で追撃`);
+        }
+
         // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
-        await executeSkill(skillUser, findSkillByName(NormalAttackName), decideNormalAttackTarget(skillUser), false, damagedMonsters, true, false, null);
+        await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, null);
         // skill実行完了のたびに確認
         if (isBattleOver()) {
           return; // 毒や継続を実行せず即時return
