@@ -2494,21 +2494,8 @@ async function processMonsterAction(skillUser) {
   }
 
   // 6. スキル実行処理
-  console.log(`${skillUser.name}は${executingSkill.name}を使った！`);
-  const skillName = executingSkill.displayName || executingSkill.name;
-  if (executingSkill.specialMessage) {
-    executingSkill.specialMessage(skillUser.name, skillName);
-  } else if (executingSkill.type === "spell") {
-    displayMessage(`${skillUser.name}は`, `${skillName}を となえた！`);
-  } else if (executingSkill.type === "slash") {
-    displayMessage(`${skillUser.name}は`, `${skillName}を はなった！`);
-  } else if (executingSkill.name === "ぼうぎょ") {
-    displayMessage(`${skillUser.name}は身を守っている！`);
-  } else if (executingSkill.type === "notskill") {
-    displayMessage(`${skillUser.name}の攻撃！`);
-  } else {
-    displayMessage(`${skillUser.name}の`, `${skillName}！`);
-  }
+  console.log(`${skillUser.name}のコマンド行動: ${executingSkill.name}を使用`);
+  displaySkillExecutionMessage(skillUser, executingSkill);
   if (executingSkill.name === "ぼうぎょ") {
     await sleep(40); // スキル実行前に待機時間を設ける
   } else {
@@ -2534,6 +2521,23 @@ async function processMonsterAction(skillUser) {
   }
 
   await postActionProcess(skillUser, executingSkill, executedSkills, damagedMonsters);
+}
+
+function displaySkillExecutionMessage(skillUser, executingSkill) {
+  const skillName = executingSkill.displayName || executingSkill.name;
+  if (executingSkill.specialMessage) {
+    executingSkill.specialMessage(skillUser.name, skillName);
+  } else if (executingSkill.type === "spell") {
+    displayMessage(`${skillUser.name}は`, `${skillName}を となえた！`);
+  } else if (executingSkill.type === "slash") {
+    displayMessage(`${skillUser.name}は`, `${skillName}を はなった！`);
+  } else if (executingSkill.name === "ぼうぎょ") {
+    displayMessage(`${skillUser.name}は身を守っている！`);
+  } else if (executingSkill.type === "notskill") {
+    displayMessage(`${skillUser.name}の攻撃！`);
+  } else {
+    displayMessage(`${skillUser.name}の`, `${skillName}！`);
+  }
 }
 
 // 行動後処理  正常実行後だけでなく 状態異常 特技封じ MP不足等executingSkill未実行でnullの時にerrorにならないよう注意 特にunavailableIf
@@ -2585,17 +2589,20 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
           const result = getMonsterAiCommand(skillUser);
           pursuitSkillInfo = result[0];
           pursuitTarget = result[1];
-          col(`${skillUser.name}の追撃${i + 1}回目(さくせん行動) AI${skillUser.currentAiType}により${pursuitSkillInfo.name}で追撃`);
           // MP消費(MP不足の特技はAI選択内で弾かれているので、単純にMP消費のみ実行)
           const MPcost = calculateMPcost(skillUser, pursuitSkillInfo);
           skillUser.currentStatus.MP -= MPcost;
           updateMonsterBar(skillUser);
+          // さくせん行動は特殊message表示
+          displaySkillExecutionMessage(skillUser, pursuitSkillInfo);
+          col(`${skillUser.name}の追撃${i + 1}回目(さくせん行動) AI${skillUser.currentAiType}により${pursuitSkillInfo.name}で追撃`);
+          await sleep(120);
         } else {
+          displayMessage(`${skillUser.name}の攻撃！`);
           col(`${skillUser.name}の追撃${i + 1}回目 ${pursuitSkillInfo.name}で追撃`);
         }
 
-        displayMessage(`${skillUser.name}の攻撃！`);
-        await sleep(130);
+        await sleep(150);
         // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
         await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, null);
         // skill実行完了のたびに確認
