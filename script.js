@@ -4083,15 +4083,15 @@ function calculateDamage(
   //力溜め系 カンタ系で反射して撃っているとき無効化
   if (!(isReflection && reflectionType === "kanta")) {
     //魔力覚醒 int依存以外も増加
-    if (!executingSkill.ignoreManaBoost && executingSkill.type === "spell") {
+    if (!executingSkill.ignoreManaBoost && executingSkill.type === "spell" && !executingSkill.MPDamageRatio) {
       if (skillUser.buffs.manaBoost) {
         damage *= skillUser.buffs.manaBoost.strength;
       } else if (skillUser.buffs.manaReduction) {
         damage *= skillUser.buffs.manaReduction.strength;
       }
     }
-    //力ため 斬撃体技踊りまたはatk依存(通常攻撃)
-    if (!executingSkill.ignorePowerCharge && (executingSkill.howToCalculate === "atk" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")) {
+    //力ため 斬撃体技踊りまたは通常攻撃(現状全ての通常攻撃変化に有効)
+    if (!executingSkill.ignorePowerCharge && (executingSkill.type === "notskill" || executingSkill.type === "slash" || executingSkill.type === "martial" || executingSkill.type === "dance")) {
       if (skillUser.buffs.powerCharge) {
         damage *= skillUser.buffs.powerCharge.strength;
       } else if (skillUser.buffs.powerWeaken) {
