@@ -3223,6 +3223,9 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   const validPerpetrator = perpetrator && target.teamID !== perpetrator.teamID ? perpetrator : null;
   target.flags.perpetrator = validPerpetrator;
 
+  // 死亡時のバフを記録 都度更新
+  target.flags.buffKeysOnDeath = Object.keys(target.buffs);
+
   ++fieldState.deathCount[target.teamID];
   // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
   if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock)) {
@@ -6358,8 +6361,11 @@ const monsters = [
         windBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
       },
+      1: {
+        preemptiveAction: { duration: 2 },
+      },
       buffsFromTurn2: {
-        windBreakBoost: { strength: 1, maxStrength: 2 }, //神速
+        windBreakBoost: { strength: 1, maxStrength: 2 },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -14895,9 +14901,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
+      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
       // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
       applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
-      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
       await sleep(130);
       // ひれつ・支配を既に予約している場合は重複付与しない
       if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
@@ -14914,7 +14920,6 @@ const skill = [
             displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
             await sleep(200);
             applySubstitute(skillUser, randomTarget, false, false, true); // isBoogie(光の波動解除フラグ)をtrueで送る
-            updateMonsterBuffsDisplay(skillUser);
           } else {
             displayMiss(skillUser);
           }
@@ -14938,36 +14943,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
-      // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
-      applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
       applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
       await sleep(130);
-      // 支配を既に予約している場合は重複付与しない
-      if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "しはいのさくせんみがわり実行")) return;
-      // ひれつを既に予約している場合は削除
-      skillTarget.abilities.attackAbilities.nextTurnAbilities = skillTarget.abilities.attackAbilities.nextTurnAbilities.filter((ability) => ability.name !== "ひれつなさくせんみがわり実行");
-
-      displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
-      skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
-        name: "しはいのさくせんみがわり実行",
-        disableMessage: true,
-        unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
-        act: async function (skillUser) {
-          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
-          // 状態異常でない場合のみみがわり実行
-          if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
-            const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-            displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
-            await sleep(200);
-            applySubstitute(skillUser, randomTarget, false, false, true); // isBoogie(光の波動解除フラグ)をtrueで送る
-            updateMonsterBuffsDisplay(skillUser);
-          } else {
-            displayMiss(skillUser);
-          }
-          // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
-          applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
-        },
-      });
+      applyShihai(skillTarget);
     },
   },
   {
@@ -19218,6 +19196,7 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
   // ブギーフラグ(光の波動解除可能)
   if (isBoogie) {
     skillUser.flags.isSubstituting.isBoogie = true;
+    updateMonsterBuffsDisplay(skillTarget); // ブギーも必要
   }
   if (isAll) {
     displayMessage("モンスターたちは", "敵の行動をうけなくなった！");
@@ -21092,7 +21071,60 @@ function isWaveSkill(skillInfo) {
   return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
 }
 
-// AI変更
 document.getElementById("spdSetting").addEventListener("change", function (event) {
   waitMultiplier = Number(event.target.value);
 });
+
+function applyShihai(skillTarget, originalTarget = null) {
+  // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
+  applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
+  // 支配を既に予約している場合は重複付与しない
+  if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "しはいのさくせんみがわり実行")) return;
+  // ひれつを既に予約している場合は削除
+  skillTarget.abilities.attackAbilities.nextTurnAbilities = skillTarget.abilities.attackAbilities.nextTurnAbilities.filter((ability) => ability.name !== "ひれつなさくせんみがわり実行");
+
+  displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
+  // 次ターン行動停止&みがわり実行を付与
+  skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
+    name: "しはいのさくせんみがわり実行",
+    disableMessage: true,
+    unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
+    act: async function (skillUser) {
+      const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+      // 状態異常でない場合のみみがわり実行
+      if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
+        const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+        displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
+        await sleep(200);
+        applySubstitute(skillUser, randomTarget, false, false, true); // isBoogie(光の波動解除フラグ)をtrueで送る
+      } else {
+        displayMiss(skillUser);
+      }
+      // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
+      applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
+    },
+  });
+  // 死亡時転移を付与
+  if (!skillTarget.abilities.additionalDeathAbilities.some((ability) => ability.name === "しはいのさくせん転移")) {
+    skillTarget.abilities.additionalDeathAbilities.push({
+      name: "しはいのさくせん転移",
+      message: function (skillUser) {
+        displayMessage(`${skillUser.name} がチカラつき`, "しはいのさくせん の効果が発動！");
+      },
+      unavailableIf: (skillUser) => !skillUser.flags.buffKeysOnDeath.includes("boogieCurseSubstituting"), // みがわり実行ターン attackによるバフ付与後、死亡時にまだ保持していた場合のみ転移
+      act: async function (skillUser) {
+        const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillUser.monsterId);
+        if (aliveAllys.length > 0) {
+          const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
+          await sleep(130);
+          applyShihai(randomTarget, skillUser);
+        }
+      },
+    });
+  }
+  // 転移元が存在する場合、転移元から削除
+  if (originalTarget) {
+    originalTarget.abilities.attackAbilities.nextTurnAbilities = originalTarget.abilities.attackAbilities.nextTurnAbilities.filter((ability) => ability.name !== "しはいのさくせんみがわり実行");
+    originalTarget.abilities.additionalDeathAbilities = originalTarget.abilities.additionalDeathAbilities.filter((ability) => ability.name !== "しはいのさくせん転移");
+  }
+}
