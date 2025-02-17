@@ -6344,6 +6344,37 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1.5, poisoned: 1.5, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "支配王レゾム・レザーム", //44
+    id: "rezamu",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 831, MP: 418, atk: 353, def: 509, spd: 465, int: 539 },
+    initialSkill: ["怨念ノ凶風", "しはいのさくせん", "傀儡ノ調ベ", "カオスストーム"],
+    anotherSkills: ["苛烈な暴風"],
+    defaultGear: "lightCharm",
+    attribute: {
+      initialBuffs: {
+        windBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { keepOnDeath: true },
+      },
+      buffsFromTurn2: {
+        windBreakBoost: { strength: 1, maxStrength: 2 }, //神速
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: -1, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
+  },
+  {
     name: "真夏の女神クシャラミ", //44
     id: "natsukusha",
     rank: 10,
@@ -14863,11 +14894,12 @@ const skill = [
     ignoreSubstitute: true,
     order: "preemptive",
     preemptiveGroup: 8,
-    appliedEffect: { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } },
-    // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
     act: async function (skillUser, skillTarget) {
+      // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
+      applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
       applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
       await sleep(130);
+      // ひれつ・支配を既に予約している場合は重複付与しない
       if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
       displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
       skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
@@ -14891,6 +14923,90 @@ const skill = [
         },
       });
     },
+  },
+  {
+    name: "しはいのさくせん",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 52,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreSubstitute: true,
+    order: "preemptive",
+    preemptiveGroup: 8,
+    act: async function (skillUser, skillTarget) {
+      // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
+      applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
+      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
+      await sleep(130);
+      // 支配を既に予約している場合は重複付与しない
+      if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "しはいのさくせんみがわり実行")) return;
+      // ひれつを既に予約している場合は削除
+      skillTarget.abilities.attackAbilities.nextTurnAbilities = skillTarget.abilities.attackAbilities.nextTurnAbilities.filter((ability) => ability.name !== "ひれつなさくせんみがわり実行");
+
+      displayMessage(`${skillTarget.name}は`, "次のラウンドで 敵の みがわりになる！");
+      skillTarget.abilities.attackAbilities.nextTurnAbilities.push({
+        name: "しはいのさくせんみがわり実行",
+        disableMessage: true,
+        unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
+        act: async function (skillUser) {
+          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+          // 状態異常でない場合のみみがわり実行
+          if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
+            const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+            displayMessage(`${skillUser.name}は`, "敵の みがわりに なった！");
+            await sleep(200);
+            applySubstitute(skillUser, randomTarget, false, false, true); // isBoogie(光の波動解除フラグ)をtrueで送る
+            updateMonsterBuffsDisplay(skillUser);
+          } else {
+            displayMiss(skillUser);
+          }
+          // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
+          applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
+        },
+      });
+    },
+  },
+  {
+    name: "怨念ノ凶風",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      for (const monster of parties[skillUser.teamID]) {
+        applyBuff(monster, { breathCharge: { strength: 1.5 } });
+      }
+    },
+  },
+  {
+    name: "傀儡ノ調ベ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 40,
+    appliedEffect: { spdUp: { strength: -1 } },
+    followingSkill: "傀儡ノ調ベ後半",
+  },
+  {
+    name: "傀儡ノ調ベ後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { confused: { probability: 0.6333 } },
   },
   {
     name: "ヘブンリーブレス",
