@@ -6355,6 +6355,7 @@ const monsters = [
     weight: 32,
     status: { HP: 831, MP: 418, atk: 353, def: 509, spd: 465, int: 539 },
     initialSkill: ["怨念ノ凶風", "しはいのさくせん", "傀儡ノ調ベ", "カオスストーム"],
+    initialAIDisabledSkills: ["カオスストーム"],
     anotherSkills: ["苛烈な暴風"],
     defaultGear: "lightCharm",
     attribute: {
