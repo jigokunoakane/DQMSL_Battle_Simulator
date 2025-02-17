@@ -1219,8 +1219,7 @@ async function startTurn() {
       if (monster.buffs.countDown.count === 1) {
         displayMessage("死のカウントダウンの", "効果が 発動！");
         await sleep(100);
-        delete monster.buffs.countDown;
-        handleDeath(monster, false, true, null);
+        handleDeath(monster, false, true, null, true); // isCountDownをtrue
         displayMessage(`${monster.name}は ちからつきた！`);
         await checkRecentlyKilledFlagForPoison(monster);
       } else {
@@ -3205,7 +3204,7 @@ function handleUnbreakable(target) {
   }
 }
 
-function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = false, perpetrator = null) {
+function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = false, perpetrator = null, isCountDown = false) {
   if (target.flags.isZombie) {
     return;
   }
@@ -3225,6 +3224,8 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   // 死亡時のバフを記録 都度更新
   target.flags.buffKeysOnDeath = Object.keys(target.buffs);
+
+  delete target.buffs.countDown;
 
   ++fieldState.deathCount[target.teamID];
   // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
@@ -3253,7 +3254,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     !target.buffs.tagTransformation &&
     !(target.buffs.revive && !target.buffs.reviveBlock) &&
     !target.buffs.zombifyBlock &&
-    (!applySkipDeathAbility || target.name === "非道兵器超魔ゾンビ" || target.name === "万物の王オルゴ・デミーラ") &&
+    (!applySkipDeathAbility || isCountDown || target.name === "非道兵器超魔ゾンビ" || target.name === "万物の王オルゴ・デミーラ") &&
     (target.buffs.zombification || (target.flags.zombieProbability && Math.random() < target.flags.zombieProbability))
   ) {
     target.flags.willZombify = true;
