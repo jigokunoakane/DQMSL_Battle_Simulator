@@ -5211,7 +5211,7 @@ function addSkillOptions() {
     //スライム: [],
     魔獣: ["一刀両断"],
     //自然: [],
-    物質: ["プロト・スターフレア"],
+    物質: ["プロト・スターフレア", "ピオラ"],
   }[monster.race[0]];
   const superSkills = [
     "メゾラゴン",
@@ -6386,6 +6386,28 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 1, ice: 0, thunder: 1, wind: -1, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 0 },
+  },
+  {
+    name: "暗黒の魔人", //44
+    id: "ankoku",
+    rank: 10,
+    race: ["物質"],
+    weight: 30,
+    status: { HP: 969, MP: 279, atk: 427, def: 724, spd: 348, int: 287 },
+    initialSkill: ["暗黒しょうへき", "おおいかくす", "ザオリク", "だいぼうぎょ"],
+    anotherSkills: ["体技よそく", "息よそく", "踊りよそく"],
+    defaultGear: "megaton",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { duration: 3 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.3 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 1, dark: -1, poisoned: 1.5, asleep: 0, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "真夏の女神クシャラミ", //44
@@ -9455,6 +9477,58 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    ankoku: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "毎回リビルド",
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.defaultStatus.HP * 0.5);
+              await sleep(100);
+              applyBuff(skillUser, { defUp: { strength: 2, probability: 0.5 } });
+            },
+          },
+          {
+            name: "ビルドアーマー",
+            unavailableIf: (skillUser) => skillUser.buffs.internalDefUp && skillUser.buffs.internalDefUp.strength === 1.8,
+            act: async function (skillUser) {
+              let newStrength;
+              if (fieldState.turnNum < 3) {
+                newStrength = 0.3;
+              } else if (fieldState.turnNum > 4) {
+                newStrength = 1.8;
+              } else {
+                newStrength = 0.8;
+              }
+              applyBuff(skillUser, { internalDefUp: { keepOnDeath: true, strength: newStrength } });
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            name: "防魔の鼓動",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { spellBarrier: { strength: 1 } });
+                await sleep(100);
+              }
+            },
+          },
+        ],
+        3: [
+          {
+            disableMessage: true,
+            act: async function (skillUser) {
+              for (let i = 0; i < skillUser.skill.length; i++) {
+                if (skillUser.skill[i] === "暗黒しょうへき") {
+                  skillUser.skill[i] = "グランドショット";
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
     natsukusha: {
       afterActionHealAbilities: [
         {
@@ -10899,6 +10973,18 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     appliedEffect: { maso: { maxDepth: 4 } },
+  },
+  {
+    name: "通常攻撃アイアンヒット",
+    type: "notskill",
+    howToCalculate: "def",
+    ratio: 0.9,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreDazzle: true,
+    criticalHitProbability: 0,
   },
   {
     name: "会心通常攻撃",
@@ -13006,6 +13092,39 @@ const skill = [
     criticalHitProbability: 0,
     RaceBane: ["???"],
     RaceBaneValue: 2,
+  },
+  {
+    name: "暗黒しょうへき",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 60,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { breathBarrier: { strength: 1 }, martialBarrier: { strength: 1, probability: 0.4 } },
+  },
+  {
+    name: "グランドショット",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.8,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 41,
+    criticalHitProbability: 0,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    ignoreProtection: true,
+    afterActionAct: async function (skillUser) {
+      for (let i = 0; i < skillUser.skill.length; i++) {
+        if (skillUser.skill[i] === "グランドショット") {
+          skillUser.skill[i] = "暗黒しょうへき";
+        }
+      }
+    },
   },
   {
     name: "真夏の誘惑",
@@ -17453,6 +17572,16 @@ const skill = [
     appliedEffect: { spdUp: { strength: 1 } },
   },
   {
+    name: "ピオラ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 8, //+0?
+    appliedEffect: { spdUp: { strength: 2 } },
+  },
+  {
     name: "バイシオン",
     type: "spell",
     howToCalculate: "none",
@@ -18235,6 +18364,13 @@ const gear = [
     id: "kanazuchi",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+  },
+  {
+    name: "メガトンハンマー", //+10 回復錬金
+    id: "megaton",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+    healBoost: 1.12,
   },
   {
     name: "源氏の盾", //+10 錬金なし
@@ -19751,15 +19887,15 @@ async function transformTyoma(monster) {
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
-    applyBuff(monster, { internalDefUp: { strength: 0.5, keepOnDeath: true } });
+    applyBuff(monster, { internalDefUp: { keepOnDeath: true, strength: 0.5 } });
   } else if (monster.name === "名もなき闇の王") {
     monster.buffs.darkBreak.strength = 4;
-    applyBuff(monster, { internalDefUp: { strength: 1, keepOnDeath: true } });
+    applyBuff(monster, { internalDefUp: { keepOnDeath: true, strength: 1 } });
     applyBuff(monster, { isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" } });
   } else if (monster.name === "闇の覇者りゅうおう") {
     applyBuff(monster, { fireBreak: { strength: 3, keepOnDeath: true, iconSrc: "fireBreakBoost" } });
     if (monster.gear?.name === "闇の覇者ハート") {
-      applyBuff(monster, { internalDefUp: { strength: 1, keepOnDeath: true } });
+      applyBuff(monster, { internalDefUp: { keepOnDeath: true, strength: 1 } });
       await sleep(100);
     }
     if (monster.buffs.tyoryuLevel.strength > 1) {
@@ -19871,6 +20007,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "おうごんのツメ攻撃";
   } else if (skillUser.gear?.name === "ハザードネイル") {
     NormalAttackName = "ハザードネイル攻撃";
+  } else if (skillUser.gear?.name === "メガトンハンマー") {
+    NormalAttackName = "通常攻撃アイアンヒット";
   } else if (skillUser.buffs.alwaysCrit) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.buffs.speedBasedAttack) {
