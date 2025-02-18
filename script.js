@@ -5202,7 +5202,7 @@ function addSkillOptions() {
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
     魔獣: ["ラピッドショット", "聖なる息吹"],
     //自然: ["やすらぎの光", "天光の裁き"],
-    物質: ["れっぱの息吹"], //"リベンジアーツ" 氷撃波
+    物質: ["れっぱの息吹", "氷撃波"], //"リベンジアーツ"
   }[monster.race[0]];
   const familySkillsAvailableForRankS = {
     //ドラゴン: [],
@@ -16079,6 +16079,27 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 84,
+  },
+  {
+    name: "氷撃波",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.72,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 70,
+    criticalHitProbability: 0,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    appliedEffect: { fear: { probability: 0.2 } },
+    damageMultiplier: function (skillUser, skillTarget) {
+      if (skillUser.buffs.protection) {
+        return skillUser.buffs.protection.strength * 2.5 + 1;
+      } else {
+        return 1;
+      }
+    },
   },
   {
     name: "ヴェノムパニック",
