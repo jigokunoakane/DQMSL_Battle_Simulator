@@ -7131,7 +7131,7 @@ const monsters = [
         spdUp: { strength: 2 },
       },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [2],
@@ -15053,6 +15053,7 @@ const skill = [
         disableMessage: true,
         unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
         act: async function (skillUser) {
+          delete skillUser.buffs.boogieCurse;
           const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
           // 状態異常でない場合のみみがわり実行
           if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
@@ -21319,6 +21320,7 @@ function applyShihai(skillTarget, originalTarget = null) {
     disableMessage: true,
     unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
     act: async function (skillUser) {
+      delete skillUser.buffs.boogieCurse;
       const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
       // 状態異常でない場合のみみがわり実行
       if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
