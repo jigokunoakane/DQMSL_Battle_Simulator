@@ -6900,7 +6900,7 @@ const monsters = [
         protection: { strength: 0.5, duration: 3 },
       },
     },
-    seed: { atk: 0, def: 0, spd: 55, int: 65 },
+    seed: { atk: 0, def: 0, spd: 75, int: 45 },
     ls: { HP: 1.3, spd: 1.25 },
     lsTarget: "悪魔",
     resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 0.5, io: 0.5, light: 1, dark: 0, poisoned: 0.5, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
@@ -6923,7 +6923,7 @@ const monsters = [
         powerCharge: { strength: 2 },
       },
     },
-    seed: { atk: 55, def: 0, spd: 65, int: 0 },
+    seed: { atk: 35, def: 0, spd: 85, int: 0 },
     ls: { atk: 1.12, spd: 1.18 },
     lsTarget: "悪魔",
     AINormalAttack: [2, 3],
@@ -7123,7 +7123,7 @@ const monsters = [
     status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 499, int: 496 },
     initialSkill: ["光速イオナスペル", "教祖のはどう", "スパークふんしゃ", "タップダンス"],
     anotherSkills: ["イオナスペル", "神のはどう", "イブールの誘い", "悪夢の雷鳴"],
-    defaultGear: "ryujinNail",
+    defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
         breathEvasion: { duration: 3, divineDispellable: true },
