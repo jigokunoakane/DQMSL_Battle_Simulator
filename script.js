@@ -7115,6 +7115,27 @@ const monsters = [
     resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "新生イブール", //4 S+50
+    id: "iburuNew",
+    rank: 10,
+    race: ["悪魔"],
+    weight: 28,
+    status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 499, int: 496 },
+    initialSkill: ["光速イオナスペル", "教祖のはどう", "スパークふんしゃ", "メゾラゴン"],
+    anotherSkills: ["イオナスペル", "神のはどう", "イブールの誘い", "悪夢の雷鳴"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        breathEvasion: { duration: 3, divineDispellable: true },
+      },
+      evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1.15, int: 1.15 },
+    lsTarget: "悪魔",
+    resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "妖魔軍王ブギー", //4
     id: "boogie",
     rank: 10,
@@ -9394,6 +9415,44 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    iburuNew: {
+      initialAbilities: [
+        {
+          name: "悪夢の再生",
+          disableMessage: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
+                applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
+                monster.abilities.reviveAct = async function (monster, buffName) {
+                  if (buffName === "悪夢の再生") {
+                    applyBuff(monster, { iburuSpdUp: { divineDispellable: true, duration: 3, strength: 0.5 } });
+                  }
+                };
+              }
+            }
+          },
+        },
+        {
+          name: "いきなり悪魔系にマインドバリア",
+          disableMessage: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race.includes("悪魔")) {
+                applyBuff(monster, { mindBarrier: { duration: 3 } });
+              }
+            }
+          },
+        },
+      ],
+      followingAbilities: {
+        name: "悪魔衆の誘い",
+        availableIf: (skillUser, executingSkill) => !executingSkill.order && executingSkill.type === "martial" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5),
+        getFollowingSkillName: (executingSkill) => {
+          return "イブールの誘い";
+        },
+      },
     },
     raio: {
       deathAbilities: [
@@ -14021,6 +14080,22 @@ const skill = [
     followingSkill: "光のはどう",
   },
   {
+    name: "教祖のはどう",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    appliedEffect: "divineWave",
+    ignoreSubstitute: true,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.buffs.damageLimit && !skillTarget.buffs.damageLimit.keepOnDeath && !skillTarget.buffs.damageLimit.unDispellable) {
+        delete skillTarget.buffs.damageLimit;
+      }
+    },
+  },
+  {
     name: "邪悪なこだま",
     type: "martial",
     howToCalculate: "int",
@@ -14420,6 +14495,23 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 167,
     appliedEffect: { confused: { probability: 0.53 } },
+  },
+  {
+    name: "光速イオナスペル",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 90,
+    maxInt: 600,
+    maxIntDamage: 200,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 48,
+    ignoreReflection: true,
+    appliedEffect: { confused: { probability: 0.25 } },
   },
   {
     name: "悪夢の雷鳴",
