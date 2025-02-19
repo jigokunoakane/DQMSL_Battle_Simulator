@@ -7121,7 +7121,7 @@ const monsters = [
     race: ["悪魔"],
     weight: 28,
     status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 499, int: 496 },
-    initialSkill: ["光速イオナスペル", "教祖のはどう", "スパークふんしゃ", "メゾラゴン"],
+    initialSkill: ["光速イオナスペル", "教祖のはどう", "スパークふんしゃ", "タップダンス"],
     anotherSkills: ["イオナスペル", "神のはどう", "イブールの誘い", "悪夢の雷鳴"],
     defaultGear: "ryujinNail",
     attribute: {
@@ -10908,6 +10908,8 @@ const skill = [
         return "ツイスター下位";
       }
     },
+    discription1: "hoge",
+    discription2: "hoge",
   },
   {
     name: "通常攻撃",
@@ -14094,6 +14096,7 @@ const skill = [
         delete skillTarget.buffs.damageLimit;
       }
     },
+    discription1: "敵全体の　状態変化解除（上位効果）・被ダメージ上限値解除",
   },
   {
     name: "邪悪なこだま",
@@ -20982,21 +20985,30 @@ function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
   if (SDproperties) {
     args.push(SDproperties);
   }
-  if (SDmain) {
-    args.push(SDmain);
-  }
-  if (SDappliedEffect) {
-    args.push(SDappliedEffect);
-  }
+  // property以降の文言について、個別指定されている場合はそれを参照
+  if (skillInfo.discription1) {
+    args.push(skillInfo.discription1);
+    if (skillInfo.discription2) {
+      args.push(skillInfo.discription2);
+    }
+  } else {
+    // それ以外は自動生成
+    if (SDmain) {
+      args.push(SDmain);
+    }
+    if (SDappliedEffect) {
+      args.push(SDappliedEffect);
+    }
 
-  // 元skillのdiscriptionが存在している場合のみ 現状はみだしているものが多い
-  if ((SDmain || SDappliedEffect) && skillInfo.followingSkill && !["クアトロマダンテ"].includes(skillInfo.name)) {
-    const followingSkill = findSkillByName(skillInfo.followingSkill);
-    let Fmain = createSDmain(followingSkill);
-    let FappliedEffect = createSDappliedEffect(followingSkill);
-    const followingDiscription = Fmain || FappliedEffect ? `その後　${Fmain}${FappliedEffect}` : null;
-    if (followingDiscription) {
-      args.push(followingDiscription);
+    // 元skillのdiscriptionが存在している場合のみ 現状はみだしているものが多い
+    if ((SDmain || SDappliedEffect) && skillInfo.followingSkill && !["クアトロマダンテ"].includes(skillInfo.name)) {
+      const followingSkill = findSkillByName(skillInfo.followingSkill);
+      let Fmain = createSDmain(followingSkill);
+      let FappliedEffect = createSDappliedEffect(followingSkill);
+      const followingDiscription = Fmain || FappliedEffect ? `その後　${Fmain}${FappliedEffect}` : null;
+      if (followingDiscription) {
+        args.push(followingDiscription);
+      }
     }
   }
   displayskillMessage(...args);
