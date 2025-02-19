@@ -7127,6 +7127,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         breathEvasion: { duration: 3, divineDispellable: true },
+        allElementalBoost: { strength: 0.2, duration: 4 },
       },
       evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
     },
@@ -14514,7 +14515,7 @@ const skill = [
     hitNum: 6,
     MPcost: 48,
     ignoreReflection: true,
-    appliedEffect: { confused: { probability: 0.25 } },
+    appliedEffect: { confused: { probability: 0.35 } },
   },
   {
     name: "悪夢の雷鳴",
