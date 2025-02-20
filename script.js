@@ -10909,8 +10909,9 @@ const skill = [
         return "ツイスター下位";
       }
     },
-    discription1: "hoge",
+    discription1: "hoge", //property部分
     discription2: "hoge",
+    discription3: "hoge",
   },
   {
     name: "通常攻撃",
@@ -14097,7 +14098,7 @@ const skill = [
         delete skillTarget.buffs.damageLimit;
       }
     },
-    discription1: "敵全体の　状態変化解除（上位効果）・被ダメージ上限値解除",
+    discription2: "敵全体の　状態変化解除（上位効果）・被ダメージ上限値解除",
   },
   {
     name: "邪悪なこだま",
@@ -20983,17 +20984,20 @@ function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
   const SDappliedEffect = createSDappliedEffect(skillInfo);
 
   const args = [`${displaySkillName}＋3【消費MP：${MPcost}】`];
-  if (SDproperties) {
+  // propertyも手動設定されている場合は反映
+  if (skillInfo.discription1) {
+    args.push(skillInfo.discription1);
+  } else if (SDproperties) {
     args.push(SDproperties);
   }
   // property以降の文言について、個別指定されている場合はそれを参照
-  if (skillInfo.discription1) {
-    args.push(skillInfo.discription1);
-    if (skillInfo.discription2) {
-      args.push(skillInfo.discription2);
+  if (skillInfo.discription2) {
+    args.push(skillInfo.discription2);
+    if (skillInfo.discription3) {
+      args.push(skillInfo.discription3);
     }
   } else {
-    // それ以外は自動生成
+    // 手動設定がなければ自動生成
     if (SDmain) {
       args.push(SDmain);
     }
