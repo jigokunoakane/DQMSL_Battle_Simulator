@@ -19196,17 +19196,22 @@ function displayskillMessage(skillInfo, line1Text = "", line2Text = "", line3Tex
 }
 
 function getSkillTypeIcons(skillInfo) {
+  const skillName = skillInfo.name;
   let type;
   if (skillInfo.targetType === "dead" || skillInfo.healSkill) {
     type = "heal";
   } else if (skillInfo.targetTeam === "ally" && skillInfo.type !== "ritual") {
     type = "support";
-  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act) {
+  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act && skillInfo.howToCalculate !== "MP") {
     type = "attack";
   } else if (skillInfo.appliedEffect && skillInfo.appliedEffect !== "disruptiveWave" && skillInfo.appliedEffect !== "divineWave") {
     type = "abnormality";
   } else {
     type = "special";
+  }
+  // 上書きするもの
+  if (["ダークミナデイン"].includes(skillName)) {
+    type = "abnormality";
   }
   const src = `images/skillTypeIcons/${skillInfo.type}_${type}.png`;
   return src;
