@@ -11168,6 +11168,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+    discription1: "敵全体に【みかわし不可】【マヌーサ無効】でヒャド系体技",
+    discription2: "その後　敵全体に【軽減無視】で無属性息　どちらか命中時",
+    discription3: "くじけぬ心解除　後半はドラゴン系の味方が多いほど威力大",
   },
   {
     name: "涼風一陣後半",
@@ -11204,6 +11207,9 @@ const skill = [
         return "神楽の術下位";
       }
     },
+    discription1: "敵全体に　無属性の呪文攻撃",
+    discription2: "命中時　状態変化解除　みがわり状態の敵に　威力3倍",
+    discription3: "ドラゴン系の味方が5体以上なら　状態変化解除が上位効果",
   },
   {
     name: "神楽の術下位",
@@ -11257,6 +11263,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 0.5 } },
+    discription1: "【先制】1ターンの間　味方全体の　みかわし率を50%にする",
   },
   {
     name: "氷華大繚乱",
@@ -11279,7 +11286,7 @@ const skill = [
     element: "ice",
     targetType: "single",
     targetTeam: "enemy",
-    hitNum: 7,
+    hitNum: 7, //todo: 回数
     MPcost: 70,
     order: "anchor",
     ignoreProtection: true,
@@ -11297,7 +11304,7 @@ const skill = [
     criticalHitProbability: 0,
     ignoreDazzle: true,
     ignoreBaiki: true,
-    appliedEffect: { fear: { probability: 0.2792 }, confused: { probability: 0.2329 } },
+    appliedEffect: { confused: { probability: 0.2329 }, fear: { probability: 0.2792 } },
   },
   {
     name: "スパークふんしゃ",
@@ -11310,6 +11317,8 @@ const skill = [
     hitNum: 5,
     MPcost: 58,
     appliedEffect: "disruptiveWave",
+    discription2: "ランダムに5回　ギラ系の息攻撃",
+    discription3: "命中時　状態変化解除",
   },
   {
     name: "サンダーボルト",
@@ -11388,6 +11397,8 @@ const skill = [
     afterActionAct: async function (skillUser) {
       delete skillUser.buffs.dragonPreemptiveAction;
     },
+    discription2: "天の竜気レベルを全て消費し　敵全体に　無属性の息攻撃",
+    discription3: "使用時の天の竜気レベルが高いほど　威力大",
   },
   {
     name: "テンペストブレス",
@@ -11495,6 +11506,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+    discription1: "【先制】味方全体の　斬撃防御を1段階上げ",
+    discription2: "2ターンの間　ダメージ20%軽減状態にする",
   },
   {
     name: "ダメージバリア",
@@ -11576,6 +11589,7 @@ const skill = [
       }
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    discription1: "【先制】味方全体への　敵の行動を　かわりにうける",
   },
   {
     name: "特性発動用におうだち",
@@ -11623,6 +11637,7 @@ const skill = [
       }
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    discription1: "【先制】味方1体への　敵の行動を　かわりにうける",
   },
   {
     name: "みがわり・マインドバリア",
@@ -11642,6 +11657,8 @@ const skill = [
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    discription1: "【先制】味方全体への　敵の行動を　かわりにうける",
+    discription2: "自分を　行動停止無効状態にする",
   },
   {
     name: "真・ハーケンディストール",
@@ -11746,6 +11763,9 @@ const skill = [
     RaceBaneValue: 4,
     damageByLevel: true,
     followingSkill: "超魔滅光後半",
+    discription1: "【みかわし不可】【マヌーサ無効】敵1体に　レベル依存で",
+    discription2: "無属性の体技攻撃　その後敵全体に　レベル依存で",
+    discription3: "無属性の体技攻撃　???・超魔王系の敵に　威力4倍",
   },
   {
     name: "超魔滅光後半",
@@ -11778,6 +11798,8 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
     },
+    discription2: "ランダムに6回　攻撃力依存で　デイン系の踊り攻撃",
+    discription3: "その後　自分の攻撃力・素早さを1段階上げる",
   },
   {
     name: "神獣の封印",
@@ -11815,6 +11837,8 @@ const skill = [
     MPcost: 39,
     isOneTimeUse: true,
     appliedEffect: { sealed: { zombieBuffable: true }, reviveBlock: { unDispellableByRadiantWave: true } },
+    discription2: "1ターンの間　敵1体を　封印状態にし　命中時",
+    discription3: "ラウンド数制限なしで　解除不可の蘇生封じ状態にする",
   },
   {
     name: "暗黒閃",
@@ -11841,6 +11865,9 @@ const skill = [
     substituteBreaker: 3,
     ignoreEvasion: true,
     zakiProbability: 0.78,
+    discription1: "【みかわし不可】敵全体に　攻撃力依存で",
+    discription2: "無属性の斬撃攻撃　確率で即死させる",
+    discription3: "みがわり状態の敵に　威力3倍",
   },
   {
     name: "終の流星",
@@ -11871,6 +11898,9 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { martialEvasion: { duration: 2, divineDispellable: true } });
     },
+    discription1: "【みかわし不可】【マヌーサ無効】ランダムに4回",
+    discription2: "ドルマ系の体技攻撃　命中時　状態変化解除（上位効果）",
+    discription3: "その後　2ターンの間　自分を　体技無効状態にする",
   },
   {
     name: "供物をささげる",
@@ -12034,6 +12064,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applyBuff(skillTarget, { slashSeal: {} });
     },
+    discription1: "【みかわし不可】【マヌーサ無効】敵全体に",
+    discription2: "ギラ系の体技攻撃　命中時　状態変化解除（上位効果）",
+    discription3: "その後　敵全体を　ギラ系の体技で斬撃封じ状態にする",
   },
   {
     name: "堕天使の理",
@@ -12046,6 +12079,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 1 }, spdUp: { strength: 1 } },
+    discription2: "1ターンの間　味方全体の　みかわし率を100%にし",
+    discription3: "素早さを1段階上げる",
   },
   {
     name: "光速の連打",
@@ -12156,6 +12191,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { prismVeil: { strength: 1, duration: 3 } },
+    discription2: "3ラウンドの間　味方全体の",
+    discription3: "全属性耐性（状態異常以外）を1ランク上げる",
   },
   {
     name: "雷電波",
@@ -12258,6 +12295,9 @@ const skill = [
     ignoreReflection: true, //不要
     appliedEffect: "divineWave",
     followingSkill: "ひかりのたま回復封じ",
+    discription1: "【戦闘中1回】【先制】敵全体の　状態変化を【反射無視】で",
+    discription2: "解除（上位効果）し　回復封じ状態にする　その後",
+    discription3: "味方全体のHPを全回復し　斬撃・呪文防御を1段階上げる",
   },
   {
     name: "ひかりのたま回復封じ",
@@ -12330,6 +12370,7 @@ const skill = [
       spellEvasion: { duration: 3, unDispellable: true },
       breathEvasion: { duration: 3, unDispellable: true },
     },
+    discription2: "4ターンの間　自分を斬撃・呪文・息無効状態にする",
   },
   {
     name: "魔手黒闇",
@@ -12678,6 +12719,8 @@ const skill = [
     MPcost: 52,
     appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     followingSkill: "蘇生封じの術後半",
+    discription2: "敵1体を　1ラウンドの間　蘇生封じ状態にし",
+    discription3: "その後　敵全体に　軽減無視で　無属性の呪文攻撃",
   },
   {
     name: "蘇生封じの術後半",
@@ -12752,6 +12795,8 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+    discription2: "敵1体に　攻撃力依存で　無属性の斬撃攻撃",
+    discription3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除",
   },
   {
     name: "竜の炎",
@@ -12770,6 +12815,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
+    discription1: "【反射無視】ランダムに6回　メラ系の息攻撃",
+    discription2: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "破滅の炎",
@@ -12788,6 +12835,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
+    discription1: "【反射無視】ランダムに7回　メラ系の息攻撃",
+    discription2: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "終焉の炎",
@@ -12807,6 +12856,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
+    discription2: "ランダムに9回　メラ系の息攻撃",
+    discription3: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "真・カラミティウォール",
@@ -13092,6 +13143,7 @@ const skill = [
         applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: -2 } });
       }
     },
+    discription2: "敵味方全体の　攻撃力を2段階上げ　防御力を2段階下げる",
   },
   {
     name: "神獣王の防壁",
@@ -13483,6 +13535,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 90,
     appliedEffect: { statusLock: { probability: 0.7 } },
+    discription2: "敵全体に　呪文計算で　無属性の儀式攻撃",
+    discription3: "命中時　確率で状態変化を封じる",
   },
   {
     name: "はめつの流星",
@@ -13971,6 +14025,9 @@ const skill = [
       }
     },
     isOneTimeUse: true,
+    discription1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
+    discription2: "敵味方全体の　ドルマ耐性を2ランク上げる",
+    discription3: "体技無効状態を貫通する",
   },
   {
     name: "氷の紋章",
@@ -13989,6 +14046,9 @@ const skill = [
       }
     },
     isOneTimeUse: true,
+    discription1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
+    discription2: "敵味方全体の　ヒャド耐性を2ランク上げる",
+    discription3: "体技無効状態を貫通する",
   },
   {
     name: "封印の光",
@@ -16696,6 +16756,8 @@ const skill = [
     hitNum: 5,
     MPcost: 48,
     zakiProbability: 0.41,
+    discription2: "ランダムに5回　イオ系の呪文攻撃",
+    discription3: "確率で即死させる",
   },
   {
     name: "亡者の儀式",
@@ -17120,6 +17182,9 @@ const skill = [
     appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     ignoreReflection: true,
     followingSkill: "グランドアビス後半",
+    discription1: "【みかわし不可】【マヌーサ無効】【反射無視】敵全体を",
+    discription2: "1ラウンドの間　蘇生封じ状態にし　その後　敵全体に",
+    discription3: "ドルマ系の体技攻撃　HP25%未満なら威力1.2倍",
   },
   {
     name: "グランドアビス後半",
@@ -17162,6 +17227,9 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
     },
+    discription1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
+    discription2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
+    discription3: "カウント2状態に　その後　自分を　自動復活状態にする",
   },
   {
     name: "修羅の闇",
@@ -17199,6 +17267,8 @@ const skill = [
     ignoreProtection: true,
     ignoreSubstitute: true,
     criticalHitProbability: 1,
+    discription2: "ランダムに3回　防御力依存で　無属性の斬撃攻撃",
+    discription3: "この攻撃は　必ず会心の一撃になる",
   },
   {
     name: "混沌のキバ",
