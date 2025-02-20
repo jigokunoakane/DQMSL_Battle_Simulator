@@ -19166,7 +19166,7 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
   }
 }
 
-function displayskillMessage(line1Text = "", line2Text = "", line3Text = "", line4Text = "") {
+function displayskillMessage(skillInfo, line1Text = "", line2Text = "", line3Text = "", line4Text = "") {
   const messageLine1 = document.getElementById("message-line1");
   const messageLine2 = document.getElementById("message-line2");
   const messageLine3 = document.getElementById("message-line3");
@@ -19190,9 +19190,41 @@ function displayskillMessage(line1Text = "", line2Text = "", line3Text = "", lin
   messageLine4.textContent = line4Text;
 
   const img = document.createElement("img");
-  img.src = "images/skillTypeIcons/breath_attack.png";
+  img.src = getSkillTypeIcons(skillInfo);
   img.id = "skillTypeIcon";
   messageLine1.prepend(img);
+}
+
+function getSkillTypeIcons(skillInfo) {
+  let type;
+  if (skillInfo.targetType === "dead" || skillInfo.healSkill) {
+    type = "heal";
+  } else if (skillInfo.targetTeam === "ally" && skillInfo.type !== "ritual") {
+    type = "support";
+  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act) {
+    type = "attack";
+  } else if (skillInfo.appliedEffect && skillInfo.appliedEffect !== "disruptiveWave" && skillInfo.appliedEffect !== "divineWave") {
+    type = "abnormality";
+  } else {
+    type = "special";
+  }
+  const src = `images/skillTypeIcons/${skillInfo.type}_${type}.png`;
+  return src;
+}
+
+function isDamageExistingSkill(skillInfo) {
+  if (skillInfo.howToCalculate !== "none") return true;
+
+  let nextSkill = skillInfo.followingSkill;
+  while (nextSkill) {
+    const nextSkillInfo = findSkillByName(nextSkill);
+    if (!nextSkillInfo) break; // スキルが見つからない場合はループを終了
+
+    if (nextSkillInfo.howToCalculate !== "none") return true;
+    nextSkill = nextSkillInfo.followingSkill;
+  }
+
+  return false;
 }
 
 function addMirrorEffect(targetImageId) {
@@ -21096,7 +21128,7 @@ function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
       }
     }
   }
-  displayskillMessage(...args);
+  displayskillMessage(skillInfo, ...args);
 }
 
 // プロパティ生成
