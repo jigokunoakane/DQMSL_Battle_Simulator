@@ -15904,7 +15904,7 @@ const skill = [
   },
   {
     name: "防衛指令",
-    type: "spell",
+    type: "martial",
     howToCalculate: "none",
     element: "none",
     targetType: "single",
