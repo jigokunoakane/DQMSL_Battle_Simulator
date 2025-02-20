@@ -1412,11 +1412,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     zakiResistance: "zaki",
   };
 
-  //状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
+  // 状態異常系のうち、耐性判定やバリア判定を行うもの (継続ダメ・回復封じ・マソ以外)
   const abnormalityBuffs = ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep", "poisoned", "dazzle", "reviveBlock", "stoned"];
-  //hasAbnormalityのfearとsealed以外
-  const removeGuardAbnormalities = ["tempted", "confused", "paralyzed", "asleep", "stoned"];
-  //封印とstoned以外
+  // みがわりと予測を解除
+  const removeSubstituteAbnormalities = ["fear", "sealed", "tempted", "confused", "paralyzed", "asleep", "stoned"];
+  // 封印とstoned以外
   const dispellableByRadiantWaveAbnormalities = [
     "spellSeal",
     "breathSeal",
@@ -1757,8 +1757,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.tempted;
         delete buffTarget.buffs.sealed;
       }
-      //ぼうぎょ解除
-      if (removeGuardAbnormalities.includes(buffName) && buffTarget.flags.guard) {
+      //ぼうぎょ解除 マインド 封印 マヒは解除しない
+      if (["tempted", "confused", "asleep", "stoned"].includes(buffName) && buffTarget.flags.guard) {
         delete buffTarget.flags.guard;
       }
       //魅了による防御バフ解除
@@ -1769,7 +1769,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.castleDefUp;
       }
       //みがわり解除 みがわられは解除しない
-      if ((removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
+      if (removeSubstituteAbnormalities.includes(buffName) && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
         deleteSubstitute(buffTarget);
       }
       //石化処理
@@ -2013,7 +2013,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
 
     //状態異常付与時、dispellableByAbnormality指定された予測系を解除
-    if (removeGuardAbnormalities.includes(buffName) || buffName === "fear" || buffName === "sealed") {
+    if (removeSubstituteAbnormalities.includes(buffName)) {
       for (const reflection of reflectionMap) {
         if (
           buffTarget.buffs[reflection] &&
