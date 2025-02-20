@@ -11291,6 +11291,9 @@ const skill = [
     order: "anchor",
     ignoreProtection: true,
     ignoreReflection: true,
+    discription1: "【アンカー】【みかわし不可】【マヌーサ無効】",
+    discription2: "【反射無視】【軽減無視】",
+    discription3: "敵1体に7回　ヒャド系の体技攻撃",
   },
   {
     name: "おぞましいおたけび",
@@ -11882,6 +11885,9 @@ const skill = [
     order: "anchor",
     ignoreProtection: true,
     ignoreReflection: true,
+    discription1: "【アンカー】【みかわし不可】【マヌーサ無効】",
+    discription2: "【反射無視】【軽減無視】",
+    discription3: "ランダムに6回　無属性の体技攻撃",
   },
   {
     name: "暴獣の右ウデ",

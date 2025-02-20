@@ -503,7 +503,7 @@ select {
   width: auto;
   margin: 0;
   font-size: 0.9rem;
-  gap: -0.7rem;
+  white-space: nowrap;
 }
 
 .skillTitle {
