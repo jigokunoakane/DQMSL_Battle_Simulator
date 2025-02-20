@@ -502,7 +502,20 @@ select {
 #message-line4 {
   width: auto;
   margin: 0;
-  font-size: 0.9rem; /* 文字サイズを調整 */
+  font-size: 0.9rem;
+  gap: -0.7rem;
+}
+
+.skillTitle {
+  display: flex;
+  align-items: center; /* 垂直方向中央揃え */
+}
+
+#skillTypeIcon {
+  height: 1rem;
+  margin: 0;
+  padding: 0;
+  margin-right: 0.35rem;
 }
 
 #commandBtnContainer {

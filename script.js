@@ -19139,6 +19139,9 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
   const messageLine3 = document.getElementById("message-line3");
   const messageLine4 = document.getElementById("message-line4");
   const consoleScreen = document.getElementById("consoleScreen");
+  // marginなど初期化
+  messageLine1.classList.remove("skillTitle");
+  messageLine1.style.marginBottom = "0";
   // 中身とサイズ・全体高さを初期化
   messageLine3.textContent = "";
   messageLine4.textContent = "";
@@ -19169,8 +19172,12 @@ function displayskillMessage(line1Text = "", line2Text = "", line3Text = "", lin
   const messageLine3 = document.getElementById("message-line3");
   const messageLine4 = document.getElementById("message-line4");
   const consoleScreen = document.getElementById("consoleScreen");
+
+  // 大きさ調整とmargin直接指定で間隔をあける
+  messageLine1.classList.add("skillTitle");
+  messageLine1.style.marginBottom = "0.2rem";
   // 小さく
-  messageLine1.style.fontSize = "0.88rem";
+  messageLine1.style.fontSize = "0.85rem";
   messageLine2.style.fontSize = "0.7rem";
   messageLine3.style.fontSize = "0.7rem";
   messageLine4.style.fontSize = "0.7rem";
@@ -19181,6 +19188,11 @@ function displayskillMessage(line1Text = "", line2Text = "", line3Text = "", lin
   messageLine2.textContent = line2Text;
   messageLine3.textContent = line3Text;
   messageLine4.textContent = line4Text;
+
+  const img = document.createElement("img");
+  img.src = "images/skillTypeIcons/breath_attack.png";
+  img.id = "skillTypeIcon";
+  messageLine1.prepend(img);
 }
 
 function addMirrorEffect(targetImageId) {
