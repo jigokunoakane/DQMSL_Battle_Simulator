@@ -12796,7 +12796,7 @@ const skill = [
       deleteUnbreakable(skillTarget);
     },
     discription2: "敵1体に　攻撃力依存で　無属性の斬撃攻撃",
-    discription3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除",
+    discription3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除", //spaceなし
   },
   {
     name: "竜の炎",
@@ -17267,8 +17267,6 @@ const skill = [
     ignoreProtection: true,
     ignoreSubstitute: true,
     criticalHitProbability: 1,
-    discription2: "ランダムに3回　防御力依存で　無属性の斬撃攻撃",
-    discription3: "この攻撃は　必ず会心の一撃になる",
   },
   {
     name: "混沌のキバ",
@@ -21234,6 +21232,11 @@ function createSDappliedEffect(skillInfo) {
   if (skillInfo.howToCalculate !== "none") {
     if (skillInfo.weakness18) {
       skillDiscriptionText += "弱点倍率が1.8倍　";
+    }
+    if (skillInfo.criticalHitProbability && skillInfo.criticalHitProbability === 1) {
+      skillDiscriptionText += "この攻撃は　必ず会心の一撃になる　";
+    } else if (skillInfo.criticalHitProbability && skillInfo.criticalHitProbability !== 0) {
+      skillDiscriptionText += "会心の一撃が出やすい　";
     }
 
     // 追加効果
