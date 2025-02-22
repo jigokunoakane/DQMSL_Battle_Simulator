@@ -2651,6 +2651,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(250);
       displayMessage(firstMessage, lastMessage);
       await sleep(400);
+      col(`${skillUser.name}が追加特技を実行: ${skillInfo.name}`);
       // skill実行 非反撃・連携対象なので damagedMonstersとisProcess, isAIはnullまたはfalse
       await executeSkill(skillUser, skillInfo, null, false, null, false, false, null);
       await sleep(200);
@@ -17650,7 +17651,6 @@ const skill = [
     element: "io",
     targetType: "all",
     targetTeam: "enemy",
-    hitNum: 2,
     MPcost: 45,
     appliedEffect: { maso: { maxDepth: 3 } },
     masoMultiplier: {
@@ -17659,6 +17659,7 @@ const skill = [
       3: 1.9,
       4: 2.1,
     },
+    followingSkill: "凶帝王の一閃",
     additionalVersion: "凶帝王の一閃",
   },
   {
