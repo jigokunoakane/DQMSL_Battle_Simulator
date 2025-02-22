@@ -173,7 +173,7 @@ async function prepareBattle() {
             if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
               lsMultiplier += 0.05;
             }
-            if (isBreakMonster(monster) && monster.gear.name === "ハザードネイル") {
+            if (isBreakMonster(monster) && (monster.gear.name === "凶帝王のつるぎ" || monster.gear.name === "ハザードネイル")) {
               lsMultiplier += 0.08;
             }
             if (monster.race.includes("悪魔") && monster.gear.name === "盗賊ハート・闇") {
@@ -2624,7 +2624,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
     // 錬金依存の追加特技: 追加で咆哮など
     //if (skillUser.gear?.alchemy?.some((alchemy) => alchemy.additionalSkillName === executingSkill.name)) {
-    if (skillUser.gear?.skillAlchemy === executingSkill.name && executingSkill.name === "咆哮") {
+    if ((skillUser.gear?.skillAlchemy === executingSkill.name && executingSkill.name === "咆哮") || (executingSkill.name === "凶帝王の双閃" && skillUser.gear?.name === "凶帝王のつるぎ")) {
       const followingSkillData = executingSkill.additionalVersion ? findSkillByName(executingSkill.additionalVersion) : executingSkill;
       skillsToExecute.push({ skillInfo: followingSkillData, firstMessage: "装備品の効果により", lastMessage: `${executingSkill.name}を もう一度はなった！` });
     }
@@ -4314,6 +4314,10 @@ function calculateDamage(
     if (skillUser.name === "魔界の神バーン" && gearName === "りゅうおうの杖非素早さ錬金" && executingSkill.type === "spell" && executingSkill.element === "fire") {
       damageModifier += 0.1;
     }
+    // 装備本体 - 凶帝王のつるぎ
+    if (gearName === "凶帝王のつるぎ" && executingSkill.element === "io") {
+      damageModifier += 0.25;
+    }
 
     // 特技錬金の反映
     const skillAlchemyTarget = skillUser.gear.skillAlchemy;
@@ -5572,7 +5576,7 @@ function calcAndAdjustDisplayStatus() {
     if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
       lsMultiplier += 0.05;
     }
-    if (isBreakMonster(monster) && monster.gear.name === "ハザードネイル") {
+    if (isBreakMonster(monster) && (monster.gear.name === "凶帝王のつるぎ" || monster.gear.name === "ハザードネイル")) {
       lsMultiplier += 0.08;
     }
     // 盗賊ハート
@@ -8033,6 +8037,7 @@ const monsters = [
     status: { HP: 748, MP: 329, atk: 571, def: 561, spd: 499, int: 415 },
     initialSkill: ["凶帝王の双閃", "爆炎の絶技", "凶帝王のかまえ", "スパークふんしゃ"],
     anotherSkills: ["イオマータ"],
+    defaultGear: "cursedestaSword",
     attribute: {
       initialBuffs: {
         ioBreak: { keepOnDeath: true, strength: 2 },
@@ -14579,7 +14584,7 @@ const skill = [
     element: "io",
     targetType: "random",
     targetTeam: "enemy",
-    hitNum: 6,
+    hitNum: 5,
     MPcost: 48,
     ignoreReflection: true,
     appliedEffect: { confused: { probability: 0.35 } },
@@ -17624,6 +17629,7 @@ const skill = [
       3: 1.9,
       4: 2.1,
     },
+    additionalVersion: "凶帝王の一閃",
   },
   {
     name: "凶帝王の一閃",
@@ -18456,6 +18462,13 @@ const gear = [
     statusMultiplier: { atk: 0.08, spd: -0.1 },
     skillAlchemy: "必殺の双撃",
     skillAlchemyStrength: 0.3,
+  },
+  {
+    name: "凶帝王のつるぎ", //+15 イオ25% 双閃追加 マソ8%
+    id: "cursedestaSword",
+    weight: 5,
+    noWeightMonsters: ["凶帝王エスターク"],
+    status: { HP: 0, MP: 0, atk: 70, def: 0, spd: 0, int: 0 },
   },
   {
     name: "トリリオンダガー", //+7 斬撃3%
