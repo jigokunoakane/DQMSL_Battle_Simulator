@@ -1775,7 +1775,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       //石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
-        // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしはkeep/damageLimitはkeepOnDeath以外削除 会心ガードは保持
+        // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしは保持 会心ガードは保持
         const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
@@ -1793,8 +1793,15 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           ) {
             delete buffTarget.buffs[existingBuffName];
           }
-          if (buffData.isGolden && (stackableBuffs.hasOwnProperty(existingBuffName) || familyBuffs.includes(existingBuffName))) {
-            delete buffTarget.buffs[existingBuffName];
+          // ゴルアスの場合はstackable・系統バフも消す
+          if (buffData.isGolden) {
+            if (stackableBuffs.hasOwnProperty(existingBuffName) || familyBuffs.includes(existingBuffName)) {
+              delete buffTarget.buffs[existingBuffName];
+            }
+            // ダメージ上限も消す
+            if (existingBuffName === "damageLimit" && !existingBuff.keepOnDeath) {
+              delete buffTarget.buffs.damageLimit;
+            }
           }
         }
         // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealed, 上位毒は問答無用で削除
@@ -6505,7 +6512,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        damageLimit: { strength: 250, keepOnDeath: true, iconSrc: "none" },
+        damageLimit: { keepOnDeath: true, strength: 250, iconSrc: "none" },
       },
     },
     seed: { atk: 20, def: 25, spd: 75, int: 0 },
@@ -6857,7 +6864,7 @@ const monsters = [
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         elementalShield: { targetElement: "dark", remain: 250, unDispellable: true, targetType: "ally", iconSrc: "elementalShieldDark" },
-        damageLimit: { strength: 250 },
+        damageLimit: { unDispellable: true, strength: 250 },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -7459,7 +7466,7 @@ const monsters = [
       initialBuffs: {
         ioBreak: { keepOnDeath: true, strength: 1 },
         thunderBreak: { keepOnDeath: true, strength: 1 },
-        damageLimit: { strength: 250, keepOnDeath: true, iconSrc: "none" },
+        damageLimit: { keepOnDeath: true, strength: 250, iconSrc: "none" },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -13021,7 +13028,7 @@ const skill = [
     preemptiveGroup: 5,
     isOneTimeUse: true,
     MPcost: 82,
-    appliedEffect: { damageLimit: { strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true, removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { damageLimit: { unDispellable: true, strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true, removeAtTurnStart: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities.push({
         name: "極・天地魔闘の構え反撃状態",
@@ -13684,7 +13691,7 @@ const skill = [
     MPcost: 56,
     appliedEffect: "disruptiveWave",
     selfAppliedEffect: async function (skillUser) {
-      applyBuff(skillUser, { damageLimit: { strength: 300, keepOnDeath: true } }, null, false, true);
+      applyBuff(skillUser, { damageLimit: { keepOnDeath: true, strength: 300 } }, null, false, true);
     },
   },
   {
@@ -13795,7 +13802,7 @@ const skill = [
       powerCharge: { strength: 2, duration: 3 },
       slashReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true, isKanta: true },
       spellReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true },
-      damageLimit: { strength: 200, duration: 2 },
+      damageLimit: { unDispellable: true, strength: 200, duration: 2 },
     },
   },
   {
@@ -14196,7 +14203,7 @@ const skill = [
     appliedEffect: "divineWave",
     ignoreSubstitute: true,
     act: async function (skillUser, skillTarget) {
-      if (skillTarget.buffs.damageLimit && !skillTarget.buffs.damageLimit.keepOnDeath && !skillTarget.buffs.damageLimit.unDispellable) {
+      if (skillTarget.buffs.damageLimit && !skillTarget.buffs.damageLimit.keepOnDeath) {
         delete skillTarget.buffs.damageLimit;
       }
     },
@@ -16192,7 +16199,7 @@ const skill = [
       if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
         await sleep(100);
         skillUser.flags.hasUsedMaterialGuard = true;
-        applyBuff(skillUser, { damageLimit: { strength: 200, duration: 3, removeAtTurnStart: true } });
+        applyBuff(skillUser, { damageLimit: { unDispellable: true, strength: 200, duration: 3 } });
       }
     },
   },
@@ -19611,7 +19618,7 @@ async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso =
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
 async function executeWave(monster, isDivine = false, isDamageExisting = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "damageLimit", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
   const newBuffs = {};
   let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
