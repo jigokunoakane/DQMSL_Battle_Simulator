@@ -5720,26 +5720,32 @@ document.getElementById("randomParty").addEventListener("click", function () {
   selectAllPartyMembers(getRandomUniqueMonsterIds(5));
 });
 
+// 装備変更がある場合はswitchTab(0);
 document.getElementById("drapa").addEventListener("click", function () {
   selectAllPartyMembers(["masudora", "sinri", "rusia", "orochi", "voruka"]);
   selectGear("killerEarrings", 2);
+  switchTab(0);
 });
 
 document.getElementById("yuzupa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "nerugeru", "erugi", "ifshiba", "skull"]);
   selectGear("holyKingShield", 2);
+  switchTab(0);
 });
 
 document.getElementById("siragapa").addEventListener("click", function () {
   selectAllPartyMembers(["world", "erugi", "sosiden", "dream", "skull"]);
   changeDefaultSkill(selectingParty[0], 3, "防刃の守り");
+  selectGear("hunkiNail", 0);
   changeDefaultSkill(selectingParty[3], 3, "体砕きの斬舞");
   changeDefaultSkill(selectingParty[4], 3, "体技封じの息");
+  switchTab(0);
 });
 
 document.getElementById("omudopa").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
   selectGear("clownHat", 4);
+  switchTab(0);
 });
 
 document.getElementById("omuoru").addEventListener("click", function () {
@@ -5749,6 +5755,7 @@ document.getElementById("omuoru").addEventListener("click", function () {
 document.getElementById("marita").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "zoma", "ryuou", "dorunisu", "oriharu"]);
   selectGear("hazamaSpear", 0);
+  switchTab(0);
 });
 
 document.getElementById("akumapa").addEventListener("click", function () {
@@ -5780,6 +5787,7 @@ document.getElementById("masopa").addEventListener("click", function () {
   changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
   selectGear("holyKingShield", 0);
   selectGear("hazardNail", 3);
+  switchTab(0);
 });
 
 async function selectAllPartyMembers(monsters) {
@@ -5787,6 +5795,7 @@ async function selectAllPartyMembers(monsters) {
     selectingMonsterNum = i;
     selectMonster(monsters[selectingMonsterNum]);
   }
+  switchTab(0);
   if (!isDeveloperMode) return;
   decideParty();
   await sleep(9);
