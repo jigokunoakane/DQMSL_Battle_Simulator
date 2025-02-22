@@ -7933,6 +7933,21 @@ const monsters = [
     resistance: { fire: 1.5, ice: 1, thunder: 1, wind: 0.5, io: 1, light: 1.5, dark: 0.5, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "かげのきし", //444lv70 どく・ほね
+    id: "kagekisi",
+    rank: 6, //C
+    race: ["ゾンビ"],
+    weight: 3,
+    status: { HP: 333, MP: 130, atk: 258, def: 224, spd: 370, int: 119 },
+    initialSkill: ["ルカナン", "ルカナン", "ピオリム", "ヘルスピア"],
+    defaultGear: "lightCharm",
+    attribute: {},
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { def: 1.05 },
+    lsTarget: "ゾンビ",
+    resistance: { fire: 1.5, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 0.5, asleep: 0.5, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 0.5, spellSeal: 0.5, breathSeal: 1 },
+  },
+  {
     name: "名もなき闇の王", //44
     id: "hazama",
     rank: 10,
