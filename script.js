@@ -18406,20 +18406,20 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
   },
   {
-    name: "おうごんのツメ",
+    name: "おうごんのツメ", //+10
     id: "goldenNail",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 53, int: 0 },
   },
   {
-    name: "源氏の小手",
+    name: "源氏の小手", //+10
     id: "genjiNail",
     weight: 5,
     noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
   },
   {
-    name: "ハザードネイル",
+    name: "ハザードネイル", //+15
     id: "hazardNail",
     weight: 5,
     noWeightMonsters: [
@@ -18437,22 +18437,22 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
   },
   {
-    name: "メタルキングの爪",
+    name: "メタルキングの爪", //+10
     id: "metalNail",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 15, def: 0, spd: 56, int: 0 },
-    initialBuffs: { metalKiller: { strength: 1.5, keepOnDeath: true } },
+    initialBuffs: { metalKiller: { keepOnDeath: true, strength: 1.5 } },
     alchemy: true,
   },
   {
-    name: "竜神のツメ",
+    name: "竜神のツメ", //+10
     id: "ryujinNail",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
     alchemy: true,
   },
   {
-    name: "呪われし爪",
+    name: "呪われし爪", //+10
     id: "cursedNail",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
@@ -18460,14 +18460,14 @@ const gear = [
     alchemy: true,
   },
   {
-    name: "はどうのツメ",
+    name: "はどうのツメ", //+10
     id: "waveNail",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
     alchemy: true,
   },
   {
-    name: "奮起のツメ",
+    name: "奮起のツメ", //+2
     id: "hunkiNail",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 34, int: 0 },
@@ -18492,7 +18492,7 @@ const gear = [
     skillAlchemyStrength: 0.08,
   },
   {
-    name: "帝王のつるぎ",
+    name: "帝王のつるぎ", //+10
     id: "estaSword",
     weight: 5,
     noWeightMonsters: ["地獄の帝王エスターク"],
@@ -18524,26 +18524,26 @@ const gear = [
     initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakdivineDispellable" } },
   },
   {
-    name: "キラーピアス",
+    name: "キラーピアス", //+10
     id: "killerEarrings",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 40, def: 0, spd: 10, int: 0 },
     alchemy: true,
   },
   {
-    name: "心砕きのヤリ",
+    name: "心砕きのヤリ", //+2
     id: "kudaki",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 22, def: 0, spd: 15, int: 0 },
   },
   {
-    name: "昇天のヤリ",
+    name: "昇天のヤリ", //+2
     id: "shoten",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 23, def: 0, spd: 0, int: 28 },
   },
   {
-    name: "りゅうおうの杖",
+    name: "りゅうおうの杖", //+15
     id: "dragonCane",
     weight: 5,
     noWeightMonsters: ["りゅうおう", "竜王"],
@@ -18554,7 +18554,7 @@ const gear = [
     skillAlchemyStrength: 0.25,
   },
   {
-    name: "りゅうおうの杖非素早さ錬金",
+    name: "りゅうおうの杖非素早さ錬金", //+15
     id: "dragonCaneWithoutSpd",
     weight: 5,
     noWeightMonsters: ["りゅうおう", "竜王"],
@@ -18564,10 +18564,10 @@ const gear = [
     skillAlchemyStrength: 0.25,
   },
   {
-    name: "しゅくふくの杖",
+    name: "しゅくふくの杖", //+10
     id: "shukuhuku",
     weight: 2,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 78 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 84 },
     healBoost: 1.32,
   },
   {
@@ -18583,7 +18583,7 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
-    name: "魔神のかなづち",
+    name: "魔神のかなづち", //+10
     id: "kanazuchi",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
@@ -18611,10 +18611,10 @@ const gear = [
     lightGearResistance: 2,
   },
   {
-    name: "プラチナシールド", //+7 メラ息10軽減
+    name: "プラチナシールド", //+10 メラ息10軽減
     id: "platinumShield",
     weight: 2,
-    status: { HP: 0, MP: 0, atk: 0, def: 78, spd: 0, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 84, spd: 0, int: 0 },
     fireGearResistance: 1,
   },
   {
@@ -18639,45 +18639,45 @@ const gear = [
     statusMultiplier: { spd: -0.2 },
   },
   {
-    name: "狭間の闇の大剣", //+7
+    name: "狭間の闇の大剣", //+10 35%軽減
     id: "hazamaSword",
     weight: 5,
-    status: { HP: 0, MP: 0, atk: 47, def: 15, spd: 0, int: 0 },
+    status: { HP: 0, MP: 0, atk: 50, def: 15, spd: 0, int: 0 },
   },
   {
-    name: "狭間の闇のヤリ", //+7
+    name: "狭間の闇のヤリ", //+10 35%軽減
     id: "hazamaSpear",
     weight: 5,
-    status: { HP: 37, MP: 0, atk: 40, def: 0, spd: 0, int: 0 },
+    status: { HP: 40, MP: 0, atk: 40, def: 0, spd: 0, int: 0 },
   },
   {
-    name: "狭間の闇の盾", //+7
+    name: "狭間の闇の盾", //+10 35%軽減
     id: "hazamaShield",
     weight: 5,
-    status: { HP: 0, MP: 0, atk: 0, def: 92, spd: 0, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 95, spd: 0, int: 0 },
   },
   {
-    name: "狭間の闇のうでわ", //+7
+    name: "狭間の闇のうでわ", //+10 35%軽減
     id: "hazamaBracelet",
     weight: 5,
-    status: { HP: 0, MP: 0, atk: 0, def: 20, spd: 27, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 20, spd: 30, int: 0 },
   },
   {
-    name: "天空のフルート",
+    name: "天空のフルート", //+10
     id: "flute",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 30, def: 60, spd: 0, int: 0 },
     turn1buffs: { dodgeBuff: { strength: 1 } },
   },
   {
-    name: "天空の衣",
+    name: "天空の衣", //+10
     id: "heavenlyClothes",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 0, def: 105, spd: 0, int: 0 },
     turn1buffs: { danceEvasion: { unDispellable: true, duration: 1, removeAtTurnStart: true } },
   },
   {
-    name: "あぶない水着",
+    name: "あぶない水着", //+10
     id: "swimSuit",
     weight: 5,
     noWeightMonsters: ["真夏の女神クシャラミ", "常夏少女ジェマ", "魔夏姫アンルシア", "涼風の魔女グレイツェル", "ドラ猫親分ドラジ"],
@@ -18697,14 +18697,14 @@ const gear = [
     status: { HP: 17, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
   },
   {
-    name: "狭間の闇のはごろも",
+    name: "狭間の闇のはごろも", //+10
     id: "hazamaClothes",
     weight: 10,
     status: { HP: 0, MP: 0, atk: 0, def: 95, spd: 0, int: 0 },
     initialBuffs: { allElementalBreak: { strength: 1, keepOnDeath: true, iconSrc: "none" } },
   },
   {
-    name: "ピエロの帽子",
+    name: "ピエロの帽子", //+10
     id: "clownHat",
     weight: 2,
     status: { HP: 20, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
@@ -18716,52 +18716,52 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 37, def: 0, spd: 10, int: 0 },
   },
   {
-    name: "炎よけのおまもり",
+    name: "炎よけのおまもり", //+10
     id: "fireCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     fireGearResistance: 2,
   },
   {
     name: "氷よけのおまもり",
     id: "iceCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     iceGearResistance: 2,
   },
   {
     name: "雷よけのおまもり",
     id: "thunderCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     thunderGearResistance: 2,
   },
   {
     name: "風よけのおまもり",
     id: "windCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     windGearResistance: 2,
   },
   {
     name: "爆発よけのおまもり",
     id: "ioCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     ioGearResistance: 2,
   },
   {
     name: "光よけのおまもり",
     id: "lightCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     lightGearResistance: 2,
   },
   {
     name: "闇よけのおまもり",
     id: "darkCharm",
     weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 17, int: 0 },
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 20, int: 0 },
     darkGearResistance: 2,
   },
   {
