@@ -5746,6 +5746,11 @@ document.getElementById("omuoru").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "orugo", "nadoraga", "dogu", "dorunisu"]);
 });
 
+document.getElementById("marita").addEventListener("click", function () {
+  selectAllPartyMembers(["omudo", "zoma", "ryuou", "dorunisu", "oriharu"]);
+  selectGear("hazamaSpear", 0);
+});
+
 document.getElementById("akumapa").addEventListener("click", function () {
   selectAllPartyMembers(["tanisu", "dhuran", "rogos", "tseru", "zuisho"]);
 });
@@ -6756,7 +6761,7 @@ const monsters = [
     race: ["???"],
     weight: 32,
     status: { HP: 925, MP: 503, atk: 631, def: 445, spd: 425, int: 479 },
-    initialSkill: ["くいちぎる", "咆哮", "スパークふんしゃ", "ザオリク"],
+    initialSkill: ["くいちぎる", "咆哮", "スパークふんしゃ", "防刃の守り"],
     initialAIDisabledSkills: ["くいちぎる"],
     defaultGear: "dragonCaneWithoutSpd",
     attribute: {
@@ -6782,9 +6787,10 @@ const monsters = [
     race: ["ドラゴン"],
     weight: 27,
     status: { HP: 820, MP: 324, atk: 558, def: 560, spd: 392, int: 307 },
-    initialSkill: ["地殻変動", "アストロン", "テンペストブレス", "防刃の守り"],
+    initialSkill: ["地殻変動", "アストロン", "テンペストブレス", "天の裁き"],
+    initialAIDisabledSkills: ["地殻変動", "天の裁き"],
     anotherSkills: ["大地の守り"],
-    defaultGear: "familyNailCriticalGuard",
+    defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
