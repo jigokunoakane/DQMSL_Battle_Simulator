@@ -1490,9 +1490,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       buffData.divineDispellable = true;
     }
     // 1-6. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
-    if (currentBuff) {
+    // divineDispellableを上書き可能なバフは除外: protection
+    if (currentBuff && !["protection"].includes(buffName)) {
       function getBuffPriority(buff) {
-        // reviveは必ずkeepOnDeath持ちのため、選考から除外
+        // reviveは必ずkeepOnDeath持ちのため、3は返さずにkeepOnDeath以外で比較
         if (buffName !== "revive" && buff.keepOnDeath) return 3;
         if (buff.unDispellable) return 2;
         if (buff.divineDispellable) return 1;
@@ -1721,13 +1722,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     } else {
       // 3-5. 重ねがけ不可バフの場合、基本は上書き 競合によって上書きしない場合のみ以下のcontinueで弾く
       if (currentBuff) {
-        // 3-2-2. currentBuffにdurationが存在せず、かつbuffDataにdurationが存在するときはcontinue (常にマホカンは上書きしない) やるならduration付与後に
-        //keepOnDeathで代替、keepOnDeathではなくかつ持続時間無制限のものがあれば実行
-        //if (!currentBuff.duration && buffData.duration) {
-        //  continue;
-        //}
         // 3-2-3. strengthが両方存在し、かつ負けてるときは付与しない (strengthで比較する系：力ため、系統バフ、反射、prot、使い手付与 上回るまたは同格の場合上書き)
-        if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
+        // protectionだけ例外 天界上書き処理のためにdivineと無印の比較によるcontinueを行っていないため、strengthが同値の場合にdivineを上書きしないよう指定
+        if (buffName === "protection" && currentBuff.strength === buffData.strength && currentBuff.divineDispellable && !buffData.divineDispellable) {
+          continue;
+        } else if (currentBuff.strength && buffData.strength && currentBuff.strength > buffData.strength) {
           continue;
         }
       }
@@ -2964,9 +2963,9 @@ function decideAICommandFocusOnHeal(skillUser) {
     // 分けて格納
     if (skillInfo.targetType === "dead") {
       availableReviveSkills.push(skillInfo);
-    } else if (skillInfo.healSkill && skillInfo.targetType === "all") {
+    } else if (skillInfo.isHealSkill && skillInfo.targetType === "all") {
       availableAllHealSkills.push(skillInfo);
-    } else if (skillInfo.healSkill) {
+    } else if (skillInfo.isHealSkill) {
       availableSingleHealSkills.push(skillInfo); //randomも可能性はある
     }
   }
@@ -4480,11 +4479,17 @@ function calculateDamage(
 
   // skillTargetのLSによる軽減
   const enemyLeaderName = parties[skillTarget.teamID][0].name;
-  if (enemyLeaderName === "メタルゴッデス" && skillTarget.race.includes("スライム") && AllElements.includes(executingSkill.element)) {
-    damageModifier -= 0.3;
-  }
-  if (enemyLeaderName === "ガルマッゾ" && isBreakMonster(skillTarget) && AllElements.includes(executingSkill.element)) {
-    damageModifier -= 0.3;
+  // 属性30軽減など
+  if (AllElements.includes(executingSkill.element)) {
+    if (enemyLeaderName === "メタルゴッデス" && skillTarget.race.includes("スライム")) {
+      damageModifier -= 0.3;
+    }
+    if (enemyLeaderName === "ガルマッゾ" && isBreakMonster(skillTarget)) {
+      damageModifier -= 0.3;
+    }
+    if (enemyLeaderName === "かみさま") {
+      damageModifier -= 0.05;
+    }
   }
   if (enemyLeaderName === "神獣王ケトス" && skillUser.race.includes("???")) {
     damageModifier -= 0.05;
@@ -4942,10 +4947,10 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
   }
   if (!monster.flags.isDead) {
     displayMiss(monster);
-    return;
+    return false;
   }
   if (monster.buffs.tagTransformation) {
-    // tag変化時
+    // tag変化は最優先で消費 蘇生封じ無関係
     monster.currentStatus.HP = monster.defaultStatus.HP;
     delete monster.flags.isDead;
     console.log(`なんと${monster.name}が変身した！`);
@@ -4958,7 +4963,7 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
     if (monster.buffs.reviveBlock && !ignoreReviveBlock) {
       delete monster.buffs.revive;
       displayMiss(monster);
-      return;
+      return false;
     }
     // 蘇生封じなしの場合は蘇生
     delete monster.flags.isDead;
@@ -4990,6 +4995,7 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
   if (!skipSleep) {
     await sleep(300);
   }
+  return true;
 }
 
 // モンスターを亡者化させる関数
@@ -6796,6 +6802,30 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 1, io: -1, light: 0, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "かみさま", //多分4
+    id: "god",
+    rank: 10,
+    race: ["???"],
+    weight: 27,
+    status: { HP: 763, MP: 397, atk: 389, def: 522, spd: 389, int: 498 },
+    initialSkill: ["天界の守り", "神のはどう", "ザオリーマ", "ザオリク"],
+    anotherSkills: ["ステテコダンス"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        healEnhancement: { keepOnDeath: true },
+        demonKingBarrier: { divineDispellable: true },
+        protection: { strength: 0.34, duration: 3 },
+        revive: { keepOnDeath: true, divineDispellable: true, strength: 1 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.2, spd: 1.08 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1.5, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "聖地竜オリハルゴン", //44
@@ -10890,6 +10920,7 @@ const skill = [
     order: "", //preemptive anchor
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
+    isHealSkill: true,
     skipDeathCheck: true, // 死亡時 isDeadでも常に実行
     isCounterSkill: true, // 反撃 isDeadでは実行しない　両方ともskipThisTurnは無視
     skipSkillSealCheck: true,
@@ -16148,6 +16179,19 @@ const skill = [
     },
   },
   {
+    name: "天界の守り",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 50,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    isOneTimeUse: true,
+    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+  },
+  {
     name: "報復の大嵐",
     type: "spell",
     howToCalculate: "int",
@@ -16927,6 +16971,30 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     appliedEffect: { spdUp: { strength: -1, probability: 0.6 } },
+  },
+  {
+    name: "ザオリーマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 200,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          // 間隔skip 蘇生成功時に全回復表示
+          if (await reviveMonster(monster, 1, false, true)) {
+            displayDamage(monster, monster.defaultStatus.HP, -1);
+          }
+        } else {
+          applyHeal(monster, monster.defaultStatus.HP, false, false);
+        }
+      }
+      await sleep(400);
+    },
   },
   {
     name: "鮮烈な稲妻",
@@ -17865,7 +17933,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 65,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
     },
@@ -17878,7 +17946,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 200,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
@@ -17891,7 +17959,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 50,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
     },
@@ -17912,7 +17980,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 64,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
     },
@@ -18306,7 +18374,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 42,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
@@ -18319,7 +18387,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 42,
-    healSkill: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
     },
@@ -18903,6 +18971,10 @@ function executeHealSkill(skillUser, skillTarget, minInt, minIntHealAmount, maxI
   }
   healAmount *= skillPlus;
   healAmount *= randomMultiplier;
+  // 回復のコツ
+  if (skillUser.buffs.healEnhancement) {
+    healAmount *= 1.15;
+  }
   applyHeal(skillTarget, healAmount);
 }
 
@@ -19255,7 +19327,7 @@ function displayskillMessage(skillInfo, line1Text = "", line2Text = "", line3Tex
 function getSkillTypeIcons(skillInfo) {
   const skillName = skillInfo.name;
   let type;
-  if (skillInfo.targetType === "dead" || skillInfo.healSkill) {
+  if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
     type = "heal";
   } else if (skillInfo.targetTeam === "ally" && skillInfo.type !== "ritual") {
     type = "support";
@@ -19797,10 +19869,11 @@ function calculateMPcost(skillUser, executingSkill) {
   if (skillUser.race.includes("超伝説") && !skillUser.buffs.tagTransformation) {
     calcMPcost = Math.ceil(calcMPcost * 1.2);
   }
-  //コツの半減
+  //コツの半減 todo: メゾラにギラコツのMP半減乗ってない
   if (
     (skillUser.buffs.breathEnhancement && executingSkill.type === "breath") ||
-    (skillUser.buffs.elementEnhancement && executingSkill.type === "spell" && skillUser.buffs.elementEnhancement.element === executingSkill.element)
+    (skillUser.buffs.elementEnhancement && executingSkill.type === "spell" && skillUser.buffs.elementEnhancement.element === executingSkill.element) ||
+    (skillUser.buffs.healEnhancement && (executingSkill.targetType === "dead" || executingSkill.isHealSkill))
   ) {
     calcMPcost = Math.floor(calcMPcost * 0.5);
   }
@@ -20710,6 +20783,7 @@ function isSkillUnavailableForAI(skillName) {
     "第三の瞳",
     "ギガ・マホトラ",
     "ギガ・マホヘル",
+    "ザオリーマ",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
