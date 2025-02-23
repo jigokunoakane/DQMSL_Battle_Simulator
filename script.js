@@ -6342,6 +6342,35 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: -1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "アレフガルドの伝説", //44
+    id: "arehu",
+    rank: 10,
+    race: ["超伝説"],
+    weight: 35,
+    status: { HP: 880, MP: 391, atk: 615, def: 555, spd: 469, int: 279 },
+    initialSkill: ["勇者の一撃", "竜王の息吹", "ベギラマの剣", "勇者のきらめき"],
+    defaultGear: "shoten",
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "伝説のタッグ1" },
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        thunderBreak: { keepOnDeath: true, strength: 2 },
+        thunderSuperBreak: { keepOnDeath: true },
+        mindBarrier: { keepOnDeath: true },
+      },
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        breathBarrier: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 1, thunder: 0, wind: 1, io: 1, light: 0.5, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "剛拳の姫と獅子王", //44
     id: "arina",
     rank: 10,
@@ -8788,6 +8817,22 @@ function getMonsterAbilities(monsterId) {
           });
           applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
           applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true, iconSrc: "none" } });
+        }
+      },
+    },
+    arehu: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "伝説のタッグ1") {
+          monster.skill[1] = "王女の愛";
+          //monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          await sleep(150);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
+          delete monster.buffs.fireBreak;
+          delete monster.buffs.thunderSuperBreak;
+          applyBuff(monster, { thunderUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.7, duration: 3 } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
         }
       },
     },
@@ -12988,6 +13033,81 @@ const skill = [
         delete skillTarget.buffs.sacredBarrier;
         applyBuff(skillTarget, { dotDamage: { strength: 0.2 } });
       }
+    },
+  },
+  {
+    name: "勇者の一撃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4.6,
+    element: "thunder",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 65,
+    isOneTimeUse: true,
+    ignoreProtection: true,
+    ignoreEvasion: true,
+    ignoreTypeEvasion: true,
+  },
+  {
+    name: "竜王の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 464,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 85,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.39 }, fear: { probability: 0.3133 } },
+  },
+  {
+    name: "ベギラマの剣",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.21,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 72,
+    criticalHitProbability: 0,
+  },
+  {
+    name: "勇者のきらめき",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 124,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 62,
+    order: "anchor",
+    anchorBonus: 4,
+    damageByLevel: true,
+  },
+  {
+    name: "王女の愛",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 150,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          // 間隔skip 蘇生成功時に全回復表示
+          if (await reviveMonster(monster, 1, false, true)) {
+            displayDamage(monster, monster.defaultStatus.HP, -1);
+          }
+        } else {
+          applyHeal(monster, monster.defaultStatus.HP, false, false);
+        }
+      }
+      await sleep(400);
     },
   },
   {
@@ -21122,6 +21242,7 @@ function isSkillUnavailableForAI(skillName) {
     "ギガ・マホトラ",
     "ギガ・マホヘル",
     "ザオリーマ",
+    "王女の愛",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
