@@ -7626,6 +7626,26 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 0, wind: 0, io: 0, light: 0, dark: 0, poisoned: 0, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
+    name: "スラキャンサー", //4?? HP50防御50
+    id: "surakyan",
+    rank: 9,
+    race: ["スライム"],
+    weight: 14,
+    status: { HP: 674, MP: 207, atk: 350, def: 563, spd: 383, int: 275 },
+    initialSkill: ["におうだち", "みがわり", "精霊の守り・強", "マインドバリア"],
+    defaultGear: "thunderCharm",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      permanentBuffs: {
+        mindBarrier: { duration: 3, probability: 0.25 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 0.5, ice: 0.5, thunder: 0.5, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ボーグ", //最強??
     id: "bogu",
     rank: 8,
