@@ -4020,13 +4020,18 @@ function calculateDamage(
     damage *= reflectionStrength;
   }
 
-  //会心完全ガード
+  // 会心完全ガード
   if (isCriticalHit && skillTarget.buffs.criticalGuard) {
     damage = 0;
     col("会心完全ガード");
   }
 
-  //弱点1.8倍処理
+  // 魔神斬りミス処理
+  if (executingSkill.missProbability && Math.random() < executingSkill.missProbability) {
+    damage = 0;
+  }
+
+  // 弱点1.8倍処理
   if (resistance === 1.5 && executingSkill.weakness18) {
     damage *= 1.2;
   }
@@ -6932,6 +6937,21 @@ const monsters = [
     resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 0, dark: 1, poisoned: 1.5, asleep: 1, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "パラディノス", //最強
+    id: "paradhi",
+    rank: 9,
+    race: ["ドラゴン"],
+    weight: 14,
+    status: { HP: 704, MP: 260, atk: 499, def: 481, spd: 237, int: 226 },
+    initialSkill: ["超魔神斬り", "聖騎士の守護", "スパークふんしゃ", "防刃の守り"],
+    defaultGear: "kanazuchi",
+    attribute: {},
+    seed: { atk: 95, def: 25, spd: 0, int: 0 },
+    ls: { atk: 1.1, def: 1.1 },
+    lsTarget: "ドラゴン",
+    resistance: { fire: 0.5, ice: 1, thunder: 0, wind: 0.5, io: 0, light: 0, dark: 1, poisoned: 1.5, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ミステリドール",
     id: "dogu",
     rank: 9,
@@ -9310,6 +9330,24 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    paradhi: {
+      initialAbilities: [
+        {
+          name: "聖騎士のよろい",
+          unavailableIf: (skillUser) => countSameRaceMonsters(skillUser) !== 1,
+          act: async function (skillUser) {
+            applyBuff(skillUser, { defUp: { strength: 1 } });
+          },
+        },
+      ],
+      followingAbilities: {
+        name: "斬撃で魔神斬り",
+        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "slash",
+        getFollowingSkillName: (executingSkill) => {
+          return "魔神斬り";
+        },
+      },
+    },
     hyadonisu: {
       counterAbilities: [
         {
@@ -11047,6 +11085,7 @@ const skill = [
     skipSkillSealCheck: true,
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
+    missProbability: 0.3,
     RaceBane: ["スライム", "ドラゴン"],
     RaceBaneValue: 3,
     anchorBonus: 3,
@@ -11256,20 +11295,6 @@ const skill = [
     criticalHitProbability: 1,
   },
   {
-    name: "会心撃",
-    type: "martial",
-    howToCalculate: "atk",
-    ratio: 1,
-    element: "none",
-    targetType: "single",
-    targetTeam: "enemy",
-    MPcost: 110,
-    criticalHitProbability: 1,
-    ignoreEvasion: true,
-    ignoreBaiki: true,
-    ignorePowerCharge: true,
-  },
-  {
     name: "魔獣の追撃",
     type: "notskill",
     howToCalculate: "spd",
@@ -11349,6 +11374,48 @@ const skill = [
     act: function (skillUser, skillTarget) {
       skillUser.flags.guard = true;
     },
+  },
+  {
+    name: "会心撃",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 110,
+    criticalHitProbability: 1,
+    ignoreEvasion: true,
+    ignoreBaiki: true,
+    ignorePowerCharge: true,
+  },
+  {
+    name: "超魔神斬り",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.49,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    order: "anchor",
+    MPcost: 85,
+    criticalHitProbability: 1,
+    ignoreBaiki: true,
+    ignorePowerCharge: true,
+  },
+  {
+    name: "魔神斬り",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    criticalHitProbability: 0.5, //miss4割以外の6割の半分
+    missProbability: 0.4,
+    ignoreBaiki: true,
+    ignorePowerCharge: true,
   },
   {
     name: "涼風一陣",
@@ -11718,6 +11785,18 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+  },
+  {
+    name: "聖騎士の守護",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 54,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { mindBarrier: { duration: 3 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true, probability: 0.567 } },
   },
   {
     name: "五連竜牙弾",
