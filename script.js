@@ -2647,7 +2647,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       skillUser.buffs.pharaohPower &&
       parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
       executingSkill.type !== "notskill" && // notskill以外であることを直接指定
-      executedSkills.some((skill) => skill.howToCalculate !== "none" && skill.targetTeam === "enemy")
+      executedSkills.some((skill) => isDamageExistingSkill(skill) && skill.targetTeam === "enemy")
     ) {
       skillsToExecute.push({ skillInfo: findSkillByName("ファラオの幻刃"), firstMessage: `${skillUser.name}は`, lastMessage: "ファラオの幻刃 をはなった！" });
     }
@@ -9344,7 +9344,7 @@ function getMonsterAbilities(monsterId) {
       ],
       followingAbilities: {
         name: "斬撃で魔神斬り",
-        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "slash",
+        availableIf: (skillUser, executingSkill) => isDamageExistingSkill(executingSkill) && executingSkill.type === "slash",
         getFollowingSkillName: (executingSkill) => {
           return "魔神斬り";
         },
@@ -9605,7 +9605,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "悪魔衆の踊り",
-        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
+        availableIf: (skillUser, executingSkill) => isDamageExistingSkill(executingSkill) && executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
         getFollowingSkillName: (executingSkill) => {
           return "ディバインフェザー";
         },
@@ -10047,7 +10047,7 @@ function getMonsterAbilities(monsterId) {
     antbear: {
       followingAbilities: {
         name: "体技攻撃でなめまわし",
-        availableIf: (skillUser, executingSkill) => executingSkill.howToCalculate !== "none" && executingSkill.type === "martial",
+        availableIf: (skillUser, executingSkill) => isDamageExistingSkill(executingSkill) && executingSkill.type === "martial",
         getFollowingSkillName: (executingSkill) => {
           return "なめまわし";
         },
