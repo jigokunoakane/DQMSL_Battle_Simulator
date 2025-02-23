@@ -3900,6 +3900,8 @@ function calculateDamage(
       randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
       if (skillUser.gear?.name === "魔神のかなづち") {
         baseDamage *= 2;
+      } else if (skillUser.gear?.name === "ボーンクラッシャー") {
+        baseDamage *= 1.5;
       }
       if (!isSimulatedCalculation) col("かいしんのいちげき");
     } else {
@@ -18924,17 +18926,23 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
+    name: "メガトンハンマー", //+10 回復錬金
+    id: "megaton",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
+    healBoost: 1.12,
+  },
+  {
     name: "魔神のかなづち", //+10
     id: "kanazuchi",
     weight: 2,
     status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
   },
   {
-    name: "メガトンハンマー", //+10 回復錬金
-    id: "megaton",
-    weight: 2,
-    status: { HP: 0, MP: 0, atk: 34, def: 32, spd: 0, int: 0 },
-    healBoost: 1.12,
+    name: "ボーンクラッシャー", //+10
+    id: "bonecrasher",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 28, def: 24, spd: 0, int: 0 },
   },
   {
     name: "源氏の盾", //+10 錬金なし
