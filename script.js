@@ -4945,6 +4945,7 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
   if (!skipSleep) {
     await sleep(400);
   }
+  // 亡者含め、死亡してない場合は失敗
   if (!monster.flags.isDead) {
     displayMiss(monster);
     return false;
@@ -10278,7 +10279,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.flags.isDead && !monster.buffs.reviveBlock && Math.random() < 0.23) {
+              if (Math.random() < 0.23) {
                 await reviveMonster(monster, 0.25, false, true); // 間隔skip
               } else {
                 displayMiss(monster);
@@ -10298,7 +10299,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              if (monster.flags.isDead && !monster.buffs.reviveBlock && Math.random() < 0.23) {
+              if (Math.random() < 0.23) {
                 await reviveMonster(monster, 0.25, false, true); // 間隔skip
               } else {
                 displayMiss(monster);
@@ -15947,7 +15948,7 @@ const skill = [
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock && monster.race.includes("物質")) {
+        if (monster.race.includes("物質")) {
           await reviveMonster(monster, 0.6, false, true); // 間隔skip
         } else {
           displayMiss(monster);
