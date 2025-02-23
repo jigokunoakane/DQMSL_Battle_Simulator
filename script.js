@@ -4607,21 +4607,38 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
     }
     // 素早さによる回避 通常時はtargetが早いほど回避する
     else {
-      const speedRatio = skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
-      //const speedRatio = fieldState.isReverse ? skillUser.currentStatus.spd / skillTarget.currentStatus.spd : skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
+      //const speedRatio = skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
+      const speedRatio = fieldState.isReverse ? skillUser.currentStatus.spd / skillTarget.currentStatus.spd : skillTarget.currentStatus.spd / skillUser.currentStatus.spd;
       let evasionRate = 0;
-      if (speedRatio >= 1 && speedRatio < 1.5) {
-        evasionRate = 0.008; //下方修正
-      } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
-        evasionRate = 0.15;
-      } else if (speedRatio >= 1.75 && speedRatio < 2) {
-        evasionRate = 0.25;
-      } else if (speedRatio >= 2 && speedRatio < 2.5) {
-        evasionRate = 0.3;
-      } else if (speedRatio >= 2.5 && speedRatio < 3) {
-        evasionRate = 0.4;
-      } else if (speedRatio >= 3) {
-        evasionRate = 0.5;
+      if (fieldState.isReverse) {
+        // 全体的に控えめに調整
+        if (speedRatio >= 1 && speedRatio < 1.5) {
+          evasionRate = 0; //下方修正
+        } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
+          evasionRate = 0.05;
+        } else if (speedRatio >= 1.75 && speedRatio < 2) {
+          evasionRate = 0.1;
+        } else if (speedRatio >= 2 && speedRatio < 2.5) {
+          evasionRate = 0.15;
+        } else if (speedRatio >= 2.5 && speedRatio < 3) {
+          evasionRate = 0.2;
+        } else if (speedRatio >= 3) {
+          evasionRate = 0.3;
+        }
+      } else {
+        if (speedRatio >= 1 && speedRatio < 1.5) {
+          evasionRate = 0.008; //下方修正
+        } else if (speedRatio >= 1.5 && speedRatio < 1.75) {
+          evasionRate = 0.15;
+        } else if (speedRatio >= 1.75 && speedRatio < 2) {
+          evasionRate = 0.25;
+        } else if (speedRatio >= 2 && speedRatio < 2.5) {
+          evasionRate = 0.3;
+        } else if (speedRatio >= 2.5 && speedRatio < 3) {
+          evasionRate = 0.4;
+        } else if (speedRatio >= 3) {
+          evasionRate = 0.5;
+        }
       }
 
       if (Math.random() < evasionRate) {
