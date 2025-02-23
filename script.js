@@ -6423,6 +6423,35 @@ const monsters = [
     resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 0, dark: 0.5, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
+    name: "暗黒神と呪われし魔女", //44
+    id: "zesika",
+    rank: 10,
+    race: ["超伝説"],
+    weight: 35,
+    status: { HP: 908, MP: 472, atk: 252, def: 538, spd: 445, int: 571 },
+    initialSkill: ["爆炎の流星", "呪いのつえ", "苦悶の魔弾", "ドルマズン"],
+    defaultGear: "shoten",
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "伝説のタッグ8" },
+        ioBreak: { keepOnDeath: true, strength: 2 },
+        darkBreak: { keepOnDeath: true, strength: 2 },
+        ioSuperBreak: { keepOnDeath: true },
+        darkSuperBreak: { keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
+      },
+      buffsFromTurn2: {
+        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true, probability: 0.2 },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 1, thunder: 1, wind: 0, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "闇の覇者りゅうおう", //44
     id: "tyoryu",
     rank: 10,
@@ -8825,6 +8854,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ3") {
           monster.skill[1] = "ひかりのたま";
           monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
           await sleep(250);
@@ -8852,6 +8882,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ1") {
           monster.skill[1] = "王女の愛";
           //monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          //updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
           await sleep(250);
@@ -8868,6 +8899,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ4") {
           monster.skill[1] = "ひしょうきゃく";
           monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
           await sleep(250);
@@ -8884,6 +8916,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "伝説のタッグ6") {
           monster.skill[1] = "至高の閃光";
           monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
           await sleep(250);
@@ -8902,6 +8935,24 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    zesika: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "伝説のタッグ8") {
+          monster.skill[1] = "セクシービーム";
+          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          updateBattleIcons(monster);
+          await sleep(150);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
+          delete monster.buffs.ioSuperBreak;
+          delete monster.buffs.darkSuperBreak;
+          monster.buffs.darkBreak.strength = 1;
+          applyBuff(monster, { ioUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+        }
+      },
     },
     tyoryu: {
       supportAbilities: {
@@ -9361,6 +9412,7 @@ function getMonsterAbilities(monsterId) {
       zombifyAct: async function (monster, zombifyActName) {
         if (zombifyActName === "不滅の美") {
           monster.iconSrc = "images/icons/orugoZombified.jpeg";
+          updateBattleIcons(monster);
           displayMessage("＊「ぐははははっ！", "  おうじょうぎわの悪い やつらめ！");
           monster.flags.orugoDispelleUnbreakableAttack = true;
           await sleep(150);
@@ -13286,6 +13338,68 @@ const skill = [
     ignoreProtection: true,
   },
   {
+    name: "爆炎の流星",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 128,
+    maxInt: 1000,
+    maxIntDamage: 280,
+    skillPlus: 1.09,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 88,
+    appliedEffect: { spellBarrier: { strength: -1 } },
+  },
+  {
+    name: "呪いのつえ",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 460,
+    element: "dark",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 100,
+    damageByLevel: true,
+    appliedEffect: { confused: { probability: 0.604 }, statusLock: { probability: 0.6242 } },
+  },
+  {
+    name: "苦悶の魔弾",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 126,
+    maxInt: 600,
+    maxIntDamage: 250,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 0,
+    ignoreReflection: true,
+    afterActionAct: async function (skillUser) {
+      await sleep(200);
+      applyDamage(skillUser, 360, 1, false, false, false, false, null);
+      await checkRecentlyKilledFlagForPoison(skillUser);
+      // 全滅させた後にも自傷と蘇生を実行
+    },
+  },
+  {
+    name: "セクシービーム",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 470,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 38,
+    damageByLevel: true,
+    appliedEffect: { tempted: { probability: 0.3571 } }, //todo: MP吸収
+  },
+  {
     name: "邪悪なともしび",
     type: "spell",
     howToCalculate: "int",
@@ -15106,6 +15220,35 @@ const skill = [
     maxIntDamage: 160,
     skillPlus: 1.15,
     element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
+    name: "ドルマズン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 180,
+    maxInt: 500,
+    maxIntDamage: 360,
+    skillPlus: 1.15,
+    element: "dark",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 72,
+    followingSkill: "ドルマズン後半",
+  },
+  {
+    name: "ドルマズン後半",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 125,
+    maxInt: 600,
+    maxIntDamage: 250,
+    skillPlus: 1.15,
+    element: "io",
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
