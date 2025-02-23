@@ -6028,6 +6028,29 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 0, dark: 1, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "凶スカルゴン", //4??
+    id: "cursedskull",
+    rank: 8,
+    race: ["ドラゴン"],
+    weight: 8,
+    status: { HP: 649, MP: 182, atk: 463, def: 379, spd: 293, int: 189 },
+    initialSkill: ["アンカーナックル", "みがわり", "精霊の守り・強", "防刃の守り"],
+    defaultGear: "windCharm",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      evenTurnBuffs: {
+        baiki: { strength: 2 },
+        intUp: { strength: 2 },
+        defUp: { strength: -1 },
+        spellBarrier: { strength: -1 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "神獣王WORLD", //最強
     id: "world",
     rank: 10,
@@ -8550,6 +8573,16 @@ function getMonsterAbilities(monsterId) {
           applyBuff(monster, { spdUp: { strength: 2 } });
         }
       },
+    },
+    cursedskull: {
+      initialAbilities: [
+        {
+          name: "亡者の恨み",
+          act: function (skillUser) {
+            skillUser.flags.zombieProbability = 0.5;
+          },
+        },
+      ],
     },
     world: {
       initialAbilities: [
@@ -11904,6 +11937,20 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 67,
     appliedEffect: { fear: { probability: 0.4278 } },
+  },
+  {
+    name: "アンカーナックル",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.4,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 33,
+    order: "anchor",
+    anchorBonus: 3,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
   },
   {
     name: "黒くかがやく闇",
