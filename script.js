@@ -6396,6 +6396,33 @@ const monsters = [
     resistance: { fire: 0, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "天空竜と夢の魔女", //44
+    id: "babara",
+    rank: 10,
+    race: ["超伝説"],
+    weight: 35,
+    status: { HP: 887, MP: 507, atk: 279, def: 506, spd: 441, int: 568 },
+    initialSkill: ["究極呪文マダンテ", "黄金の息吹", "メラゾスペル", "もえさかる業火"],
+    anotherSkills: ["圧縮マダンテ"],
+    defaultGear: "shoten",
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "伝説のタッグ6" },
+        fireBreak: { keepOnDeath: true, strength: 2 },
+        lightBreak: { keepOnDeath: true, strength: 1 },
+        fireSuperBreak: { keepOnDeath: true },
+        lightSuperBreak: { keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+        breathReflection: { unDispellable: true, strength: 1.5 },
+      },
+    },
+    seed: { atk: 0, def: 10, spd: 80, int: 30 },
+    ls: { MP: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0, ice: 1, thunder: 0.5, wind: 1, io: 1, light: 0, dark: 0.5, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
+  },
+  {
     name: "闇の覇者りゅうおう", //44
     id: "tyoryu",
     rank: 10,
@@ -8851,6 +8878,30 @@ function getMonsterAbilities(monsterId) {
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
         }
       },
+    },
+    babara: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "伝説のタッグ6") {
+          monster.skill[1] = "至高の閃光";
+          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          await sleep(150);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
+          delete monster.buffs.fireSuperBreak;
+          delete monster.buffs.lightSuperBreak;
+          applyBuff(monster, { fireUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+        }
+      },
+      afterActionHealAbilities: [
+        {
+          name: "自動MP超回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.15, true);
+          },
+        },
+      ],
     },
     tyoryu: {
       supportAbilities: {
@@ -13185,6 +13236,56 @@ const skill = [
     appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, removeAtTurnStart: true, duration: 2 } },
   },
   {
+    name: "究極呪文マダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 2.2,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcostRatio: 1,
+    ignoreReflection: true,
+  },
+  {
+    name: "圧縮マダンテ",
+    type: "spell",
+    howToCalculate: "MP",
+    MPDamageRatio: 4.6,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcostRatio: 1,
+    isOneTimeUse: true,
+    ignoreReflection: true,
+  },
+  {
+    name: "もえさかる業火",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 60,
+    appliedEffect: { baiki: { strength: -1, probability: 0.33 }, intUp: { strength: -1, probability: 0.33 } },
+  },
+  {
+    name: "メラゾスペル",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 125,
+    maxInt: 600,
+    maxIntDamage: 250,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 55,
+    ignoreProtection: true,
+  },
+  {
     name: "邪悪なともしび",
     type: "spell",
     howToCalculate: "int",
@@ -15558,6 +15659,22 @@ const skill = [
     hitNum: 5,
     MPcost: 45,
     appliedEffect: { iceResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
+    name: "至高の閃光", //現状1.15で割った値を指定
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 54,
+    maxInt: 600,
+    maxIntDamage: 167,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 52,
+    appliedEffect: { lightResistance: { strength: -1, probability: 0.57 } },
   },
   {
     name: "魔の忠臣",
