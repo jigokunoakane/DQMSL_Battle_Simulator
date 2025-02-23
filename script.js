@@ -7539,6 +7539,27 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "獣王クロコダイン", //44 新生HP+50
+    id: "skuroko",
+    rank: 9,
+    race: ["魔獣"],
+    weight: 14,
+    status: { HP: 802, MP: 252, atk: 454, def: 506, spd: 345, int: 222 },
+    initialSkill: ["かばう", "ザオリク", "防刃の守り", "いやしの光"],
+    defaultGear: "lightCharm",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 3, isToukon: true, name: "とうこん" },
+        slashBarrier: { strength: 1 },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1.18, atk: 1.03 },
+    lsTarget: "魔獣",
+    resistance: { fire: 0, ice: 1.5, thunder: 0.5, wind: 0, io: 1, light: 0.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 1, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "アントベア",
     id: "antbear",
     rank: 8,
