@@ -7371,6 +7371,21 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
+    name: "ビッグフェイス", //多分44
+    id: "bigface",
+    rank: 8,
+    race: ["悪魔"],
+    weight: 8,
+    status: { HP: 550, MP: 211, atk: 464, def: 491, spd: 351, int: 234 },
+    initialSkill: ["はやぶさ斬り", "みがわり", "精霊の守り・強", "マインドバリア"],
+    defaultGear: "lightCharm",
+    attribute: {},
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { def: 1.1 },
+    lsTarget: "all",
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0.5, io: 1, light: 1, dark: 1, poisoned: 0, asleep: 1, confused: 0.5, paralyzed: 1.5, zaki: 1, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "キングアズライル",
     id: "azu",
     rank: 10,
@@ -9849,6 +9864,16 @@ function getMonsterAbilities(monsterId) {
           name: "自動MP大回復",
           act: async function (skillUser) {
             applyHeal(skillUser, skillUser.defaultStatus.MP * 0.1, true);
+          },
+        },
+      ],
+    },
+    bigface: {
+      afterActionHealAbilities: [
+        {
+          name: "自動HP回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.05);
           },
         },
       ],
@@ -18550,6 +18575,17 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 28,
     weakness18: true,
+  },
+  {
+    name: "はやぶさ斬り",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 2,
+    MPcost: 21,
   },
   {
     name: "ゆうきの旋風",
