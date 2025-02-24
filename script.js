@@ -1210,9 +1210,9 @@ async function startTurn() {
   // カウントダウン処理
   async function executeCountDown(monster) {
     if (monster.buffs.countDown && !monster.flags.isDead && !monster.flags.isZombie) {
-      // 即死防止 1ターン待ったフラグを付与して終了 次ターンにはフラグがあるので通常通り死亡
-      if (monster.name === "万物の王オルゴ・デミーラ" && !monster.flags.zombieProbability && !monster.buffs.countDown.hasWaited1Turn) {
-        monster.buffs.countDown.hasWaited1Turn = true;
+      // 即死防止 1ターン待つフラグを削除して終了 次ターンは通常通り死亡
+      if (monster.buffs.countDown.wait1Turn) {
+        delete monster.buffs.countDown.wait1Turn;
         return;
       }
       await sleep(200);
@@ -2570,7 +2570,9 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   // 7-3. AI追撃処理 処理全体の実行前に初回skip確認
   if (skillUser.AINormalAttack && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && !hasAbnormality(skillUser)) {
     const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良", "しはいのさくせん"];
-    if (!executingSkill || (!noAIskills.includes(executingSkill.name) && !(executingSkill.howToCalculate === "none" && (executingSkill.order === "preemptive" || executingSkill.order === "anchor")))) {
+    const AIskills = ["火竜変化呪文先制"];
+    // executingSkillが存在しなければ常にAIを出す それ以外の場合は特技の性質に依存
+    if (!executingSkill || AIskills.includes(executingSkill.name) || (!noAIskills.includes(executingSkill.name) && !(executingSkill.order && !isDamageExistingSkill(executingSkill)))) {
       let attackTimes =
         skillUser.AINormalAttack.length === 1
           ? skillUser.AINormalAttack[0] - 1
@@ -6452,6 +6454,33 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 1, wind: 0, io: 0, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "大勇者と超魔の武人", //44
+    id: "aban",
+    rank: 10,
+    race: ["超伝説"],
+    weight: 35,
+    status: { HP: 819, MP: 312, atk: 629, def: 450, spd: 453, int: 523 },
+    initialSkill: ["破邪のベギラゴン", "クロスレジェンド", "ゴールドフェザー", "無刀陣"],
+    anotherSkills: ["灼熱剣舞", "アバンストラッシュ"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        tagTransformation: { keepOnDeath: true, act: "因縁のタッグ" },
+        fireBreak: { keepOnDeath: true, strength: 1 },
+        thunderBreak: { keepOnDeath: true, strength: 1 },
+        ioBreak: { keepOnDeath: true, strength: 1 },
+        fireSuperBreak: { keepOnDeath: true },
+        mindAndSealBarrier: { keepOnDeath: true },
+        countDown: { unDispellableByRadiantWave: true, count: 1, wait1Turn: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { atk: 1.2 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 0.5, ice: 1, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "闇の覇者りゅうおう", //44
     id: "tyoryu",
     rank: 10,
@@ -8359,7 +8388,7 @@ const monsters = [
         baiki: { strength: 2 },
         intUp: { strength: 2 },
         defUp: { strength: -1 },
-        aiExtraAttacks: { strength: 1, keepOnDeath: true },
+        aiExtraAttacks: { keepOnDeath: true, strength: 1 },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -8954,6 +8983,43 @@ function getMonsterAbilities(monsterId) {
         }
       },
     },
+    aban: {
+      tagTransformationAct: async function (monster, buffName) {
+        if (buffName === "因縁のタッグ") {
+          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          updateBattleIcons(monster);
+          await sleep(150);
+          applyHeal(monster, monster.defaultStatus.MP, true);
+          await sleep(250);
+          // カウント死の場合先制化
+          if (fieldState.turnNum === 2) {
+            monster.skill[1] = "火竜変化呪文先制";
+            displayMessage("火竜変化呪文が", "【先制】に なった！");
+            applyBuff(monster, { abanPreemptive: { keepOnDeath: true } });
+          } else {
+            monster.skill[1] = "火竜変化呪文";
+          }
+          delete monster.buffs.thunderBreak;
+          delete monster.buffs.ioBreak;
+          monster.buffs.fireBreak.strength = 2;
+          delete monster.buffs.fireSuperBreak;
+          applyBuff(monster, { fireUltraBreak: { keepOnDeath: true } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.4, duration: 3, iconSrc: "protectiondivineDispellablestr0.4" } });
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+        }
+      },
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "赤い鱗",
+            unavailableIf: (skillUser) => !skillUser.flags.abanTransformed,
+            act: async function (skillUser) {
+              applyHeal(skillUser, skillUser.currentStatus.HP * 0.1);
+            },
+          },
+        ],
+      },
+    },
     tyoryu: {
       supportAbilities: {
         permanentAbilities: [
@@ -9431,7 +9497,7 @@ function getMonsterAbilities(monsterId) {
           applyBuff(monster, { reviveBlock: { unDispellableByRadiantWave: true } });
           await sleep(150);
           applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
-          applyBuff(monster, { countDown: { count: 1, unDispellableByRadiantWave: true } });
+          applyBuff(monster, { countDown: { unDispellableByRadiantWave: true, count: 1, wait1Turn: true } });
         }
       },
     },
@@ -10055,7 +10121,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("魔獣") && !monster.buffs.aiExtraAttacks) {
-                applyBuff(monster, { aiExtraAttacks: { strength: 1, keepOnDeath: true } });
+                applyBuff(monster, { aiExtraAttacks: { keepOnDeath: true, strength: 1 } });
               }
             }
           },
@@ -11558,6 +11624,21 @@ const skill = [
     ignoreProtection: true,
   },
   {
+    name: "アバン通常攻撃息",
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}の攻撃！`);
+    },
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 200,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 0,
+    ignoreReflection: true,
+  },
+  {
     name: "ぼうぎょ",
     type: "notskill",
     howToCalculate: "none",
@@ -12175,6 +12256,20 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
+    RaceBane: ["???"],
+    RaceBaneValue: 3,
+  },
+  {
+    name: "アバンストラッシュ反撃", // みがわり無視
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 2.72,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 35,
+    ignoreSubstitute: true,
+    isCounterSkill: true,
     RaceBane: ["???"],
     RaceBaneValue: 3,
   },
@@ -13398,6 +13493,182 @@ const skill = [
     MPcost: 38,
     damageByLevel: true,
     appliedEffect: { tempted: { probability: 0.3571 } }, //todo: MP吸収
+  },
+  {
+    name: "破邪のベギラゴン",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 220,
+    maxInt: 600,
+    maxIntDamage: 356,
+    skillPlus: 1.15,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 108,
+    ignoreReflection: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "クロスレジェンド",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.5,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 67,
+    RaceBane: ["超伝説"],
+    RaceBaneValue: 5,
+    followingSkill: "クロスレジェンド後半",
+  },
+  {
+    name: "クロスレジェンド後半",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.3,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    RaceBane: ["超伝説"],
+    RaceBaneValue: 5,
+    ignoreReflection: true,
+    ignoreEvasion: true,
+  },
+  {
+    name: "灼熱剣舞",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 0.89,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 58,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.25 } },
+  },
+  {
+    name: "ゴールドフェザー",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 410,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 108,
+    damageByLevel: true,
+    appliedEffect: { breathBarrier: { strength: -2, probability: 0.43 }, fear: { probability: 0.3233 } },
+  },
+  {
+    name: "無刀陣",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5, // みがわり後
+    MPcost: 34,
+    isOneTimeUse: true,
+    appliedEffect: {
+      isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      counterAttack: { divineDispellable: true, removeAtTurnStart: true, duration: 1 }, //死亡時解除
+      aiExtraAttacks: { keepOnDeath: true, strength: 1 },
+    },
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.additionalCounterAbilities.push({
+        name: "無刀陣反撃状態",
+        message: function (skillUser) {
+          displayMessage(`${skillUser.name}の 反撃！`);
+        },
+        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+        act: async function (skillUser, counterTarget) {
+          await executeSkill(skillUser, findSkillByName("アバンストラッシュ反撃"), counterTarget);
+        },
+      });
+    },
+  },
+  {
+    name: "火竜変化呪文先制",
+    displayName: "火竜変化呪文",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 8,
+    MPcostRatio: 1,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
+      executeRadiantWave(skillUser, true);
+      skillUser.flags.abanTransformed = true;
+      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3 };
+      applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
+      skillUser.skill[0] = "メラゾブレス";
+      skillUser.skill[1] = "暴れまわる";
+      skillUser.iconSrc = "images/icons/" + skillUser.id + "DragonTransformed.jpeg";
+      updateBattleIcons(skillUser);
+      await sleep(150);
+      applyHeal(skillUser, skillUser.defaultStatus.HP);
+      await sleep(250);
+    },
+  },
+  {
+    name: "火竜変化呪文",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcostRatio: 1,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      delete skillUser.buffs.abanPreemptive;
+      displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
+      executeRadiantWave(skillUser, true);
+      skillUser.flags.abanTransformed = true;
+      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3 };
+      applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
+      skillUser.skill[0] = "メラゾブレス";
+      skillUser.skill[1] = "暴れまわる";
+      skillUser.iconSrc = "images/icons/" + skillUser.id + "DragonTransformed.jpeg";
+      updateBattleIcons(skillUser);
+      await sleep(150);
+      applyHeal(skillUser, skillUser.defaultStatus.HP);
+      await sleep(250);
+    },
+  },
+  {
+    name: "メラゾブレス",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreProtection: true,
+  },
+  {
+    name: "暴れまわる",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 380,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 0,
+
+    ignoreProtection: true,
   },
   {
     name: "邪悪なともしび",
@@ -20362,6 +20633,8 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/protectiondivineDispellablestr0.4.png",
     "images/buffIcons/protectiondivineDispellablestr0.34.png",
     "images/buffIcons/aiPursuitCommand.png",
+    "images/buffIcons/abanPreemptive.png",
+    "images/buffIcons/prismVeilstr1.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
@@ -20413,7 +20686,7 @@ async function executeWave(monster, isDivine = false, isDamageExisting = false) 
   let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
-    // keepOnDeathでも削除するバフ群 竜王杖のようなunDispellable指定以外は削除
+    // keepOnDeathでも削除するバフ群 竜王杖や極天地のようなunDispellable指定以外は削除
     const deleteKeys = ["counterAttack", "revive", "tabooSeal", "angelMark"];
     if (deleteKeys.includes(key) && !value.unDispellable && (!value.divineDispellable || isDivine)) {
       buffRemoved = true; // バフが削除されたことを記録
@@ -20830,6 +21103,18 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は 次の`,
       message: "AI行動で とくぎを使うようになった！",
     },
+    counterAttack: {
+      start: `${buffTarget.name}は`,
+      message: "攻撃に対して 反撃する状態になった！",
+    },
+    aiExtraAttacks: {
+      start: `${buffTarget.name}は`,
+      message: "AI行動の回数が ふえた！",
+    },
+    prismVeil: {
+      start: `${buffTarget.name}の`,
+      message: "全属性耐性が あがった！",
+    },
   };
 
   const stackableBuffs = {
@@ -21114,6 +21399,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "イオ系攻撃";
   } else if (skillUser.name === "魔界の神バーン" && skillUser.buffs.vearnBarrier) {
     NormalAttackName = "絶大な力";
+  } else if (skillUser.flags.abanTransformed) {
+    NormalAttackName = "アバン通常攻撃息";
   }
   return NormalAttackName;
 }
@@ -21634,7 +21921,7 @@ function clearResistanceDisplay(targetWrapper) {
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
   // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替えて、適切な属性や反射表示を行う
-  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン"];
+  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン", "クロスレジェンド"];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
