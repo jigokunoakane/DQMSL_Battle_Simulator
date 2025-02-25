@@ -182,6 +182,9 @@ async function prepareBattle() {
             if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
               lsMultiplier += 0.05;
             }
+            if (monster.gear.name === "エビルクロー") {
+              lsMultiplier += 0.05;
+            }
           }
           // 装備のstatusMultiplierを適用
           if (monster.gear.statusMultiplier && monster.gear.statusMultiplier[key]) {
@@ -5625,6 +5628,9 @@ function calcAndAdjustDisplayStatus() {
       lsMultiplier += 0.05;
     }
     if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
+      lsMultiplier += 0.05;
+    }
+    if (monster.gear.name === "エビルクロー") {
       lsMultiplier += 0.05;
     }
     // 装備のstatusMultiplierを適用
@@ -19455,6 +19461,12 @@ const gear = [
     id: "familyNailSlime",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+  },
+  {
+    name: "エビルクロー",
+    id: "evilClaw",
+    weight: 500,
+    status: { HP: 0, MP: 0, atk: 20, def: 0, spd: 55, int: 0 },
   },
   {
     name: "おうごんのツメ", //+10
