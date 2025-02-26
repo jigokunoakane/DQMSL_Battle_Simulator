@@ -4304,9 +4304,15 @@ function calculateDamage(
         damageModifier += 0.05;
       }
     }
-    // 装備錬金 - 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く) todo: 本当は魔獣パの狭間は系統S錬金なので非適用、スラパの狭間には適用すべき
-    if (gearName === "竜神のツメ" && !["魔獣", "ドラゴン", "物質", "ゾンビ"].some((targetRace) => skillUser.race.includes(targetRace)) && executingSkill.type === "slash") {
-      damageModifier += 0.05;
+    // 装備錬金 - 竜神のツメ
+    if (gearName === "竜神のツメ") {
+      if (executingSkill.type === "slash" && executingSkill.element === "wind") {
+        // バギ斬撃10%
+        damageModifier += 0.1;
+      } else if (!["魔獣", "ドラゴン", "物質", "ゾンビ"].some((targetRace) => skillUser.race.includes(targetRace)) && executingSkill.type === "slash") {
+        // 竜神のツメの斬撃5%錬金(S5%錬金対象の系統を除く) todo: 本当は魔獣パの狭間は系統S錬金なので非適用、スラパの狭間には適用すべき
+        damageModifier += 0.05;
+      }
     }
     // 装備錬金 - 源氏小手の体技5%斬撃3%錬金
     if (gearName === "源氏の小手") {
@@ -7085,6 +7091,7 @@ const monsters = [
     initialSkill: ["天界の守り", "神のはどう", "ザオリーマ", "ザオリク"],
     anotherSkills: ["ステテコダンス"],
     defaultGear: "kudaki",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         healEnhancement: { keepOnDeath: true },
