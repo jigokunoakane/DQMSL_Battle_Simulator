@@ -9159,7 +9159,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "剣聖",
           disableMessage: true,
-          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "slash",
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "slash" || (skillUser.flags.hasTransformed && !skillUser.flags.hasTransformedSword),
           act: async function (skillUser, executingSkill) {
             await sleep(100);
             // 変身処理
@@ -9217,7 +9217,6 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => !skillUser.flags.hasTransformed || skillUser.flags.hasTransformedSword,
           act: async function (skillUser, counterTarget) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2); //20%
-            await executeRadiantWave(skillUser);
           },
         },
       ],
