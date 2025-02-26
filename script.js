@@ -1434,6 +1434,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "dazzle",
     "reviveBlock",
     "dotDamage",
+    "dotMPdamage",
     "healBlock",
     "manaReduction",
     "powerWeaken",
@@ -2770,6 +2771,15 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotDamage) {
     await applyDotDamage(skillUser, skillUser.buffs.dotDamage.strength, "HPダメージを受けている！");
   }
+  // 7-11. 継続MPダメージ処理
+  if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotMPdamage) {
+    await sleep(400);
+    const dotDamageValue = skillUser.buffs.dotMPdamage.strength;
+    displayMessage(`${skillUser.name}は`, "MPダメージを受けている！");
+    await sleep(200);
+    applyDamage(skillUser, dotDamageValue, 1, true);
+  }
   // 刻印・毒・継続の共通処理
   async function applyDotDamage(skillUser, damageRatio, message, isRetribution = false) {
     if (skillUser.commandInput === "skipThisTurn") return;
@@ -2788,7 +2798,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
-  // 7-11. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
+  // 7-12. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   for (const monster of parties[skillUser.enemyTeamID]) {
     if (!isBattleOver() && damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
@@ -14099,7 +14109,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 145,
     ignoreSubstitute: true,
-    appliedEffect: { dotMPdamage: {} },
+    appliedEffect: { dotMPdamage: { strength: 100 } },
   },
   {
     name: "真・カラミティウォール",
@@ -22830,6 +22840,7 @@ function getBuffName(appliedEffect) {
     dazzle: "マヌーサ",
     poisoned: "猛毒",
     dotDamage: "継続ダメージ",
+    dotMPdamage: "継続MPダメージ",
     healBlock: "回復封じ",
     reviveBlock: "蘇生封じ",
     zombifyBlock: "執念封じ",
