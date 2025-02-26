@@ -1435,6 +1435,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "reviveBlock",
     "dotDamage",
     "dotMPdamage",
+    "MPabsorption",
     "healBlock",
     "manaReduction",
     "powerWeaken",
@@ -2780,6 +2781,14 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await sleep(200);
     applyDamage(skillUser, dotDamageValue, 1, true);
   }
+  // 7-12. MP吸収処理(wip)
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.MPabsorption) {
+    await sleep(400);
+    const dotDamageValue = skillUser.buffs.MPabsorption.strength;
+    displayMessage(`${skillUser.name}は`, "MPを吸収された！");
+    await sleep(200);
+    applyDamage(skillUser, dotDamageValue, 1, true);
+  }
   // 刻印・毒・継続の共通処理
   async function applyDotDamage(skillUser, damageRatio, message, isRetribution = false) {
     if (skillUser.commandInput === "skipThisTurn") return;
@@ -2798,7 +2807,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
-  // 7-12. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
+  // 7-13. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
   for (const monster of parties[skillUser.enemyTeamID]) {
     if (!isBattleOver() && damagedMonsters.includes(monster.monsterId)) {
       await executeCounterAbilities(monster);
@@ -13662,7 +13671,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 38,
     damageByLevel: true,
-    appliedEffect: { tempted: { probability: 0.3571 } }, //todo: MP吸収
+    appliedEffect: { MPabsorption: { strength: 50 }, tempted: { probability: 0.3571 } }, //todo: 反射時自分にMP吸収付与？
   },
   {
     name: "破邪のベギラゴン",
@@ -20940,6 +20949,8 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/aiPursuitCommand.png",
     "images/buffIcons/abanPreemptive.png",
     "images/buffIcons/prismVeilstr1.png",
+    "images/buffIcons/dotMPdamage.png",
+    "images/buffIcons/MPabsorption.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
@@ -21287,6 +21298,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
     healBlock: {
       start: `${buffTarget.name}は`,
       message: "HPとMPが回復しなくなった！",
+    },
+    MPabsorption: {
+      start: `${buffTarget.name}は`,
+      message: "MPを 吸収されるようになった！",
     },
     countDown: {
       start: "死のカウントダウンが",
@@ -22885,6 +22900,7 @@ function getBuffName(appliedEffect) {
     poisoned: "猛毒",
     dotDamage: "継続ダメージ",
     dotMPdamage: "継続MPダメージ",
+    MPabsorption: "MP吸収",
     healBlock: "回復封じ",
     reviveBlock: "蘇生封じ",
     zombifyBlock: "執念封じ",
