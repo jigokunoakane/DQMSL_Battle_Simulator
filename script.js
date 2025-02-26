@@ -5308,6 +5308,7 @@ function addSkillOptions() {
     "体技封じの息",
     "キャンセルステップ",
     "体砕きの斬舞",
+    "ミラクルムーン",
     "ダメージバリア",
     "防刃の守り",
     "精霊の守り・強",
@@ -15027,6 +15028,18 @@ const skill = [
     MPcost: 41,
     criticalHitProbability: 0,
     //反射特攻はcalc内で
+  },
+  {
+    name: "ミラクルムーン",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 0.5,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 41,
+    absorptionRatio: 0.5,
   },
   {
     name: "翠嵐の息吹",
