@@ -19854,6 +19854,12 @@ const gear = [
     initialBuffs: { spdUp: { keepOnDeath: true, strength: 1 } },
   },
   {
+    name: "ロトのつるぎ", //+10
+    id: "rotoSword",
+    weight: 5,
+    status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
+  },
+  {
     name: "勇者のつるぎ", //+10 会心5はない
     id: "yuushaken",
     weight: 5,
@@ -20158,6 +20164,18 @@ const gearAbilities = {
   waveNail: {
     initialAbilities: async function (skillUser) {
       skillUser.skill[3] = "プチ神のはどう";
+    },
+  },
+  rotoSword: {
+    initialAbilities: async function (skillUser) {
+      if (!skillUser.abilities.reviveAct) {
+        applyBuff(skillUser, { revive: { keepOnDeath: true, unDispellable: true, strength: 0.05, act: "ロトの加護", iconSrc: "revivedivineDispellable" } });
+        skillUser.abilities.reviveAct = async function (monster, buffName) {
+          if (buffName === "ロトの加護") {
+            applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+          }
+        };
+      }
     },
   },
   clownHat: {
