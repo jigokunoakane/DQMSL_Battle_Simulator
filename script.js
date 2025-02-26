@@ -218,7 +218,7 @@ async function prepareBattle() {
       monster.attribute.additionalEvenTurnBuffs = {};
       // monsterAbilitiesの内容をmonsterDataにコピー
       monster.abilities = getMonsterAbilities(monster.id);
-      //supportAbilitiesまたはattackAbilitiesオブジェクトを生成、additionalPermanentとnextTurn配列を初期化
+      //supportAbilitiesまたはattackAbilitiesオブジェクトを生成、additionalPermanentとnextTurn配列を初期生成(push時に毎回additionalの存在確認不要にする)
       monster.abilities.supportAbilities = monster.abilities.supportAbilities || {};
       monster.abilities.supportAbilities.additionalPermanentAbilities = [];
       monster.abilities.supportAbilities.nextTurnAbilities = [];
@@ -2727,6 +2727,10 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     abilitiesToExecute.push(...(monster.abilities.afterActionHealAbilities ?? []));
     abilitiesToExecute.push(...(monster.abilities.additionalAfterActionHealAbilities ?? []));
     for (const ability of abilitiesToExecute) {
+      // 発動不可能条件に当てはまった場合次のabilityへ
+      if (ability.unavailableIf && ability.unavailableIf(monster)) {
+        continue;
+      }
       await sleep(200);
       await ability.act(monster);
       await sleep(200);
@@ -4415,9 +4419,17 @@ function calculateDamage(
   if ((allyLeaderName === "万物の王オルゴ・デミーラ" || allyLeaderName === "剛拳の姫と獅子王" || allyLeaderName === "死を統べる者ネルゲル") && executingSkill.type === "martial") {
     damageModifier += 0.2;
   }
+  // バーバラLS 息up
+  if (allyLeaderName === "天空竜と夢の魔女" && executingSkill.type === "breath") {
+    damageModifier += 0.2;
+  }
   // ネルLS 斬撃up
   if (allyLeaderName === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
     damageModifier += 0.2;
+  }
+  // 超ピLS 斬撃up
+  if (allyLeaderName === "剣神ピサロ" && executingSkill.type === "slash") {
+    damageModifier += 0.3;
   }
   // そしでんLS 呪文デインup
   if (allyLeaderName === "そして伝説へ") {
@@ -6514,6 +6526,34 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [3],
     resistance: { fire: -1, ice: 1, thunder: 0.5, wind: 0, io: 1, light: 0.5, dark: 0.5, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 0, breathSeal: 0 },
+  },
+  {
+    name: "剣神ピサロ", //44
+    id: "tyopi",
+    rank: 10,
+    race: ["超魔王"],
+    weight: 40,
+    status: { HP: 886, MP: 401, atk: 651, def: 604, spd: 592, int: 360 },
+    initialSkill: ["裂空の一撃", "葬送の剣技", "いてつく乱舞", "ソウルブレイカー"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        windBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { keepOnDeath: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: -1, io: 0, light: 0.5, dark: 0.5, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "魔界の神バーン", //44
@@ -9064,6 +9104,98 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    tyopi: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "疾風の化身",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "黄金の秘法",
+            disableMessage: true,
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => fieldState.turnNum < 3 || skillUser.flags.hasTransformed,
+            act: async function (skillUser) {
+              await transformTyoma(skillUser);
+            },
+          },
+        ],
+      },
+      afterActionAbilities: [
+        {
+          name: "剣聖",
+          disableMessage: true,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "slash",
+          act: async function (skillUser, executingSkill) {
+            await sleep(100);
+            // 変身処理
+            if (fieldState.turnNum === 2 && !skillUser.flags.hasTransformed) {
+              displayMessage(`${skillUser.name}は`, "覚醒した！");
+              skillUser.iconSrc = "images/icons/" + skillUser.id + "TransformedSword.jpeg";
+              updateBattleIcons(skillUser);
+              skillUser.flags.hasTransformed = true;
+              skillUser.flags.hasTransformedSword = true;
+              delete skillUser.buffs.sealed; // 封印は共通で解除
+              await executeRadiantWave(skillUser);
+              // skill変更
+              skillUser.skill[0] = "剣聖刃";
+              skillUser.skill[1] = "貴公子の円舞";
+              // 次ターン回復を付与
+              skillUser.abilities.supportAbilities.nextTurnAbilities.push({
+                disableMessage: true,
+                act: async function (skillUser) {
+                  applyDamage(skillUser, skillUser.defaultStatus.HP, -1);
+                  await sleep(500);
+                  applyDamage(skillUser, skillUser.defaultStatus.MP, -1, true);
+                },
+              });
+              // つねにこうどうはやい
+              skillUser.attribute.additionalPermanentBuffs.preemptiveAction = {};
+              await sleep(400);
+              // 共通バフ
+              applyBuff(skillUser, { demonKingBarrier: { divineDispellable: true } });
+              await sleep(150);
+              applyBuff(skillUser, { nonElementalResistance: {} });
+              await sleep(150);
+              applyBuff(skillUser, { protection: { divineDispellable: true, strength: 0.5, duration: 3 } });
+              await sleep(150);
+            }
+            // 反射処理
+            applyBuff(skillUser, {
+              slashReflection: { unDispellable: true, dispellableByAbnormality: true, strength: 1, removeAtTurnStart: true, duration: 1, isKanta: true, skipReflectionEffect: true },
+            });
+            displayMessage(`${skillUser.name}は`, "みがまえた！");
+          },
+        },
+      ],
+      afterActionHealAbilities: [
+        {
+          name: "自動MP大回復",
+          unavailableIf: (skillUser) => !skillUser.flags.hasTransformed || skillUser.flags.hasTransformedSword,
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.1, true);
+          },
+        },
+      ],
+      counterAbilities: [
+        {
+          name: "異形の再生",
+          unavailableIf: (skillUser) => !skillUser.flags.hasTransformed || skillUser.flags.hasTransformedSword,
+          act: async function (skillUser, counterTarget) {
+            applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2); //20%
+            await executeRadiantWave(skillUser);
+          },
+        },
+      ],
     },
     vearn: {
       supportAbilities: {
@@ -13607,10 +13739,11 @@ const skill = [
     targetType: "field",
     targetTeam: "ally",
     order: "preemptive",
-    preemptiveGroup: 8,
+    preemptiveGroup: 7, //仮に全体
     MPcostRatio: 1,
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
+      delete skillUser.buffs.abanPreemptive;
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
       executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
@@ -13635,7 +13768,6 @@ const skill = [
     MPcostRatio: 1,
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
-      delete skillUser.buffs.abanPreemptive;
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
       executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
@@ -13861,6 +13993,104 @@ const skill = [
     },
     discription2: "ランダムに9回　メラ系の息攻撃",
     discription3: "その後　敵全体を　継続ダメージ状態にする",
+  },
+  {
+    name: "裂空の一撃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 6.9,
+    element: "wind",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreEvasion: true,
+    ignoreProtection: true,
+    ignoreTypeEvasion: true,
+  },
+  {
+    name: "葬送の剣技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.15,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 55,
+    appliedEffect: { reviveBlock: { duration: 1 } },
+  },
+  {
+    name: "いてつく乱舞",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.1,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 51,
+    ignoreEvasion: true,
+    ignoreSubstitute: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "ソウルブレイカー",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.1,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 58,
+    substituteBreaker: 3,
+  },
+  {
+    name: "剣聖刃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.85,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 53,
+    ignoreEvasion: true,
+    ignoreTypeEvasion: true,
+    appliedEffect: { fear: { probability: 0.27 } },
+  },
+  {
+    name: "貴公子の円舞",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 55,
+    appliedEffect: { dotDamage: { strength: 0.2 }, healBlock: {} },
+  },
+  {
+    name: "憤怒の雷",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 850,
+    element: "thunder",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 58,
+    weakness18: true,
+  },
+  {
+    name: "ねだやしの業火",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 145,
+    ignoreSubstitute: true,
+    appliedEffect: { dotMPdamage: {} },
   },
   {
     name: "真・カラミティウォール",
@@ -21187,7 +21417,7 @@ async function transformTyoma(monster) {
   delete monster.buffs.sealed; // 封印は共通で解除
   await executeRadiantWave(monster);
 
-  // skill変更と、各種message
+  // skill変更と 各種message
   if (monster.name === "憎悪のエルギオス") {
     monster.skill[0] = "絶望の天舞";
     delete monster.buffs.stoned;
@@ -21251,6 +21481,11 @@ async function transformTyoma(monster) {
     if (monster.buffs.powerCharge && monster.buffs.powerCharge.name === "光魔の杖") {
       delete monster.buffs.powerCharge;
     }
+  } else if (monster.name === "剣神ピサロ") {
+    monster.skill[0] = "憤怒の雷";
+    monster.skill[1] = "ねだやしの業火";
+    applyBuff(monster, { thunderBreak: { keepOnDeath: true, strength: 2 } });
+    displayMessage("＊「ぐはあああ……！", "  ねだやしにしてくれるわっ！");
   }
   await sleep(400);
 
