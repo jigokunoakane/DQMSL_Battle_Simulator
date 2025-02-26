@@ -3266,7 +3266,6 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     }
   }
   console.log(`party${target.teamID}の${target.name}の死亡でカウントが${fieldState.deathCount[target.teamID]}になった`);
-  console.log(fieldState.deathCount);
 
   //供物を戻す
   if (target.skill[3] === "供物をささげる") {
@@ -3858,6 +3857,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (!damagedMonsters.includes(skillTarget.monsterId)) {
       damagedMonsters.push(skillTarget.monsterId);
     }
+  }
+
+  // 与ダメージ依存HP吸収
+  if (executingSkill.absorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
+    const absorptionAmount = Math.floor(damage * executingSkill.absorptionRatio); // 切り捨て
+    applyDamage(skillUser, absorptionAmount, -1);
   }
 
   // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
@@ -11531,6 +11536,7 @@ const skill = [
     additionalVersion: "追加用咆哮",
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     zakiProbability: 0.78,
+    absorptionRatio: 0.5,
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
@@ -14062,6 +14068,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 58,
     substituteBreaker: 3,
+    absorptionRatio: 0.5,
   },
   {
     name: "剣聖刃",
