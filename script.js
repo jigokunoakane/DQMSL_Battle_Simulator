@@ -3669,14 +3669,16 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.howToCalculate === "none") {
-    // 種別無効かつ無効貫通でない かつ味方対象ではない かつ波動系でないときには種別無効処理 ミス表示後にreturn
+    // 種別回避はミス表示後にreturn 無効化条件: 種別無効バフ保持 かつ敵対象であり無効貫通特技でない かつ波動系でない
     if (
+      ((skillTarget.buffs.skillEvasion && executingSkill.type !== "notskill" && Math.random() < skillTarget.buffs.skillEvasion.strength) ||
+        (skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion)) &&
+      executingSkill.targetTeam === "enemy" &&
       !executingSkill.ignoreTypeEvasion &&
-      skillTarget.buffs[executingSkill.type + "Evasion"] &&
-      executingSkill.targetTeam !== "ally" &&
       executingSkill.appliedEffect !== "divineWave" &&
       executingSkill.appliedEffect !== "disruptiveWave"
     ) {
+      col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
       applyDamage(skillTarget, 0);
       return;
     }
@@ -3747,8 +3749,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let skillUserForAppliedEffect = skillUser;
   let reflectionStrength = 1;
   if (resistance !== -1) {
-    // 種別無効かつ無効貫通でない かつ味方対象ではないときには種別無効処理 ミス表示後にreturn
-    if (!executingSkill.ignoreTypeEvasion && skillTarget.buffs[executingSkill.type + "Evasion"] && executingSkill.targetTeam !== "ally") {
+    // 種別回避はミス表示後にreturn 無効化条件: 種別無効バフ保持 かつ敵対象であり無効貫通特技でない
+    if (
+      ((skillTarget.buffs.skillEvasion && executingSkill.type !== "notskill" && Math.random() < skillTarget.buffs.skillEvasion.strength) ||
+        (skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion)) &&
+      executingSkill.targetTeam === "enemy" &&
+      !executingSkill.ignoreTypeEvasion
+    ) {
+      col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
       applyDamage(skillTarget, 0);
       return;
     }
@@ -6538,6 +6546,7 @@ const monsters = [
     defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
+        skillEvasion: { keepOnDeath: true, strength: 0.3 },
         windBreak: { keepOnDeath: true, strength: 2 },
         mindBarrier: { keepOnDeath: true },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
