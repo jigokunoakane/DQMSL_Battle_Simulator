@@ -6672,6 +6672,26 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 0.5, light: 0, dark: 1.5, poisoned: 1.5, asleep: 0, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "大地の精霊ルビス", //4
+    id: "rubis",
+    rank: 10,
+    race: ["???"],
+    weight: 30,
+    status: { HP: 840, MP: 406, atk: 247, def: 484, spd: 448, int: 543 },
+    initialSkill: ["創世の光陰", "ルビスビーム", "精霊の愛", "神獣王の防壁"],
+    defaultGear: "dragonCaneWithoutSpd",
+    attribute: {
+      initialBuffs: {
+        lightBreak: { keepOnDeath: true, strength: 2, iconSrc: "lightBreakBoost" },
+        mindBarrier: { keepOnDeath: true },
+      },
+    },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 1, ice: 0, thunder: 0.5, wind: 1, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "支配王レゾム・レザーム", //44
     id: "rezamu",
     rank: 10,
@@ -9429,7 +9449,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                applyBuff(monster, { windBreak: { divineDispellable: true, strength: 1 } });
+                applyBuff(monster, { windBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1 } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "風の使い手状態になった！");
                 await sleep(150);
               }
@@ -10198,6 +10218,59 @@ function getMonsterAbilities(monsterId) {
           },
         ],
       },
+    },
+    rubis: {
+      initialAbilities: [
+        {
+          name: "光の痕跡",
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              applyBuff(monster, { lightBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "lightBreakBoost" } }); //本来は2R行動後に解除
+            }
+          },
+        },
+        {
+          name: "せいなるまもり",
+          unavailableIf: (skillUser) => countRubisTarget(skillUser) < 3,
+          act: async function (skillUser) {
+            const buff =
+              countRubisTarget(skillUser) > 4
+                ? { protection: { strength: 0.3, duration: 999, noCrimsonMist: true }, isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" } }
+                : { protection: { strength: 0.3, duration: 999, noCrimsonMist: true } };
+            for (const monster of parties[skillUser.teamID]) {
+              if (isRubisTarget(monster)) {
+                applyBuff(monster, buff);
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "ルビスの加護",
+            act: async function (skillUser) {
+              const aliveallys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
+              if (aliveallys.length > 0) {
+                const times = countRubisTarget(skillUser) > 4 ? 3 : 1;
+                for (let i = 0; i < times; i++) {
+                  const randomTarget = aliveallys[Math.floor(Math.random() * aliveallys.length)];
+                  applyBuff(randomTarget, { powerCharge: { strength: 1.3 }, manaBoost: { strength: 1.3 } });
+                  await sleep(100);
+                }
+              }
+            },
+          },
+        ],
+      },
+      afterActionHealAbilities: [
+        {
+          name: "自動MP超回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.15, true);
+          },
+        },
+      ],
     },
     ankoku: {
       supportAbilities: {
@@ -13488,6 +13561,35 @@ const skill = [
     },
   },
   {
+    name: "精霊の愛",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcostRatio: 1,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
+          // 間隔skip 蘇生成功時に全回復表示
+          if (await reviveMonster(monster, 1, false, true)) {
+            displayDamage(monster, monster.defaultStatus.HP, -1);
+          }
+        } else {
+          applyHeal(monster, monster.defaultStatus.HP, false, false);
+        }
+        applyBuff(monster, { spdUp: { strength: 1 } });
+      }
+      await sleep(400);
+    },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { sealed: {} });
+    },
+  },
+  {
     name: "閃光裂衝拳",
     type: "martial",
     howToCalculate: "atk",
@@ -14482,6 +14584,36 @@ const skill = [
     criticalHitProbability: 0,
     RaceBane: ["???"],
     RaceBaneValue: 2,
+  },
+  {
+    name: "創世の光陰", //todo: 仮に7回
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 60,
+    maxInt: 500,
+    maxIntDamage: 186,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 7,
+    MPcost: 58,
+  },
+  {
+    name: "ルビスビーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 300,
+    minIntDamage: 380,
+    maxInt: 800,
+    maxIntDamage: 900,
+    skillPlus: 1.15,
+    element: "light",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreProtection: true,
   },
   {
     name: "暗黒しょうへき",
@@ -22115,6 +22247,7 @@ function isSkillUnavailableForAI(skillName) {
     "ギガ・マホヘル",
     "ザオリーマ",
     "王女の愛",
+    "精霊の愛",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
@@ -23079,4 +23212,26 @@ function applyShihai(skillTarget, originalTarget = null) {
     originalTarget.abilities.attackAbilities.nextTurnAbilities = originalTarget.abilities.attackAbilities.nextTurnAbilities.filter((ability) => ability.name !== "しはいのさくせんみがわり実行");
     originalTarget.abilities.additionalDeathAbilities = originalTarget.abilities.additionalDeathAbilities.filter((ability) => ability.name !== "しはいのさくせん転移");
   }
+}
+
+function isRubisTarget(monster) {
+  const raceName = monster.race[0];
+  if (monster.name === "名もなき闇の王") {
+    return "hazama";
+  } else if (raceName === "超魔王" || raceName === "超伝説") {
+    return false;
+  } else {
+    return raceName;
+  }
+}
+
+function countRubisTarget(monster) {
+  let raceSet = new Set();
+  for (const teamMonster of parties[monster.teamID]) {
+    const race = isRubisTarget(teamMonster);
+    if (race) {
+      raceSet.add(race);
+    }
+  }
+  return raceSet.size;
 }
