@@ -6044,9 +6044,9 @@ const monsters = [
     id: "sinryu",
     rank: 10,
     race: ["ドラゴン"],
-    weight: 28, // しのルーレット
+    weight: 28,
     status: { HP: 842, MP: 346, atk: 341, def: 482, spd: 510, int: 550 },
-    initialSkill: ["アルマゲスト", "アルマゲスト", "タイダルウェイブ", "ほのお"],
+    initialSkill: ["アルマゲスト", "しのルーレット", "タイダルウェイブ", "ほのお"],
     anotherSkills: ["メテオ"],
     defaultGear: "metalNail",
     attribute: {
@@ -12526,6 +12526,40 @@ const skill = [
     MPcost: 108,
     ignoreProtection: true,
     ignoreGuard: true,
+  },
+  {
+    name: "しのルーレット",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 244,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreSubstitute: true,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.attackAbilities.nextTurnAbilities.push({
+        name: "しのルーレット",
+        message: function (skillUser) {
+          displayMessage("しのルーレットの 効果が発動！");
+        },
+        unavailableIf: (skillUser) => skillUser.buffs.martialSeal,
+        act: async function (skillUser) {
+          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+          if (aliveEnemies.length > 0) {
+            const zakiTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+            if (!zakiTarget.flags.isZombie) {
+              handleDeath(zakiTarget, false, true, null, true); // isCountDownをtrue
+              displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
+              await checkRecentlyKilledFlagForPoison(zakiTarget);
+            }
+          }
+        },
+      });
+    },
   },
   {
     name: "タイダルウェイブ",
@@ -20885,6 +20919,9 @@ function getSkillTypeIcons(skillInfo) {
   // 上書きするもの
   if (["ダークミナデイン"].includes(skillName)) {
     type = "abnormality";
+  }
+  if (["しのルーレット"].includes(skillName)) {
+    type = "special";
   }
   const src = `images/skillTypeIcons/${skillInfo.type}_${type}.png`;
   return src;
