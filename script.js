@@ -4504,6 +4504,10 @@ function calculateDamage(
   if (allyLeaderName === "スカルスパイダー" && skillUser.race.includes("ゾンビ") && skillTarget.buffs.poisoned) {
     damageModifier += 0.1;
   }
+  // しんりゅうLS ドラゴン呪文18%
+  if (allyLeaderName === "降臨しんりゅう" && skillUser.race.includes("ドラゴン") && executingSkill.type === "spell") {
+    damageModifier += 0.18;
+  }
 
   ///////// skillTarget対象バフ
   // 装備 錬金が一意に定まるように注意
@@ -5420,7 +5424,7 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加 (狭間を除く)
-    const noFamilySkillMonsters = ["ルバンカ"];
+    const noFamilySkillMonsters = ["ルバンカ", "降臨しんりゅう"];
     if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) && !noFamilySkillMonsters.includes(monster.name)) {
       const familySkillsToUse = [];
       if (monster.rank === 10 && familySkills) {
@@ -5457,7 +5461,7 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    const noSuperOptMonsters = ["氷炎の化身"];
+    const noSuperOptMonsters = ["氷炎の化身", "降臨しんりゅう"];
     if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && monster.rank > 7) {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
@@ -6034,6 +6038,28 @@ const monsters = [
     ls: { HP: 1.3 },
     lsTarget: "ドラゴン",
     resistance: { fire: -1, ice: 1.5, thunder: 0.5, wind: 0.5, io: 1.5, light: 1, dark: 1, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "降臨しんりゅう", //44
+    id: "sinryu",
+    rank: 10,
+    race: ["ドラゴン"],
+    weight: 28, // しのルーレット
+    status: { HP: 842, MP: 346, atk: 341, def: 482, spd: 510, int: 550 },
+    initialSkill: ["アルマゲスト", "アルマゲスト", "タイダルウェイブ", "ほのお"],
+    anotherSkills: ["メテオ"],
+    defaultGear: "metalNail",
+    attribute: {
+      initialBuffs: {
+        iceBreak: { keepOnDeath: true, strength: 2 },
+        demonKingBarrier: { divineDispellable: true },
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { spd: 1.18 },
+    lsTarget: "ドラゴン",
+    resistance: { fire: 0, ice: 0.5, thunder: 0.5, wind: 1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
   },
   {
     name: "陸戦騎ラーハルト", //44
@@ -8851,6 +8877,16 @@ function getMonsterAbilities(monsterId) {
             for (const monster of parties[skillUser.teamID]) {
               applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
             }
+          },
+        },
+      ],
+    },
+    sinryu: {
+      afterActionHealAbilities: [
+        {
+          name: "自動MP超回復",
+          act: async function (skillUser) {
+            applyHeal(skillUser, skillUser.defaultStatus.MP * 0.15, true);
           },
         },
       ],
@@ -12475,6 +12511,70 @@ const skill = [
     discription1: "【先制】味方全体への　敵の行動を　かわりにうける",
     discription2: "自分を　行動停止無効状態にする",
   },
+  {
+    name: "アルマゲスト",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 178,
+    maxInt: 600,
+    maxIntDamage: 410,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 108,
+    ignoreProtection: true,
+    ignoreGuard: true,
+  },
+  {
+    name: "タイダルウェイブ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 195,
+    maxInt: 600,
+    maxIntDamage: 315,
+    skillPlus: 1.15,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+    appliedEffect: "disruptiveWave",
+  },
+  {
+    name: "ほのお",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 390,
+    maxInt: 600,
+    maxIntDamage: 750,
+    skillPlus: 1.15,
+    element: "fire",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 88,
+    ignoreProtection: true,
+    ignoreGuard: true,
+  },
+  {
+    name: "メテオ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 100,
+    maxInt: 600,
+    maxIntDamage: 220,
+    skillPlus: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 70,
+    ignoreReflection: true,
+  },
+  //"しのルーレット"
   {
     name: "真・ハーケンディストール",
     type: "slash",
