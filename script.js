@@ -132,9 +132,10 @@ async function prepareBattle() {
     const reversedPrefix = i === 1 ? "ally" : "enemy";
 
     // リーダースキルの取得
-    const leaderSkill = party[0].ls;
-    const lsTarget = party[0].lsTarget;
-    const excludeLsTarget = party[0].excludeLsTarget;
+    const firstMonster = party[0];
+    const leaderSkill = firstMonster.ls;
+    const lsTarget = firstMonster.lsTarget;
+    const excludeLsTarget = firstMonster.excludeLsTarget;
 
     for (let j = 0; j < party.length; j++) {
       const monster = party[j];
@@ -158,13 +159,17 @@ async function prepareBattle() {
       monster.defaultStatus = {};
       for (const key in monster.displayStatus) {
         // リーダースキル適用
-        const statusValue = monster.displayStatus[key];
         let lsMultiplier = 1;
         if (
           leaderSkill[key] &&
           ((lsTarget === "all" && (!excludeLsTarget || !monster.race.includes(excludeLsTarget))) || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster)))
         ) {
           lsMultiplier = leaderSkill[key];
+        }
+        // ルビスを起点に
+        if (firstMonster.name === "大地の精霊ルビス" && (key === "HP" || key === "spd")) {
+          const multiplier = key === "HP" ? 0.1 : 0.03;
+          lsMultiplier = countRubisTarget(party) * multiplier + 1;
         }
         // 装備効果
         if (monster.gear) {
@@ -204,7 +209,7 @@ async function prepareBattle() {
         if (monster.race.includes("スライム") && monster.gear?.name === "パラディンハート・蒼" && key === "HP") {
           HPIncrement = 30;
         }
-        monster.defaultStatus[key] = Math.ceil(statusValue * lsMultiplier) + HPIncrement;
+        monster.defaultStatus[key] = Math.ceil(monster.displayStatus[key] * lsMultiplier) + HPIncrement;
       }
       monster.currentStatus = { ...monster.defaultStatus };
 
@@ -5666,7 +5671,11 @@ function calcAndAdjustDisplayStatus() {
   if ((lsTarget === "all" || monster.race.includes(lsTarget)) && leaderSkill.spd) {
     lsMultiplier = leaderSkill.spd;
   }
-  // key === "spd"はなし
+  // ルビスを起点に
+  if (firstMonster.name === "大地の精霊ルビス") {
+    lsMultiplier = countRubisTarget(selectingParty) * 0.03 + 1;
+  }
+  // 装備効果 key === "spd"はなし
   if (monster.gear) {
     if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
       lsMultiplier += 0.05;
@@ -10231,10 +10240,10 @@ function getMonsterAbilities(monsterId) {
         },
         {
           name: "せいなるまもり",
-          unavailableIf: (skillUser) => countRubisTarget(skillUser) < 3,
+          unavailableIf: (skillUser) => countRubisTarget(parties[skillUser.teamID]) < 3,
           act: async function (skillUser) {
             const buff =
-              countRubisTarget(skillUser) > 4
+              countRubisTarget(parties[skillUser.teamID]) > 4
                 ? { protection: { strength: 0.3, duration: 999, noCrimsonMist: true }, isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" } }
                 : { protection: { strength: 0.3, duration: 999, noCrimsonMist: true } };
             for (const monster of parties[skillUser.teamID]) {
@@ -10252,7 +10261,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               const aliveallys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
               if (aliveallys.length > 0) {
-                const times = countRubisTarget(skillUser) > 4 ? 3 : 1;
+                const times = countRubisTarget(parties[skillUser.teamID]) > 4 ? 3 : 1;
                 for (let i = 0; i < times; i++) {
                   const randomTarget = aliveallys[Math.floor(Math.random() * aliveallys.length)];
                   applyBuff(randomTarget, { powerCharge: { strength: 1.3 }, manaBoost: { strength: 1.3 } });
@@ -23225,12 +23234,15 @@ function isRubisTarget(monster) {
   }
 }
 
-function countRubisTarget(monster) {
+function countRubisTarget(party) {
   let raceSet = new Set();
-  for (const teamMonster of parties[monster.teamID]) {
-    const race = isRubisTarget(teamMonster);
-    if (race) {
-      raceSet.add(race);
+  for (const teamMonster of party) {
+    // 存在確認
+    if (Object.keys(teamMonster).length !== 0) {
+      const race = isRubisTarget(teamMonster);
+      if (race) {
+        raceSet.add(race);
+      }
     }
   }
   return raceSet.size;
