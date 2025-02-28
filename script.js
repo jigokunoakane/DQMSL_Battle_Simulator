@@ -2818,6 +2818,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await executeCounterAbilities(monster);
     }
   }
+  // 優先度: 装備 特性 特技の順で一つだけ実行 counter本体: 特性を初期値として装備存在時は関数内で上書き additional: 特技を一時的に格納
   async function executeCounterAbilities(monster) {
     // 反撃者が死亡時はまたは亡者は反撃しない リザオなどで蘇生してたら反撃  被反撃者の生死は考慮しない(リザオ等で蘇生しても発動,反射や死亡時で死んでも他に飛んでいくので制限なし)
     if (monster.flags.isDead || monster.flags.isZombie) {
@@ -2828,7 +2829,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     // 各ability配列の中身を展開して追加
     abilitiesToExecute.push(...(monster.abilities.counterAbilities ?? []));
     abilitiesToExecute.push(...(monster.abilities.additionalCounterAbilities ?? []));
-    for (const ability of abilitiesToExecute.reverse()) {
+    for (const ability of abilitiesToExecute) {
       // oneTimeUseで実行済 または発動不可能条件に当てはまった場合次のabilityへ
       if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
         continue;
@@ -12968,16 +12969,18 @@ const skill = [
     },
     appliedEffect: { counterAttack: { keepOnDeath: true, divineDispellable: true, decreaseTurnEnd: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
-      skillUser.abilities.additionalCounterAbilities.push({
-        name: "冥王の構え反撃状態",
-        message: function (skillUser) {
-          displayMessage(`${skillUser.name}の 反撃！`);
+      skillUser.abilities.additionalCounterAbilities = [
+        {
+          name: "冥王の構え反撃状態",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の 反撃！`);
+          },
+          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+          act: async function (skillUser, counterTarget) {
+            await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
+          },
         },
-        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
-        act: async function (skillUser, counterTarget) {
-          await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
-        },
-      });
+      ];
     },
   },
   {
@@ -12999,6 +13002,25 @@ const skill = [
     },
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
+    },
+  },
+  {
+    name: "グレイトアックス反撃",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 66,
+    maxInt: 200,
+    maxIntDamage: 140,
+    skillPlus: 1,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreSubstitute: true,
+    isCounterSkill: true,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}の 反撃！`);
     },
   },
   {
@@ -14004,16 +14026,18 @@ const skill = [
       aiExtraAttacks: { keepOnDeath: true, strength: 1 },
     },
     act: function (skillUser, skillTarget) {
-      skillUser.abilities.additionalCounterAbilities.push({
-        name: "無刀陣反撃状態",
-        message: function (skillUser) {
-          displayMessage(`${skillUser.name}の 反撃！`);
+      skillUser.abilities.additionalCounterAbilities = [
+        {
+          name: "無刀陣反撃状態",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の 反撃！`);
+          },
+          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+          act: async function (skillUser, counterTarget) {
+            await executeSkill(skillUser, findSkillByName("アバンストラッシュ反撃"), counterTarget);
+          },
         },
-        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
-        act: async function (skillUser, counterTarget) {
-          await executeSkill(skillUser, findSkillByName("アバンストラッシュ反撃"), counterTarget);
-        },
-      });
+      ];
     },
   },
   {
@@ -14501,19 +14525,21 @@ const skill = [
     MPcost: 82,
     appliedEffect: { damageLimit: { unDispellable: true, strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true, removeAtTurnStart: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
-      skillUser.abilities.additionalCounterAbilities.push({
-        name: "極・天地魔闘の構え反撃状態",
-        message: function (skillUser) {
-          displayMessage(`${skillUser.name}は`, `真・カラミティエンドを はなった！`);
+      skillUser.abilities.additionalCounterAbilities = [
+        {
+          name: "極・天地魔闘の構え反撃状態",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}は`, `真・カラミティエンドを はなった！`);
+          },
+          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+          act: async function (skillUser, counterTarget) {
+            delete skillUser.buffs.counterAttack;
+            await executeSkill(skillUser, findSkillByName("真・カラミティエンド"), counterTarget);
+            await sleep(200);
+            await executeSkill(skillUser, findSkillByName("真・カイザーフェニックス反撃用みがわり無視"), counterTarget);
+          },
         },
-        unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
-        act: async function (skillUser, counterTarget) {
-          delete skillUser.buffs.counterAttack;
-          await executeSkill(skillUser, findSkillByName("真・カラミティエンド"), counterTarget);
-          await sleep(200);
-          await executeSkill(skillUser, findSkillByName("真・カイザーフェニックス反撃用みがわり無視"), counterTarget);
-        },
-      });
+      ];
     },
   },
   {
@@ -20211,6 +20237,13 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
+    name: "獣王グレイトアックス", //+10 回復錬金
+    id: "ioCounter",
+    weight: 5,
+    noWeightMonsters: ["獣王クロコダイン"],
+    status: { HP: 0, MP: 0, atk: 45, def: 40, spd: 0, int: 0 },
+  },
+  {
     name: "メガトンハンマー", //+10 回復錬金
     id: "megaton",
     weight: 2,
@@ -20464,17 +20497,35 @@ const gearAbilities = {
   },
   clownHat: {
     initialAbilities: async function (skillUser) {
-      skillUser.abilities.additionalCounterAbilities.push({
-        name: "帽子反撃",
-        message: function (skillUser) {
-          displayMessage("そうびの特性が 発動！");
+      // 装備で上書き
+      skillUser.abilities.counterAbilities = [
+        {
+          name: "帽子反撃",
+          message: function (skillUser) {
+            displayMessage("そうびの特性が 発動！");
+          },
+          act: async function (skillUser, counterTarget) {
+            await executeWave(skillUser);
+            await executeWave(counterTarget);
+          },
         },
-        unavailableIf: (skillUser) => skillUser.flags.isZombie,
-        act: async function (skillUser, counterTarget) {
-          await executeWave(skillUser);
-          await executeWave(counterTarget);
+      ];
+    },
+  },
+  ioCounter: {
+    initialAbilities: async function (skillUser) {
+      // 装備で上書き
+      skillUser.abilities.counterAbilities = [
+        {
+          name: "グレイトアックス反撃",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の 反撃！`);
+          },
+          act: async function (skillUser, counterTarget) {
+            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget);
+          },
         },
-      });
+      ];
     },
   },
   pharaohBracelet: {
