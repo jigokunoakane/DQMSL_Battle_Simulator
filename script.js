@@ -4409,7 +4409,7 @@ function calculateDamage(
     }
     // 装備錬金 - デイン杖
     if (gearName === "ようせいの杖" && executingSkill.type === "spell" && executingSkill.element === "light") {
-      damageModifier += 0.21;
+      damageModifier += 0.23;
     }
     // 装備錬金 - メラ杖
     if (gearName === "マグマの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
