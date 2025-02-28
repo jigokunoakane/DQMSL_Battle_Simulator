@@ -2111,7 +2111,7 @@ async function removeExpiredBuffsAtTurnStart() {
         const buff = monster.buffs[buffName];
         // duration プロパティが存在し、かつ 0 以下で、removeAtTurnStartがtrueの場合に削除
         if (buff.hasOwnProperty("duration") && buff.duration <= 0 && buff.removeAtTurnStart) {
-          console.log(`${fieldState.turnNum}R:${monster.name}の${buffName}の効果が切れた!`);
+          console.log(`${fieldState.turnNum}R開始時:${monster.name}の${buffName}の効果が切れた!`);
           delete monster.buffs[buffName];
         }
       }
@@ -20481,6 +20481,12 @@ const gear = [
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 8, int: 0 },
   },
+  {
+    name: "クラブオーブ",
+    id: "clubOrb",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+  },
 ];
 
 // 必要ならばasyncにするのに注意
@@ -20595,6 +20601,11 @@ const gearAbilities = {
   sandals: {
     initialAbilities: async function (skillUser) {
       skillUser.attribute.additionalPermanentBuffs.dodgeBuff = { strength: 1, probability: 0.05 };
+    },
+  },
+  clubOrb: {
+    initialAbilities: async function (skillUser) {
+      skillUser.attribute.additionalPermanentBuffs.martialBarrier = { strength: 1, probability: 0.25 };
     },
   },
 };
