@@ -175,19 +175,23 @@ async function prepareBattle() {
         if (monster.gear) {
           // 素早さ錬金
           if (key === "spd") {
+            const gearName = monster.gear.name;
             if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
               lsMultiplier += 0.05;
             }
-            if (isBreakMonster(monster) && (monster.gear.name === "凶帝王のつるぎ" || monster.gear.name === "ハザードネイル")) {
+            if (isBreakMonster(monster) && (gearName === "凶帝王のつるぎ" || gearName === "ハザードネイル")) {
               lsMultiplier += 0.08;
             }
-            if (monster.race.includes("悪魔") && monster.gear.name === "盗賊ハート・闇") {
+            if (monster.race.includes("悪魔") && gearName === "うみなりの杖悪魔錬金") {
               lsMultiplier += 0.05;
             }
-            if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
+            if (monster.race.includes("悪魔") && gearName === "盗賊ハート・闇") {
               lsMultiplier += 0.05;
             }
-            if (monster.gear.name === "エビルクロー") {
+            if (monster.race.includes("魔獣") && gearName === "盗賊ハート・獣") {
+              lsMultiplier += 0.05;
+            }
+            if (gearName === "エビルクロー") {
               lsMultiplier += 0.05;
             }
           }
@@ -4412,8 +4416,12 @@ function calculateDamage(
       damageModifier += 0.21;
     }
     // 装備錬金 - ヒャド杖
-    if (gearName === "うみなりの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+    if (gearName === "うみなりの杖" && executingSkill.type === "spell" && executingSkill.element === "ice") {
       damageModifier += 0.23;
+    }
+    // 装備錬金 - ヒャド杖悪魔錬金
+    if (gearName === "うみなりの杖悪魔錬金" && executingSkill.type === "spell" && executingSkill.element === "ice") {
+      damageModifier += 0.13;
     }
     // 装備錬金 - バギ杖
     if (gearName === "さばきの杖") {
@@ -5728,20 +5736,24 @@ function calcAndAdjustDisplayStatus() {
   }
   // 装備効果 key === "spd"はなし
   if (monster.gear) {
+    const gearName = monster.gear.name;
     if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
       lsMultiplier += 0.05;
     }
-    if (isBreakMonster(monster) && (monster.gear.name === "凶帝王のつるぎ" || monster.gear.name === "ハザードネイル")) {
+    if (isBreakMonster(monster) && (gearName === "凶帝王のつるぎ" || gearName === "ハザードネイル")) {
       lsMultiplier += 0.08;
     }
+    if (monster.race.includes("悪魔") && gearName === "うみなりの杖悪魔錬金") {
+      lsMultiplier += 0.05;
+    }
     // 盗賊ハート
-    if (monster.race.includes("悪魔") && monster.gear.name === "盗賊ハート・闇") {
+    if (monster.race.includes("悪魔") && gearName === "盗賊ハート・闇") {
       lsMultiplier += 0.05;
     }
-    if (monster.race.includes("魔獣") && monster.gear.name === "盗賊ハート・獣") {
+    if (monster.race.includes("魔獣") && gearName === "盗賊ハート・獣") {
       lsMultiplier += 0.05;
     }
-    if (monster.gear.name === "エビルクロー") {
+    if (gearName === "エビルクロー") {
       lsMultiplier += 0.05;
     }
     // 装備のstatusMultiplierを適用
@@ -20310,6 +20322,12 @@ const gear = [
   {
     name: "うみなりの杖", //+10
     id: "iceCane",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
+  },
+  {
+    name: "うみなりの杖悪魔錬金", //+10
+    id: "iceCaneDevil",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
