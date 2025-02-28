@@ -1463,6 +1463,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     const currentBuff = buffTarget.buffs[buffName];
     const buffData = { ...newBuff[buffName] };
 
+    // ミス表示をしないフラグがある場合、バフ付与扱いに設定
+    if (buffData.noMissDisplay) {
+      hasAppliedBuff = true;
+    }
+
     // 1. バフ非上書き条件の処理
     // 1-1. 石化には重ねがけ以外付与しない
     if (buffTarget.buffs.stoned && buffName !== "stoned") {
@@ -20600,12 +20605,12 @@ const gearAbilities = {
   },
   sandals: {
     initialAbilities: async function (skillUser) {
-      skillUser.attribute.additionalPermanentBuffs.dodgeBuff = { strength: 1, probability: 0.05 };
+      skillUser.attribute.additionalPermanentBuffs.dodgeBuff = { strength: 1, probability: 0.05, noMissDisplay: true };
     },
   },
   clubOrb: {
     initialAbilities: async function (skillUser) {
-      skillUser.attribute.additionalPermanentBuffs.martialBarrier = { strength: 1, probability: 0.25 };
+      skillUser.attribute.additionalPermanentBuffs.martialBarrier = { strength: 1, probability: 0.25, noMissDisplay: true };
     },
   },
 };
