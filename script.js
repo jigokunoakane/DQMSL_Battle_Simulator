@@ -9389,7 +9389,8 @@ function getMonsterAbilities(monsterId) {
             await executeRadiantWave(monster);
             monster.skill[0] = "うちくだく";
             monster.skill[1] = "鬼眼砲";
-            monster.attribute.additionalPermanentBuffs = {};
+            delete monster.attribute.additionalPermanentBuffs.slashBarrier;
+            delete monster.attribute.additionalPermanentBuffs.martialBarrier;
             displayMessage("＊「お前に勝つことが", "  今の余の全てなのだッ！！！");
             applyBuff(monster, { vearnBarrier: { keepOnDeath: true, strength: 0.75 } });
             await sleep(150);
@@ -20474,6 +20475,12 @@ const gear = [
     weight: 0,
     status: { HP: 0, MP: 8, atk: 0, def: 0, spd: 0, int: 0 },
   },
+  {
+    name: "りせいのサンダル",
+    id: "sandals",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 8, int: 0 },
+  },
 ];
 
 // 必要ならばasyncにするのに注意
@@ -20583,6 +20590,11 @@ const gearAbilities = {
           applyHeal(skillUser, 60, true);
         },
       });
+    },
+  },
+  sandals: {
+    initialAbilities: async function (skillUser) {
+      skillUser.attribute.additionalPermanentBuffs.dodgeBuff = { strength: 1, probability: 0.05 };
     },
   },
 };
@@ -21830,7 +21842,8 @@ async function transformTyoma(monster) {
     delete monster.buffs.stoned;
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "死を統べる者ネルゲル") {
-    monster.attribute.additionalPermanentBuffs = { spellBarrier: { strength: 2, unDispellable: true, duration: 0 }, breathBarrier: { strength: 2, unDispellable: true, duration: 0 } };
+    monster.attribute.additionalPermanentBuffs.spellBarrier = { unDispellable: true, strength: 2, duration: 0 };
+    monster.attribute.additionalPermanentBuffs.breathBarrier = { unDispellable: true, strength: 2, duration: 0 };
     monster.skill[0] = "終の流星";
     monster.skill[1] = "暴獣の右ウデ";
     displayMessage("＊「……大いなる闇の根源よ。", "  我にチカラを 与えたまえ！");
@@ -21876,7 +21889,8 @@ async function transformTyoma(monster) {
     displayMessage("＊「さあッ！！！", "  刮目せよっ！！！！");
     monster.skill[0] = "極・天地魔闘の構え";
     monster.skill[1] = "真・カラミティエンド";
-    monster.attribute.additionalPermanentBuffs = { slashBarrier: { strength: 2, unDispellable: true, duration: 0 }, martialBarrier: { strength: 2, unDispellable: true, duration: 0 } };
+    monster.attribute.additionalPermanentBuffs.slashBarrier = { unDispellable: true, strength: 2, duration: 0 };
+    monster.attribute.additionalPermanentBuffs.martialBarrier = { unDispellable: true, strength: 2, duration: 0 };
     // アタカン削除
     if (monster.buffs.slashReflection && monster.buffs.slashReflection.name === "光魔の杖") {
       delete monster.buffs.slashReflection;
