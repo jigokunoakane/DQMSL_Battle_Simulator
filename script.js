@@ -1463,7 +1463,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     const currentBuff = buffTarget.buffs[buffName];
     const buffData = { ...newBuff[buffName] };
 
-    // ミス表示をしないフラグがある場合、バフ付与扱いに設定
+    // ミス表示をしないフラグがひとつでもある場合、バフ付与扱いに設定
     if (buffData.noMissDisplay) {
       hasAppliedBuff = true;
     }
@@ -4370,9 +4370,50 @@ function calculateDamage(
         damageModifier += 0.1;
       }
     }
+    // 装備錬金 - ギラ杖
+    if (gearName === "いかずちの杖") {
+      if (executingSkill.name === "ギラマータ") {
+        damageModifier += 0.32;
+      } else if (executingSkill.type === "spell" && executingSkill.element === "thunder") {
+        damageModifier += 0.27;
+      }
+    }
+    // 装備錬金 - イオ杖
+    if (gearName === "賢者の杖") {
+      if (executingSkill.name === "イオマータ") {
+        damageModifier += 0.32;
+      } else if (executingSkill.type === "spell" && executingSkill.element === "io") {
+        damageModifier += 0.27;
+      }
+    }
+    // 装備錬金 - ドルマ杖
+    if (gearName === "まがんの杖") {
+      if (executingSkill.name === "ドルモーア") {
+        damageModifier += 0.37;
+      } else if (executingSkill.type === "spell" && executingSkill.element === "dark") {
+        damageModifier += 0.27;
+      }
+    }
+    // 装備錬金 - にちりんこん
+    if (gearName === "にちりんのこん") {
+      if (executingSkill.element === "light") {
+        damageModifier += 0.15;
+        if (executingSkill.type === "spell" || executingSkill.type === "breath") {
+          damageModifier += 0.1;
+        }
+      }
+    }
+    // 装備錬金 - デイン杖
+    if (gearName === "ようせいの杖" && executingSkill.type === "spell" && executingSkill.element === "light") {
+      damageModifier += 0.21;
+    }
     // 装備錬金 - メラ杖
     if (gearName === "マグマの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
       damageModifier += 0.21;
+    }
+    // 装備錬金 - ヒャド杖
+    if (gearName === "うみなりの杖" && executingSkill.type === "spell" && executingSkill.element === "fire") {
+      damageModifier += 0.23;
     }
     // 装備錬金 - バギ杖
     if (gearName === "さばきの杖") {
@@ -20231,13 +20272,49 @@ const gear = [
     healBoost: 1.32,
   },
   {
-    name: "マグマの杖", //+10 錬金なし
+    name: "いかずちの杖", //+10
+    id: "thunderCane",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 84 },
+  },
+  {
+    name: "賢者の杖", //+10
+    id: "ioCane",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 84 },
+  },
+  {
+    name: "まがんの杖", //+10
+    id: "darkCane",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 84 },
+  },
+  {
+    name: "にちりんのこん", //+10
+    id: "nitirin",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 38, def: 0, spd: 0, int: 24 },
+  },
+  {
+    name: "ようせいの杖", //+10
+    id: "lightCane",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
+  },
+  {
+    name: "マグマの杖", //+10
     id: "fireCane",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
-    name: "さばきの杖", //+10 錬金なし
+    name: "うみなりの杖", //+10
+    id: "iceCane",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
+  },
+  {
+    name: "さばきの杖", //+10
     id: "windCane",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
