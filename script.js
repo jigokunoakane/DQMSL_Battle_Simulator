@@ -6492,7 +6492,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" },
-        windBreak: { keepOnDeath: true, strength: 2 },
+        windBreak: { keepOnDeath: true, strength: 2, iconSrc: "windBreakBoost" },
         mindBarrier: { duration: 3 },
         ritualReflection: { strength: 1.5, duration: 3, unDispellable: true, dispellableByAbnormality: true },
       },
@@ -9221,7 +9221,7 @@ function getMonsterAbilities(monsterId) {
           }
           delete monster.buffs.thunderBreak;
           delete monster.buffs.ioBreak;
-          monster.buffs.fireBreak.strength = 2;
+          monster.buffs.fireBreak = { keepOnDeath: true, strength: 2, iconSrc: "fireBreakBoost" };
           delete monster.buffs.fireSuperBreak;
           applyBuff(monster, { fireUltraBreak: { keepOnDeath: true } });
           applyBuff(monster, { protection: { divineDispellable: true, strength: 0.4, duration: 3, iconSrc: "protectiondivineDispellablestr0.4" } });
@@ -9563,7 +9563,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
-                applyBuff(monster, { windBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1 } }); //本来は2R行動後に解除
+                applyBuff(monster, { windBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "windBreakBoost" } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "風の使い手状態になった！");
                 await sleep(150);
               }
@@ -10327,7 +10327,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               applyBuff(skillUser, { internalDefUp: { keepOnDeath: true, strength: 2 } });
               await sleep(100);
-              applyBuff(skillUser, { lightBreak: { keepOnDeath: true, strength: 1, iconSrc: "lightBreakdivineDispellable" } });
+              applyBuff(skillUser, { lightBreak: { keepOnDeath: true, strength: 1, iconSrc: "lightBreakBoost" } });
             },
           },
         ],
@@ -14125,7 +14125,7 @@ const skill = [
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
       executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
-      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3 };
+      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3, iconSrc: "fireBreakBoost" };
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
@@ -14149,7 +14149,7 @@ const skill = [
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
       executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
-      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3 };
+      skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3, iconSrc: "fireBreakBoost" };
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
@@ -20242,7 +20242,7 @@ const gear = [
     weight: 5,
     status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
     statusMultiplier: { atk: 0.08 },
-    initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakdivineDispellable" } },
+    initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakBoost" } },
   },
   {
     name: "キラーピアス", //+10
@@ -21411,6 +21411,8 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/prismVeilstr1.png",
     "images/buffIcons/dotMPdamage.png",
     "images/buffIcons/MPabsorption.png",
+    "images/buffIcons/slashBarrierstr-1.png",
+    "images/buffIcons/slashBarrierstr-2.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
@@ -21973,7 +21975,7 @@ async function transformTyoma(monster) {
     monster.skill[2] = "永劫の闇冥";
     displayMessage("＊「くだらぬ希望など", "  すべて消し去ってやろう。");
   } else if (monster.name === "新たなる神ラプソーン") {
-    monster.buffs.ioBreak.strength = 3;
+    applyBuff(monster, { ioBreak: { keepOnDeath: true, strength: 3, iconSrc: "ioBreakBoost" } });
     monster.skill[0] = "真・神々の怒り";
     monster.skill[1] = "爆炎の儀式";
     displayMessage("＊「死してなお消えぬほどの 永遠の恐怖を", "  その魂に 焼きつけてくれるわっ！！");
