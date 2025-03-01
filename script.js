@@ -4281,7 +4281,7 @@ function calculateDamage(
 
   // skill特有の特殊計算
   if (executingSkill.damageMultiplier) {
-    damage *= executingSkill.damageMultiplier(skillUser, skillTarget) || 1;
+    damage *= executingSkill.damageMultiplier(skillUser, skillTarget, isReflection) || 1;
   }
 
   // 乗算装備
@@ -11744,7 +11744,7 @@ const skill = [
     damageModifier: function (skillUser, skillTarget) {
       return Math.pow(1.6, power) - 1;
     },
-    damageMultiplier: function (skillUser, skillTarget) {
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
       return 2; //初期値は1
     },
     abnormalityMultiplier: function (skillUser, skillTarget) {
@@ -18104,12 +18104,11 @@ const skill = [
     MPcost: 65,
     damageByLevel: true,
     appliedEffect: { poisoned: { probability: 1.5 } },
-    damageMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned) {
-        return 0.2;
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
+      if (!isReflection && skillTarget.buffs.poisoned) {
+        return 0.2; // 反射時は毒であろうと5倍
       }
     },
-    // todo: 反射時確定5倍
   },
   {
     name: "ドレッドダンス",
