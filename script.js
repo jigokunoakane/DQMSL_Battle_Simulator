@@ -1530,24 +1530,33 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if ((buffName === "powerWeaken" && buffTarget.buffs.powerCharge) || (buffName === "manaReduction" && buffTarget.buffs.manaBoost)) {
       continue;
     }
+
+    // protectionとcrimsonMistの競合処理 (ref: 意外と忘れる！ダレトク情報まとめvol.1～クリムゾンミスト編～)
+    function isSuperiorProtection(protectionBuff) {
+      if (protectionBuff.crimsonMistTarget) {
+        return false;
+      }
+      return protectionBuff.keepOnDeath || protectionBuff.unDispellable || protectionBuff.divineDispellable || protectionBuff.noCrimsonMist || protectionBuff.strength > 0.5;
+    }
     // 強いprotection所持時にクリミスを付与しない
     if (buffName === "crimsonMist" && buffTarget.buffs.protection) {
-      if (buffTarget.buffs.protection.keepOnDeath || buffTarget.buffs.protection.unDispellable || buffTarget.buffs.protection.divineDispellable || buffTarget.buffs.protection.strength >= 0.5) {
+      if (isSuperiorProtection(buffTarget.buffs.protection)) {
         continue;
       } else {
-        // クリミス付与時、弱いprotの場合は上書き削除(簡略化のため確率処理前に)
+        // クリミス付与時、弱いprotの場合は上書き削除(簡略化のため確率処理前に クリミスとprotは排反な上、確率付与がなく付与されることがほぼ確定のため)
         delete buffTarget.buffs.protection;
       }
     }
     // クリミス所持時に弱いprotectionの場合は付与しない
     if (buffName === "protection" && buffTarget.buffs.crimsonMist) {
-      if (!(buffData.keepOnDeath || buffData.unDispellable || buffData.divineDispellable || buffData.strength >= 0.5)) {
+      if (!isSuperiorProtection(buffData)) {
         continue;
       } else {
         // 強いprotを付与時、クリミスを上書き削除(簡略化のため確率処理前に)
         delete buffTarget.buffs.crimsonMist;
       }
     }
+
     // countDownは上書きしない
     if (buffName === "countDown" && buffTarget.buffs.countDown) {
       continue;
@@ -6392,7 +6401,7 @@ const monsters = [
         darkBreak: { keepOnDeath: true, strength: 2 },
         isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" },
         demonKingBarrier: { divineDispellable: true },
-        protection: { divineDispellable: true, strength: 0.4, duration: 3, iconSrc: "protectiondivineDispellablestr0.4" }, //クリミス対象
+        protection: { divineDispellable: true, strength: 0.4, duration: 3, crimsonMistTarget: true, iconSrc: "protectiondivineDispellablestr0.4" },
       },
       buffsFromTurn2: {
         darkBreakBoost: { strength: 1, maxStrength: 2 },
@@ -6733,7 +6742,7 @@ const monsters = [
         iceBreak: { keepOnDeath: true, strength: 1 },
         lightBreak: { keepOnDeath: true, strength: 1 },
         revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" },
-        protection: { strength: 0.34, duration: 3 },
+        protection: { strength: 0.34, duration: 3, noCrimsonMist: true },
       },
       1: { lightResistance: { strength: 3, targetType: "ally" } },
     },
@@ -7086,7 +7095,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         demonKingBarrier: { divineDispellable: true },
-        protection: { strength: 0.5, duration: 3 },
+        protection: { strength: 0.5, duration: 3, noCrimsonMist: true },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -7163,7 +7172,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         demonKingBarrier: { divineDispellable: true },
-        protection: { strength: 0.3, duration: 3 },
+        protection: { strength: 0.3, duration: 3, noCrimsonMist: true },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -7192,7 +7201,7 @@ const monsters = [
       initialBuffs: {
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
         demonKingBarrier: { divineDispellable: true },
-        protection: { strength: 0.3, duration: 3 },
+        protection: { strength: 0.3, duration: 3, noCrimsonMist: true },
       },
       permanentBuffs: {
         powerCharge: { strength: 1.2 },
@@ -7371,7 +7380,7 @@ const monsters = [
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
         mindAndSealBarrier: { keepOnDeath: true },
-        protection: { strength: 0.5, duration: 3 },
+        protection: { strength: 0.5, duration: 3, noCrimsonMist: true },
       },
     },
     seed: { atk: 0, def: 0, spd: 75, int: 45 },
@@ -7535,7 +7544,7 @@ const monsters = [
     defaultGear: "heavenlyClothes",
     attribute: {
       initialBuffs: {
-        protection: { strength: 0.34, duration: 3 },
+        protection: { strength: 0.34, duration: 3, noCrimsonMist: true },
         intUp: { strength: 1 },
         revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" },
         spellBarrier: { strength: 2 },
@@ -8583,7 +8592,7 @@ const monsters = [
       initialBuffs: {
         ioBreak: { keepOnDeath: true, strength: 2 },
         demonKingBarrier: { divineDispellable: true },
-        protection: { strength: 0.5, duration: 3 },
+        protection: { strength: 0.5, duration: 3, noCrimsonMist: true },
       },
       evenTurnBuffs: {
         baiki: { strength: 2 },
@@ -10077,7 +10086,7 @@ function getMonsterAbilities(monsterId) {
               if (hasAbnormality(skillUser)) {
                 displayMiss(skillUser);
               } else {
-                applyBuff(skillUser, { protection: { removeAtTurnStart: true, divineDispellable: true, strength: 0.5, duration: 1 } });
+                applyBuff(skillUser, { protection: { divineDispellable: true, strength: 0.5, removeAtTurnStart: true, duration: 1 } });
               }
             },
           },
@@ -10882,7 +10891,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true } });
                   await sleep(100);
-                  applyBuff(monster, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+                  applyBuff(monster, { protection: { strength: 0.2, removeAtTurnStart: true, duration: 1, noCrimsonMist: true } });
                   await sleep(100);
                 }
               }
@@ -23359,7 +23368,6 @@ function getBuffName(appliedEffect) {
     reviveBlock: "蘇生封じ",
     zombifyBlock: "執念封じ",
     murakumo: "息被ダメージ上昇",
-    crimsonMist: "被ダメージ33%上昇", // 波濤 深淵の儀式
     manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
     powerWeaken: "攻撃ダメージ50%減少", // 浸食 邪悪な灯火
 
@@ -23386,6 +23394,7 @@ function getBuffName(appliedEffect) {
   const specialBuffHandlers = {
     protection: (buffData) => `ダメージ${buffData.strength * 100}%軽減`,
     countDown: (buffData) => `カウント${buffData.count}`,
+    crimsonMist: (buffData) => `被ダメージ${buffData.strength * 100}%上昇`, // 波濤 深淵の儀式
   };
 
   let stackableBuffsToApply = [];
