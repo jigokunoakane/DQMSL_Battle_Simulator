@@ -4468,6 +4468,10 @@ function calculateDamage(
   if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
   }
+  // 爆発の導き
+  if (skillUser.buffs.ioBoost && executingSkill.element === "io") {
+    damageModifier += skillUser.buffs.ioBoost.strength;
+  }
   // 領界
   const targetDomain = `${executingSkill.element}Domain`;
   if (skillUser.buffs[targetDomain]) {
@@ -7610,7 +7614,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         breathEvasion: { duration: 3, divineDispellable: true },
-        allElementalBoost: { strength: 0.2, duration: 4 },
+        ioBoost: { strength: 0.2, duration: 4 },
       },
       evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
     },
@@ -21413,6 +21417,7 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/MPabsorption.png",
     "images/buffIcons/slashBarrierstr-1.png",
     "images/buffIcons/slashBarrierstr-2.png",
+    "images/buffIcons/ioBooststr0.2.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
