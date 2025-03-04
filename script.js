@@ -21429,6 +21429,8 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/slashBarrierstr-1.png",
     "images/buffIcons/slashBarrierstr-2.png",
     "images/buffIcons/ioBooststr0.2.png",
+    "images/buffIcons/breathSeal.png",
+    "images/buffIcons/danceSeal.png",
   ];
   if (smallBuffSrcList.includes(buffSrc)) {
     return true;
