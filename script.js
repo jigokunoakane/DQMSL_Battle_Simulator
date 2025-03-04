@@ -481,9 +481,9 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
     selectSkillBtn.textContent = skillInfo.displayName || skillName;
     if (
       skillUser.flags.unavailableSkills.includes(skillName) ||
+      isSkillSealed(skillUser, skillInfo) ||
       !hasEnoughMpForSkill(skillUser, skillInfo) ||
-      (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser)) ||
-      skillUser.buffs[skillInfo.type + "Seal"]
+      (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser))
     ) {
       selectSkillBtn.disabled = true;
       selectSkillBtn.style.opacity = "0.4";
@@ -2465,17 +2465,8 @@ async function processMonsterAction(skillUser) {
     document.getElementById(skillUser.iconElementId).parentNode.classList.add("stickOut");
   }
 
-  // 4. 特技封じ確認
-  if (skillUser.buffs[executingSkill.type + "Seal"] && !executingSkill.skipSkillSealCheck) {
-    // 特技封じされている場合は7. 行動後処理にスキップ
-    const skillTypes = {
-      spell: "呪文",
-      slash: "斬撃",
-      martial: "体技",
-      breath: "息",
-    };
-    console.log(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
-    displayMessage(`${skillTypes[executingSkill.type]}はふうじこめられている！`);
+  // 4. 特技封じ確認 封じられている場合はmessageを表示して 7. 行動後処理にスキップ
+  if (isSkillSealed(skillUser, executingSkill, true)) {
     await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
   }
@@ -2889,13 +2880,12 @@ function decideAICommandShowNoMercy(skillUser) {
 
   for (const skillName of skillUser.skill) {
     const skillInfo = findSkillByName(skillName);
-
     if (
       !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
       isSkillUnavailableForAI(skillName) ||
-      (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
       skillUser.flags.unavailableSkills.includes(skillName) ||
       skillUser.disabledSkillsByPlayer.includes(skillName) ||
+      isSkillSealed(skillUser, skillInfo) ||
       !hasEnoughMpForSkill(skillUser, skillInfo) ||
       skillInfo.howToCalculate === "none" ||
       skillInfo.targetTeam !== "enemy"
@@ -3004,10 +2994,10 @@ function decideAICommandFocusOnHeal(skillUser) {
     if (
       !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
       isSkillUnavailableForAI(skillName) ||
-      (skillUser.buffs[skillInfo.type + "Seal"] && !skillInfo.skipSkillSealCheck) ||
       skillUser.flags.unavailableSkills.includes(skillName) ||
       skillUser.disabledSkillsByPlayer.includes(skillName) ||
       // unavailableIfは様子見
+      isSkillSealed(skillUser, skillInfo) ||
       !hasEnoughMpForSkill(skillUser, skillInfo)
     ) {
       continue;
@@ -21660,6 +21650,26 @@ function hasEnoughMpForSkill(skillUser, executingSkill) {
   }
 }
 
+function isSkillSealed(skillUser, executingSkill, displaySealedMessage = false) {
+  let currentSkill = executingSkill;
+  while (currentSkill) {
+    if (skillUser.buffs[`${currentSkill.type}Seal`] && !currentSkill.skipSkillSealCheck) {
+      if (displaySealedMessage) {
+        const arg = `${getSkillTypeName(currentSkill.type)}はふうじこめられている！`;
+        col(arg);
+        displayMessage(arg);
+      }
+      return true;
+    }
+    if (currentSkill.followingSkill) {
+      currentSkill = findSkillByName(currentSkill.followingSkill);
+    } else {
+      break;
+    }
+  }
+  return false;
+}
+
 function displayBuffMessage(buffTarget, buffName, buffData) {
   // バフメッセージ定義
   const buffMessages = {
@@ -23205,7 +23215,7 @@ function createSDmain(skillInfo) {
     if (elementName) {
       skillDiscriptionText += `${elementName}`;
     }
-    const skillTypeName = gerSkillTypeName(skillInfo.type);
+    const skillTypeName = getSkillTypeName(skillInfo.type);
     if (skillTypeName) {
       skillDiscriptionText += `${skillTypeName}攻撃　`;
     }
@@ -23301,7 +23311,7 @@ function createSDappliedEffect(skillInfo) {
 
   // ダメージ有無にかかわらず適用
   if (skillInfo.ignoreTypeEvasion) {
-    const skillTypeName = gerSkillTypeName(skillInfo.type);
+    const skillTypeName = getSkillTypeName(skillInfo.type);
     if (skillTypeName) {
       skillDiscriptionText += `${skillTypeName}無効状態を貫通する　`;
     }
@@ -23309,7 +23319,7 @@ function createSDappliedEffect(skillInfo) {
   return skillDiscriptionText;
 }
 
-function gerSkillTypeName(skillType) {
+function getSkillTypeName(skillType) {
   return {
     spell: "呪文",
     slash: "斬撃",
