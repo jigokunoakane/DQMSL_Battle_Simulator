@@ -10,7 +10,7 @@
     <h2 id="pageHeader">GPシミュレーターβ</h2>
     <div id="pageContainer">
       <div id="adjustPartyPage">
-        <div id="playerNameandWeightContainer">
+        <div id="playerNameAndWeightContainer">
           <span id="playerAorB"> player A</span>&nbsp;
           <select id="switchParty" onchange="switchParty()">
             <option value="0">パーティ1</option>
@@ -75,7 +75,7 @@
               <h3>モンスターを選択<button id="randomParty" class="normalButton">完全ランダム！</button></h3>
               <div id="monsterListIconsContainer">
                 <div>
-                  <div><button id="drapa" class="normalButton">ドラパ一括選択</button></div>
+                  <div><button id="dragonParty" class="normalButton">ドラパ一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/masudora.jpeg" />
                   <img class="monsterListIcon" src="images/icons/sinri.jpeg" />
                   <img class="monsterListIcon" src="images/icons/rusia.jpeg" />
@@ -125,7 +125,7 @@
                 </div>
                 <div>
                   <div>
-                    <button id="omudopa" class="normalButton">オムラプ</button><button id="omuoru" class="normalButton">オムオル</button><button id="marita" class="normalButton">まりた</button>
+                    <button id="omuRapu" class="normalButton">オムラプ</button><button id="omuoru" class="normalButton">オムオル</button><button id="marita" class="normalButton">まりた</button>
                   </div>
                   <img class="monsterListIcon" src="images/icons/omudo.jpeg" />
                   <img class="monsterListIcon" src="images/icons/rapu.jpeg" />
@@ -145,7 +145,7 @@
                   <img class="monsterListIcon" src="images/icons/yoiyami.jpeg" />
                 </div>
                 <div>
-                  <div><button id="akumapa" class="normalButton">悪魔パ一括選択</button></div>
+                  <div><button id="demonParty" class="normalButton">悪魔パ一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/tanisu.jpeg" />
                   <img class="monsterListIcon" src="images/icons/dhuran.jpeg" />
                   <img class="monsterListIcon" src="images/icons/rogos.jpeg" />
@@ -162,7 +162,7 @@
                   <img class="monsterListIcon" src="images/icons/bigface.jpeg" />
                 </div>
                 <div>
-                  <div><button id="beastpa" class="normalButton">魔獣パ一括選択</button></div>
+                  <div><button id="beastParty" class="normalButton">魔獣パ一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/azu.jpeg" />
                   <img class="monsterListIcon" src="images/icons/gorago.jpeg" />
                   <img class="monsterListIcon" src="images/icons/tenkai.jpeg" />
@@ -174,7 +174,7 @@
                   <img class="monsterListIcon" src="images/icons/antbear.jpeg" />
                 </div>
                 <div>
-                  <div><button id="surapa" class="normalButton">純正スライム</button><button id="slimehazama" class="normalButton">スライム狭間</button></div>
+                  <div><button id="slimeParty" class="normalButton">純正スライム</button><button id="slimehazama" class="normalButton">スライム狭間</button></div>
                   <img class="monsterListIcon" src="images/icons/goddess.jpeg" />
                   <img class="monsterListIcon" src="images/icons/surahero.jpeg" />
                   <img class="monsterListIcon" src="images/icons/suragirl.jpeg" />
@@ -184,7 +184,7 @@
                   <img class="monsterListIcon" src="images/icons/surakyan.jpeg" />
                 </div>
                 <div>
-                  <div><button id="materialpa" class="normalButton">物質一括選択</button></div>
+                  <div><button id="materialParty" class="normalButton">物質一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/matter.jpeg" />
                   <img class="monsterListIcon" src="images/icons/him.jpeg" />
                   <img class="monsterListIcon" src="images/icons/weapon.jpeg" />
@@ -194,11 +194,11 @@
                   <img class="monsterListIcon" src="images/icons/dirtydoll.jpeg" />
                 </div>
                 <div>
-                  <div><button id="zombiepa" class="normalButton">ゾンビ一括選択</button></div>
+                  <div><button id="zombieParty" class="normalButton">ゾンビ一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/skullspider.jpeg" />
                   <img class="monsterListIcon" src="images/icons/razama.jpeg" />
                   <img class="monsterListIcon" src="images/icons/barazon.jpeg" />
-                  <img class="monsterListIcon" src="images/icons/maen.jpeg" />
+                  <img class="monsterListIcon" src="images/icons/maentyo.jpeg" />
                   <img class="monsterListIcon" src="images/icons/kusamaju.jpeg" />
                   <img class="monsterListIcon" src="images/icons/desuso.jpeg" />
                   <img class="monsterListIcon" src="images/icons/gorugona.jpeg" />
@@ -209,7 +209,7 @@
                   <img class="monsterListIcon" src="images/icons/kagekisi.jpeg" />
                 </div>
                 <div>
-                  <div><button id="masopa" class="normalButton">マソ一括選択</button></div>
+                  <div><button id="masoParty" class="normalButton">マソ一括選択</button></div>
                   <img class="monsterListIcon" src="images/icons/garumazzo.jpeg" />
                   <img class="monsterListIcon" src="images/icons/garumazard.jpeg" />
                   <img class="monsterListIcon" src="images/icons/buon.jpeg" />
@@ -502,7 +502,7 @@
         <div id="skillInfoContainer">
           <div>
             AI変更：
-            <select id="changeDefualtAiType">
+            <select id="changeDefaultAiType">
               <option value="ガンガンいこうぜ" selected>ガンガンいこうぜ</option>
               <option value="いのちだいじに">いのちだいじに</option>
               <option value="とくぎつかうな">とくぎつかうな</option>
@@ -543,14 +543,14 @@
         <!-- skillInfoContainer -->
         <div id="tips">
           <div>
-            <div class="detailhighlight">・使用上の注意</div>
+            <div class="detailHighlight">・使用上の注意</div>
             爪の5%錬金は自動で反映されます<br />
             系統爪は、系統関係なく錬金で分類されています<br />
             リンクの共有やTwitterでの言及などはご遠慮ください<br />
           </div>
           <br />
           <div>
-            <div class="detailhighlight">・速度設定</div>
+            <div class="detailHighlight">・速度設定</div>
             <select id="spdSetting">
               <option value="0.8">0.8倍速</option>
               <option value="1" selected>1倍速</option>
@@ -566,7 +566,7 @@
           </div>
           <br />
           <div>
-            <div class="detailhighlight">・状況に応じ自動的に適用される錬金について</div>
+            <div class="detailHighlight">・状況に応じ自動的に適用される錬金について</div>
             5%錬金可能な爪: 対象系統のみに自動反映<br />
             系統爪: とうこん及び指定した錬金<br />
             帝王剣: 必殺の双撃30%<br />
@@ -586,14 +586,14 @@
           </div>
           <br />
           <div>
-            <div class="detailhighlight">・未実装の仕様一覧</div>
+            <div class="detailHighlight">・未実装の仕様一覧</div>
             AI (みんながんばれ)<br />
             一般にリーダーとならないモンスターのLS (ステータスアップ系LSは大体実装済)<br />
             超魔王や系統王の艦隊は適切に動作しない可能性あり<br />
           </div>
           <br />
           <div>
-            <div class="detailhighlight">・BGM (王者はどちらだ？)</div>
+            <div class="detailHighlight">・BGM (王者はどちらだ？)</div>
             <div id="enableBGMCheckboxContainer">
               <input type="checkbox" id="enableBGMCheckbox" />
               <label for="enableBGMCheckbox">戦闘開始・終了に合わせてBGMを自動再生する</label>
@@ -614,7 +614,7 @@
           </div>
           <br />
           <div>
-            <div class="detailhighlight">・関連リンク</div>
+            <div class="detailHighlight">・関連リンク</div>
             <a href="https://jigokunoakane.github.io/DQMSLDamageCalculator/" target="_blank" rel="noopener noreferrer">ダメージ計算機</a>
             <a href="https://github.com/jigokunoakane/DQMSL_Battle_Simulator/commits/main/" target="_blank" rel="noopener noreferrer">更新履歴</a>
             <br />
@@ -817,8 +817,8 @@
                 </div>
                 <div id="commandPopupWindowAdjustAi">
                   <div id="commandPopupWindowAdjustAiText">現在のAI:</div>
-                  <button id="ajustAiShowNoMercy" class="normalButton selectSkillTargetAllBtn">ガンガンいこうぜ</button>
-                  <button id="ajustAiFocusOnHealing" class="normalButton selectSkillTargetAllBtn">いのちだいじに</button>
+                  <button id="adjustAiShowNoMercy" class="normalButton selectSkillTargetAllBtn">ガンガンいこうぜ</button>
+                  <button id="adjustAiFocusOnHealing" class="normalButton selectSkillTargetAllBtn">いのちだいじに</button>
                 </div>
                 <div id="selectSkillTargetContainer">
                   <div class="selectSkillTargetWrapper">

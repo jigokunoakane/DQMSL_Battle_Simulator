@@ -62,7 +62,7 @@ img {
   width: 96%;
 }
 
-#playerNameandWeightContainer {
+#playerNameAndWeightContainer {
   margin-bottom: 0.3rem;
 }
 
@@ -346,7 +346,7 @@ select {
   width: 2.5rem;
 }
 
-#changeDefualtAiType {
+#changeDefaultAiType {
   height: 1.3rem;
   padding: 0rem 0.4rem;
   margin-right: 0rem;
@@ -364,7 +364,7 @@ select {
   margin-bottom: 2.5rem;
 }
 
-.detailhighlight {
+.detailHighlight {
   background-color: #e5f1ff;
   border-bottom: 2px solid #b3c8e0;
   margin-bottom: 0.5rem;
@@ -654,13 +654,13 @@ select {
   background-color: red;
 }
 
-#ajustAiShowNoMercy,
-#ajustAiFocusOnHealing {
+#adjustAiShowNoMercy,
+#adjustAiFocusOnHealing {
   width: auto;
   padding: 0.1rem 0.5rem;
 }
 
-#ajustAiShowNoMercy {
+#adjustAiShowNoMercy {
   background-color: red;
 }
 

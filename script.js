@@ -515,7 +515,7 @@ function selectCommand(selectedSkillNum) {
 
   //nameからskill配列を検索、targetTypeとtargetTeamを引いてくる
   if (selectedSkillTargetType === "random" || selectedSkillTargetType === "single" || selectedSkillTargetType === "dead") {
-    displaySkillDiscription(skillUser, selectedSkill, displaySkillName);
+    displaySkillDescription(skillUser, selectedSkill, displaySkillName);
     //randomもしくはsingleのときはtextをmonster名から指示に変更、target選択画面を表示
     document.getElementById("commandPopupWindowText").textContent = "たたかう敵モンスターをタッチしてください。";
     if (selectedSkillTargetTeam === "ally") {
@@ -533,7 +533,7 @@ function selectCommand(selectedSkillNum) {
     }
     document.getElementById("selectSkillTargetContainer").style.visibility = "visible";
   } else if (selectedSkillTargetType === "all" || selectedSkillTargetType === "field") {
-    displaySkillDiscription(skillUser, selectedSkill, displaySkillName);
+    displaySkillDescription(skillUser, selectedSkill, displaySkillName);
     //targetがallのとき、all(yes,no)画面を起動
     document.getElementById("commandPopupWindowText").style.visibility = "hidden";
     //allならmonster名は隠すのみ
@@ -778,15 +778,15 @@ document.getElementById("commandAdjustAIBtn").addEventListener("click", function
   document.getElementById("commandPopupWindowAdjustAi").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
 });
-document.getElementById("ajustAiShowNoMercy").addEventListener("click", function () {
+document.getElementById("adjustAiShowNoMercy").addEventListener("click", function () {
   parties[currentTeamIndex][currentMonsterIndex].currentAiType = "ガンガンいこうぜ";
   closeSelectCommandPopupWindowContents();
 });
-//document.getElementById("ajustAiNoSkillUse").addEventListener("click", function () {
+//document.getElementById("adjustAiNoSkillUse").addEventListener("click", function () {
 //  parties[currentTeamIndex][currentMonsterIndex].currentAiType = "とくぎつかうな";
 //  closeSelectCommandPopupWindowContents();
 //});
-document.getElementById("ajustAiFocusOnHealing").addEventListener("click", function () {
+document.getElementById("adjustAiFocusOnHealing").addEventListener("click", function () {
   parties[currentTeamIndex][currentMonsterIndex].currentAiType = "いのちだいじに";
   closeSelectCommandPopupWindowContents();
 });
@@ -3440,7 +3440,7 @@ async function executeSkill(
 
     // afterActionAct実行後に全滅判定 全滅時も実行する起爆装置等はfollowingがないのでこのままでOK
     if (isBattleOver()) {
-      break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfApplieEffectやfollowingは実行しない
+      break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfAppliedEffectやfollowingは実行しない
     } else if (skipThisMonsterAction(skillUser)) {
       // skip時はフラグを立て、selfAppliedEffectは実行せず、followingSkill存在時はようす表示だけしてbreak
     } else {
@@ -3459,7 +3459,7 @@ async function executeSkill(
       }
       currentSkill = findSkillByName(currentSkill.followingSkill);
       isFollowingSkill = true;
-      // クアトロ用 初撃のMPusedを引き継ぎ続けないようnull化 反撃対象から外す 双撃等のtarget固定を外す target本体のランダム化はrandom特技のfollowingと同時に
+      // クアトロ用 初撃のMP usedを引き継ぎ続けないようnull化 反撃対象から外す 双撃等のtarget固定を外す target本体のランダム化はrandom特技のfollowingと同時に
       if (currentSkill.howToCalculate === "MP") {
         MPused = null;
         isMonsterAction = false;
@@ -5014,7 +5014,7 @@ async function processDeathAction(skillUser, excludedTargets) {
     const monster = deathActionQueue.shift();
     delete monster.flags.beforeDeathActionCheck;
     // 亡者化または復活処理に先んじて蘇生待機状態一時フラグを削除 供物のみ、死亡部分の死亡時発動で削除すると変身前に停止してしまうのを防止
-    if (!monster.flags.willTransformNeru) {
+    if (!monster.flags.willTransformNerugeru) {
       delete monster.flags.waitingForRevive;
     }
 
@@ -5356,7 +5356,7 @@ function adjustStatusAndSkillDisplay() {
   displayGearIncrement();
   changeSeedSelect();
   // AI表示変更
-  document.getElementById("changeDefualtAiType").value = selectingParty[currentTab].defaultAiType || "ガンガンいこうぜ";
+  document.getElementById("changeDefaultAiType").value = selectingParty[currentTab].defaultAiType || "ガンガンいこうぜ";
 }
 
 function addSkillOptions() {
@@ -5796,7 +5796,7 @@ function displayGearIncrement() {
 }
 
 // AI変更
-document.getElementById("changeDefualtAiType").addEventListener("change", function (event) {
+document.getElementById("changeDefaultAiType").addEventListener("change", function (event) {
   selectingParty[currentTab].defaultAiType = event.target.value;
 });
 
@@ -5840,7 +5840,7 @@ function switchTab(tabNumber) {
       checkbox.checked = false;
     });
     // AIreset
-    document.getElementById("changeDefualtAiType").value = "ガンガンいこうぜ";
+    document.getElementById("changeDefaultAiType").value = "ガンガンいこうぜ";
     // 種表示reset
     document.getElementById("selectSeedAtk").value = 0;
     document.getElementById("selectSeedDef").value = 0;
@@ -5862,7 +5862,7 @@ function switchTab(tabNumber) {
     document.getElementById("statusInfoDisplayStatusint").textContent = "0";
     // 素早さ予測値reset
     document.getElementById("predictedSpeed").textContent = "";
-    // ウェイトresetは関数 空ではないpartyでswitchtab(0)した場合に0表示にならないよう
+    // ウェイトresetは関数 空ではないpartyでswitchTab(0)した場合に0表示にならないよう
     calculateWeight();
     // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
     displayGearIncrement();
@@ -5874,7 +5874,7 @@ switchTab(0);
 
 // 特技選択無効化・AI選択無効化も相乗り
 function disableSeedSelect(boolean) {
-  document.querySelectorAll(".selectSeed, select.changeSkill, #changeDefualtAiType").forEach((element) => {
+  document.querySelectorAll(".selectSeed, select.changeSkill, #changeDefaultAiType").forEach((element) => {
     element.disabled = boolean;
   });
 }
@@ -5897,7 +5897,7 @@ document.getElementById("randomParty").addEventListener("click", function () {
 });
 
 // 装備変更がある場合はswitchTab(0);
-document.getElementById("drapa").addEventListener("click", function () {
+document.getElementById("dragonParty").addEventListener("click", function () {
   selectAllPartyMembers(["masudora", "sinri", "rusia", "orochi", "voruka"]);
   selectGear("killerEarrings", 2);
   switchTab(0);
@@ -5918,7 +5918,7 @@ document.getElementById("siragapa").addEventListener("click", function () {
   switchTab(0);
 });
 
-document.getElementById("omudopa").addEventListener("click", function () {
+document.getElementById("omuRapu").addEventListener("click", function () {
   selectAllPartyMembers(["omudo", "rapu", "esta", "dogu", "dorunisu"]);
   selectGear("clownHat", 4);
   switchTab(0);
@@ -5934,15 +5934,15 @@ document.getElementById("marita").addEventListener("click", function () {
   switchTab(0);
 });
 
-document.getElementById("akumapa").addEventListener("click", function () {
+document.getElementById("demonParty").addEventListener("click", function () {
   selectAllPartyMembers(["tanisu", "dhuran", "rogos", "tseru", "zuisho"]);
 });
 
-document.getElementById("beastpa").addEventListener("click", function () {
+document.getElementById("beastParty").addEventListener("click", function () {
   selectAllPartyMembers(["azu", "gorago", "tenkai", "reopa", "kingreo"]);
 });
 
-document.getElementById("surapa").addEventListener("click", function () {
+document.getElementById("slimeParty").addEventListener("click", function () {
   selectAllPartyMembers(["goddess", "surahero", "suragirl", "surabura", "haguki"]);
 });
 
@@ -5950,15 +5950,15 @@ document.getElementById("slimehazama").addEventListener("click", function () {
   selectAllPartyMembers(["goddess", "surahero", "hazama", "dorameta", "haguki"]);
 });
 
-document.getElementById("materialpa").addEventListener("click", function () {
+document.getElementById("materialParty").addEventListener("click", function () {
   selectAllPartyMembers(["matter", "him", "weapon", "castle", "golem"]);
 });
 
-document.getElementById("zombiepa").addEventListener("click", function () {
-  selectAllPartyMembers(["skullspider", "barazon", "razama", "maen", "desuso"]);
+document.getElementById("zombieParty").addEventListener("click", function () {
+  selectAllPartyMembers(["skullspider", "barazon", "razama", "maentyo", "desuso"]);
 });
 
-document.getElementById("masopa").addEventListener("click", function () {
+document.getElementById("masoParty").addEventListener("click", function () {
   selectAllPartyMembers(["garumazzo", "garumazard", "buon", "raio", "ultrametakin"]);
   changeDefaultSkill(selectingParty[3], 3, "けがれた狂風");
   selectGear("holyKingShield", 0);
@@ -8292,7 +8292,7 @@ const monsters = [
   },
   {
     name: "魔炎鳥",
-    id: "maen",
+    id: "maentyo",
     rank: 10,
     race: ["ゾンビ"],
     weight: 28,
@@ -9789,7 +9789,7 @@ function getMonsterAbilities(monsterId) {
           monster.iconSrc = "images/icons/orugoZombified.jpeg";
           updateBattleIcons(monster);
           displayMessage("＊「ぐははははっ！", "  おうじょうぎわの悪い やつらめ！");
-          monster.flags.orugoDispelleUnbreakableAttack = true;
+          monster.flags.orugoDeleteUnbreakableAttack = true;
           await sleep(150);
           applyDamage(monster, monster.defaultStatus.MP, -1, true); //MP
         }
@@ -10361,11 +10361,11 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ルビスの加護",
             act: async function (skillUser) {
-              const aliveallys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
-              if (aliveallys.length > 0) {
+              const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
+              if (aliveAllys.length > 0) {
                 const times = countRubisTarget(parties[skillUser.teamID]) > 4 ? 3 : 1;
                 for (let i = 0; i < times; i++) {
-                  const randomTarget = aliveallys[Math.floor(Math.random() * aliveallys.length)];
+                  const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
                   applyBuff(randomTarget, { powerCharge: { strength: 1.3 }, manaBoost: { strength: 1.3 } });
                   await sleep(100);
                 }
@@ -10540,8 +10540,8 @@ function getMonsterAbilities(monsterId) {
                     },
                     unavailableIf: (skillUser) => parties[skillUser.teamID].find((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie) === undefined,
                     act: async function (skillUser) {
-                      const helgoragos = parties[skillUser.teamID].filter((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie);
-                      for (const helgorago of helgoragos) {
+                      const targetMonsters = parties[skillUser.teamID].filter((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie);
+                      for (const helgorago of targetMonsters) {
                         if (!helgorago.buffs.powerCharge) {
                           applyBuff(helgorago, { powerCharge: { strength: 1.5 } });
                         } else {
@@ -11246,7 +11246,7 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
-    maen: {
+    maentyo: {
       initialAbilities: [
         {
           name: "魔炎のきせき",
@@ -11769,9 +11769,9 @@ const skill = [
         return "ツイスター下位";
       }
     },
-    discription1: "hoge", //property部分
-    discription2: "hoge",
-    discription3: "hoge",
+    description1: "hoge", //property部分
+    description2: "hoge",
+    description3: "hoge",
   },
   {
     name: "通常攻撃",
@@ -12072,9 +12072,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
-    discription1: "敵全体に【みかわし不可】【マヌーサ無効】でヒャド系体技",
-    discription2: "その後　敵全体に【軽減無視】で無属性息　どちらか命中時",
-    discription3: "くじけぬ心解除　後半はドラゴン系の味方が多いほど威力大",
+    description1: "敵全体に【みかわし不可】【マヌーサ無効】でヒャド系体技",
+    description2: "その後　敵全体に【軽減無視】で無属性息　どちらか命中時",
+    description3: "くじけぬ心解除　後半はドラゴン系の味方が多いほど威力大",
   },
   {
     name: "涼風一陣後半",
@@ -12111,9 +12111,9 @@ const skill = [
         return "神楽の術下位";
       }
     },
-    discription1: "敵全体に　無属性の呪文攻撃",
-    discription2: "命中時　状態変化解除　みがわり状態の敵に　威力3倍",
-    discription3: "ドラゴン系の味方が5体以上なら　状態変化解除が上位効果",
+    description1: "敵全体に　無属性の呪文攻撃",
+    description2: "命中時　状態変化解除　みがわり状態の敵に　威力3倍",
+    description3: "ドラゴン系の味方が5体以上なら　状態変化解除が上位効果",
   },
   {
     name: "神楽の術下位",
@@ -12167,7 +12167,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 0.5 } },
-    discription1: "【先制】1ターンの間　味方全体の　みかわし率を50%にする",
+    description1: "【先制】1ターンの間　味方全体の　みかわし率を50%にする",
   },
   {
     name: "氷華大繚乱",
@@ -12195,9 +12195,9 @@ const skill = [
     order: "anchor",
     ignoreProtection: true,
     ignoreReflection: true,
-    discription1: "【アンカー】【みかわし不可】【マヌーサ無効】",
-    discription2: "【反射無視】【軽減無視】",
-    discription3: "敵1体に7回　ヒャド系の体技攻撃",
+    description1: "【アンカー】【みかわし不可】【マヌーサ無効】",
+    description2: "【反射無視】【軽減無視】",
+    description3: "敵1体に7回　ヒャド系の体技攻撃",
   },
   {
     name: "おぞましいおたけび",
@@ -12224,8 +12224,8 @@ const skill = [
     hitNum: 5,
     MPcost: 58,
     appliedEffect: "disruptiveWave",
-    discription2: "ランダムに5回　ギラ系の息攻撃",
-    discription3: "命中時　状態変化解除",
+    description2: "ランダムに5回　ギラ系の息攻撃",
+    description3: "命中時　状態変化解除",
   },
   {
     name: "サンダーボルト",
@@ -12304,8 +12304,8 @@ const skill = [
     afterActionAct: async function (skillUser) {
       delete skillUser.buffs.dragonPreemptiveAction;
     },
-    discription2: "天の竜気レベルを全て消費し　敵全体に　無属性の息攻撃",
-    discription3: "使用時の天の竜気レベルが高いほど　威力大",
+    description2: "天の竜気レベルを全て消費し　敵全体に　無属性の息攻撃",
+    description3: "使用時の天の竜気レベルが高いほど　威力大",
   },
   {
     name: "テンペストブレス",
@@ -12413,8 +12413,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
-    discription1: "【先制】味方全体の　斬撃防御を1段階上げ",
-    discription2: "2ターンの間　ダメージ20%軽減状態にする",
+    description1: "【先制】味方全体の　斬撃防御を1段階上げ",
+    description2: "2ターンの間　ダメージ20%軽減状態にする",
   },
   {
     name: "ダメージバリア",
@@ -12508,7 +12508,7 @@ const skill = [
       }
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
-    discription1: "【先制】味方全体への　敵の行動を　かわりにうける",
+    description1: "【先制】味方全体への　敵の行動を　かわりにうける",
   },
   {
     name: "特性発動用におうだち",
@@ -12556,7 +12556,7 @@ const skill = [
       }
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
-    discription1: "【先制】味方1体への　敵の行動を　かわりにうける",
+    description1: "【先制】味方1体への　敵の行動を　かわりにうける",
   },
   {
     name: "みがわり・マインドバリア",
@@ -12576,8 +12576,8 @@ const skill = [
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
-    discription1: "【先制】味方全体への　敵の行動を　かわりにうける",
-    discription2: "自分を　行動停止無効状態にする",
+    description1: "【先制】味方全体への　敵の行動を　かわりにうける",
+    description2: "自分を　行動停止無効状態にする",
   },
   {
     name: "アルマゲスト",
@@ -12808,9 +12808,9 @@ const skill = [
     RaceBaneValue: 4,
     damageByLevel: true,
     followingSkill: "超魔滅光後半",
-    discription1: "【みかわし不可】【マヌーサ無効】敵1体に　レベル依存で",
-    discription2: "無属性の体技攻撃　その後敵全体に　レベル依存で",
-    discription3: "無属性の体技攻撃　???・超魔王系の敵に　威力4倍",
+    description1: "【みかわし不可】【マヌーサ無効】敵1体に　レベル依存で",
+    description2: "無属性の体技攻撃　その後敵全体に　レベル依存で",
+    description3: "無属性の体技攻撃　???・超魔王系の敵に　威力4倍",
   },
   {
     name: "超魔滅光後半",
@@ -12843,8 +12843,8 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
     },
-    discription2: "ランダムに6回　攻撃力依存で　デイン系の踊り攻撃",
-    discription3: "その後　自分の攻撃力・素早さを1段階上げる",
+    description2: "ランダムに6回　攻撃力依存で　デイン系の踊り攻撃",
+    description3: "その後　自分の攻撃力・素早さを1段階上げる",
   },
   {
     name: "神獣の封印",
@@ -12882,8 +12882,8 @@ const skill = [
     MPcost: 39,
     isOneTimeUse: true,
     appliedEffect: { sealed: { zombieBuffable: true }, reviveBlock: { unDispellableByRadiantWave: true } },
-    discription2: "1ターンの間　敵1体を　封印状態にし　命中時",
-    discription3: "ラウンド数制限なしで　解除不可の蘇生封じ状態にする",
+    description2: "1ターンの間　敵1体を　封印状態にし　命中時",
+    description3: "ラウンド数制限なしで　解除不可の蘇生封じ状態にする",
   },
   {
     name: "暗黒閃",
@@ -12910,9 +12910,9 @@ const skill = [
     substituteBreaker: 3,
     ignoreEvasion: true,
     zakiProbability: 0.78,
-    discription1: "【みかわし不可】敵全体に　攻撃力依存で",
-    discription2: "無属性の斬撃攻撃　確率で即死させる",
-    discription3: "みがわり状態の敵に　威力3倍",
+    description1: "【みかわし不可】敵全体に　攻撃力依存で",
+    description2: "無属性の斬撃攻撃　確率で即死させる",
+    description3: "みがわり状態の敵に　威力3倍",
   },
   {
     name: "終の流星",
@@ -12927,9 +12927,9 @@ const skill = [
     order: "anchor",
     ignoreProtection: true,
     ignoreReflection: true,
-    discription1: "【アンカー】【みかわし不可】【マヌーサ無効】",
-    discription2: "【反射無視】【軽減無視】",
-    discription3: "ランダムに6回　無属性の体技攻撃",
+    description1: "【アンカー】【みかわし不可】【マヌーサ無効】",
+    description2: "【反射無視】【軽減無視】",
+    description3: "ランダムに6回　無属性の体技攻撃",
   },
   {
     name: "暴獣の右ウデ",
@@ -12946,9 +12946,9 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { martialEvasion: { duration: 2, divineDispellable: true } });
     },
-    discription1: "【みかわし不可】【マヌーサ無効】ランダムに4回",
-    discription2: "ドルマ系の体技攻撃　命中時　状態変化解除（上位効果）",
-    discription3: "その後　2ターンの間　自分を　体技無効状態にする",
+    description1: "【みかわし不可】【マヌーサ無効】ランダムに4回",
+    description2: "ドルマ系の体技攻撃　命中時　状態変化解除（上位効果）",
+    description3: "その後　2ターンの間　自分を　体技無効状態にする",
   },
   {
     name: "供物をささげる",
@@ -12988,10 +12988,10 @@ const skill = [
         delete nerugeru.buffs.maso; // マソ深度5も解除
         // リザオ予定ではない場合、変身許可
         if (!nerugeru.buffs.revive) {
-          nerugeru.flags.willTransformNeru = true;
+          nerugeru.flags.willTransformNerugeru = true;
         }
         // skipDeathAbility: trueでhandleDeath
-        // ラス1で供物死後にisDead判定されてbattleoverになるのを防ぐ 変身時削除
+        // ラス1で供物死後にisDead判定されてbattleOverになるのを防ぐ 変身時削除
         nerugeru.flags.waitingForRevive = true;
         handleDeath(nerugeru, true, true, null);
       }
@@ -13009,8 +13009,8 @@ const skill = [
     skipDeathCheck: true,
     act: async function (skillUser, skillTarget) {
       const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
-      if (nerugeru.flags.willTransformNeru) {
-        delete nerugeru.flags.willTransformNeru;
+      if (nerugeru.flags.willTransformNerugeru) {
+        delete nerugeru.flags.willTransformNerugeru;
         for (const monster of parties[skillUser.teamID]) {
           monster.skill[3] = monster.defaultSkill[3];
         }
@@ -13133,9 +13133,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applyBuff(skillTarget, { slashSeal: {} });
     },
-    discription1: "【みかわし不可】【マヌーサ無効】敵全体に",
-    discription2: "ギラ系の体技攻撃　命中時　状態変化解除（上位効果）",
-    discription3: "その後　敵全体を　ギラ系の体技で斬撃封じ状態にする",
+    description1: "【みかわし不可】【マヌーサ無効】敵全体に",
+    description2: "ギラ系の体技攻撃　命中時　状態変化解除（上位効果）",
+    description3: "その後　敵全体を　ギラ系の体技で斬撃封じ状態にする",
   },
   {
     name: "堕天使の理",
@@ -13148,8 +13148,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { dodgeBuff: { strength: 1 }, spdUp: { strength: 1 } },
-    discription2: "1ターンの間　味方全体の　みかわし率を100%にし",
-    discription3: "素早さを1段階上げる",
+    description2: "1ターンの間　味方全体の　みかわし率を100%にし",
+    description3: "素早さを1段階上げる",
   },
   {
     name: "光速の連打",
@@ -13260,8 +13260,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { prismVeil: { strength: 1, duration: 3 } },
-    discription2: "3ラウンドの間　味方全体の",
-    discription3: "全属性耐性（状態異常以外）を1ランク上げる",
+    description2: "3ラウンドの間　味方全体の",
+    description3: "全属性耐性（状態異常以外）を1ランク上げる",
   },
   {
     name: "雷電波",
@@ -13374,9 +13374,9 @@ const skill = [
     ignoreReflection: true, //不要
     appliedEffect: "divineWave",
     followingSkill: "ひかりのたま回復封じ",
-    discription1: "【戦闘中1回】【先制】敵全体の　状態変化を【反射無視】で",
-    discription2: "解除（上位効果）し　回復封じ状態にする　その後",
-    discription3: "味方全体のHPを全回復し　斬撃・呪文防御を1段階上げる",
+    description1: "【戦闘中1回】【先制】敵全体の　状態変化を【反射無視】で",
+    description2: "解除（上位効果）し　回復封じ状態にする　その後",
+    description3: "味方全体のHPを全回復し　斬撃・呪文防御を1段階上げる",
   },
   {
     name: "ひかりのたま回復封じ",
@@ -13449,7 +13449,7 @@ const skill = [
       spellEvasion: { unDispellable: true, duration: 4 },
       breathEvasion: { unDispellable: true, duration: 4 },
     },
-    discription2: "4ターンの間　自分を斬撃・呪文・息無効状態にする",
+    description2: "4ターンの間　自分を斬撃・呪文・息無効状態にする",
   },
   {
     name: "魔手黒闇",
@@ -14241,8 +14241,8 @@ const skill = [
     MPcost: 52,
     appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     followingSkill: "蘇生封じの術後半",
-    discription2: "敵1体を　1ラウンドの間　蘇生封じ状態にし",
-    discription3: "その後　敵全体に　軽減無視で　無属性の呪文攻撃",
+    description2: "敵1体を　1ラウンドの間　蘇生封じ状態にし",
+    description3: "その後　敵全体に　軽減無視で　無属性の呪文攻撃",
   },
   {
     name: "蘇生封じの術後半",
@@ -14317,8 +14317,8 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
-    discription2: "敵1体に　攻撃力依存で　無属性の斬撃攻撃",
-    discription3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除", //spaceなし
+    description2: "敵1体に　攻撃力依存で　無属性の斬撃攻撃",
+    description3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除", //spaceなし
   },
   {
     name: "竜の炎",
@@ -14337,8 +14337,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
-    discription1: "【反射無視】ランダムに6回　メラ系の息攻撃",
-    discription2: "その後　敵全体を　継続ダメージ状態にする",
+    description1: "【反射無視】ランダムに6回　メラ系の息攻撃",
+    description2: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "破滅の炎",
@@ -14357,8 +14357,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
-    discription1: "【反射無視】ランダムに7回　メラ系の息攻撃",
-    discription2: "その後　敵全体を　継続ダメージ状態にする",
+    description1: "【反射無視】ランダムに7回　メラ系の息攻撃",
+    description2: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "終焉の炎",
@@ -14378,8 +14378,8 @@ const skill = [
         applyBuff(monster, { dotDamage: { strength: 0.2 } });
       }
     },
-    discription2: "ランダムに9回　メラ系の息攻撃",
-    discription3: "その後　敵全体を　継続ダメージ状態にする",
+    description2: "ランダムに9回　メラ系の息攻撃",
+    description3: "その後　敵全体を　継続ダメージ状態にする",
   },
   {
     name: "裂空の一撃",
@@ -14764,7 +14764,7 @@ const skill = [
         applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: -2 } });
       }
     },
-    discription2: "敵味方全体の　攻撃力を2段階上げ　防御力を2段階下げる",
+    description2: "敵味方全体の　攻撃力を2段階上げ　防御力を2段階下げる",
   },
   {
     name: "神獣王の防壁",
@@ -15186,8 +15186,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 90,
     appliedEffect: { statusLock: { probability: 0.7 } },
-    discription2: "敵全体に　呪文計算で　無属性の儀式攻撃",
-    discription3: "命中時　確率で状態変化を封じる",
+    description2: "敵全体に　呪文計算で　無属性の儀式攻撃",
+    description3: "命中時　確率で状態変化を封じる",
   },
   {
     name: "はめつの流星",
@@ -15688,9 +15688,9 @@ const skill = [
       }
     },
     isOneTimeUse: true,
-    discription1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
-    discription2: "敵味方全体の　ドルマ耐性を2ランク上げる",
-    discription3: "体技無効状態を貫通する",
+    description1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
+    description2: "敵味方全体の　ドルマ耐性を2ランク上げる",
+    description3: "体技無効状態を貫通する",
   },
   {
     name: "氷の紋章",
@@ -15709,9 +15709,9 @@ const skill = [
       }
     },
     isOneTimeUse: true,
-    discription1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
-    discription2: "敵味方全体の　ヒャド耐性を2ランク上げる",
-    discription3: "体技無効状態を貫通する",
+    description1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
+    description2: "敵味方全体の　ヒャド耐性を2ランク上げる",
+    description3: "体技無効状態を貫通する",
   },
   {
     name: "封印の光",
@@ -15844,7 +15844,7 @@ const skill = [
         delete skillTarget.buffs.damageLimit;
       }
     },
-    discription2: "敵全体の　状態変化解除（上位効果）・被ダメージ上限値解除",
+    description2: "敵全体の　状態変化解除（上位効果）・被ダメージ上限値解除",
   },
   {
     name: "邪悪なこだま",
@@ -18495,8 +18495,8 @@ const skill = [
     hitNum: 5,
     MPcost: 48,
     zakiProbability: 0.41,
-    discription2: "ランダムに5回　イオ系の呪文攻撃",
-    discription3: "確率で即死させる",
+    description2: "ランダムに5回　イオ系の呪文攻撃",
+    description3: "確率で即死させる",
   },
   {
     name: "亡者の儀式",
@@ -18945,9 +18945,9 @@ const skill = [
     appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true } },
     ignoreReflection: true,
     followingSkill: "グランドアビス後半",
-    discription1: "【みかわし不可】【マヌーサ無効】【反射無視】敵全体を",
-    discription2: "1ラウンドの間　蘇生封じ状態にし　その後　敵全体に",
-    discription3: "ドルマ系の体技攻撃　HP25%未満なら威力1.2倍",
+    description1: "【みかわし不可】【マヌーサ無効】【反射無視】敵全体を",
+    description2: "1ラウンドの間　蘇生封じ状態にし　その後　敵全体に",
+    description3: "ドルマ系の体技攻撃　HP25%未満なら威力1.2倍",
   },
   {
     name: "グランドアビス後半",
@@ -18990,9 +18990,9 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
     },
-    discription1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
-    discription2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
-    discription3: "カウント2状態に　その後　自分を　自動復活状態にする",
+    description1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
+    description2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
+    description3: "カウント2状態に　その後　自分を　自動復活状態にする",
   },
   {
     name: "修羅の闇",
@@ -22219,7 +22219,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "魔獣の追撃";
   } else if (skillUser.race.includes("ゾンビ") && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
     NormalAttackName = "一族のけがれ攻撃";
-  } else if (skillUser.flags.orugoDispelleUnbreakableAttack) {
+  } else if (skillUser.flags.orugoDeleteUnbreakableAttack) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
   } else if (skillUser.name === "守護神ゴーレム") {
     NormalAttackName = "防御力依存攻撃";
@@ -23088,7 +23088,7 @@ function startBattleWithPresetCommands() {
   handleYesButtonClick();
 }
 
-function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
+function displaySkillDescription(skillUser, skillInfo, displaySkillName) {
   const MPcost = calculateMPcost(skillUser, skillInfo);
   const SDproperties = createSDproperties(skillInfo);
   const SDmain = createSDmain(skillInfo);
@@ -23096,16 +23096,16 @@ function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
 
   const args = [`${displaySkillName}＋3【消費MP：${MPcost}】`];
   // propertyも手動設定されている場合は反映
-  if (skillInfo.discription1) {
-    args.push(skillInfo.discription1);
+  if (skillInfo.description1) {
+    args.push(skillInfo.description1);
   } else if (SDproperties) {
     args.push(SDproperties);
   }
   // property以降の文言について、個別指定されている場合はそれを参照
-  if (skillInfo.discription2) {
-    args.push(skillInfo.discription2);
-    if (skillInfo.discription3) {
-      args.push(skillInfo.discription3);
+  if (skillInfo.description2) {
+    args.push(skillInfo.description2);
+    if (skillInfo.description3) {
+      args.push(skillInfo.description3);
     }
   } else {
     // 手動設定がなければ自動生成
@@ -23116,14 +23116,14 @@ function displaySkillDiscription(skillUser, skillInfo, displaySkillName) {
       args.push(SDappliedEffect);
     }
 
-    // 元skillのdiscriptionが存在している場合のみ 現状はみだしているものが多い
+    // 元skillのdescriptionが存在している場合のみ 現状はみだしているものが多い
     if ((SDmain || SDappliedEffect) && skillInfo.followingSkill && !["クアトロマダンテ"].includes(skillInfo.name)) {
       const followingSkill = findSkillByName(skillInfo.followingSkill);
       let Fmain = createSDmain(followingSkill);
       let FappliedEffect = createSDappliedEffect(followingSkill);
-      const followingDiscription = Fmain || FappliedEffect ? `その後　${Fmain}${FappliedEffect}` : null;
-      if (followingDiscription) {
-        args.push(followingDiscription);
+      const followingDescription = Fmain || FappliedEffect ? `その後　${Fmain}${FappliedEffect}` : null;
+      if (followingDescription) {
+        args.push(followingDescription);
       }
     }
   }
@@ -23189,46 +23189,46 @@ function createSDproperties(skillInfo) {
 
 // 主要部分生成
 function createSDmain(skillInfo) {
-  let skillDiscriptionText = "";
+  let skillDescriptionText = "";
   if (skillInfo.howToCalculate !== "none") {
     if (skillInfo.MPDamageRatio) {
       const MPcostText = skillInfo.MPcostRatio === 1 ? "全て" : `${skillInfo.MPcostRatio * 100}%`;
-      skillDiscriptionText += `MPを${MPcostText}消費し　`;
+      skillDescriptionText += `MPを${MPcostText}消費し　`;
     }
     if (skillInfo.targetTeam === "enemy") {
-      skillDiscriptionText += "敵";
+      skillDescriptionText += "敵";
     } else if (skillInfo.targetTeam === "ally") {
-      skillDiscriptionText += "味方";
+      skillDescriptionText += "味方";
     }
     if (skillInfo.targetType === "single") {
-      skillDiscriptionText += "1体に";
+      skillDescriptionText += "1体に";
     } else if (skillInfo.targetType === "all") {
-      skillDiscriptionText += "全体に";
+      skillDescriptionText += "全体に";
     } else if (skillInfo.targetType === "random") {
-      skillDiscriptionText = "ランダムに"; //上書き
+      skillDescriptionText = "ランダムに"; //上書き
     }
     if (skillInfo.hitNum) {
-      skillDiscriptionText += `${skillInfo.hitNum}回　`;
+      skillDescriptionText += `${skillInfo.hitNum}回　`;
     } else {
-      skillDiscriptionText += "　";
+      skillDescriptionText += "　";
     }
 
     if (skillInfo.ratio) {
       if (skillInfo.howToCalculate === "atk") {
-        skillDiscriptionText += "攻撃力依存で　";
+        skillDescriptionText += "攻撃力依存で　";
       } else if (skillInfo.howToCalculate === "def") {
-        skillDiscriptionText += "防御力依存で　";
+        skillDescriptionText += "防御力依存で　";
       } else if (skillInfo.howToCalculate === "spd") {
-        skillDiscriptionText += "素早さ依存で　";
+        skillDescriptionText += "素早さ依存で　";
       } else if (skillInfo.howToCalculate === "int") {
-        skillDiscriptionText += "賢さ依存で　";
+        skillDescriptionText += "賢さ依存で　";
       }
     } else if (skillInfo.howToCalculate === "fix" && skillInfo.damageByLevel) {
-      skillDiscriptionText += "レベル依存で　";
+      skillDescriptionText += "レベル依存で　";
     } else if (skillInfo.howToCalculate === "int" && skillInfo.type !== "spell") {
-      skillDiscriptionText += "呪文計算で　";
+      skillDescriptionText += "呪文計算で　";
     } else if (skillInfo.MPDamageRatio) {
-      skillDiscriptionText += "消費量に応じて　";
+      skillDescriptionText += "消費量に応じて　";
     }
 
     const elementName = {
@@ -23242,19 +23242,19 @@ function createSDmain(skillInfo) {
       none: "無属性の",
     }[skillInfo.element];
     if (elementName) {
-      skillDiscriptionText += `${elementName}`;
+      skillDescriptionText += `${elementName}`;
     }
     const skillTypeName = getSkillTypeName(skillInfo.type);
     if (skillTypeName) {
-      skillDiscriptionText += `${skillTypeName}攻撃　`;
+      skillDescriptionText += `${skillTypeName}攻撃　`;
     }
   }
-  return skillDiscriptionText;
+  return skillDescriptionText;
 }
 
 // 追加効果生成
 function createSDappliedEffect(skillInfo) {
-  let skillDiscriptionText = "";
+  let skillDescriptionText = "";
   let appliedEffectText = "";
   let isStackableBuffExisting;
 
@@ -23274,43 +23274,43 @@ function createSDappliedEffect(skillInfo) {
   // ダメージあり
   if (skillInfo.howToCalculate !== "none") {
     if (skillInfo.weakness18) {
-      skillDiscriptionText += "弱点倍率が1.8倍　";
+      skillDescriptionText += "弱点倍率が1.8倍　";
     }
     if (skillInfo.criticalHitProbability && skillInfo.criticalHitProbability === 1) {
-      skillDiscriptionText += "この攻撃は　必ず会心の一撃になる　";
+      skillDescriptionText += "この攻撃は　必ず会心の一撃になる　";
     } else if (skillInfo.criticalHitProbability && skillInfo.criticalHitProbability !== 0) {
-      skillDiscriptionText += "会心の一撃が出やすい　";
+      skillDescriptionText += "会心の一撃が出やすい　";
     }
 
     // 追加効果
     if (skillInfo.name === "失望の光舞") {
-      skillDiscriptionText += "命中時　状態変化・くじけぬ心解除　";
+      skillDescriptionText += "命中時　状態変化・くじけぬ心解除　";
     } else if (skillInfo.name === "絶望の天舞") {
-      skillDiscriptionText += "命中時　状態変化解除（上位効果）・くじけぬ心解除　";
+      skillDescriptionText += "命中時　状態変化解除（上位効果）・くじけぬ心解除　";
     } else if (skillInfo.name === "天の裁き") {
-      skillDiscriptionText += "命中時　確率でくじけぬ心を解除する　";
+      skillDescriptionText += "命中時　確率でくじけぬ心を解除する　";
     } else if (skillInfo.name === "ほとばしる暗闇" || skillInfo.name === "すさまじいオーラ") {
-      skillDiscriptionText += "命中時　状態変化・ため状態を解除する　";
+      skillDescriptionText += "命中時　状態変化・ため状態を解除する　";
     } else if (appliedEffectText) {
-      skillDiscriptionText += `命中時　${appliedEffectText}`;
+      skillDescriptionText += `命中時　${appliedEffectText}`;
     } else if (skillInfo.act) {
       const expectedAct = "function(skillUser,skillTarget){deleteUnbreakable(skillTarget);}"; //ぶちのめす 真カラミは同時にappliedありだが省略
       const actString = skillInfo.act.toString().replace(/\s/g, "");
       if (actString === expectedAct) {
-        skillDiscriptionText += "命中時　くじけぬ心を解除する　";
+        skillDescriptionText += "命中時　くじけぬ心を解除する　";
       }
     }
 
     if (skillInfo.RaceBane) {
-      skillDiscriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
+      skillDescriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
     }
     // HP割合依存
     if (skillInfo.damageByHpPercent) {
-      skillDiscriptionText += "自分の残りHPが多いほど　威力大　";
+      skillDescriptionText += "自分の残りHPが多いほど　威力大　";
     }
     // HP割合反転依存
     if (skillInfo.lowHpDamageMultiplier) {
-      skillDiscriptionText += "自分の残りHPが少ないほど　威力大　";
+      skillDescriptionText += "自分の残りHPが少ないほど　威力大　";
     }
   } else {
     // ダメージなしの場合
@@ -23319,22 +23319,22 @@ function createSDappliedEffect(skillInfo) {
       const josi = isStackableBuffExisting ? "の　" : "を　";
       // 対象を追加
       if (skillInfo.targetTeam === "enemy") {
-        skillDiscriptionText += "敵";
+        skillDescriptionText += "敵";
       } else if (skillInfo.targetTeam === "ally") {
-        skillDiscriptionText += "味方";
+        skillDescriptionText += "味方";
       }
       if (skillInfo.targetType === "single") {
-        skillDiscriptionText += `1体${josi}`;
+        skillDescriptionText += `1体${josi}`;
       } else if (skillInfo.targetType === "all") {
-        skillDiscriptionText += `全体${josi}`;
+        skillDescriptionText += `全体${josi}`;
       }
 
       // ランダムは完全上書き
       if (skillInfo.targetType === "random") {
-        skillDiscriptionText = "ランダムに　";
+        skillDescriptionText = "ランダムに　";
       }
       // 追加効果textを追加 (命中時表記はしない)
-      skillDiscriptionText += `${appliedEffectText}`;
+      skillDescriptionText += `${appliedEffectText}`;
     }
   }
 
@@ -23342,10 +23342,10 @@ function createSDappliedEffect(skillInfo) {
   if (skillInfo.ignoreTypeEvasion) {
     const skillTypeName = getSkillTypeName(skillInfo.type);
     if (skillTypeName) {
-      skillDiscriptionText += `${skillTypeName}無効状態を貫通する　`;
+      skillDescriptionText += `${skillTypeName}無効状態を貫通する　`;
     }
   }
-  return skillDiscriptionText;
+  return skillDescriptionText;
 }
 
 function getSkillTypeName(skillType) {
@@ -23448,7 +23448,7 @@ function getBuffName(appliedEffect) {
   let abnormalityBuffsToApply = [];
   let abnormalityProbabilityExists = false;
 
-  let discriptionText = "";
+  let descriptionText = "";
 
   for (const buffName in appliedEffect) {
     const buffData = appliedEffect[buffName];
@@ -23501,27 +23501,27 @@ function getBuffName(appliedEffect) {
       isStackableBuffExisting = false;
       text = `マソ深度${appliedEffect.maso.strength}にす　`;
     }
-    discriptionText += `${text}`;
+    descriptionText += `${text}`;
   }
   if (stackabledeBuffsToApply.length > 0) {
     shouldFixLastWord = true;
     isStackableBuffExisting = true;
     let text = `${stackabledeBuffsToApply.join("・")}を${stackabledeBuffsStrength}段階下げ　`;
     text = stackableProbabilityExists && stackableBuffsToApply.length <= 0 ? `確率で${text}` : text;
-    discriptionText += `${text}`;
+    descriptionText += `${text}`;
   }
   if (abnormalityBuffsToApply.length > 0) {
     shouldFixLastWord = false; // 置換不要
     let text = `${abnormalityBuffsToApply.join("・")}状態にする　`;
     text = abnormalityProbabilityExists && !(stackableProbabilityExists && (stackableBuffsToApply.length > 0 || stackabledeBuffsToApply.length > 0)) ? `確率で${text}` : text;
-    discriptionText += `${text}`;
+    descriptionText += `${text}`;
   }
   // 必要ならば最後の文字を置換
   if (shouldFixLastWord) {
-    discriptionText = discriptionText.slice(0, -1) + "る　";
+    descriptionText = descriptionText.slice(0, -1) + "る　";
   }
 
-  return [discriptionText, isStackableBuffExisting];
+  return [descriptionText, isStackableBuffExisting];
 }
 
 function isWaveSkill(skillInfo) {
