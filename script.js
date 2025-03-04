@@ -2528,7 +2528,7 @@ async function processMonsterAction(skillUser) {
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === null ? null : skillTargetTeam[skillUser.commandTargetInput];
-  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false, false, MPused);
+  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false, false, false, MPused);
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
   if (executingSkill.isOneTimeUse) {
@@ -2630,7 +2630,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
         await sleep(150);
         // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
-        await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, null);
+        await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, false, null);
         // skill実行完了のたびに確認
         if (isBattleOver()) {
           return; // 毒や継続を実行せず即時return
@@ -2680,7 +2680,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(400);
       col(`${skillUser.name}が追加特技を実行: ${skillInfo.name}`);
       // skill実行 非反撃・連携対象なので damagedMonstersとisProcess, isAIはnullまたはfalse
-      await executeSkill(skillUser, skillInfo, null, false, null, false, true, null); // 状態異常check無視
+      await executeSkill(skillUser, skillInfo, null, false, null, false, true, false, null); // 状態異常check無視 封じcheck有効
       await sleep(200);
       // skill実行完了のたびに確認
       if (isBattleOver()) {
@@ -3374,6 +3374,7 @@ async function executeSkill(
   damagedMonsters = null,
   isAIattack = false,
   ignoreAbnormalityCheck = false,
+  ignoreSkillSealCheck = false,
   MPusedParameter = null
 ) {
   let currentSkill = executingSkill;
@@ -3384,11 +3385,12 @@ async function executeSkill(
   let executedSingleSkillTarget = [];
   let MPused = MPusedParameter;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
-  // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置爆発)
+  // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置 トラウマ 邪悪な残り火)
   while (
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
-    (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser))
+    (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser)) &&
+    (currentSkill.skipSkillSealCheck || ignoreSkillSealCheck || !isSkillSealed(skillUser, currentSkill))
   ) {
     // 6. スキル実行処理
     // 戦闘終了またはskip時は特に表示せず即時return ただしisBattleOverでも、敵が生存していて起爆装置等ならば実行する
@@ -9883,7 +9885,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage("そうびの特性により", "真・いてつくはどう が発動！");
             },
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, null); // 状態異常check無視
+              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
             },
           },
         ],
@@ -10301,7 +10303,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "はんげきのゆきだま",
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget, false, null, false, true, null); // 状態異常check無視
+            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget, false, null, false, true, false, null); // 状態異常check無視
           },
         },
       ],
@@ -10907,7 +10909,7 @@ function getMonsterAbilities(monsterId) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
                     act: async function (skillUser) {
-                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null); //一応状態状態check無視
+                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, true, null); //一応状態異常check無視 封じcheck無視
                     },
                   });
                 } else {
@@ -11259,7 +11261,7 @@ function getMonsterAbilities(monsterId) {
           name: "邪悪な残り火",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, null); //一応状態状態check無視
+            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, true, null); //一応状態異常check無視 封じcheck無視
           },
         },
       ],
@@ -11420,7 +11422,7 @@ function getMonsterAbilities(monsterId) {
         name: "教団の光",
         availableIf: (skillUser, executingSkill) => executingSkill.type === "ritual" && hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 2),
         getFollowingSkillName: (executingSkill) => {
-          return "光のはどう";
+          return "光のはどう体技封じ無視";
         },
       },
     },
@@ -11609,7 +11611,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ブレイクシステム",
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, null); // 状態異常check無視
+              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
             },
           },
         ],
@@ -11704,8 +11706,8 @@ const skill = [
     isHealSkill: true,
     skipDeathCheck: true, // 死亡時 skipThisTurnでも発動 死亡状態isDeadでも常に実行
     isCounterSkill: true, // 反撃 skipThisTurn(リザオ時等)でも発動 死亡状態isDeadでは実行しない (無刀陣 グレイトアックス 冥王の構え 反撃の雪玉)
-    skipAbnormalityCheck: true, // 引数でも指定可能なためdeleted 状態異常check無効
-    skipSkillSealCheck: true,
+    skipAbnormalityCheck: true, // deleted 引数でも指定可能なため 状態異常check無効
+    skipSkillSealCheck: true, // 封じ無視 引数ではなくskillで直接指定するもの(教団の光 勇者の家庭教師)
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
     missProbability: 0.3,
@@ -11998,6 +12000,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 0,
+    skipSkillSealCheck: true,
     ignoreReflection: true,
   },
   {
@@ -14595,7 +14598,7 @@ const skill = [
           message: function (skillUser) {
             displayMessage(`${skillUser.name}は`, `真・カラミティエンドを はなった！`);
           },
-          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack || skillUser.buffs.slashSeal || skillUser.buffs.spellSeal,
           act: async function (skillUser, counterTarget) {
             delete skillUser.buffs.counterAttack;
             await executeSkill(skillUser, findSkillByName("真・カラミティエンド"), counterTarget);
@@ -15624,7 +15627,7 @@ const skill = [
         act: async function (skillUser) {
           displayMessage(`${skillUser.name}は 全身から`, `いてつくはどうを はなった！`);
           await sleep(100);
-          await executeSkill(skillUser, findSkillByName("いてつくはどう"), null, false, null, false, true, null); // 状態異常check無視
+          await executeSkill(skillUser, findSkillByName("いてつくはどう"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
         },
       });
     },
@@ -15788,6 +15791,19 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 50,
+    act: async function (skillUser, skillTarget) {
+      await executeRadiantWave(skillTarget, false, true); // マソも解除
+    },
+  },
+  {
+    name: "光のはどう体技封じ無視",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 50,
+    skipSkillSealCheck: true,
     act: async function (skillUser, skillTarget) {
       await executeRadiantWave(skillTarget, false, true); // マソも解除
     },
@@ -17614,8 +17630,8 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, false, null); // 状態異常check有効
-        }, // 体技封じ無効 状態異常でも実行するかは不明 todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
+          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, false, true, null); // 状態異常check有効? 封じcheck無視
+        }, // todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
       });
     },
   },
@@ -17934,7 +17950,7 @@ const skill = [
         unavailableIf: (skillUser) => !skillUser.buffs.traumaTrap,
         isOneTimeUse: true,
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null); // 一応状態異常check無効
+          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, true, null); // 一応状態異常check無効 封じcheck無視
         },
       });
     },
@@ -18387,7 +18403,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     skipDeathCheck: true,
-    skipSkillSealCheck: true,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
     appliedEffect: { fear: { probability: 0.4775 } },
@@ -18402,7 +18417,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     skipDeathCheck: true,
-    skipSkillSealCheck: true,
     appliedEffect: "disruptiveWave",
   },
   {
@@ -20634,7 +20648,7 @@ const gearAbilities = {
             displayMessage(`${skillUser.name}の 反撃！`);
           },
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget, false, null, false, true, null); // 状態異常check無視
+            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget, false, null, false, true, false, null); // 状態異常check無視 封じcheck有効
           },
         },
       ];
@@ -21650,6 +21664,11 @@ function hasEnoughMpForSkill(skillUser, executingSkill) {
   }
 }
 
+// 基本的に封じは有効: AI後追加skill 自動発動skill(超はどうほう) 反撃系全て 竜の心臓 涼風(どちらかでも封じ状態ならば両方ミス)
+// 封じ有効なもののうち、一部はskillではなくabilityのunavailableIfで指定: しのルーレット 極天地(どちらかでも封じ状態ならば両方ミス)
+// 封じ無視 引数指定: 自動発動skill(真いては 防衛指令 アスゼロ? 堕天使? ブレイクシステム?) 一応死亡時(起爆装置 トラウマ 邪悪な残り火?) オーブのチカラ
+// 封じ無視 skipSkillSealCheckに直接指定: AI後追加skill(教団の光) 勇者の家庭教師
+
 function isSkillSealed(skillUser, executingSkill, displaySealedMessage = false) {
   let currentSkill = executingSkill;
   while (currentSkill) {
@@ -22058,7 +22077,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
-        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, null); // 状態異常check無視
+        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
