@@ -23,6 +23,7 @@ let currentTeamIndex = 0;
 const presetCommands = [];
 
 //戦闘中に使用
+const gameRule = {};
 let fieldState = {};
 let turnOrder = [];
 // 死亡時発動能力のキュー
@@ -21325,6 +21326,10 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (fieldState.stonedBlock) {
     activeBuffs.push({ key: "stonedBlock", src: "images/buffIcons/stonedBlock.png" });
   }
+  // 反射封じアイコンをpush
+  if (gameRule.disableReflection) {
+    activeBuffs.push({ key: "disableReflection", src: "images/buffIcons/disableReflection.png" });
+  }
   // 亡者アイコンを先頭に挿入
   if (monster.flags.isZombie) {
     activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
@@ -22582,6 +22587,7 @@ function getRandomLivingPartyMember(skillUser) {
 //反射持ちかつ反射無視でない かつ敵対象ならば反射化
 function isSkillReflected(executingSkill, skillTarget) {
   return (
+    !gameRule.disableReflection &&
     executingSkill.targetTeam === "enemy" &&
     !executingSkill.ignoreReflection &&
     (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
