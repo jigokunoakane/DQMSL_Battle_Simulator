@@ -2058,7 +2058,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           delete buffTarget.buffs[reflection];
         }
       }
-      // 反撃状態も解除
+      // 反撃状態も解除 極天地は行動停止時も解除されるが、冥王の構えやリベンジアーツは混乱のみで解除の可能性がある
       if (buffTarget.buffs.counterAttack) {
         delete buffTarget.buffs.counterAttack;
       }
@@ -3394,6 +3394,7 @@ async function executeSkill(
   let executedSingleSkillTarget = [];
   let MPused = MPusedParameter;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
+  // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置爆発)
   while (
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
@@ -20643,7 +20644,7 @@ const gearAbilities = {
             displayMessage(`${skillUser.name}の 反撃！`);
           },
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget);
+            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget, false, null, false, true, null); // 状態異常check無視
           },
         },
       ];
