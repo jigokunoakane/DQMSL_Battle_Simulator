@@ -3390,7 +3390,7 @@ async function executeSkill(
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
     (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser)) &&
-    (currentSkill.skipSkillSealCheck || ignoreSkillSealCheck || !isSkillSealed(skillUser, currentSkill))
+    (currentSkill.skipSkillSealCheck || ignoreSkillSealCheck || !isSkillSealed(skillUser, currentSkill, true))
   ) {
     // 6. スキル実行処理
     // 戦闘終了またはskip時は特に表示せず即時return ただしisBattleOverでも、敵が生存していて起爆装置等ならば実行する
@@ -13303,7 +13303,17 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 92,
     ignoreReflection: true,
-    followingSkill: "いてつくはどう",
+    followingSkill: "いてつくマヒャド後半",
+  },
+  {
+    name: "いてつくマヒャド後半",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: "disruptiveWave",
   },
   {
     name: "おうじゃのけん",
