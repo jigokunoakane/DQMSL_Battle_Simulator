@@ -12609,12 +12609,13 @@ const skill = [
     ignoreReflection: true,
     ignoreTypeEvasion: true,
     act: function (skillUser, skillTarget) {
+      applyBuff(skillUser, { deathRoulette: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
       skillUser.abilities.attackAbilities.nextTurnAbilities.push({
         name: "しのルーレット",
         message: function (skillUser) {
           displayMessage("しのルーレットの 効果が発動！");
         },
-        unavailableIf: (skillUser) => skillUser.buffs.martialSeal,
+        unavailableIf: (skillUser) => skillUser.buffs.martialSeal || !skillUser.buffs.deathRoulette,
         act: async function (skillUser) {
           const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
           if (aliveEnemies.length > 0) {
@@ -12676,7 +12677,6 @@ const skill = [
     MPcost: 70,
     ignoreReflection: true,
   },
-  //"しのルーレット"
   {
     name: "真・ハーケンディストール",
     type: "slash",
