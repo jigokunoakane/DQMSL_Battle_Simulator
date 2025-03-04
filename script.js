@@ -2528,7 +2528,7 @@ async function processMonsterAction(skillUser) {
   const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === null ? null : skillTargetTeam[skillUser.commandTargetInput];
-  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, true, damagedMonsters, false, false, false, MPused);
+  executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, false, false, damagedMonsters, MPused, true, false);
 
   // 7. 行動後処理 かつ状態異常や特技封じ、MP確認で離脱せず正常に特技を実行した時のみ実行する処理
   if (executingSkill.isOneTimeUse) {
@@ -2629,8 +2629,8 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         }
 
         await sleep(150);
-        // 通常攻撃を実行 (反撃対象, damagedMonstersとisAIを渡す)
-        await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, damagedMonsters, true, false, false, null);
+        // 通常攻撃を実行 (反撃対象, damagedMonstersとisAI: trueを渡す)
+        await executeSkill(skillUser, pursuitSkillInfo, pursuitTarget, false, false, damagedMonsters, null, false, true);
         // skill実行完了のたびに確認
         if (isBattleOver()) {
           return; // 毒や継続を実行せず即時return
@@ -2680,7 +2680,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(400);
       col(`${skillUser.name}が追加特技を実行: ${skillInfo.name}`);
       // skill実行 非反撃・連携対象なので damagedMonstersとisProcess, isAIはnullまたはfalse
-      await executeSkill(skillUser, skillInfo, null, false, null, false, true, false, null); // 状態異常check無視 封じcheck有効
+      await executeSkill(skillUser, skillInfo, null, true, false); // 状態異常check無視 封じcheck有効
       await sleep(200);
       // skill実行完了のたびに確認
       if (isBattleOver()) {
@@ -3370,12 +3370,12 @@ async function executeSkill(
   skillUser,
   executingSkill,
   assignedTarget = null,
-  isProcessMonsterAction = false,
-  damagedMonsters = null,
-  isAIattack = false,
   ignoreAbnormalityCheck = false,
   ignoreSkillSealCheck = false,
-  MPusedParameter = null
+  damagedMonsters = null,
+  MPusedParameter = null,
+  isProcessMonsterAction = false,
+  isAIattack = false
 ) {
   let currentSkill = executingSkill;
   let isMonsterAction = isProcessMonsterAction;
@@ -9885,7 +9885,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage("そうびの特性により", "真・いてつくはどう が発動！");
             },
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
+              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, true, true); // 状態異常check無視 封じcheck無視
             },
           },
         ],
@@ -10303,7 +10303,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "はんげきのゆきだま",
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget, false, null, false, true, false, null); // 状態異常check無視
+            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget, true, false); // 状態異常check無視
           },
         },
       ],
@@ -10909,7 +10909,7 @@ function getMonsterAbilities(monsterId) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
                     act: async function (skillUser) {
-                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, true, null); //一応状態異常check無視 封じcheck無視
+                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, true, true); // 一応状態異常・封じ両方無視
                     },
                   });
                 } else {
@@ -11261,7 +11261,7 @@ function getMonsterAbilities(monsterId) {
           name: "邪悪な残り火",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, true, null); //一応状態異常check無視 封じcheck無視
+            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, true, true); // 一応状態異常・封じ両方無視
           },
         },
       ],
@@ -11611,7 +11611,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ブレイクシステム",
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
+              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, true, true); // 状態異常check無視 封じcheck無視
             },
           },
         ],
@@ -15627,7 +15627,7 @@ const skill = [
         act: async function (skillUser) {
           displayMessage(`${skillUser.name}は 全身から`, `いてつくはどうを はなった！`);
           await sleep(100);
-          await executeSkill(skillUser, findSkillByName("いてつくはどう"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
+          await executeSkill(skillUser, findSkillByName("いてつくはどう"), null, true, true); // 状態異常check無視 封じcheck無視
         },
       });
     },
@@ -17630,7 +17630,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, false, true, null); // 状態異常check有効? 封じcheck無視
+          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, true); // 状態異常check有効? 封じcheck無視
         }, // todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
       });
     },
@@ -17950,7 +17950,7 @@ const skill = [
         unavailableIf: (skillUser) => !skillUser.buffs.traumaTrap,
         isOneTimeUse: true,
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, true, null); // 一応状態異常check無効 封じcheck無視
+          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, true, true); // 一応状態異常・封じ両方無視
         },
       });
     },
@@ -20648,7 +20648,7 @@ const gearAbilities = {
             displayMessage(`${skillUser.name}の 反撃！`);
           },
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget, false, null, false, true, false, null); // 状態異常check無視 封じcheck有効
+            await executeSkill(skillUser, findSkillByName("グレイトアックス反撃"), counterTarget, true, false); // 状態異常check無視 封じcheck有効
           },
         },
       ];
@@ -21664,9 +21664,9 @@ function hasEnoughMpForSkill(skillUser, executingSkill) {
   }
 }
 
-// 基本的に封じは有効: AI後追加skill 自動発動skill(超はどうほう) 反撃系全て 竜の心臓 涼風(どちらかでも封じ状態ならば両方ミス)
+// 基本的に封じは有効: AI後追加skill 自動発動skillの一部(超はどうほう) 反撃系全て 竜の心臓 涼風(どちらかでも封じ状態ならば両方ミス)
 // 封じ有効なもののうち、一部はskillではなくabilityのunavailableIfで指定: しのルーレット 極天地(どちらかでも封じ状態ならば両方ミス)
-// 封じ無視 引数指定: 自動発動skill(真いては 防衛指令 アスゼロ? 堕天使? ブレイクシステム?) 一応死亡時(起爆装置 トラウマ 邪悪な残り火?) オーブのチカラ
+// 封じ無視 引数指定: 自動発動skillの一部(真いては 防衛指令 アスゼロ? 堕天使? ブレイクシステム?) 一応死亡時(起爆装置 トラウマ 邪悪な残り火?) オーブのチカラ
 // 封じ無視 skipSkillSealCheckに直接指定: AI後追加skill(教団の光) 勇者の家庭教師
 
 function isSkillSealed(skillUser, executingSkill, displaySealedMessage = false) {
@@ -22077,7 +22077,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
-        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, true, null); // 状態異常check無視 封じcheck無視
+        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, true, true); // 状態異常check無視 封じcheck無視
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
