@@ -2689,7 +2689,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(400);
       col(`${skillUser.name}が追加特技を実行: ${skillInfo.name}`);
       // skill実行 非反撃・連携対象なので damagedMonstersとisProcess, isAIはnullまたはfalse
-      await executeSkill(skillUser, skillInfo, null, false, null, false, false, null);
+      await executeSkill(skillUser, skillInfo, null, false, null, false, true, null); // 状態異常check無視
       await sleep(200);
       // skill実行完了のたびに確認
       if (isBattleOver()) {
@@ -3401,8 +3401,8 @@ async function executeSkill(
   ) {
     // 6. スキル実行処理
     // 戦闘終了またはskip時は特に表示せず即時return ただしisBattleOverでも、敵が生存していて起爆装置等ならば実行する
-    const deathSkills = ["起爆装置", "トラウマトラップ爆発"];
-    if (isAllEnemyDead(skillUser) || skipThisMonsterAction(skillUser) || (isBattleOver() && !deathSkills.includes(currentSkill.name))) {
+    const deathDamageSkills = ["起爆装置", "トラウマトラップ爆発"];
+    if (isAllEnemyDead(skillUser) || skipThisMonsterAction(skillUser) || (isBattleOver() && !deathDamageSkills.includes(currentSkill.name))) {
       break;
     }
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
@@ -3497,9 +3497,9 @@ async function processHitSequence(
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
   }
-  const deathSkills = ["起爆装置", "トラウマトラップ爆発"];
+  const deathDamageSkills = ["起爆装置", "トラウマトラップ爆発"];
   // 戦闘終了時のみ即時return skip判定はしない
-  if (isAllEnemyDead(skillUser) || (isBattleOver() && !deathSkills.includes(executingSkill.name))) {
+  if (isAllEnemyDead(skillUser) || (isBattleOver() && !deathDamageSkills.includes(executingSkill.name))) {
     return;
   }
   //毎回deathActionはしているので、停止時はreturnかけてOK
@@ -9892,7 +9892,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage("そうびの特性により", "真・いてつくはどう が発動！");
             },
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, null);
+              await executeSkill(skillUser, findSkillByName("真・いてつくはどう"), null, false, null, false, true, null); // 状態異常check無視
             },
           },
         ],
@@ -10310,7 +10310,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "はんげきのゆきだま",
           act: async function (skillUser, counterTarget) {
-            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget);
+            await executeSkill(skillUser, findSkillByName("はんげきのゆきだま1発目"), counterTarget, false, null, false, true, null); // 状態異常check無視
           },
         },
       ],
@@ -10916,7 +10916,7 @@ function getMonsterAbilities(monsterId) {
                       displayMessage(`${skillUser.name}は`, "爆発した！");
                     },
                     act: async function (skillUser) {
-                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null);
+                      await executeSkill(skillUser, findSkillByName("起爆装置"), null, false, null, false, true, null); //一応状態状態check無視
                     },
                   });
                 } else {
@@ -11268,7 +11268,7 @@ function getMonsterAbilities(monsterId) {
           name: "邪悪な残り火",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, null);
+            executeSkill(skillUser, findSkillByName("邪悪な残り火"), null, false, null, false, true, null); //一応状態状態check無視
           },
         },
       ],
@@ -11618,7 +11618,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ブレイクシステム",
             act: async function (skillUser) {
-              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, null);
+              await executeSkill(skillUser, findSkillByName("ブレイクシステム"), null, false, null, false, true, null); // 状態異常check無視
             },
           },
         ],
@@ -11711,8 +11711,9 @@ const skill = [
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
     isOneTimeUse: true,
     isHealSkill: true,
-    skipDeathCheck: true, // 死亡時 isDeadでも常に実行
-    isCounterSkill: true, // 反撃 isDeadでは実行しない　両方ともskipThisTurnは無視
+    skipDeathCheck: true, // 死亡時 skipThisTurnでも発動 死亡状態isDeadでも常に実行
+    isCounterSkill: true, // 反撃 skipThisTurn(リザオ時等)でも発動 死亡状態isDeadでは実行しない (無刀陣 グレイトアックス 冥王の構え 反撃の雪玉)
+    skipAbnormalityCheck: true, // 引数でも指定可能なためdeleted 状態異常check無効
     skipSkillSealCheck: true,
     weakness18: true,
     criticalHitProbability: 1, //noSpellSurgeはリスト管理
@@ -14723,7 +14724,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     isCounterSkill: true,
-    skipAbnormalityCheck: true,
     ignoreSubstitute: true,
     appliedEffect: "disruptiveWave",
     followingSkill: "はんげきのゆきだま2発目",
@@ -14738,7 +14738,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     isCounterSkill: true,
-    skipAbnormalityCheck: true,
     ignoreSubstitute: true,
     appliedEffect: "disruptiveWave",
   },
@@ -15634,7 +15633,7 @@ const skill = [
         act: async function (skillUser) {
           displayMessage(`${skillUser.name}は 全身から`, `いてつくはどうを はなった！`);
           await sleep(100);
-          await executeSkill(skillUser, findSkillByName("いてつくはどう"));
+          await executeSkill(skillUser, findSkillByName("いてつくはどう"), null, false, null, false, true, null); // 状態異常check無視
         },
       });
     },
@@ -17624,7 +17623,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, true, null);
+          await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, null, false, false, null); // 状態異常check有効
         }, // 体技封じ無効 状態異常でも実行するかは不明 todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
       });
     },
@@ -17669,7 +17668,6 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     skipDeathCheck: true,
-    skipAbnormalityCheck: true,
     MPcost: 0,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
@@ -17685,7 +17683,6 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     skipDeathCheck: true,
-    skipAbnormalityCheck: true,
     MPcost: 0,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
@@ -17946,7 +17943,7 @@ const skill = [
         unavailableIf: (skillUser) => !skillUser.buffs.traumaTrap,
         isOneTimeUse: true,
         act: async function (skillUser) {
-          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null);
+          await executeSkill(skillUser, findSkillByName("トラウマトラップ爆発"), null, false, null, false, true, null); // 一応状態異常check無効
         },
       });
     },
@@ -19163,7 +19160,6 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    skipAbnormalityCheck: true,
     hitNum: 10,
     MPcost: 0,
     ignoreReflection: true,
@@ -22051,7 +22047,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { dodgeBuff: { strength: 1, keepOnDeath: true } });
     monster.abilities.attackAbilities.nextTurnAbilities.push({
       act: async function (skillUser) {
-        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, null);
+        await executeSkill(skillUser, findSkillByName("堕天使の理"), null, false, null, false, true, null); // 状態異常check無視
       },
     });
   } else if (monster.name === "死を統べる者ネルゲル") {
