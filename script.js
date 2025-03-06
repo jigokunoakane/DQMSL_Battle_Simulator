@@ -7896,7 +7896,7 @@ const monsters = [
     rank: 10,
     race: ["魔獣"],
     weight: 25,
-    status: { HP: 747, MP: 383, atk: 414, def: 511, spd: 561, int: 508 },
+    status: { HP: 727, MP: 363, atk: 394, def: 491, spd: 541, int: 488 },
     initialSkill: ["マヒャドストーム", "あんこくのはばたき", "醜悪な暴風", "スパークふんしゃ"],
     defaultGear: "ryujinNail",
     attribute: {
