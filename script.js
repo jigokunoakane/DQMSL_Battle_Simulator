@@ -23,7 +23,7 @@ let currentTeamIndex = 0;
 const presetCommands = [];
 
 //戦闘中に使用
-const gameRule = {};
+const gameRule = [];
 let fieldState = {};
 let turnOrder = [];
 // 死亡時発動能力のキュー
@@ -1078,6 +1078,16 @@ async function startTurn() {
   }
   await processReviveNextTurn(false);
 
+  // 復活後、gameRule処理
+  if (gameRule.length > 0) {
+    await sleep(50);
+    for (const ruleName of gameRule) {
+      displayMessage(`特殊ルール ${ruleName}が発動！`);
+      gameRuleData.find((rule) => rule.name === ruleName).act();
+      await sleep(150);
+    }
+  }
+
   // 非同期処理でバフを適用
   async function applyBuffsAsync(monster, buffs, skipMessage = false, skipSleep = false) {
     // バフ対象の種類
@@ -1383,6 +1393,26 @@ async function startBattle() {
     removeAllStickOut();
   }
   await startTurn();
+}
+
+// buffの直接挿入 死亡や石化相手でも強制的に追加後、updateする propertyの自動補完がないので注意
+function insertBuff(buffTarget, newBuff) {
+  const copiedNewBuff = {};
+  // for文で疑似deepcopy
+  for (const key in newBuff) {
+    const value = newBuff[key];
+    copiedNewBuff[key] = { ...value };
+  }
+  buffTarget.buffs = { ...buffTarget.buffs, ...copiedNewBuff };
+  updateMonsterBuffsDisplay(buffTarget);
+}
+
+function insertAll(newBuff) {
+  for (const party of parties) {
+    for (const monster of party) {
+      insertBuff(monster, newBuff);
+    }
+  }
 }
 
 // バフ追加用関数
@@ -21326,10 +21356,6 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   if (fieldState.stonedBlock) {
     activeBuffs.push({ key: "stonedBlock", src: "images/buffIcons/stonedBlock.png" });
   }
-  // 反射封じアイコンをpush
-  if (gameRule.disableReflection) {
-    activeBuffs.push({ key: "disableReflection", src: "images/buffIcons/disableReflection.png" });
-  }
   // 亡者アイコンを先頭に挿入
   if (monster.flags.isZombie) {
     activeBuffs.unshift({ key: "isZombie", src: "images/buffIcons/isZombie.png" });
@@ -22587,7 +22613,7 @@ function getRandomLivingPartyMember(skillUser) {
 //反射持ちかつ反射無視でない かつ敵対象ならば反射化
 function isSkillReflected(executingSkill, skillTarget) {
   return (
-    !gameRule.disableReflection &&
+    !skillTarget.buffs.disableReflection &&
     executingSkill.targetTeam === "enemy" &&
     !executingSkill.ignoreReflection &&
     (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
@@ -23619,3 +23645,19 @@ function countRubisTarget(party) {
   }
   return raceSet.size;
 }
+
+// global: gameRuleを使用
+const gameRuleData = [
+  {
+    name: "つねに反射封じの霧",
+    act: function () {
+      insertAll({ disableReflection: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "1ターン反射封じの霧",
+    act: function () {
+      insertAll({ disableReflection: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+    },
+  },
+];
