@@ -7891,6 +7891,34 @@ const monsters = [
     resistance: { fire: 0, ice: 1.5, thunder: 0, wind: 1, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "強新生アウルート", //44 防早50
+    id: "aurutoNew",
+    rank: 10,
+    race: ["魔獣"],
+    weight: 25,
+    status: { HP: 747, MP: 383, atk: 414, def: 511, spd: 561, int: 508 },
+    initialSkill: ["マヒャドストーム", "あんこくのはばたき", "醜悪な暴風", "スパークふんしゃ"],
+    defaultGear: "ryujinNail",
+    attribute: {
+      initialBuffs: {
+        intUp: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { duration: 3 },
+        spellReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
+      },
+      permanentBuffs: {
+        confusedBreak: { divineDispellable: true, strength: 1, removeAtTurnStart: true, duration: 2, probability: 0.25 },
+      },
+      evenTurnBuffs: {
+        spellBarrier: { strength: 1, targetType: "ally" },
+      },
+    },
+    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    ls: { int: 1.15 },
+    lsTarget: "魔獣",
+    AINormalAttack: [2], //混乱バギ無効化
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1.5, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 1.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+  },
+  {
     name: "獣王クロコダイン", //44 新生HP+50
     id: "skuroko",
     rank: 9,
@@ -16323,6 +16351,38 @@ const skill = [
     MPcost: 48,
     ignoreReflection: true,
     appliedEffect: { confused: { probability: 0.35 } },
+  },
+  {
+    name: "マヒャドストーム",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 220,
+    skillPlus: 1.09,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 65,
+    appliedEffect: { spellBarrier: { probability: 0.22 } },
+  },
+  {
+    name: "醜悪な暴風",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 180,
+    maxInt: 1000,
+    maxIntDamage: 290,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 99,
+    ignoreReflection: true,
+    appliedEffect: { confused: { probability: 0.3 } },
   },
   {
     name: "悪夢の雷鳴",
