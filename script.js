@@ -1,4 +1,4 @@
-//初期処理とglobal変数群
+// 初期処理とglobal変数群
 let isDeveloperMode = false;
 const allParties = Array(10)
   .fill(null)
@@ -10,19 +10,20 @@ let playerASelectedPartyNumber = 0;
 let playerBSelectedPartyNumber = 5;
 let selectingParty = allParties[0];
 let currentPlayer = "A";
-//モンスター装備変更用
+// モンスター・装備選択時、選択中のmonster番号を記録する変数
 let selectingMonsterNum = 0;
 let selectingGearNum = 0;
+// 主に操作対象となるmonster selectingParty[currentTab]
 let currentTab = 0;
 
-//コマンド選択
+// コマンド選択
 let currentMonsterIndex = 0;
 let currentTeamIndex = 0;
 
 // プリセットコマンドを記録
 const presetCommands = [];
 
-//戦闘中に使用
+// 戦闘中に使用
 const gameRule = [];
 let fieldState = {};
 let turnOrder = [];
@@ -7638,7 +7639,6 @@ const monsters = [
     attribute: {
       initialBuffs: {
         breathEvasion: { duration: 3, divineDispellable: true },
-        ioBoost: { strength: 0.2, duration: 4 },
       },
       evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
     },
@@ -23721,3 +23721,83 @@ const gameRuleData = [
     },
   },
 ];
+
+// 詳細をクリック時、popupを表示
+document.getElementById("monsterDescriptionButton").addEventListener("click", function () {
+  const div = document.getElementById("monsterDescriptionContents");
+  div.ineerHTML = "";
+  const monsterName = selectingParty[currentTab].name;
+  if (monsterName === "新生イブール") {
+    div.innerHTML = `新生転生イブール (by あかね)
+
+■特技
+
+<img src=${getSkillTypeIcons(findSkillByName("教祖のはどう"))}>教祖のはどう【みがわり無視】
+敵全体の 状態変化解除（上位効果）・被ダメージ上限値解除
+※アイコンのない被ダメージ上限値は解除不可
+
+<img src=${getSkillTypeIcons(findSkillByName("光速イオナスペル"))}>光速イオナスペル【反射無視】
+ランダムに5回 イオ系の呪文攻撃
+命中時 確率で混乱状態にする
+※賢100(90)~賢600(200) 混乱確率35%
+
+■特性
+
+・神官のころも
+・ダークハート
+・悪夢の再生
+
+・素早さ+50
+
+・悪魔衆の誘い
+悪魔系5体以上で、体技使用時にイブールの誘い
+※先制・アンカー体技は対象外
+
+・いきなり悪魔系にマインドバリア`;
+  } else if (monsterName === "強新生アウルート") {
+    div.innerHTML = `強新生アウルート (by げこ)
+
+■特技
+
+<img src=${getSkillTypeIcons(findSkillByName("マヒャドストーム"))}>マヒャドストーム
+
+<img src=${getSkillTypeIcons(findSkillByName("あんこくのはばたき"))}>あんこくのはばたき【反射無視】
+
+<img src=${getSkillTypeIcons(findSkillByName("醜悪な暴風"))}>醜悪な暴風【反射無視】
+
+■特性
+
+・AI2回行動
+
+・邪眼の守護
+バトルの最初に発動し 3ターンの間行動停止系の効果を防ぎ 呪文をはね返す
+
+・ビーストウィズダム
+つねに賢さが2段階上昇状態 偶数Rの最初に発動し 味方全体の呪文防御を1段階上げる
+
+・ときどき混乱の使い手
+・防御・すばやさ+50
+
+■耐性変更 ※強新生のみ適用
+バギ半減→無効
+混乱半減→無効`;
+  } else {
+    return;
+  }
+  // 説明文が存在する場合に表示処理
+  document.body.style.overflow = "hidden"; //todo:?
+  document.getElementById("monsterDescriptionOverlay").style.visibility = "visible";
+  document.getElementById("monsterDescriptionPopupWindow").style.opacity = "1";
+});
+
+//まわりクリックで閉じる
+document.getElementById("monsterDescriptionOverlay").addEventListener("click", function () {
+  //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.getElementById("monsterDescriptionOverlay").style.visibility = "hidden";
+  document.getElementById("monsterDescriptionPopupWindow").style.opacity = "0";
+  document.body.style.overflow = "";
+});
+
+/*
+
+*/

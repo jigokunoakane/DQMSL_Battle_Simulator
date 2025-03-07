@@ -878,3 +878,15 @@ select {
 .resistance-icon {
   position: absolute;
 }
+
+#monsterDescriptionContents {
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+#monsterDescriptionContents img {
+  height: 0.9rem;
+  margin: 0;
+  padding: 0;
+  pointer-events: none; /*長押しによるドラッグアンドドロップを禁止*/
+}
