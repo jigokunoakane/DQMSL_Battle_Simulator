@@ -5855,6 +5855,8 @@ function addTabClass(targetTabNum) {
 
 //global: currentTabを使用
 function switchTab(tabNumber) {
+  // 性能詳細の表示初期化
+  document.getElementById("monsterDescriptionButton").style.display = "none";
   // tab button押した時または新規モンスター選択時に起動、currentTab更新、引数tabNum番目のモンスター情報を取り出して下に表示(ステ、特技、種)
   // tabの中身が存在するとき
   if (Object.keys(selectingParty[tabNumber]).length !== 0) {
@@ -5863,6 +5865,10 @@ function switchTab(tabNumber) {
     // タブ自体の詳細/表示中を切り替え
     addTabClass(tabNumber);
     disableSeedSelect(false);
+    // 性能詳細の表示制御
+    if (["新生イブール", "強新生アウルート"].includes(selectingParty[currentTab].name)) {
+      document.getElementById("monsterDescriptionButton").style.display = "inline";
+    }
   } else if (tabNumber == 0) {
     // 中身が空かつ0は例外的に空tab選択可能にして、初期表示
     currentTab = tabNumber;

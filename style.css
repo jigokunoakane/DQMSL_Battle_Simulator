@@ -879,6 +879,10 @@ select {
   position: absolute;
 }
 
+#monsterDescriptionButton {
+  height: 1.3rem;
+}
+
 #monsterDescriptionContents {
   font-size: 0.9rem;
   white-space: pre-line;
