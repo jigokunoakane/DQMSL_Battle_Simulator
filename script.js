@@ -43,6 +43,9 @@ let isSkipMode = false;
 // sleep関数にかける倍率
 let waitMultiplier = 1;
 
+// preloadしたかどうかのフラグ
+let hasPreloadedImages = false;
+
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
   //switchPartyに変更
@@ -89,6 +92,7 @@ function decideParty() {
     // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
     document.getElementById("switchParty").value = playerBSelectedPartyNumber; //保存していた番号に切替え
     switchParty();
+    preloadBuffImages(); //バフ系画像 段階的読み込み
   } else {
     // 対戦用partiesにcopy 空monsterは削除
     parties[1] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
@@ -114,7 +118,7 @@ function decideParty() {
     document.getElementById("battlePage").style.display = "block";
     // skip状態を解除し、skip解除表示を戻す
     setSkipMode(false);
-    preloadImages();
+    preloadImages(); // system系とskillType画像 段階的読み込み
     prepareBattle();
   }
 }
@@ -21311,6 +21315,24 @@ async function imageExists(imageUrl) {
   return await imageCache[imageUrl];
 }
 
+// 取得用関数
+async function getImageUrlsThatExist(imageCache) {
+  const existingImageUrls = [];
+  for (const imageUrl in imageCache) {
+    if (imageCache.hasOwnProperty(imageUrl)) {
+      try {
+        const exists = await imageCache[imageUrl]; // Promiseの結果を待つ
+        if (exists) {
+          existingImageUrls.push(imageUrl);
+        }
+      } catch (error) {
+        console.error(`Error checking image URL ${imageUrl}:`, error);
+      }
+    }
+  }
+  return existingImageUrls;
+}
+
 //global: buffDisplayTimers = {};を使用
 async function updateMonsterBuffsDisplay(monster, isReversed = false) {
   // 前回のタイマーをクリア
@@ -21668,7 +21690,95 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
   }
 }
 
+// 先に読み込み
+function preloadBuffImages() {
+  if (hasPreloadedImages) return;
+  const imageUrls = [
+    "images/buffIcons/isUnbreakable.png",
+    "images/buffIcons/allElementalBoost.png",
+    "images/buffIcons/deathAbility.png",
+    "images/buffIcons/confusionBarrier.png",
+    "images/buffIcons/mindBarrier.png",
+    "images/buffIcons/protectiondivineDispellable.png",
+    "images/buffIcons/mindAndSealBarrier.png",
+    "images/buffIcons/demonKingBarrier.png",
+    "images/buffIcons/martialReflection.png",
+    "images/buffIcons/spdUpstr1.png",
+    "images/buffIcons/angelMark.png",
+    "images/buffIcons/breathCharge.png",
+    "images/buffIcons/allElementalBreak.png",
+    "images/buffIcons/fireGuardstr0.5.png",
+    "images/buffIcons/preemptiveAction.png",
+    "images/buffIcons/powerCharge.png",
+    "images/buffIcons/dodgeBuffstr1.png",
+    "images/buffIcons/spellBarrierstr1.png",
+    "images/buffIcons/fireResistancestr-1.png",
+    "images/buffIcons/reviveBlock.png",
+    "images/buffIcons/revivedivineDispellable.png",
+    "images/buffIcons/protectionstr0.5.png",
+    "images/buffIcons/elementalShieldDark.png",
+    "images/buffIcons/damageLimitstr250.png",
+    "images/buffIcons/atakan.png",
+    "images/buffIcons/slashEvasion.png",
+    "images/buffIcons/spellEvasion.png",
+    "images/buffIcons/anchorAction.png",
+    "images/buffIcons/controlOfRapu.png",
+    "images/buffIcons/breathEvasion.png",
+    "images/buffIcons/autoRadiantWave.png",
+    "images/buffIcons/martialBarrierstr1.png",
+    "images/buffIcons/slashBarrierstr1.png",
+    "images/buffIcons/breathReflection.png",
+    "images/buffIcons/slashBarrierstr2.png",
+    "images/buffIcons/paralyzeBarrier.png",
+    "images/buffIcons/danceEvasion.png",
+    "images/buffIcons/tabooSeal.png",
+    "images/buffIcons/aiExtraAttacks.png",
+    "images/buffIcons/goddessLightMetal.png",
+    "images/buffIcons/sleepBarrier.png",
+    "images/buffIcons/continuousHealing.png",
+    "images/buffIcons/goragoAtk.png",
+    "images/buffIcons/spellReflection.png",
+    "images/buffIcons/goragoSpd.png",
+    "images/buffIcons/baikikeepOnDeath.png",
+    "images/buffIcons/spdUpstr2.png",
+    "images/buffIcons/spdUpkeepOnDeath.png",
+    "images/buffIcons/goddessDefUp.png",
+    "images/buffIcons/continuousMPHealing.png",
+    "images/buffIcons/defUpstr1.png",
+    "images/buffIcons/spellBarrierstr2.png",
+    "images/buffIcons/defUpkeepOnDeath.png",
+    "images/buffIcons/martialBarrierstr2.png",
+    "images/buffIcons/poisoned.png",
+    "images/buffIcons/poisonDepthstr3.png",
+    "images/buffIcons/pharaohPower.png",
+    "images/buffIcons/sacredBarrier.png",
+    "images/buffIcons/protectionstr0.2.png",
+    "images/buffIcons/slashReflection.png",
+    "images/buffIcons/castleDefUp.png",
+    "images/buffIcons/zakiResistancestr-1.png",
+    "images/buffIcons/darkBreakBoost.png",
+    "images/buffIcons/baikistr-1.png",
+    "images/buffIcons/martialEvasion.png",
+    "images/buffIcons/intUpstr-1.png",
+    "images/buffIcons/spellBarrierstr-1.png",
+    "images/buffIcons/manaBoost.png",
+    "images/buffIcons/crimsonMist.png",
+
+    "images/buffIcons/baikistr1.png",
+    "images/buffIcons/baikistr2.png",
+    "images/buffIcons/defUpstr2.png",
+    "images/buffIcons/intUpstr1.png",
+    "images/buffIcons/intUpstr2.png",
+  ];
+  imageUrls.forEach((imageUrl) => {
+    const img = new Image();
+    img.src = imageUrl;
+  });
+}
+
+// 後で読み込み
 function preloadImages() {
+  if (hasPreloadedImages) return;
   const imageUrls = [
     "images/systems/miss.png",
     "images/systems/effectImages/allyDamaged.png",
@@ -21744,6 +21854,8 @@ function preloadImages() {
     const img = new Image();
     img.src = imageUrl;
   });
+  // global変数で管理
+  hasPreloadedImages = true;
 }
 
 // MPcostを返す スキル選択時と実行時
