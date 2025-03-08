@@ -23803,7 +23803,7 @@ document.getElementById("monsterDescriptionButton").addEventListener("click", fu
   document.getElementById("monsterDescriptionPopupWindow").style.opacity = "1";
 });
 
-//まわりクリックで閉じる
+// まわりクリックで閉じる
 document.getElementById("monsterDescriptionOverlay").addEventListener("click", function () {
   //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
   document.getElementById("monsterDescriptionOverlay").style.visibility = "hidden";
@@ -23811,6 +23811,18 @@ document.getElementById("monsterDescriptionOverlay").addEventListener("click", f
   document.body.style.overflow = "";
 });
 
-/*
+// gameRule設定 popupを表示
+document.getElementById("decideGameRuleButton").addEventListener("click", function () {
+  document.body.style.overflow = "hidden"; //todo:?
+  document.getElementById("gameRuleOverlay").style.visibility = "visible";
+  document.getElementById("gameRulePopupWindow").style.opacity = "1";
+});
 
-*/
+// gameRuleを閉じる
+document.getElementById("gameRuleOverlay").addEventListener("click", function () {
+  //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.getElementById("gameRuleOverlay").style.visibility = "hidden";
+  document.getElementById("gameRulePopupWindow").style.opacity = "0";
+  document.body.style.overflow = "";
+});
+

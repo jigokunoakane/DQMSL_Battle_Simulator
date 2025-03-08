@@ -224,7 +224,7 @@
                   <img class="monsterListIcon" src="images/icons/bossmaen.jpeg" />
                 </div>
                 <div>
-                  <div>勝手に作った新生</div>
+                  <div>勝手に作った新生(性能詳細参照)</div>
                   <img class="monsterListIcon" src="images/icons/iburuNew.jpeg" />
                   <img class="monsterListIcon" src="images/icons/aurutoNew.jpeg" />
                 </div>
@@ -555,14 +555,7 @@
         <!-- skillInfoContainer -->
         <div id="tips">
           <div>
-            <div class="detailHighlight">・使用上の注意</div>
-            爪の5%錬金は自動で反映されます<br />
-            系統爪は、系統関係なく錬金で分類されています<br />
-            リンクの共有やTwitterでの言及などはご遠慮ください<br />
-          </div>
-          <br />
-          <div>
-            <div class="detailHighlight">・速度設定</div>
+            <div class="detailHighlight">・設定</div>
             <select id="spdSetting">
               <option value="0.8">0.8倍速</option>
               <option value="1" selected>1倍速</option>
@@ -575,6 +568,23 @@
               <option value="3.5">3.5倍速</option>
               <option value="4">4倍速</option>
             </select>
+            <button id="decideGameRuleButton" class="normalButton">ゲームルール設定</button>
+            <div id="gameRuleOverlay" class="overlay">
+              <div id="gameRuleBg_gray" class="bg_gray"></div>
+              <div id="gameRulePopupWindow" class="popupWindow">
+                <div>
+                  <h3>ゲームルール設定</h3>
+                  <div id="gameRuleContents"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <br />
+          <div>
+            <div class="detailHighlight">・使用上の注意</div>
+            爪の5%錬金は自動で反映されます<br />
+            系統爪は、系統関係なく錬金で分類されています<br />
+            リンクの共有やTwitterでの言及などはご遠慮ください<br />
           </div>
           <br />
           <div>
