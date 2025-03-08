@@ -165,6 +165,7 @@ select {
   gap: 10px; /* 画像間の間隔 */
   overflow: auto; /* コンテンツがウィンドウからはみ出した場合にスクロールバーを表示 */
   max-height: 80vh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
+  font-size: 0.9rem;
 }
 
 /*ポップアップウィンドウ内*/
@@ -886,7 +887,6 @@ select {
 }
 
 #monsterDescriptionContents {
-  font-size: 0.9rem;
   white-space: pre-line;
 }
 

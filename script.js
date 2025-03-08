@@ -24,7 +24,7 @@ let currentTeamIndex = 0;
 const presetCommands = [];
 
 // 戦闘中に使用
-const gameRule = [];
+let gameRule = [];
 let fieldState = {};
 let turnOrder = [];
 // 死亡時発動能力のキュー
@@ -23847,6 +23847,39 @@ const gameRuleData = [
   },
 ];
 
+function generateGameRuleCheckboxes() {
+  const gameRuleContentsDiv = document.getElementById("gameRuleContents");
+
+  gameRuleData.forEach((rule, index) => {
+    // checkboxの生成
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `gameRule_${index}`;
+    checkbox.value = rule.name; // checkboxのvalueをルール名にする
+
+    checkbox.addEventListener("change", (event) => {
+      if (event.target.checked) {
+        // チェックされた場合、gameRule配列に追加
+        gameRule.push(rule.name);
+      } else {
+        // チェックが外された場合、gameRule配列から削除
+        gameRule = gameRule.filter((name) => name !== rule.name);
+      }
+    });
+
+    // labelの生成
+    const label = document.createElement("label");
+    label.htmlFor = `gameRule_${index}`;
+    label.textContent = rule.name;
+
+    // divに追加
+    gameRuleContentsDiv.appendChild(checkbox);
+    gameRuleContentsDiv.appendChild(label);
+    gameRuleContentsDiv.appendChild(document.createElement("br")); // 改行
+  });
+}
+document.addEventListener("DOMContentLoaded", generateGameRuleCheckboxes);
+
 // 詳細をクリック時、popupを表示
 document.getElementById("monsterDescriptionButton").addEventListener("click", function () {
   const div = document.getElementById("monsterDescriptionContents");
@@ -23929,8 +23962,8 @@ document.getElementById("decideGameRuleButton").addEventListener("click", functi
   document.getElementById("gameRulePopupWindow").style.opacity = "1";
 });
 
-// gameRuleを閉じる
-document.getElementById("gameRuleOverlay").addEventListener("click", function () {
+// gameRuleを閉じる 例外的にoverlayクリックではない
+document.getElementById("gameRuleBg_gray").addEventListener("click", function () {
   document.body.classList.remove("noScroll");
   document.getElementById("gameRuleOverlay").style.visibility = "hidden";
   document.getElementById("gameRulePopupWindow").style.opacity = "0";
