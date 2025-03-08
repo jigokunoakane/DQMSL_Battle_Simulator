@@ -23745,14 +23745,14 @@ document.getElementById("monsterDescriptionButton").addEventListener("click", fu
 
 ■特技
 
-<img src=${getSkillTypeIcons(findSkillByName("教祖のはどう"))}>教祖のはどう【みがわり無視】
-敵全体の 状態変化解除（上位効果）・被ダメージ上限値解除
-※アイコンのない被ダメージ上限値は解除不可
-
 <img src=${getSkillTypeIcons(findSkillByName("光速イオナスペル"))}>光速イオナスペル【反射無視】
 ランダムに5回 イオ系の呪文攻撃
 命中時 確率で混乱状態にする
 ※賢100(90)~賢600(200) 混乱確率35%
+
+<img src=${getSkillTypeIcons(findSkillByName("教祖のはどう"))}>教祖のはどう【みがわり無視】
+敵全体の 状態変化解除（上位効果）・被ダメージ上限値解除
+※アイコンのない被ダメージ上限値は解除不可
 
 ■特性
 
