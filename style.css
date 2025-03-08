@@ -1,7 +1,14 @@
+/* 全体の余白とパディングをリセット */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
 html {
   -ms-touch-action: manipulation;
   touch-action: manipulation; /*効いてない*/
-  /*overflow: hidden; スクロール禁止*/
 }
 
 body {
@@ -17,16 +24,11 @@ body {
   font-weight: 400;
   font-size: 100%;
   max-width: 440px;
-  /*overflow: hidden; スクロール禁止*/
+  overflow-x: hidden; /* 横スクロール禁止 */
 }
 
-/* 全体の余白とパディングをリセット */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  overflow-x: hidden; /* 横スクロールを防ぐ */
+.noScroll {
+  overflow-y: hidden !important; /* スクロール禁止 */
 }
 
 *,

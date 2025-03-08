@@ -5267,7 +5267,7 @@ function hasAbnormalityOfAINormalAttack(monster) {
 //global: selectingMonsterNumを使用
 document.querySelectorAll(".partyIcon").forEach((icon) => {
   icon.addEventListener("click", function () {
-    document.body.style.overflow = "hidden"; //todo:?
+    document.body.classList.add("noScroll");
     document.getElementById("selectMonsterOverlay").style.visibility = "visible";
     document.getElementById("selectMonsterPopupWindow").style.opacity = "1";
     //どの要素をクリックして選択中か格納
@@ -5280,9 +5280,9 @@ document.querySelectorAll(".partyIcon").forEach((icon) => {
 //まわりクリックで閉じる
 document.getElementById("selectMonsterOverlay").addEventListener("click", function () {
   //ここselectMonsterBg_grayではなくselectMonsterOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じるように
+  document.body.classList.remove("noScroll");
   document.getElementById("selectMonsterOverlay").style.visibility = "hidden";
   document.getElementById("selectMonsterPopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 });
 
 //window内の各画像クリックで、選択処理を起動
@@ -5309,9 +5309,9 @@ function selectMonster(monsterName) {
   switchTab(selectingMonsterNum);
 
   // ポップアップウィンドウを閉じる
+  document.body.classList.remove("noScroll");
   document.getElementById("selectMonsterOverlay").style.visibility = "hidden";
   document.getElementById("selectMonsterPopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 
   // 初期表示状態で種選択が無効化されている場合に解除
   disableSeedSelect(false);
@@ -5333,7 +5333,7 @@ document.querySelectorAll(".partyGear").forEach((icon) => {
     selectingGearNum = Number(selectingGear.replace(/(party|Gear)/g, ""));
     // モンスターが空のときはreturn
     if (Object.keys(selectingParty[selectingGearNum]).length === 0) return;
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("noScroll");
     document.getElementById("selectGearOverlay").style.visibility = "visible";
     document.getElementById("selectGearPopupWindow").style.opacity = "1";
   });
@@ -5342,9 +5342,9 @@ document.querySelectorAll(".partyGear").forEach((icon) => {
 //まわりクリックで閉じる
 document.getElementById("selectGearOverlay").addEventListener("click", function () {
   //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.body.classList.remove("noScroll");
   document.getElementById("selectGearOverlay").style.visibility = "hidden";
   document.getElementById("selectGearPopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 });
 
 //window内の各画像クリックで、選択処理を起動
@@ -5376,9 +5376,9 @@ function selectGear(gearName, newSelectingGearNum = null) {
   displayGearIncrement();
 
   // ポップアップウィンドウを閉じる
+  document.body.classList.remove("noScroll");
   document.getElementById("selectGearOverlay").style.visibility = "hidden";
   document.getElementById("selectGearPopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 }
 //装備選択部分終了
 
@@ -6022,7 +6022,7 @@ async function selectAllPartyMembers(monsters) {
   await sleep(9);
   // 選択画面を開く
   if (currentPlayer === "B") {
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("noScroll");
     document.getElementById("selectMonsterOverlay").style.visibility = "visible";
     document.getElementById("selectMonsterPopupWindow").style.opacity = "1";
     selectingMonsterNum = 0;
@@ -23798,31 +23798,28 @@ document.getElementById("monsterDescriptionButton").addEventListener("click", fu
     return;
   }
   // 説明文が存在する場合に表示処理
-  document.body.style.overflow = "hidden"; //todo:?
+  document.body.classList.add("noScroll");
   document.getElementById("monsterDescriptionOverlay").style.visibility = "visible";
   document.getElementById("monsterDescriptionPopupWindow").style.opacity = "1";
 });
 
 // まわりクリックで閉じる
 document.getElementById("monsterDescriptionOverlay").addEventListener("click", function () {
-  //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.body.classList.remove("noScroll");
   document.getElementById("monsterDescriptionOverlay").style.visibility = "hidden";
   document.getElementById("monsterDescriptionPopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 });
 
 // gameRule設定 popupを表示
 document.getElementById("decideGameRuleButton").addEventListener("click", function () {
-  document.body.style.overflow = "hidden"; //todo:?
+  document.body.classList.add("noScroll");
   document.getElementById("gameRuleOverlay").style.visibility = "visible";
   document.getElementById("gameRulePopupWindow").style.opacity = "1";
 });
 
 // gameRuleを閉じる
 document.getElementById("gameRuleOverlay").addEventListener("click", function () {
-  //ここselectGearBg_grayではなくselectGearOverlayにすると、ウィンドウ白部分をタップでウィンドウ閉じる
+  document.body.classList.remove("noScroll");
   document.getElementById("gameRuleOverlay").style.visibility = "hidden";
   document.getElementById("gameRulePopupWindow").style.opacity = "0";
-  document.body.style.overflow = "";
 });
-
