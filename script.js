@@ -1368,9 +1368,16 @@ async function startTurn() {
     }
   }
 
-  //popupを全て閉じてコマンドボタンを有効化、メッセージ表示
+  // popupを全て閉じてコマンドボタンを有効化、メッセージ表示
   closeSelectCommandPopupWindowContents();
   startSelectingCommandForFirstMonster(0);
+  // 全体の表示を更新
+  await originalSleep(150);
+  for (const party of parties) {
+    for (const monster of party) {
+      updateMonsterBuffsDisplay(monster);
+    }
+  }
 }
 
 //毎ラウンドコマンド選択後処理
