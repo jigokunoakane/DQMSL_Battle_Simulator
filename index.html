@@ -64,13 +64,11 @@
           <div id="tab4" class="eachTab" onclick="switchTab(4)">詳細</div>
         </div>
 
-        <!-- ポップアップ部分モンスター選択 -->
+        <!-- モンスター選択のpopup -->
         <div id="selectMonsterOverlay" class="overlay">
           <div id="selectMonsterBg_gray" class="bg_gray"></div>
-          <!-- ウィンドウの外のグレーの領域 -->
           <div id="selectMonsterPopupWindow" class="popupWindow">
-            <!-- ウィンドウ部分 -->
-            <div id="windowOfMonsterSelection">
+            <div class="popupWindowContents">
               <!-- ウィンドウのコンテンツ -->
               <h3>モンスターを選択<button id="randomParty" class="normalButton">完全ランダム！</button></h3>
               <div id="monsterListIconsContainer">
@@ -233,14 +231,11 @@
           </div>
         </div>
 
-        <!-- ポップアップ部分装備選択 -->
+        <!-- 装備選択のpopup -->
         <div id="selectGearOverlay" class="overlay">
           <div id="selectGearBg_gray" class="bg_gray"></div>
-          <!-- ウィンドウの外のグレーの領域 -->
           <div id="selectGearPopupWindow" class="popupWindow">
-            <!-- ウィンドウ部分 -->
-            <div id="windowOfGearSelection">
-              <!-- ウィンドウのコンテンツ -->
+            <div class="popupWindowContents">
               <h3>装備を選択</h3>
               <div>爪 (竜獣霊鋼装備時、5%錬金自動適用)</div>
               <img class="gearList" src="images/gear/metalNail.jpeg" />
@@ -510,10 +505,11 @@
               <option value="とくぎつかうな">とくぎつかうな</option>
             </select>
             <button id="monsterDescriptionButton" class="normalButton">性能詳細</button>
+            <!-- 新生性能詳細のpopup -->
             <div id="monsterDescriptionOverlay" class="overlay">
               <div id="monsterDescriptionBg_gray" class="bg_gray"></div>
               <div id="monsterDescriptionPopupWindow" class="popupWindow">
-                <div>
+                <div class="popupWindowContents">
                   <h3>モンスター詳細</h3>
                   <div id="monsterDescriptionContents"></div>
                 </div>
@@ -569,10 +565,11 @@
               <option value="4">4倍速</option>
             </select>
             <button id="decideGameRuleButton" class="normalButton">ゲームルール設定</button>
+            <!-- gameRule設定のpopup -->
             <div id="gameRuleOverlay" class="overlay">
               <div id="gameRuleBg_gray" class="bg_gray"></div>
               <div id="gameRulePopupWindow" class="popupWindow">
-                <div id="gameRulePopupWindowContents">
+                <div id="gameRulePopupWindowContents" class="popupWindowContents">
                   <h3>ゲームルール設定</h3>
                   <div id="gameRuleContents"></div>
                   <div id="closeGameRuleButtonContainer" class="closeButtonContainer">
