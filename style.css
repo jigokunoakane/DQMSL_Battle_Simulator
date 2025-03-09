@@ -8,7 +8,7 @@ body {
 
 html {
   -ms-touch-action: manipulation;
-  touch-action: manipulation; /*効いてない*/
+  touch-action: manipulation; /* 効いてない */
 }
 
 body {
@@ -28,13 +28,13 @@ body {
 }
 
 .noScroll {
-  overflow-y: hidden !important; /* スクロール禁止 */
+  overflow-y: hidden !important; /* 縦スクロール禁止 popup開閉時に制御 */
 }
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box; /*paddingも含めてwidth指定*/
+  box-sizing: border-box; /* paddingも含めてwidth指定 */
 }
 
 img {
@@ -47,28 +47,12 @@ img {
 }
 
 .buffIcon,
-.battleIcon {
-  pointer-events: none; /*長押しによるドラッグアンドドロップを禁止*/
+.battleIcon,
+#monsterDescriptionContents img {
+  pointer-events: none; /* eventListener持ち以外 長押しによるドラッグアンドドロップを禁止 */
 }
 
-#pageHeader {
-  margin-left: 0.5rem;
-}
-
-#pageContainer {
-  display: flex;
-  justify-content: center;
-}
-
-#adjustPartyPage {
-  width: 96%;
-}
-
-#playerNameAndWeightContainer {
-  margin-bottom: 0.3rem;
-}
-
-/*いつもの*/
+/* 共通 */
 .normalButton {
   height: 1.6rem;
   width: max-content;
@@ -96,11 +80,6 @@ img {
   background-color: #d8d8d8;
 }
 
-#randomParty {
-  height: auto;
-  margin-left: 0.3rem;
-}
-
 select {
   -webkit-appearance: none;
   /* ベンダープレフィックス(Google Chrome、Safari用) */
@@ -119,6 +98,29 @@ select {
   background-color: #e9e9e9;
   color: #0075fb;
   font-size: 1rem;
+}
+
+#pageHeader {
+  margin-left: 0.5rem;
+}
+
+#pageContainer {
+  display: flex;
+  justify-content: center;
+}
+
+/* パテ画面 */
+#adjustPartyPage {
+  width: 96%;
+}
+
+#playerNameAndWeightContainer {
+  margin-bottom: 0.3rem;
+}
+
+#randomParty {
+  height: auto;
+  margin-left: 0.3rem;
 }
 
 /* ポップアップwindow部分 */
@@ -158,13 +160,12 @@ select {
   z-index: 90;
   opacity: 0;
   transition: opacity 0.2s linear; /*ここでウィンドウ出現時のラグを指定*/
-
   overflow: auto; /* コンテンツがウィンドウからはみ出した場合にスクロールバーを表示 */
   max-height: 80vh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
   font-size: 0.9rem;
 }
 
-/*ポップアップウィンドウ内*/
+/* window内 */
 .monsterListIcon,
 .gearList {
   width: calc(20% - 10px); /* ボタン5つ横並びにするために幅調整 */
@@ -175,8 +176,7 @@ select {
   height: auto;
 }
 
-/* パテ画像部分 */
-
+/* パテ画面・戦闘画面のicon部分 */
 #partyIconsContainer,
 #partyGearsContainer,
 .battleIconsContainer {
@@ -200,10 +200,10 @@ select {
 .battleIconWrapper {
   flex-basis: 20%;
   display: flex;
-  justify-content: center; /*親要素に指定して中央に*/
+  justify-content: center; /* 親要素に指定して中央に */
 }
 .battleIconWrapper {
-  position: relative; /*ダメージ表示用*/
+  position: relative; /* ダメージ表示の基準用 */
   flex-basis: 15%;
 }
 
@@ -230,7 +230,7 @@ select {
   height: auto;
 }
 
-/*tab*/
+/* tab部分 */
 #monsterTabContainer {
   display: flex;
 }
@@ -352,9 +352,82 @@ select {
   width: auto;
 }
 
+/* 新生の詳細表示popupwindow */
+#monsterDescriptionButton {
+  height: 1.3rem;
+}
+
+#monsterDescriptionContents {
+  white-space: pre-line;
+}
+
+#monsterDescriptionContents img {
+  height: 0.9rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* skill変更部分 */
 #skillFlexContainer {
-  display: flex; /*横並び*/
-  flex-flow: column;
+  display: block;
+}
+
+.changeSkillWrapper {
+  position: relative;
+  display: inline-flex; /* inline-flexに変更 */
+  width: 60%;
+  align-items: center; /* 垂直方向中央揃え */
+}
+
+.changeSkillWrapper::after {
+  content: "";
+  position: absolute;
+  border: 4px solid #333;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  top: calc(50% - 3px);
+  right: 10px;
+  width: 0;
+  height: 0;
+}
+
+.changeSkillWrapper-disabled::after {
+  border-top-color: #aaa;
+}
+
+.changeSkill {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 0px 25px 0px 10px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 100%;
+  height: 2rem;
+}
+
+.changeSkill:disabled {
+  pointer-events: none;
+  background-color: #f1f1f1;
+  color: #aaa;
+}
+
+.changeSkillWrapper input[type="checkbox"],
+#enableBGMCheckbox {
+  margin-right: 10px; /* チェックボックスとセレクトボックスの間隔 */
+  width: 1.2rem; /* チェックボックスのサイズ */
+  height: 1.2rem;
+  border: 1px solid #aaa; /* 枠線 */
+  border-radius: 4px; /* 角丸 */
+  outline: none; /* フォーカス時のアウトラインを削除 */
+  vertical-align: middle; /* select要素と垂直方向に中央揃え */
+}
+
+#enableBGMCheckboxContainer {
+  margin-bottom: 0.5rem;
 }
 
 #tips {
@@ -369,7 +442,7 @@ select {
   margin-bottom: 0.5rem;
 }
 
-/*戦闘画面 icon以外*/
+/* 戦闘画面 icon以外 */
 #battlePage {
   width: 100%;
   display: none;
@@ -392,7 +465,7 @@ select {
   padding-bottom: 0.5rem;
 }
 
-/*bar*/
+/* bar */
 
 .barContainer {
   display: flex;
@@ -468,6 +541,7 @@ select {
   padding-bottom: 1rem;
 }
 
+/* console画面 */
 #consoleScreenContainer {
   position: relative;
   display: flex;
@@ -517,6 +591,7 @@ select {
   margin-right: 0.35rem;
 }
 
+/* command選択部分 */
 #commandBtnContainer {
   display: flex;
   justify-content: center;
@@ -685,6 +760,7 @@ select {
   height: auto;
 }
 
+/* バツボタン gameRuleを閉じるボタンと共通*/
 .closeButtonContainer {
   display: flex;
   justify-content: flex-end;
@@ -718,6 +794,7 @@ select {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
+/* gameRuleを閉じるボタンの調整 */
 #gameRulePopupWindowContents {
   position: relative;
 }
@@ -730,6 +807,7 @@ select {
   height: auto;
 }
 
+/* バフアイコン */
 .buffContainer {
   position: absolute;
   bottom: 0;
@@ -747,6 +825,7 @@ select {
   background-position: center;
 }
 
+/* 上部の再戦ボタンや連携・fieldState表示など */
 #upperContainer {
   display: flex;
   position: relative;
@@ -799,71 +878,7 @@ select {
   color: white;
 }
 
-#skillFlexContainer {
-  display: block;
-  /*flex-flow: column;*/
-}
-
-.changeSkillWrapper {
-  position: relative;
-  display: inline-flex; /* inline-flexに変更 */
-  width: 60%;
-  align-items: center; /* 垂直方向中央揃え */
-}
-
-.changeSkillWrapper::after {
-  content: "";
-  position: absolute;
-  border: 4px solid #333;
-  border-bottom: 0;
-  border-left-color: transparent;
-  border-right-color: transparent;
-  top: calc(50% - 3px);
-  right: 10px;
-  width: 0;
-  height: 0;
-}
-
-.changeSkillWrapper-disabled::after {
-  border-top-color: #aaa;
-}
-
-.changeSkill {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  padding: 0px 25px 0px 10px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  width: 100%;
-  height: 2rem;
-}
-
-.changeSkill:disabled {
-  pointer-events: none;
-  background-color: #f1f1f1;
-  color: #aaa;
-}
-
-.changeSkillWrapper input[type="checkbox"],
-#enableBGMCheckbox {
-  margin-right: 10px; /* チェックボックスとセレクトボックスの間隔 */
-  width: 1.2rem; /* チェックボックスのサイズ */
-  height: 1.2rem;
-  border: 1px solid #aaa; /* 枠線 */
-  border-radius: 4px; /* 角丸 */
-  outline: none; /* フォーカス時のアウトラインを削除 */
-  vertical-align: middle; /* select要素と垂直方向に中央揃え */
-}
-
-#enableBGMCheckboxContainer {
-  margin-bottom: 0.5rem;
-}
-
-/*耐性表示*/
-
+/* 耐性表示 */
 .resistance-container {
   width: auto;
   display: flex;
@@ -888,19 +903,4 @@ select {
 
 .resistance-icon {
   position: absolute;
-}
-
-#monsterDescriptionButton {
-  height: 1.3rem;
-}
-
-#monsterDescriptionContents {
-  white-space: pre-line;
-}
-
-#monsterDescriptionContents img {
-  height: 0.9rem;
-  margin: 0;
-  padding: 0;
-  pointer-events: none; /*長押しによるドラッグアンドドロップを禁止*/
 }
