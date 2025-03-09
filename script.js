@@ -1085,11 +1085,15 @@ async function startTurn() {
 
   // 復活後、gameRule処理
   if (gameRule.length > 0) {
-    await sleep(50);
+    await sleep(100);
     for (const ruleName of gameRule) {
-      displayMessage(`特殊ルール ${ruleName}が発動！`);
-      gameRuleData.find((rule) => rule.name === ruleName).act();
-      await sleep(150);
+      const rule = gameRuleData.find((rule) => rule.name === ruleName);
+      if (!rule.turn || rule.turn === fieldState.turnNum) {
+        displayMessage(`特殊ルール ${ruleName}が発動！`);
+        col(`特殊ルール ${ruleName}が発動！`);
+        rule.act();
+        await sleep(200);
+      }
     }
   }
 
@@ -23835,14 +23839,93 @@ function countRubisTarget(party) {
 const gameRuleData = [
   {
     name: "つねに反射封じの霧",
+    turn: 1,
     act: function () {
       insertAll({ disableReflection: { keepOnDeath: true } });
     },
   },
   {
-    name: "1ターン反射封じの霧",
+    name: "黒い霧(マホトーン)",
+    turn: 1,
     act: function () {
-      insertAll({ disableReflection: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+      insertAll({ spellSeal: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "白い霧(体技封じ)",
+    turn: 1,
+    act: function () {
+      insertAll({ martialSeal: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "赤い霧(斬撃封じ)",
+    turn: 1,
+    act: function () {
+      insertAll({ slashSeal: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "息封じの霧",
+    turn: 1,
+    act: function () {
+      insertAll({ breathSeal: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "踊り封じの霧",
+    turn: 1,
+    act: function () {
+      insertAll({ danceSeal: { keepOnDeath: true } });
+    },
+  },
+  {
+    name: "つねにとくぎ30%無効",
+    turn: 1,
+    act: function () {
+      insertAll({ skillEvasion: { keepOnDeath: true, strength: 0.3 } });
+    },
+  },
+  {
+    name: "いきなりちからため",
+    turn: 1,
+    act: function () {
+      insertAll({ powerCharge: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+    },
+  },
+  {
+    name: "いきなり魔力覚醒",
+    turn: 1,
+    act: function () {
+      insertAll({ manaBoost: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+    },
+  },
+  {
+    name: "いきなりマ素深度1",
+    turn: 1,
+    act: function () {
+      insertAll({ maso: { keepOnDeath: true, strength: 1 } });
+    },
+  },
+  {
+    name: "いきなり1ターン無属性無効",
+    turn: 1,
+    act: function () {
+      insertAll({ nonElementalResistance: { duration: 1, removeAtTurnStart: true, decreaseTurnEnd: true } });
+    },
+  },
+  {
+    name: "いきなり1ターンさくせん行動",
+    turn: 1,
+    act: function () {
+      insertAll({ aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 1, decreaseTurnEnd: true } });
+    },
+  },
+  {
+    name: "いきなり1ターン一族のうらみ(バグ可能性あり)",
+    turn: 1,
+    act: function () {
+      insertAll({ zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility", decreaseTurnEnd: true } });
     },
   },
 ];
