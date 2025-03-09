@@ -23968,3 +23968,10 @@ document.getElementById("gameRuleBg_gray").addEventListener("click", function ()
   document.getElementById("gameRuleOverlay").style.visibility = "hidden";
   document.getElementById("gameRulePopupWindow").style.opacity = "0";
 });
+
+// gameRuleを閉じるbtn
+document.getElementById("closeGameRuleButton").addEventListener("click", function () {
+  document.body.classList.remove("noScroll");
+  document.getElementById("gameRuleOverlay").style.visibility = "hidden";
+  document.getElementById("gameRulePopupWindow").style.opacity = "0";
+});

@@ -572,9 +572,12 @@
             <div id="gameRuleOverlay" class="overlay">
               <div id="gameRuleBg_gray" class="bg_gray"></div>
               <div id="gameRulePopupWindow" class="popupWindow">
-                <div>
+                <div id="gameRulePopupWindowContents">
                   <h3>ゲームルール設定</h3>
                   <div id="gameRuleContents"></div>
+                  <div id="closeGameRuleButtonContainer" class="closeButtonContainer">
+                    <div id="closeGameRuleButton" class="closeButton"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -864,8 +867,8 @@
                   <button id="howToCommandEnemyBtnPlayer" class="normalButton howToCommandEnemyBtn">選択する</button>
                   <button disabled id="howToCommandEnemyBtnImprovedAI" class="normalButton howToCommandEnemyBtn">固定AI(未実装)</button>
                 </div>
-                <div id="closeCommandPopupWindowBtnContainer">
-                  <div id="closeCommandPopupWindowBtn"></div>
+                <div id="closeCommandPopupWindowBtnContainer" class="closeButtonContainer">
+                  <div id="closeCommandPopupWindowBtn" class="closeButton"></div>
                 </div>
               </div>
               <!--commandPopupWindowContents-->
