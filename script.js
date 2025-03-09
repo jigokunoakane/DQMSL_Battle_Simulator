@@ -1367,9 +1367,9 @@ async function startTurn() {
       delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
       delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
       // ターン開始・コマンド開始時点に使用可能だったskillを使用可能skillリストに記録
-      // 変身したターンにAIで絶望の天舞や超伝説変身後特技は使用しない 供物はOK
+      // 変身したターンにAIで超伝説変身後特技は使用しない 絶望の天舞は変身時ではなくsupport内での変更に
       monster.availableSkillsOnAIthisTurn = [...monster.skill];
-      // 供物になっている場合は元skillを使用可能リストに含める
+      // 供物になっている場合は元skillを使用可能リストに含める 供物化が解除されればそのターンから使用可能
       if (monster.availableSkillsOnAIthisTurn[3] === "供物をささげる") {
         monster.availableSkillsOnAIthisTurn[3] = monster.defaultSkill[3];
       }
@@ -9151,6 +9151,9 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               await executeRadiantWave(skillUser);
+              if (skillUser.flags.hasTransformed) {
+                skillUser.skill[0] = "絶望の天舞";
+              }
             },
           },
         ],
@@ -22222,7 +22225,7 @@ async function transformTyoma(monster) {
 
   // skill変更と 各種message
   if (monster.name === "憎悪のエルギオス") {
-    monster.skill[0] = "絶望の天舞";
+    // 絶望の天舞への移行はturn最初に実行
     delete monster.buffs.stoned;
     displayMessage("＊「憎悪のはげしさを…… 絶望の深さを…", "  今こそ 思いしらせてくれるわッ！！");
   } else if (monster.name === "死を統べる者ネルゲル") {
