@@ -11795,7 +11795,7 @@ const skill = [
     targetTeam: "enemy", //ally enemy
     excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     hitNum: 3,
-    MPcost: 76,
+    MPcost: 0,
     MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費 全消費は1
     order: "", //preemptive anchor
     preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
@@ -20193,7 +20193,6 @@ const skill = [
     ignoreSubstitute: true,
     ignoreGuard: true,
   },
-  {},
 ];
 
 const gear = [
