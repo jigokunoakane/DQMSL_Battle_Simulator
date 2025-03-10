@@ -1083,16 +1083,16 @@ async function startTurn() {
   }
   await processReviveNextTurn(false);
 
-  // 復活後、gameRule処理
+  // 復活後、gameRule処理 ability前に発動するもの
   if (gameRule.length > 0) {
-    await sleep(100);
     for (const ruleName of gameRule) {
       const rule = gameRuleData.find((rule) => rule.name === ruleName);
-      if (!rule.turn || rule.turn === fieldState.turnNum) {
+      if (!rule.executeAfterAbilities && (!rule.turn || rule.turn === fieldState.turnNum)) {
+        await sleep(150);
         displayMessage(`特殊ルール ${ruleName}が発動！`);
         col(`特殊ルール ${ruleName}が発動！`);
         rule.act();
-        await sleep(200);
+        await sleep(100);
       }
     }
   }
@@ -1372,6 +1372,20 @@ async function startTurn() {
       // 供物になっている場合は元skillを使用可能リストに含める 供物化が解除されればそのターンから使用可能
       if (monster.availableSkillsOnAIthisTurn[3] === "供物をささげる") {
         monster.availableSkillsOnAIthisTurn[3] = monster.defaultSkill[3];
+      }
+    }
+  }
+
+  // ability後に発動するgameRule処理 特技シャッフルなど
+  if (gameRule.length > 0) {
+    for (const ruleName of gameRule) {
+      const rule = gameRuleData.find((rule) => rule.name === ruleName);
+      if (rule.executeAfterAbilities && (!rule.turn || rule.turn === fieldState.turnNum)) {
+        await sleep(150);
+        displayMessage(`特殊ルール ${ruleName}が発動！`);
+        col(`特殊ルール ${ruleName}が発動！`);
+        rule.act();
+        await sleep(250);
       }
     }
   }
@@ -23937,6 +23951,38 @@ const gameRuleData = [
     turn: 1,
     act: function () {
       insertAll({ zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility", decreaseTurnEnd: true } });
+    },
+  },
+  {
+    name: "毎ターン特技シャッフル",
+    executeAfterAbilities: true, // supportやattackによる変身後に実行
+    act: function () {
+      for (const party of parties) {
+        for (const monster of party) {
+          // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
+          const unavailableSKillsForOthers = [
+            "神楽の術下位",
+            "ツイスター下位",
+            "キングストーム下位",
+            "ネクロゴンドの衝撃下位",
+            "火竜変化呪文先制",
+            "教祖のはどう",
+            "光速イオナスペル",
+            "クアトロマダンテ2発目",
+            "クアトロマダンテ3発目",
+            "クアトロマダンテ4発目",
+          ];
+          // MP0でも付与して良いもの
+          const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
+          const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
+
+          const randomSkillIndex0 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex1 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex2 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex3 = Math.floor(Math.random() * availableSkills.length);
+          monster.skill = [availableSkills[randomSkillIndex0].name, availableSkills[randomSkillIndex1].name, availableSkills[randomSkillIndex2].name, availableSkills[randomSkillIndex3].name];
+        }
+      }
     },
   },
 ];
