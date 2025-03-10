@@ -12136,7 +12136,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    MPcost: 0,
+    MPcost: 12,
     criticalHitProbability: 0.5, //miss4割以外の6割の半分
     missProbability: 0.4,
     ignoreBaiki: true,
@@ -12813,7 +12813,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
-    MPcost: 35,
+    MPcost: 0,
     ignoreSubstitute: true,
     isCounterSkill: true,
     RaceBane: ["???"],
@@ -13292,7 +13292,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
-    MPcost: 0,
+    MPcost: 58,
     appliedEffect: { martialBarrier: { strength: -1, probability: 0.387 } },
   },
   {
@@ -13304,7 +13304,7 @@ const skill = [
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 6,
-    MPcost: 0,
+    MPcost: 58,
     appliedEffect: { fireResistance: { strength: -1, probability: 0.58 } },
   },
   {
@@ -14221,7 +14221,7 @@ const skill = [
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
-      skillUser.iconSrc = "images/icons/" + skillUser.id + "DragonTransformed.jpeg";
+      skillUser.iconSrc = "images/icons/AbanDragonTransformed.jpeg";
       updateBattleIcons(skillUser);
       await sleep(150);
       applyHeal(skillUser, skillUser.defaultStatus.HP);
@@ -14245,7 +14245,7 @@ const skill = [
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
-      skillUser.iconSrc = "images/icons/" + skillUser.id + "DragonTransformed.jpeg";
+      skillUser.iconSrc = "images/icons/AbanDragonTransformed.jpeg";
       updateBattleIcons(skillUser);
       await sleep(150);
       applyHeal(skillUser, skillUser.defaultStatus.HP);
@@ -14294,9 +14294,11 @@ const skill = [
     MPcost: 57,
     appliedEffect: { powerWeaken: { strength: 0.5, duration: 2 } },
     selfAppliedEffect: async function (skillUser) {
-      const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
-      skillUser.buffs.tyoryuLevel.strength = newStrength;
-      updateMonsterBuffsDisplay(skillUser);
+      if (skillUser.buffs.tyoryuLevel) {
+        const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
+        skillUser.buffs.tyoryuLevel.strength = newStrength;
+        updateMonsterBuffsDisplay(skillUser);
+      }
     },
   },
   {
@@ -14626,7 +14628,7 @@ const skill = [
     element: "fire",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 50,
+    MPcost: 0,
     ignoreProtection: true,
     ignoreSubstitute: true,
     abnormalityMultiplier: function (skillUser, skillTarget) {
@@ -15665,7 +15667,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 98,
+    MPcost: 0,
   },
   {
     name: "地殻変動",
@@ -15895,7 +15897,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
-    MPcost: 50,
+    MPcost: 0,
     skipSkillSealCheck: true,
     act: async function (skillUser, skillTarget) {
       await executeRadiantWave(skillTarget, false, true); // マソも解除
@@ -19505,7 +19507,7 @@ const skill = [
     element: "io",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 45,
+    MPcost: 0,
     appliedEffect: { maso: { maxDepth: 3 } },
     masoMultiplier: {
       1: 1.5,
@@ -20171,7 +20173,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
-    MPcost: 10,
+    MPcost: 0,
     ignoreProtection: true,
     ignoreReflection: true,
     ignoreSubstitute: true,
@@ -22218,7 +22220,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
 // 引数名はnot skillUser
 async function transformTyoma(monster) {
   // 冗長性
-  if (monster.flags.isDead || monster.flags.hasTransformed) {
+  if (monster.flags.isDead || monster.flags.hasTransformed || !monster.race.includes("超魔王")) {
     return;
   }
   await sleep(200);
@@ -22460,7 +22462,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "イオ系攻撃";
   } else if (skillUser.name === "魔界の神バーン" && skillUser.buffs.vearnBarrier) {
     NormalAttackName = "絶大な力";
-  } else if (skillUser.flags.abanTransformed) {
+  } else if (skillUser.flags.abanTransformed && skillUser.name === "大勇者と超魔の武人") {
     NormalAttackName = "アバン通常攻撃息";
   }
   return NormalAttackName;
