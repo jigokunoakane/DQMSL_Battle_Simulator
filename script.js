@@ -23885,6 +23885,38 @@ function countRubisTarget(party) {
 // global: gameRuleを使用
 const gameRuleData = [
   {
+    name: "毎ターン特技シャッフル",
+    executeAfterAbilities: true, // supportやattackによる変身後に実行
+    act: function () {
+      for (const party of parties) {
+        for (const monster of party) {
+          // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
+          const unavailableSKillsForOthers = [
+            "神楽の術下位",
+            "ツイスター下位",
+            "キングストーム下位",
+            "ネクロゴンドの衝撃下位",
+            "火竜変化呪文先制",
+            "教祖のはどう",
+            "光速イオナスペル",
+            "クアトロマダンテ2発目",
+            "クアトロマダンテ3発目",
+            "クアトロマダンテ4発目",
+          ];
+          // MP0でも付与して良いもの
+          const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
+          const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
+
+          const randomSkillIndex0 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex1 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex2 = Math.floor(Math.random() * availableSkills.length);
+          const randomSkillIndex3 = Math.floor(Math.random() * availableSkills.length);
+          monster.skill = [availableSkills[randomSkillIndex0].name, availableSkills[randomSkillIndex1].name, availableSkills[randomSkillIndex2].name, availableSkills[randomSkillIndex3].name];
+        }
+      }
+    },
+  },
+  {
     name: "つねに反射封じの霧",
     turn: 1,
     act: function () {
@@ -23934,6 +23966,13 @@ const gameRuleData = [
     },
   },
   {
+    name: "いきなりマ素深度1",
+    turn: 1,
+    act: function () {
+      insertAll({ maso: { keepOnDeath: true, strength: 1 } });
+    },
+  },
+  {
     name: "いきなりちからため",
     turn: 1,
     act: function () {
@@ -23948,10 +23987,17 @@ const gameRuleData = [
     },
   },
   {
-    name: "いきなりマ素深度1",
+    name: "いきなり息をすいこむ",
     turn: 1,
     act: function () {
-      insertAll({ maso: { keepOnDeath: true, strength: 1 } });
+      insertAll({ breathCharge: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+    },
+  },
+  {
+    name: "いきなり全属性シールド800",
+    turn: 1,
+    act: function () {
+      insertAll({ elementalShield: { targetElement: "all", remain: 800, unDispellable: true } });
     },
   },
   {
@@ -23973,38 +24019,6 @@ const gameRuleData = [
     turn: 1,
     act: function () {
       insertAll({ zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility", decreaseTurnEnd: true } });
-    },
-  },
-  {
-    name: "毎ターン特技シャッフル",
-    executeAfterAbilities: true, // supportやattackによる変身後に実行
-    act: function () {
-      for (const party of parties) {
-        for (const monster of party) {
-          // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
-          const unavailableSKillsForOthers = [
-            "神楽の術下位",
-            "ツイスター下位",
-            "キングストーム下位",
-            "ネクロゴンドの衝撃下位",
-            "火竜変化呪文先制",
-            "教祖のはどう",
-            "光速イオナスペル",
-            "クアトロマダンテ2発目",
-            "クアトロマダンテ3発目",
-            "クアトロマダンテ4発目",
-          ];
-          // MP0でも付与して良いもの
-          const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
-          const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
-
-          const randomSkillIndex0 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex1 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex2 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex3 = Math.floor(Math.random() * availableSkills.length);
-          monster.skill = [availableSkills[randomSkillIndex0].name, availableSkills[randomSkillIndex1].name, availableSkills[randomSkillIndex2].name, availableSkills[randomSkillIndex3].name];
-        }
-      }
     },
   },
 ];
