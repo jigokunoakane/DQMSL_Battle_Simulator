@@ -14235,7 +14235,7 @@ const skill = [
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
-      skillUser.iconSrc = "images/icons/AbanDragonTransformed.jpeg";
+      skillUser.iconSrc = "images/icons/abanDragonTransformed.jpeg";
       updateBattleIcons(skillUser);
       await sleep(150);
       applyHeal(skillUser, skillUser.defaultStatus.HP);
@@ -14259,7 +14259,7 @@ const skill = [
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
       skillUser.skill[0] = "メラゾブレス";
       skillUser.skill[1] = "暴れまわる";
-      skillUser.iconSrc = "images/icons/AbanDragonTransformed.jpeg";
+      skillUser.iconSrc = "images/icons/abanDragonTransformed.jpeg";
       updateBattleIcons(skillUser);
       await sleep(150);
       applyHeal(skillUser, skillUser.defaultStatus.HP);
