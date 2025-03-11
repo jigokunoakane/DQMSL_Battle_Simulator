@@ -1361,21 +1361,6 @@ async function startTurn() {
     }
   }
 
-  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
-  for (const party of parties) {
-    for (const monster of party) {
-      delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
-      delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
-      // ターン開始・コマンド開始時点に使用可能だったskillを使用可能skillリストに記録
-      // 変身したターンにAIで超伝説変身後特技は使用しない 絶望の天舞は変身時ではなくsupport内での変更に
-      monster.availableSkillsOnAIthisTurn = [...monster.skill];
-      // 供物になっている場合は元skillを使用可能リストに含める 供物化が解除されればそのターンから使用可能
-      if (monster.availableSkillsOnAIthisTurn[3] === "供物をささげる") {
-        monster.availableSkillsOnAIthisTurn[3] = monster.defaultSkill[3];
-      }
-    }
-  }
-
   // ability後に発動するgameRule処理 特技シャッフルなど
   if (gameRule.length > 0) {
     for (const ruleName of gameRule) {
@@ -1386,6 +1371,21 @@ async function startTurn() {
         col(`特殊ルール ${ruleName}が発動！`);
         rule.act();
         await sleep(250);
+      }
+    }
+  }
+
+  // supportとattack実行後にnextTurnAbilitiesToExecuteをすべて削除
+  for (const party of parties) {
+    for (const monster of party) {
+      delete monster.abilities.supportAbilities.nextTurnAbilitiesToExecute;
+      delete monster.abilities.attackAbilities.nextTurnAbilitiesToExecute;
+      // ターン開始・コマンド開始時点に使用可能だったskillを使用可能skillリストに記録 (シャッフル実行後)
+      // 変身したターンにAIで超伝説変身後特技は使用しない 絶望の天舞は変身時ではなくsupport内での変更に
+      monster.availableSkillsOnAIthisTurn = [...monster.skill];
+      // 供物になっている場合は元skillを使用可能リストに含める 供物化が解除されればそのターンから使用可能
+      if (monster.availableSkillsOnAIthisTurn[3] === "供物をささげる") {
+        monster.availableSkillsOnAIthisTurn[3] = monster.defaultSkill[3];
       }
     }
   }
