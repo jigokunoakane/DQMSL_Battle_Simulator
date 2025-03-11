@@ -16033,6 +16033,9 @@ const skill = [
         }
       }
     },
+    description1: "【戦闘中1回】【先制】悪魔系の味方が　5体以上なら",
+    description2: "次のラウンドの間　味方全体をこうどうおそい状態にし",
+    description3: "攻撃・呪文ダメージを3倍にする　クエストでは使用不可",
   },
   {
     name: "無双のつるぎ",
@@ -16916,6 +16919,8 @@ const skill = [
       }
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    description2: "悪魔系の味方が　4体以上なら",
+    description3: "味方全体への　敵の行動を　かわりにうける",
   },
   {
     name: "フローズンスペル",
@@ -17229,6 +17234,8 @@ const skill = [
         return "ツイスター下位";
       }
     },
+    description2: "敵全体に　バギ系の息攻撃　命中時　状態変化解除",
+    description3: "魔獣系の味方が3体以上なら　状態変化解除が上位効果",
   },
   {
     name: "ツイスター下位",
@@ -17325,6 +17332,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 7, //防御後
     isOneTimeUse: true,
+    ignoreReflection: true,
+    ignoreSubstitute: true, // fieldなので反射みがわり無視は機能せずあくまで表記のみ
     act: async function (skillUser, skillTarget) {
       if (hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5)) {
         for (const monster of parties[skillUser.enemyTeamID]) {
@@ -17338,6 +17347,8 @@ const skill = [
         }
       }
     },
+    description2: "魔獣系の味方が　5体以上なら　1ラウンドの間　敵全体を",
+    description3: "みがわり封じ状態にする　体技無効状態を貫通する",
   },
   {
     name: "無慈悲なきりさき",
@@ -17673,6 +17684,9 @@ const skill = [
         return "キングストーム下位";
       }
     },
+    description1: "ランダムに6回　バギ系の呪文攻撃",
+    description2: "命中時　確率でバギ耐性を1ランク下げる",
+    description3: "スライム系の味方が5体以上なら　蘇生封じ状態にもする",
   },
   {
     name: "キングストーム下位",
@@ -17795,6 +17809,9 @@ const skill = [
         return 1.5; //todo: 反射時に1.5にならない
       }
     },
+    description1: "【アンカー】敵全体に　無属性の呪文攻撃",
+    description2: "賢さによって　ダメージが変化しにくい",
+    description3: "物質系の味方が5体以上なら　威力大",
   },
   {
     name: "アイアンクロー",
@@ -18026,6 +18043,9 @@ const skill = [
         applyBuff(skillUser, { damageLimit: { unDispellable: true, strength: 200, duration: 3 } });
       }
     },
+    description1: "【先制】味方全体への　敵の行動を　かわりにうける",
+    description2: "物質系の味方が　5体以上なら　1回だけ",
+    description3: "3ラウンドの間　被ダメージ上限値200状態になる",
   },
   {
     name: "アースクラッシュ",
