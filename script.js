@@ -8153,7 +8153,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       1: {
-        slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
+        slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -19833,7 +19833,7 @@ const skill = [
     MPcost: 32,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "体技よそく",
