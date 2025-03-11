@@ -1906,21 +1906,24 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         deleteSubstitute(buffTarget);
         // 現状、dispellableByAbnormality指定された予測系も解除
       }
-      //マホカンは自動でカンタに
+      // マホカンは自動でカンタに
       if (buffName === "spellReflection") {
         buffTarget.buffs.spellReflection.isKanta = true;
       }
-      //防壁魔王バリア付与時の状態異常解除
+      // 防壁魔王バリア付与時の状態異常解除
       if (buffName === "sacredBarrier" || buffName === "demonKingBarrier") {
         executeRadiantWave(buffTarget, true); //todo: async化
       }
-      //封じマインドバリア付与時の状態異常解除
+      // マインド&封じ無効付与時の状態異常解除
       if (buffName === "mindAndSealBarrier") {
         for (const type of mindAndSealBarrierTargets) {
-          delete buffTarget.buffs[type];
+          const targetBuff = buffTarget.buffs[type];
+          if (targetBuff && !targetBuff.unDispellableByRadiantWave && !targetBuff.keepOnDeath) {
+            delete buffTarget.buffs[type];
+          }
         }
       }
-      //力ため魔力覚醒付与時の侵食解除
+      // 力ため魔力覚醒付与時の侵食解除
       if (buffName === "powerCharge") {
         delete buffTarget.buffs.powerWeaken;
       }
@@ -6090,7 +6093,7 @@ const monsters = [
     defaultGear: "metalNail",
     attribute: {
       permanentBuffs: {
-        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25, noMissDisplay: true },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -6668,7 +6671,7 @@ const monsters = [
         martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
       },
       buffsFromTurn2: {
-        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true, probability: 0.2 },
+        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true, probability: 0.2, noMissDisplay: true },
       },
     },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
@@ -6926,7 +6929,7 @@ const monsters = [
     defaultGear: "swimSuit",
     attribute: {
       permanentBuffs: {
-        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25, noMissDisplay: true },
       },
       1: {
         dodgeBuff: { strength: 0.5, duration: 3 },
@@ -7520,7 +7523,7 @@ const monsters = [
         windBreak: { keepOnDeath: true, strength: 1 },
       },
       permanentBuffs: {
-        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25, noMissDisplay: true },
       },
     },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
@@ -7916,7 +7919,7 @@ const monsters = [
         baiki: { strength: 2 },
       },
       permanentBuffs: {
-        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25 },
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25, noMissDisplay: true },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -7941,7 +7944,7 @@ const monsters = [
         spellReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
       },
       permanentBuffs: {
-        confusedBreak: { divineDispellable: true, strength: 1, removeAtTurnStart: true, duration: 2, probability: 0.25 },
+        confusedBreak: { divineDispellable: true, strength: 1, removeAtTurnStart: true, duration: 2, probability: 0.25, noMissDisplay: true },
       },
       evenTurnBuffs: {
         spellBarrier: { strength: 1, targetType: "ally" },
@@ -8133,7 +8136,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       permanentBuffs: {
-        mindBarrier: { duration: 3, probability: 0.25 },
+        mindBarrier: { duration: 3, probability: 0.25, noMissDisplay: true },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -8474,7 +8477,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       permanentBuffs: {
-        anchorAction: { probability: 0.2 },
+        anchorAction: { probability: 0.2, noMissDisplay: true },
       },
     },
     seed: { atk: 40, def: 10, spd: 0, int: 70 },
@@ -8659,8 +8662,8 @@ const monsters = [
       evenTurnBuffs: {
         baiki: { strength: 2 },
         intUp: { strength: 2 },
-        defUp: { strength: -1, probability: 0.8 },
-        spellBarrier: { strength: -1, probability: 0.8 },
+        defUp: { strength: -1, probability: 0.8, noMissDisplay: true },
+        spellBarrier: { strength: -1, probability: 0.8, noMissDisplay: true },
       },
     },
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
@@ -23892,35 +23895,35 @@ const gameRuleData = [
     name: "黒い霧(マホトーン)",
     turn: 1,
     act: function () {
-      insertAll({ spellSeal: { keepOnDeath: true } });
+      insertAll({ spellSeal: { keepOnDeath: true, unDispellableByRadiantWave: true } });
     },
   },
   {
     name: "白い霧(体技封じ)",
     turn: 1,
     act: function () {
-      insertAll({ martialSeal: { keepOnDeath: true } });
+      insertAll({ martialSeal: { keepOnDeath: true, unDispellableByRadiantWave: true } });
     },
   },
   {
     name: "赤い霧(斬撃封じ)",
     turn: 1,
     act: function () {
-      insertAll({ slashSeal: { keepOnDeath: true } });
+      insertAll({ slashSeal: { keepOnDeath: true, unDispellableByRadiantWave: true } });
     },
   },
   {
     name: "息封じの霧",
     turn: 1,
     act: function () {
-      insertAll({ breathSeal: { keepOnDeath: true } });
+      insertAll({ breathSeal: { keepOnDeath: true, unDispellableByRadiantWave: true } });
     },
   },
   {
     name: "踊り封じの霧",
     turn: 1,
     act: function () {
-      insertAll({ danceSeal: { keepOnDeath: true } });
+      insertAll({ danceSeal: { keepOnDeath: true, unDispellableByRadiantWave: true } });
     },
   },
   {
