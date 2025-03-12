@@ -115,7 +115,7 @@ function decideParty() {
     //displayで全体切り替え、battle画面へ
     document.getElementById("pageHeader").style.display = "none";
     document.getElementById("adjustPartyPage").style.display = "none";
-    document.getElementById("battlePage").style.display = "block";
+    document.getElementById("battlePage").style.display = "flex";
     // skip状態を解除し、skip解除表示を戻す
     setSkipMode(false);
     preloadImages(); // system系とskillType画像 段階的読み込み

@@ -161,7 +161,7 @@ select {
   opacity: 0;
   transition: opacity 0.2s linear; /*ここでウィンドウ出現時のラグを指定*/
   overflow: auto; /* コンテンツがウィンドウからはみ出した場合にスクロールバーを表示 */
-  max-height: 80vh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
+  max-height: 85dvh; /* ウィンドウの高さの最大80%までスクロールできるように設定 */
   font-size: 0.9rem;
 }
 
@@ -445,17 +445,42 @@ select {
 /* 戦闘画面 icon以外 */
 #battlePage {
   width: 100%;
-  display: none;
+  display: none; /* 表示時はflexで */
+  flex-direction: column; /* 縦方向に並べる */
+  justify-content: left; /* 上詰めでくっつける 多分不要 */
+  height: 100dvh;
+  max-height: 1000px;
+}
+
+#battlePageAbove,
+#battlePageBelow {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: left; /* 上詰めでくっつける 多分不要 */
 }
 
 #battlePageAbove {
-  width: 100%;
   background-color: #dfcb80;
+  flex-grow: 1; /* battlePageの足りない余白を子要素aboveを伸ばして埋める */
 }
 #battlePageBelow {
-  width: 100%;
   background-color: black;
+  flex-grow: 0.7; /* battlePageの足りない余白を子要素belowを伸ばして埋める */
   padding-bottom: 5px;
+}
+
+/* 一部子要素にも余白を肩代わりさせる */
+#upperContainer {
+  flex-grow: 0.4;
+}
+#allyBattleIconsContainer,
+#allyBars,
+#commandBtnContainer {
+  flex-grow: 0.1;
+}
+#allyBattleIconsContainer {
+  flex-grow: 0.15;
 }
 
 #enemyBattleIconsContainer {
