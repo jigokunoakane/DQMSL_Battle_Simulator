@@ -3833,7 +3833,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // みかわし・マヌーサ処理
-  if (["atk", "def", "spd"].includes(executingSkill.howToCalculate) || (executingSkill.howToCalculate === "fix" && (executingSkill.type === "dance" || executingSkill.type === "slash"))) {
+  if (isAvertableSkill(executingSkill)) {
     const isMissed = checkEvasionAndDazzle(assignedSkillUser, executingSkill, skillTarget);
     if (isMissed === "miss") {
       applyDamage(skillTarget, 0);
@@ -3932,6 +3932,22 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit, isReflection, skillUser);
+
+  // 殴りによる眠り・混乱解除処理
+  if (isAvertableSkill(executingSkill)) {
+    if (skillTarget.buffs.asleep && Math.random() < 0.6 && (!executingSkill.appliedEffect || typeof executingSkill.appliedEffect === "string" || !executingSkill.appliedEffect.asleep)) {
+      delete skillTarget.buffs.asleep;
+      updateMonsterBuffsDisplay(skillTarget);
+      displayMessage(`${skillTarget.name}は`, `目をさました！`);
+      col(`${skillTarget.name}は殴られて目をさました！`);
+    }
+    if (skillTarget.buffs.confused && Math.random() < 0.6 && (!executingSkill.appliedEffect || typeof executingSkill.appliedEffect === "string" || !executingSkill.appliedEffect.confused)) {
+      delete skillTarget.buffs.confused;
+      updateMonsterBuffsDisplay(skillTarget);
+      displayMessage(`${skillTarget.name}の`, `こんらんがとけた！`);
+      col(`${skillTarget.name}は殴られてこんらんがとけた！`);
+    }
+  }
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
@@ -4779,12 +4795,16 @@ function calculateDamage(
   return { damage, isCriticalHit };
 }
 
+// みかわし処理対象か判定 賢さ物理以外のratio持ちは全て対象になっている それ以外に固定斬撃全て みかわし可能踊りも対象
+function isAvertableSkill(executingSkill) {
+  return (
+    ["atk", "def", "spd"].includes(executingSkill.howToCalculate) ||
+    ["キャンセルステップ", "ステテコダンス", "スイートステップ", "魅惑のワルツ"].includes(executingSkill.name) ||
+    (executingSkill.howToCalculate === "fix" && executingSkill.type === "slash")
+  );
+}
+
 function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
-  // 固定斬撃・踊りもみかわし処理を実行 skill.filter((skill) => skill.howToCalculate ==="fix" && skill.type ==="dance") or slash
-  // 固定踊りは基本的にhit扱い 例外のみマヌーサとみかわし処理を実行
-  if (!["キャンセルステップ", "ステテコダンス"].includes(executingSkill.name) && executingSkill.howToCalculate === "fix" && executingSkill.type === "dance") {
-    return "hit";
-  }
   // マヌーサ処理
   if (skillUser.buffs.dazzle && !executingSkill.ignoreDazzle) {
     if (Math.random() < 0.36) {
