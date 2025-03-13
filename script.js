@@ -1691,6 +1691,20 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       if (buffName === "sealed" && hasOtherAbnormality) {
         continue;
       }
+      // 眠り・マヒ・混乱の競合処理
+      if (buffName === "asleep") {
+        if (buffsToCheck.paralyzed || buffsToCheck.confused) {
+          continue;
+        }
+      } else if (buffName === "paralyzed") {
+        if (buffsToCheck.asleep || buffsToCheck.confused) {
+          continue;
+        }
+      } else if (buffName === "confused") {
+        if (buffsToCheck.asleep || buffsToCheck.paralyzed) {
+          continue;
+        }
+      }
       //耐性を参照して確率判定
       let abnormalityResistance = 1;
       //氷の王国・フロスペ・氷縛等属性処理
