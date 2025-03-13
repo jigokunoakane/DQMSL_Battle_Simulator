@@ -23434,7 +23434,7 @@ function createSDproperties(skillInfo) {
   if (skillInfo.ignoreGuard) {
     ignoreProperties.push("ぼうぎょ無視");
   }
-  if (skillInfo.appliedEffect && skillInfo.appliedEffect.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
+  if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string" && skillInfo.appliedEffect.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
     const maxDepth = skillInfo.appliedEffect.maso.maxDepth;
     ignoreProperties.push(`深度${maxDepth}まで`);
   }
