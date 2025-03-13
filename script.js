@@ -21261,7 +21261,7 @@ function getSkillTypeIcons(skillInfo) {
     type = "support";
   } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act && skillInfo.howToCalculate !== "MP") {
     type = "attack";
-  } else if (skillInfo.appliedEffect && skillInfo.appliedEffect !== "disruptiveWave" && skillInfo.appliedEffect !== "divineWave") {
+  } else if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string" && !skillInfo.appliedEffect.statusLock) {
     type = "abnormality";
   } else {
     type = "special";
