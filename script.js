@@ -4812,8 +4812,8 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
       return "miss";
     }
   }
-  // みかわし処理
-  if (!executingSkill.ignoreEvasion && !skillTarget.buffs.fear && !skillTarget.buffs.sealed && !skillTarget.buffs.tempted) {
+  // みかわし処理 混乱は不明だが眠りマヒは確実にみかわし0 ref: 天使の理
+  if (!executingSkill.ignoreEvasion && !skillTarget.buffs.fear && !skillTarget.buffs.sealed && !skillTarget.buffs.tempted && !hasAbnormalityOfAINormalAttack(skillTarget)) {
     // みかわしバフ
     if (skillTarget.buffs.dodgeBuff) {
       if (Math.random() < skillTarget.buffs.dodgeBuff.strength) {
