@@ -13901,6 +13901,7 @@ const skill = [
       }
       await sleep(400);
     },
+    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
   },
   {
     name: "精霊の愛",
@@ -13930,6 +13931,9 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { sealed: {} });
     },
+    description1: "【戦闘中1回】味方全体を",
+    description1: "復活させ　HPを全回復し　素早さを1段階上げる",
+    description1: "自分は　封印状態になる",
   },
   {
     name: "閃光裂衝拳",
@@ -14244,6 +14248,9 @@ const skill = [
       applyHeal(skillUser, skillUser.defaultStatus.HP);
       await sleep(250);
     },
+    description1: "MPを全て消費して",
+    description2: "自分の　状態異常解除　HPを回復して",
+    description3: "火竜の姿に変身する　その後　AI行動を行う",
   },
   {
     name: "火竜変化呪文",
@@ -14268,6 +14275,9 @@ const skill = [
       applyHeal(skillUser, skillUser.defaultStatus.HP);
       await sleep(250);
     },
+    description1: "MPを全て消費して",
+    description2: "自分の　状態異常解除　HPを回復して",
+    description3: "火竜の姿に変身する　その後　AI行動を行う",
   },
   {
     name: "メラゾブレス",
@@ -14632,6 +14642,8 @@ const skill = [
         return 2;
       }
     },
+    description2: "敵全体に　メラ系の呪文攻撃",
+    description3: "鬼眼レベルが1以上の敵に　威力2倍",
   },
   {
     name: "真・カイザーフェニックス反撃用みがわり無視",
@@ -15144,6 +15156,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       await reviveMonster(skillTarget);
     },
+    description1: "味方1体を　最大HPで復活させる",
   },
   {
     name: "ザオラル",
@@ -15160,6 +15173,7 @@ const skill = [
         displayMiss(skillTarget);
       }
     },
+    description1: "味方1体を　確率で最大HPの50%で復活させる",
   },
   {
     name: "零時の儀式",
@@ -17267,6 +17281,9 @@ const skill = [
     RaceBaneValue: 4,
     ignoreProtection: true,
     appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    description1: "【軽減無視】敵1体に3回　バギ系の息攻撃　命中時",
+    description2: "蘇生・執念封じ状態にする　魔獣系の味方が多いほど威力大",
+    description3: "最大6倍　さらに　???・超魔王系の的に　威力4倍",
   },
   {
     name: "天翔の舞い",
@@ -17592,6 +17609,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 30,
+    description1: "敵1体に　防御力依存で　無属性の斬撃攻撃",
+    description2: "スライム系の味方が多いほど威力大　最大6倍",
   },
   {
     name: "アイアンゲイザー",
@@ -17956,6 +17975,8 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+    description1: "ランダムに4回　攻撃力依存で　無属性の体技攻撃",
+    description2: "命中時　くじけぬ心を解除し　確率で防御力を1段階下げる",
   },
   {
     name: "ろうじょうのかまえ",
@@ -18600,6 +18621,9 @@ const skill = [
         return 2;
       }
     },
+    description1: "ランダムに5回　メラ系の息攻撃　命中時　確率で猛毒状態",
+    description2: "ゾンビ系の味方が多いほど威力大　最大6倍",
+    description3: "さらに　毒状態の敵に　威力2倍",
   },
   {
     name: "腐乱の波動",
@@ -18795,6 +18819,7 @@ const skill = [
       }
       await sleep(400);
     },
+    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
   },
   {
     name: "鮮烈な稲妻",
