@@ -3745,7 +3745,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     const zakiResistance = calculateResistance(assignedSkillUser, "zaki", assignedSkillTarget);
     let zakiTarget = assignedSkillTarget;
     let isZakiReflection = false;
-    //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
+    // 反射判定 反射時は耐性も変更
     if (isSkillReflected(executingSkill, skillTarget)) {
       zakiTarget = assignedSkillUser;
       isZakiReflection = true;
@@ -3781,8 +3781,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       applyDamage(skillTarget, 0);
       return;
     }
-    // 反射持ちかつ反射無視でない、かつ敵対象で、かつ波動系ではないならば反射化
-    if (isSkillReflected(executingSkill, skillTarget) && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
+    // 反射判定 反射時は耐性も変更
+    if (isSkillReflected(executingSkill, skillTarget)) {
       isReflection = true;
       //反射演出
       addMirrorEffect(skillTarget.iconElementId);
@@ -3859,7 +3859,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       applyDamage(skillTarget, 0);
       return;
     }
-    //反射持ちかつ反射無視でない かつ敵対象ならば反射化し、耐性も変更
+    // 反射判定 反射時は耐性も変更
     if (isSkillReflected(executingSkill, skillTarget)) {
       isReflection = true;
       resistance = 1;
@@ -21285,10 +21285,31 @@ function isDamageExistingSkill(skillInfo) {
     const nextSkillInfo = findSkillByName(nextSkill);
     if (!nextSkillInfo) break; // スキルが見つからない場合はループを終了
 
-    if (nextSkillInfo.howToCalculate !== "none") return true;
-    nextSkill = nextSkillInfo.followingSkill;
+    if (nextSkillInfo.howToCalculate !== "none") {
+      return true;
+    } else {
+      nextSkill = nextSkillInfo.followingSkill;
+    }
   }
 
+  return false;
+}
+
+// 連鎖的に判定 反射表示するかどうかに利用
+function isSomeFollowingSkillReflected(skillInfo, skillTarget) {
+  if (isSkillReflected(skillInfo, skillTarget)) return true;
+
+  let nextSkill = skillInfo.followingSkill;
+  while (nextSkill) {
+    const nextSkillInfo = findSkillByName(nextSkill);
+    if (!nextSkillInfo) break; // スキルが見つからない場合はループを終了
+
+    if (isSkillReflected(nextSkillInfo, skillTarget)) {
+      return true;
+    } else {
+      nextSkill = nextSkillInfo.followingSkill;
+    }
+  }
   return false;
 }
 
@@ -22846,12 +22867,13 @@ function getRandomLivingPartyMember(skillUser) {
   return livingMembers[randomIndex];
 }
 
-//反射持ちかつ反射無視でない かつ敵対象ならば反射化
+// followingを遡らず単一の特技について判定 反射条件: 反射持ちかつ、波動系含む反射無視ではないならば
 function isSkillReflected(executingSkill, skillTarget) {
   return (
     !skillTarget.buffs.disableReflection &&
     executingSkill.targetTeam === "enemy" &&
     !executingSkill.ignoreReflection &&
+    !isWaveSkill(executingSkill) &&
     (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
   );
 }
@@ -22888,9 +22910,6 @@ function isSkillUnavailableForAI(skillName) {
     "第三の瞳",
     "ギガ・マホトラ",
     "ギガ・マホヘル",
-    "ザオリーマ",
-    "王女の愛",
-    "精霊の愛",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
@@ -23022,7 +23041,7 @@ function clearResistanceDisplay(targetWrapper) {
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
   // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替えて、適切な属性や反射表示を行う
-  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン", "クロスレジェンド"];
+  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン", "クロスレジェンド", "真・闘気拳"];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
@@ -23046,7 +23065,7 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
     let textColor;
     let iconType = null;
 
-    if (resistanceValue !== -1 && isSkillReflected(skillInfo, target)) {
+    if (resistanceValue !== -1 && isSomeFollowingSkillReflected(skillInfo, target)) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
