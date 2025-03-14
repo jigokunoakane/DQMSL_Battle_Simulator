@@ -492,18 +492,19 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
       (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser))
     ) {
       selectSkillBtn.disabled = true;
-      selectSkillBtn.style.opacity = "0.4";
+      selectSkillBtn.style.filter = "brightness(48%)";
+      selectSkillBtn.style.backgroundColor = "#06718b";
     } else {
       selectSkillBtn.disabled = false;
-      selectSkillBtn.style.opacity = "";
+      selectSkillBtn.style.filter = "brightness(100%)";
+      selectSkillBtn.style.backgroundColor = `${getSkillTypeIcons(skillInfo, true)}`;
     }
   }
   document.getElementById("selectSkillBtnContainer").style.visibility = "visible";
   document.getElementById("commandPopupWindowText").textContent = skillUser.name;
   document.getElementById("commandPopupWindowText").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
-  //monster名表示に戻す
-  //todo:inline?block?
+  // monster名表示に戻す
   displayMessage("とくぎをえらんでください。");
 });
 
@@ -21311,7 +21312,7 @@ function displayskillMessage(skillInfo, line1Text = "", line2Text = "", line3Tex
   messageLine1.prepend(img);
 }
 
-function getSkillTypeIcons(skillInfo) {
+function getSkillTypeIcons(skillInfo, returnColor = false) {
   const skillName = skillInfo.name;
   let type;
   if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
@@ -21329,11 +21330,21 @@ function getSkillTypeIcons(skillInfo) {
   if (["ダークミナデイン"].includes(skillName)) {
     type = "abnormality";
   }
-  if (["しのルーレット"].includes(skillName)) {
+  if (["エレメントエラー", "かくせいリバース", "しのルーレット", "アストロンゼロ"].includes(skillName)) {
     type = "special";
   }
-  const src = `images/skillTypeIcons/${skillInfo.type}_${type}.png`;
-  return src;
+  if (returnColor) {
+    return {
+      abnormality: "#047a97",
+      attack: "#c32a2b",
+      special: "#782e99",
+      support: "#9f8a03",
+      heal: "#028109",
+    }[type];
+  } else {
+    const src = `images/skillTypeIcons/${skillInfo.type}_${type}.png`;
+    return src;
+  }
 }
 
 function isDamageExistingSkill(skillInfo) {
