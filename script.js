@@ -476,15 +476,23 @@ document.getElementById("commandAIBtn").addEventListener("click", function () {
 document.getElementById("commandSelectSkillBtn").addEventListener("click", function () {
   document.getElementById("startBattleWithPresetCommandBtn").style.display = "none";
   disableCommandBtn(true);
-  //party内該当monsterのskillのn番目要素をそのまま表示
   const skillUser = parties[currentTeamIndex][currentMonsterIndex];
+
   for (let i = 0; i < 4; i++) {
     const selectSkillBtn = document.getElementById(`selectSkillBtn${i}`);
     const skillName = skillUser.skill[i];
     const skillInfo = findSkillByName(skillName);
     const MPcost = calculateMPcost(skillUser, skillInfo);
+
+    // button内のdiv要素とspan要素を取得
+    const mpDiv = selectSkillBtn.querySelector(".skill-mp");
+    const mpCostSpan = mpDiv.querySelector(".mp-cost"); // span要素を取得
+    const nameDiv = selectSkillBtn.querySelector(".skill-name");
+
     // 表示更新
-    selectSkillBtn.textContent = skillInfo.displayName || skillName;
+    nameDiv.textContent = skillInfo.displayName || skillName;
+    mpCostSpan.textContent = MPcost; // span要素の中身を更新
+
     if (
       skillUser.flags.unavailableSkills.includes(skillName) ||
       isSkillSealed(skillUser, skillInfo) ||
@@ -500,11 +508,11 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
       selectSkillBtn.style.backgroundColor = `${getSkillTypeIcons(skillInfo, true)}`;
     }
   }
+
   document.getElementById("selectSkillBtnContainer").style.visibility = "visible";
   document.getElementById("commandPopupWindowText").textContent = skillUser.name;
   document.getElementById("commandPopupWindowText").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
-  // monster名表示に戻す
   displayMessage("とくぎをえらんでください。");
 });
 
@@ -3959,8 +3967,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (skillTarget.buffs.confused && Math.random() < 0.6 && (!executingSkill.appliedEffect || typeof executingSkill.appliedEffect === "string" || !executingSkill.appliedEffect.confused)) {
       delete skillTarget.buffs.confused;
       updateMonsterBuffsDisplay(skillTarget);
-      displayMessage(`${skillTarget.name}の`, `こんらんがとけた！`);
-      col(`${skillTarget.name}は殴られてこんらんがとけた！`);
+      displayMessage(`${skillTarget.name}は`, `われにかえった！`);
+      col(`${skillTarget.name}はわれにかえった！`);
     }
   }
 

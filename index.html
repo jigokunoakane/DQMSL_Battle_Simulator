@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="none" />
     <title>GPシミュレーター</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -822,10 +823,22 @@
               <div id="commandPopupWindowContents">
                 <div id="commandPopupWindowText"></div>
                 <div id="selectSkillBtnContainer">
-                  <button id="selectSkillBtn0" class="normalButton selectSkillBtn" onclick="selectCommand(0)">特技1</button>
-                  <button id="selectSkillBtn1" class="normalButton selectSkillBtn" onclick="selectCommand(1)">特技2</button>
-                  <button id="selectSkillBtn2" class="normalButton selectSkillBtn" onclick="selectCommand(2)">特技3</button>
-                  <button id="selectSkillBtn3" class="normalButton selectSkillBtn" onclick="selectCommand(3)">特技4</button>
+                  <button id="selectSkillBtn0" class="normalButton selectSkillBtn" onclick="selectCommand(0)">
+                    <div class="skill-mp">MP: <span class="mp-cost"></span></div>
+                    <div class="skill-name">特技1</div>
+                  </button>
+                  <button id="selectSkillBtn1" class="normalButton selectSkillBtn" onclick="selectCommand(1)">
+                    <div class="skill-mp">MP: <span class="mp-cost"></span></div>
+                    <div class="skill-name">特技2</div>
+                  </button>
+                  <button id="selectSkillBtn2" class="normalButton selectSkillBtn" onclick="selectCommand(2)">
+                    <div class="skill-mp">MP: <span class="mp-cost"></span></div>
+                    <div class="skill-name">特技3</div>
+                  </button>
+                  <button id="selectSkillBtn3" class="normalButton selectSkillBtn" onclick="selectCommand(3)">
+                    <div class="skill-mp">MP: <span class="mp-cost"></span></div>
+                    <div class="skill-name">特技4</div>
+                  </button>
                 </div>
                 <div id="selectSkillTargetAll">
                   <div id="selectSkillTargetAllText"></div>
