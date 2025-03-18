@@ -8851,10 +8851,10 @@ const monsters = [
         fireBreak: { keepOnDeath: true, strength: 1 },
         mindBarrier: { duration: 3 },
         asleep: { duration: 999 },
-        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
+        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true, iconSrc: "elementalShieldAll" },
       },
       permanentBuffs: {
-        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true },
+        elementalShield: { targetElement: "all", remain: 3000, unDispellable: true, iconSrc: "elementalShieldAll" },
       },
     },
     seed: { atk: 55, def: 0, spd: 65, int: 0 },
@@ -24094,7 +24094,7 @@ const gameRuleData = [
     name: "いきなり全属性シールド800",
     turn: 1,
     act: function () {
-      insertAll({ elementalShield: { targetElement: "all", remain: 800, unDispellable: true } });
+      insertAll({ elementalShield: { targetElement: "all", remain: 800, unDispellable: true, iconSrc: "elementalShieldAll" } });
     },
   },
   {
