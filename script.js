@@ -17503,12 +17503,15 @@ const skill = [
     name: "抜刀魔獣刃",
     type: "slash",
     howToCalculate: "atk",
-    ratio: 1.3,
+    ratio: 0.26, //1.3
+    damageMultiplierBySameRace: true,
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 45,
+    description1: "ランダムに5回　攻撃力依存で　無属性の斬撃攻撃",
+    description2: "魔獣系の味方が多いほど威力大　最大6倍",
   },
   {
     name: "閃く短刀",
