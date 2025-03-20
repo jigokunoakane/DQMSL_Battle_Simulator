@@ -9278,7 +9278,7 @@ function getMonsterAbilities(monsterId) {
           delete monster.buffs.fireBreak;
           delete monster.buffs.thunderSuperBreak;
           applyBuff(monster, { thunderUltraBreak: { keepOnDeath: true } });
-          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.7, duration: 3 } });
+          applyBuff(monster, { protection: { divineDispellable: true, strength: 0.7, duration: 3, iconSrc: "protectiondivineDispellablestr0.7" } });
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
         }
       },
