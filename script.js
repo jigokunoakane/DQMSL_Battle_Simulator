@@ -1734,13 +1734,13 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           abnormalityResistance = calculateResistance(skillUser, buffName, buffTarget);
         }
       }
-      // 種族数依存
+      // 種族数依存 対象系統が使用者含め0体の場合は付与確率0%となる
       let sameRaceCount = 1;
       if (buffData.probabilityMultiplierBySameRace) {
         if (isReflection) {
-          sameRaceCount = buffTarget ? countSameRaceMonsters(buffTarget) : 1;
+          sameRaceCount = countSameRaceMonsters(buffTarget, buffData.probabilityMultiplierBySameRace);
         } else {
-          sameRaceCount = skillUser ? countSameRaceMonsters(skillUser) : 1;
+          sameRaceCount = skillUser ? countSameRaceMonsters(skillUser, buffData.probabilityMultiplierBySameRace) : 1;
         }
       }
       // 耐性と確率処理で失敗したら次へ
@@ -4199,10 +4199,10 @@ function calculateDamage(
     damage *= 1.2;
   }
 
-  // 種族数依存処理 これは反射時も元のskillUserを参照
+  // 種族数依存処理 反射時も元のskillUserを参照 対象系統が使用者含め0体の場合はダメージ1倍(本来はミスか？)
   if (executingSkill.damageMultiplierBySameRace) {
-    const sameRaceCount = countSameRaceMonsters(assignedSkillUser);
-    damage *= sameRaceCount;
+    const sameRaceCount = countSameRaceMonsters(assignedSkillUser, executingSkill.damageMultiplierBySameRace);
+    damage *= sameRaceCount || 1;
   }
 
   let masoDamageMultiplier = 1;
@@ -10042,7 +10042,7 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           name: "聖騎士のよろい",
-          unavailableIf: (skillUser) => countSameRaceMonsters(skillUser) !== 1,
+          unavailableIf: (skillUser) => hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 2),
           act: async function (skillUser) {
             applyBuff(skillUser, { defUp: { strength: 1 } });
           },
@@ -11834,7 +11834,7 @@ const skill = [
     ratio: 1,
     MPdamageRatio: 1.5,
     damage: 142,
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "ゾンビ",
     minInt: 500,
     minIntDamage: 222,
     maxInt: 1000,
@@ -12228,7 +12228,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 84, //420
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "ドラゴン",
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -17318,7 +17318,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 29, //144
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "魔獣",
     element: "wind",
     targetType: "single",
     targetTeam: "enemy",
@@ -17376,7 +17376,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
-    appliedEffect: { tempted: { probabilityMultiplierBySameRace: true, probability: 0.157 } }, //0.785
+    appliedEffect: { tempted: { probabilityMultiplierBySameRace: "魔獣", probability: 0.157 } }, //0.785
   },
   {
     name: "イブールの誘い",
@@ -17386,7 +17386,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
-    appliedEffect: { tempted: { probabilityMultiplierBySameRace: true, probability: 0.157 } }, //0.785
+    appliedEffect: { tempted: { probabilityMultiplierBySameRace: "悪魔", probability: 0.157 } }, //0.785
   },
   {
     name: "ビーストアイ",
@@ -17508,7 +17508,7 @@ const skill = [
     type: "slash",
     howToCalculate: "atk",
     ratio: 0.26, //1.3
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "魔獣",
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
@@ -17654,7 +17654,7 @@ const skill = [
     type: "slash",
     howToCalculate: "def",
     ratio: 0.36, //1.8
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "スライム",
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
@@ -18659,7 +18659,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 40, //200
-    damageMultiplierBySameRace: true,
+    damageMultiplierBySameRace: "ゾンビ",
     element: "fire",
     targetType: "random",
     targetTeam: "enemy",
@@ -18694,7 +18694,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: { asleep: { probabilityMultiplierBySameRace: true, probability: 0.081 }, confused: { probabilityMultiplierBySameRace: true, probability: 0.0856 } },
+    appliedEffect: { asleep: { probabilityMultiplierBySameRace: "ゾンビ", probability: 0.081 }, confused: { probabilityMultiplierBySameRace: "ゾンビ", probability: 0.0856 } },
     //0.405, 0.428
   },
   {
@@ -22633,11 +22633,12 @@ function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
   return count >= requiredCount;
 }
 
-// モンスター数を返す
-function countSameRaceMonsters(monster) {
+// 自分を含め味方内の対象系統数をカウント
+function countSameRaceMonsters(skillUser, targetRaceArg = null) {
+  const targetRace = targetRaceArg || skillUser.race[0];
   let count = 0;
-  for (const teamMonster of parties[monster.teamID]) {
-    if (teamMonster && teamMonster.race.some((targetRace) => monster.race.includes(targetRace))) {
+  for (const monster of parties[skillUser.teamID]) {
+    if (monster && monster.race.includes(targetRace)) {
       count++;
     }
   }
