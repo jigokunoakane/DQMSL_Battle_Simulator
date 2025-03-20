@@ -4739,8 +4739,12 @@ function calculateDamage(
   if (skillTarget.buffs.allElementalBarrier && AllElements.includes(executingSkill.element)) {
     damageModifier -= skillTarget.buffs.allElementalBarrier.strength;
   }
+  // 無属性軽減
+  if (skillTarget.buffs.nonElementalReduction && executingSkill.element === "none") {
+    damageModifier -= skillTarget.buffs.nonElementalReduction.strength;
+  }
 
-  //全ダメージ軽減
+  // 全ダメージ軽減
   if (skillTarget.buffs.sinriReduction) {
     damageModifier -= 0.3;
   }
@@ -24105,6 +24109,13 @@ const gameRuleData = [
     turn: 1,
     act: function () {
       insertAll({ nonElementalResistance: { duration: 1, removeAtTurnStart: true, decreaseTurnEnd: true } });
+    },
+  },
+  {
+    name: "いきなり3ターン無属性50%軽減",
+    turn: 1,
+    act: function () {
+      insertAll({ nonElementalReduction: { unDispellable: true, strength: 0.5, duration: 3, removeAtTurnStart: true, decreaseTurnEnd: true } });
     },
   },
   {
