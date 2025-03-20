@@ -2564,8 +2564,8 @@ async function processMonsterAction(skillUser) {
     skillUser.currentStatus.MP -= MPused;
     updateMonsterBar(skillUser);
   } else {
-    console.log("しかし、MPが足りなかった！");
-    displayMessage("しかし、MPが足りなかった！");
+    console.log("MPが足りない！");
+    displayMessage("MPが足りない！");
     // MP不足の場合は7. 行動後処理にスキップ
     await postActionProcess(skillUser, null, null, damagedMonsters);
     return;
@@ -5998,8 +5998,8 @@ function disableSeedSelect(boolean) {
 
 document.getElementById("randomParty").addEventListener("click", function () {
   function getRandomUniqueMonsterIds(count) {
-    const excludeIds = ["bossmaen"];
-    const filteredMonsters = monsters.filter((monster) => !excludeIds.includes(monster.id));
+    const excludeNames = ["やきとり", "新生イブール", "強新生アウルート"];
+    const filteredMonsters = monsters.filter((monster) => !excludeNames.includes(monster.name));
     const randomIds = [];
     while (randomIds.length < count) {
       const randomIndex = Math.floor(Math.random() * filteredMonsters.length);
@@ -14652,6 +14652,9 @@ const skill = [
     ignoreTypeEvasion: true,
     damageByLevel: true,
     appliedEffect: { healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true }, kiganLevel: { keepOnDeath: true, strength: 1 } },
+    description1: "【みかわし不可】【マヌーサ無効】【反射無視】敵全体に",
+    description2: "レベル依存で無属性の体技攻撃　命中時解除不可の回復封じ",
+    description3: "状態にし　鬼眼レベルを1上げる　体技無効状態を貫通する",
   },
   {
     name: "イオラの嵐",
@@ -14730,6 +14733,9 @@ const skill = [
       deleteUnbreakable(skillTarget);
     },
     followingSkill: "真・カラミティエンド後半",
+    description1: "【みかわし不可】【マヌーサ無効】【みがわり無視】",
+    description2: "【反射無視】敵1体の　鬼眼レベルを2上げ　くじけぬ心解除",
+    description3: "その後　無属性の斬撃攻撃　回復封じ状態の敵に　威力2倍",
   },
   {
     name: "真・カラミティエンド後半",
@@ -14808,6 +14814,9 @@ const skill = [
     act: function (skillUser, skillTarget) {
       deleteUnbreakable(skillTarget);
     },
+    description1: "【戦闘中1回】【アンカー】【みかわし不可】",
+    description2: "【マヌーサ無効】【反射無視】敵全体に　無属性の体技攻撃",
+    description3: "命中時　くじけぬ心解除　最後の行動なら　威力2倍",
   },
   {
     name: "第三の瞳",
@@ -17377,6 +17386,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 55,
     appliedEffect: { tempted: { probabilityMultiplierBySameRace: "魔獣", probability: 0.157 } }, //0.785
+    description1: "敵全体を　確率でみりょう状態にする",
+    description2: "魔獣系の味方が多いほど　成功率上昇　最大6倍",
   },
   {
     name: "イブールの誘い",
@@ -17387,6 +17398,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 55,
     appliedEffect: { tempted: { probabilityMultiplierBySameRace: "悪魔", probability: 0.157 } }, //0.785
+    description1: "敵全体を　確率でみりょう状態にする",
+    description2: "悪魔系の味方が多いほど　成功率上昇　最大6倍",
   },
   {
     name: "ビーストアイ",
@@ -18685,6 +18698,9 @@ const skill = [
     MPcost: 68,
     zakiProbability: 0.3683,
     followingSkill: "腐乱の波動後半",
+    description1: "敵全体を　確率で即死させる",
+    description2: "その後　敵全体を　確率でねむり・混乱状態にする",
+    description3: "後半は　ゾンビ系の味方が多いほど　成功率上昇　最大6倍",
   },
   {
     name: "腐乱の波動後半",
