@@ -9581,7 +9581,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "若さと力との融合",
           disableMessage: true,
-          unavailableIf: (skillUser) => !(!skillUser.flags.hasTransformed && (skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5 || fieldState.turnNum > 2)),
+          unavailableIf: (skillUser) => !(!skillUser.flags.hasTransformed && !skillUser.buffs.stoned && (skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5 || fieldState.turnNum > 2)),
           act: async function (skillUser) {
             await transformTyoma(skillUser);
           },
@@ -9589,7 +9589,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "鬼眼の解放",
           disableMessage: true,
-          unavailableIf: (skillUser) => !(skillUser.flags.hasTransformed && !skillUser.buffs.vearnBarrier && skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5),
+          unavailableIf: (skillUser) => !(skillUser.flags.hasTransformed && !skillUser.buffs.stoned && !skillUser.buffs.vearnBarrier && skillUser.currentStatus.HP / skillUser.defaultStatus.HP <= 0.5),
           act: async function (monster) {
             // 2回目変身
             await sleep(200);
