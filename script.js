@@ -6210,6 +6210,7 @@ const monsters = [
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
     anotherSkills: ["かえんりゅう", "ハッピーブレス"],
     defaultGear: "flute",
+    defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75 },
@@ -13979,8 +13980,8 @@ const skill = [
       applyBuff(skillUser, { sealed: {} });
     },
     description1: "【戦闘中1回】味方全体を",
-    description1: "復活させ　HPを全回復し　素早さを1段階上げる",
-    description1: "自分は　封印状態になる",
+    description2: "復活させ　HPを全回復し　素早さを1段階上げる",
+    description3: "自分は　封印状態になる",
   },
   {
     name: "閃光裂衝拳",
@@ -17906,7 +17907,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 33,
-    ignoreGuard: true,
+    ignoreSubstitute: true,
     appliedEffect: { fear: {} },
   },
   {
