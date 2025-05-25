@@ -6426,7 +6426,7 @@ const monsters = [
     weight: 25,
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
-    anotherSkills: ["真・氷魔の力", "アイスエイジ", "地獄の火炎", "雷電波"],
+    anotherSkills: ["真・氷魔の力", "アイスエイジ", "地獄の火炎", "雷電波", "アレイズ"],
     defaultGear: "genjiNail",
     attribute: {
       initialBuffs: {
@@ -15204,6 +15204,19 @@ const skill = [
   },
   {
     name: "ザオリク",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 103,
+    act: async function (skillUser, skillTarget) {
+      await reviveMonster(skillTarget);
+    },
+    description1: "味方1体を　最大HPで復活させる",
+  },
+  {
+    name: "アレイズ",
     type: "spell",
     howToCalculate: "none",
     element: "none",
