@@ -7205,7 +7205,7 @@ const monsters = [
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
     initialAIDisabledSkills: ["体砕きの斬舞"],
-    anotherSkills: ["いてつくはどう"],
+    anotherSkills: ["いてつくはどう", "真・完全覚醒"],
     defaultGear: "estaSword",
     attribute: {
       initialBuffs: {
@@ -8855,7 +8855,7 @@ const monsters = [
       initialBuffs: {
         fireBreak: { keepOnDeath: true, strength: 1 },
         mindBarrier: { duration: 3 },
-        asleep: { duration: 999 },
+        sealed: { duration: 999 },
         elementalShield: { targetElement: "all", remain: 3000, unDispellable: true, iconSrc: "elementalShieldAll" },
       },
       permanentBuffs: {
@@ -8866,7 +8866,7 @@ const monsters = [
     ls: { HP: 1 },
     lsTarget: "ゾンビ",
     AINormalAttack: [2],
-    resistance: { fire: 1, ice: 1, thunder: 0.5, wind: 0.5, io: 0.5, light: 0.5, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+    resistance: { fire: 1, ice: 1, thunder: 1, wind: 1, io: 1, light: 1, dark: 0, poisoned: 0.5, asleep: 0.5, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
 ];
 //ウェイトなども。あと、特技や特性は共通項もあるので別指定も可能。
@@ -15592,6 +15592,32 @@ const skill = [
       spellReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true },
       damageLimit: { unDispellable: true, strength: 200, duration: 2 },
     },
+  },
+  {
+    name: "真・完全覚醒",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 45,
+    isOneTimeUse: true,
+    appliedEffect: {
+      slashReflection: { strength: 2, duration: 4, unDispellable: true, removeAtTurnStart: true },
+      spellReflection: { strength: 2, duration: 4, unDispellable: true, removeAtTurnStart: true }, // 呪文予測、封印で解除不可
+    },
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.supportAbilities.nextTurnAbilities.push({
+        act: function (skillUser) {
+          applyBuff(skillUser, { preemptiveAction: {} });
+        },
+      });
+    },
+    description1: "【戦闘中1回】【先制】4ターンの間",
+    description2: "自分への　斬撃・呪文攻撃を　威力を2倍にして",
+    description3: "攻はね返す状態にする　次のラウンド　こうどうはやいになる",
   },
   {
     name: "体砕きの斬舞",
