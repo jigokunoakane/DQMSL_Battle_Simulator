@@ -7679,6 +7679,7 @@ const monsters = [
     weight: 25,
     status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
     initialSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
+    anotherSkills: ["吹雪よび"],
     defaultGear: "devilSpdHeart",
     attribute: {
       initialBuffs: {
@@ -17082,6 +17083,17 @@ const skill = [
     MPcost: 51,
     isOneTimeUse: true,
     appliedEffect: { sealed: {} },
+  },
+   {
+    name: "吹雪よび",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 390,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 125,
+    appliedEffect: { iceResistance: { strength: -1, probability: 0.72 } }, // 36/50
   },
   {
     name: "呪縛の氷撃",
