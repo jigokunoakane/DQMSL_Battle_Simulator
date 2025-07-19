@@ -5646,6 +5646,21 @@ function addSkillOptions() {
       selectElement.appendChild(superOptGroup);
     }
 
+    // 全特技を追加
+    if (document.getElementById("enableAllSkill").checked) {
+      allOptGroup = document.createElement("optgroup");
+      allOptGroup.label = "全特技";
+
+      const allSkills = getAvailableSkillsForOthers();
+      for (const skillInfo of allSkills) {
+        const option = document.createElement("option");
+        option.value = skillInfo.name;
+        option.text = skillInfo.name;
+        allOptGroup.appendChild(option);
+      }
+      selectElement.appendChild(allOptGroup);
+    }
+
     // 現在のdefaultSkillを選択状態にする selectMonster内で生成または既に変更されたdefaultをselect要素に代入
     document.getElementById(`skill${j}`).value = monster.defaultSkill[j];
   }
@@ -5716,6 +5731,13 @@ for (let i = 0; i < 4; i++) {
     }
   });
 }
+
+// 全特技選択可のトグルに応じてselectを変更
+document.getElementById("enableAllSkill").addEventListener("change", function (event) {
+  if (Object.keys(selectingParty[currentTab]).length !== 0) {
+    addSkillOptions();
+  }
+});
 
 //種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedIncrementCalcによる増分計算、格納、表示
 //tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedIncrementCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
@@ -17084,7 +17106,7 @@ const skill = [
     isOneTimeUse: true,
     appliedEffect: { sealed: {} },
   },
-   {
+  {
     name: "吹雪よび",
     type: "breath",
     howToCalculate: "fix",
@@ -23971,6 +23993,27 @@ function isWaveSkill(skillInfo) {
   return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
 }
 
+function getAvailableSkillsForOthers() {
+  // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
+  const unavailableSKillsForOthers = [
+    "神楽の術下位",
+    "ツイスター下位",
+    "キングストーム下位",
+    "ネクロゴンドの衝撃下位",
+    "火竜変化呪文先制",
+    "教祖のはどう",
+    "光速イオナスペル",
+    "クアトロマダンテ2発目",
+    "クアトロマダンテ3発目",
+    "クアトロマダンテ4発目",
+  ];
+  // MP0でも付与して良いもの
+  const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
+
+  const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
+  return availableSkills;
+}
+
 document.getElementById("spdSetting").addEventListener("change", function (event) {
   waitMultiplier = Number(event.target.value);
 });
@@ -24063,23 +24106,7 @@ const gameRuleData = [
     act: function () {
       for (const party of parties) {
         for (const monster of party) {
-          // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
-          const unavailableSKillsForOthers = [
-            "神楽の術下位",
-            "ツイスター下位",
-            "キングストーム下位",
-            "ネクロゴンドの衝撃下位",
-            "火竜変化呪文先制",
-            "教祖のはどう",
-            "光速イオナスペル",
-            "クアトロマダンテ2発目",
-            "クアトロマダンテ3発目",
-            "クアトロマダンテ4発目",
-          ];
-          // MP0でも付与して良いもの
-          const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
-          const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
-
+          const availableSkills = getAvailableSkillsForOthers();
           const randomSkillIndex0 = Math.floor(Math.random() * availableSkills.length);
           const randomSkillIndex1 = Math.floor(Math.random() * availableSkills.length);
           const randomSkillIndex2 = Math.floor(Math.random() * availableSkills.length);
