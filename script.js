@@ -6612,7 +6612,7 @@ const monsters = [
     status: { HP: 813, MP: 312, atk: 644, def: 427, spd: 540, int: 277 }, // S+50
     initialSkill: ["究極の構え", "真・天雷の舞い", "真・轟雷滅殺剣", "光芒の絶技"],
     anotherSkills: ["轟雷滅殺剣", "天雷の舞い", "テンペストエッジ"],
-    defaultGear: "thunderCharm",
+    defaultGear: "ryujinNail",
     attribute: {
       initialBuffs: {
         thunderBreak: { keepOnDeath: true, strength: 2 },
