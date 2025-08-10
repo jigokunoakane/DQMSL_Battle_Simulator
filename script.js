@@ -1530,7 +1530,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "shamuInt", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -2342,6 +2342,10 @@ function updateCurrentStatus(monster) {
   let intMultiplier = 1;
   if (monster.buffs.internalIntUp) {
     intMultiplier += monster.buffs.internalIntUp.strength;
+  }
+  // シャムダ
+  if (monster.buffs.shamuInt) {
+    intMultiplier += monster.buffs.shamuInt.strength;
   }
   monster.currentStatus.int *= intMultiplier;
 }
@@ -5551,7 +5555,17 @@ function addSkillOptions() {
   ];
   let targetCollabSkills = null;
   const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ", "封印の光"];
-  const hosigoronTargets = ["DARK", "まものテリー&ミレーユ", "スライダーガール", "スライダーヒーロー", "極彩鳥にじくじゃく", "スライダーキッズ", "マジェス・ドレアム", "支配王レゾム・レザーム"];
+  const hosigoronTargets = [
+    "DARK",
+    "まものテリー&ミレーユ",
+    "スライダーガール",
+    "スライダーヒーロー",
+    "極彩鳥にじくじゃく",
+    "スライダーキッズ",
+    "マジェス・ドレアム",
+    "新生転生マジェス・ドレアム",
+    "支配王レゾム・レザーム",
+  ];
   if (hosigoronTargets.includes(monster.name)) {
     targetCollabSkills = hosigoronSkills;
   }
@@ -5960,7 +5974,7 @@ function switchTab(tabNumber) {
     addTabClass(tabNumber);
     disableSeedSelect(false);
     // 性能詳細の表示制御
-    if (["新生イブール", "強新生アウルート"].includes(selectingParty[currentTab].name)) {
+    if (["新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム"].includes(selectingParty[currentTab].name)) {
       document.getElementById("monsterDescriptionButton").style.display = "inline";
     }
   } else if (tabNumber == 0) {
@@ -6569,6 +6583,46 @@ const monsters = [
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
       },
       2: {
+        slashEvasion: { unDispellable: true, duration: 4 },
+        spellEvasion: { unDispellable: true, duration: 4 },
+        breathEvasion: { unDispellable: true, duration: 4 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+        thunderBreakBoost: { strength: 1, maxStrength: 3 },
+        ioBreakBoost: { strength: 1, maxStrength: 3 },
+        lightBreakBoost: { strength: 1, maxStrength: 3 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: 1, thunder: 0, wind: 1, io: -1, light: 0, dark: 1, poisoned: 1.5, asleep: 1, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "新生転生マジェス・ドレアム", //4 いおすぺなどと同様に使用不可処理およびあれを実施
+    id: "newMajesu",
+    rank: 10,
+    race: ["悪魔"], // why？
+    weight: 30,
+    status: { HP: 813, MP: 312, atk: 644, def: 427, spd: 540, int: 277 }, // S+50
+    initialSkill: ["究極の構え", "真・天雷の舞い", "真・轟雷滅殺剣", "光芒の絶技"],
+    anotherSkills: ["轟雷滅殺剣", "天雷の舞い", "テンペストエッジ"],
+    defaultGear: "thunderCharm",
+    attribute: {
+      initialBuffs: {
+        thunderBreak: { keepOnDeath: true, strength: 2 },
+        ioBreak: { keepOnDeath: true, strength: 2 },
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        mindBarrier: { keepOnDeath: true }, // 常に
+        isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
+      },
+      2: {
+        demonKingBarrier: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
         slashEvasion: { unDispellable: true, duration: 4 },
         spellEvasion: { unDispellable: true, duration: 4 },
         breathEvasion: { unDispellable: true, duration: 4 },
@@ -9682,6 +9736,30 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    newMajesu: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            act: async function (skillUser) {
+              applyHeal(skillUser, 45, true);
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        permanentAbilities: [
+          {
+            name: "魂喰らい",
+            isOneTimeUse: true,
+            unavailableIf: (skillUser) => skillUser.buffs.stoned || skillUser.currentStatus.HP / skillUser.defaultStatus.HP > 0.25,
+            act: async function (skillUser) {
+              executeRadiantWave(skillUser);
+              await executeSkill(skillUser, findSkillByName("魂喰らい"), null, true, true); // 状態異常check無視 封じcheck無視
+            },
+          },
+        ],
+      },
+    },
     dark: {
       supportAbilities: {
         permanentAbilities: [
@@ -12175,6 +12253,21 @@ const skill = [
     ignoreReflection: true,
   },
   {
+    name: "悪夢の追撃",
+    type: "notskill",
+    howToCalculate: "atk",
+    ratio: 1,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    abnormalityMultiplier: function (skillUser, skillTarget) {
+      if (skillTarget.buffs.statusLock) {
+        return 2;
+      }
+    },
+  },
+  {
     name: "ぼうぎょ",
     type: "notskill",
     howToCalculate: "none",
@@ -13719,7 +13812,6 @@ const skill = [
     ignoreTypeEvasion: true,
     appliedEffect: { stoned: { probability: 1, duration: 2, isGolden: true, element: "ice" } },
   },
-
   {
     name: "光芒の絶技",
     type: "slash",
@@ -13767,6 +13859,107 @@ const skill = [
     MPcost: 69,
     ignoreEvasion: true,
     appliedEffect: { slashBarrier: { strength: -1 } },
+  },
+  {
+    name: "究極の構え",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 64,
+    isOneTimeUse: true,
+    appliedEffect: {
+      shamuAtk: { strength: 0.2, divineDispellable: true, duration: 3 },
+      shamuDef: { strength: 0.2, divineDispellable: true, duration: 3 },
+      shamuSpd: { strength: 0.5, divineDispellable: true, duration: 3 },
+      shamuInt: { strength: 0.5, divineDispellable: true, duration: 3 },
+      nonElementalResistance: { decreaseBeforeAction: true, duration: 1 },
+      martialEvasion: { unDispellable: true, duration: 1 },
+      danceEvasion: { unDispellable: true, duration: 1 },
+      damageLimit: { unDispellable: true, strength: 250, duration: 1 },
+    },
+    act: function (skillUser, skillTarget) {
+      skillUser.skill[0] = "究極の絶技";
+      skillUser.abilities.supportAbilities.nextTurnAbilities.push({
+        act: function (skillUser) {
+          applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, breathCharge: { strength: 1.5 } });
+        },
+      });
+    },
+    description1: "【戦闘中1回】【先制】自分の能力が上がり　次のラウンドの行動まで",
+    description2: "自分を無属性・体技・踊りを無効にする状態にし　被ダメージ上限値250状態になる",
+    description3: "次のラウンド開始時　攻撃・呪文・息ダメージを1.5倍にする",
+  },
+  {
+    name: "究極の絶技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.05,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 7,
+    MPcost: 70,
+    ignoreEvasion: true,
+    ignoreReflection: true,
+    appliedEffect: { statusLock: {} },
+    description2: "ランダムに7回　攻撃力依存で　デイン系の斬撃攻撃",
+    description3: "命中時　状態変化を封じる",
+  },
+  {
+    name: "真・天雷の舞い",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 210,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 55,
+    appliedEffect: { healBlock: {}, fear: { probability: 0.38 } },
+  },
+  {
+    name: "魂喰らい",
+    type: "ritual",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 180,
+    maxInt: 500,
+    maxIntDamage: 400,
+    skillPlus: 1,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 120,
+    ignoreSubstitute: true,
+    ignoreReflection: true,
+    ignoreBarrier: true,
+    zakiProbability: 1,
+    appliedEffect: { reviveBlock: { duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
+    },
+    absorptionRatio: 0.5,
+    RaceBane: ["超伝説"],
+    RaceBaneValue: 2,
+  },
+  {
+    name: "真・轟雷滅殺剣",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 4.6,
+    element: "io",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 75,
+    ignoreEvasion: true,
+    ignoreProtection: true,
+    ignoreDazzle: true,
+    followingSkill: "轟雷滅殺剣後半",
   },
   {
     name: "魔壊裂き",
@@ -22696,6 +22889,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "絶大な力";
   } else if (skillUser.flags.abanTransformed && skillUser.name === "大勇者と超魔の武人") {
     NormalAttackName = "アバン通常攻撃息";
+  } else if (skillUser.name === "新生転生マジェス・ドレアム") {
+    NormalAttackName = "悪夢の追撃";
   }
   return NormalAttackName;
 }
@@ -23086,6 +23281,7 @@ function isSkillUnavailableForAI(skillName) {
     "第三の瞳",
     "ギガ・マホトラ",
     "ギガ・マホヘル",
+    "究極の絶技",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
@@ -24003,6 +24199,11 @@ function getAvailableSkillsForOthers() {
     "火竜変化呪文先制",
     "教祖のはどう",
     "光速イオナスペル",
+    "究極の構え",
+    "究極の絶技",
+    "真・天雷の舞い",
+    "真・轟雷滅殺剣",
+    "魂喰らい",
     "クアトロマダンテ2発目",
     "クアトロマダンテ3発目",
     "クアトロマダンテ4発目",
@@ -24322,6 +24523,76 @@ document.getElementById("monsterDescriptionButton").addEventListener("click", fu
 ■耐性変更 ※強新生のみ適用
 バギ半減→無効
 混乱半減→無効`;
+  } else if (monsterName === "新生転生マジェス・ドレアム") {
+    div.innerHTML = `新生転生マジェス・ドレアム (by げこ)
+
+■《《追加あり》》覚えるとくぎ　
+<img src=${getSkillTypeIcons(findSkillByName("究極の構え"))}>究極の構え【消費ＭＰ：７０】
+【先制】【戦闘中１回】
+自分の能力が上がり　次のラウンドの行動まで自分を無属性・体技・踊りを無効にする状態し　被ダメージ上限値250状態になる。次のラウンド開始時　攻撃・呪文・息ダメージを1.5倍にする　※このとくぎは使用後に「究極の絶技」に変化
+
+［細かい話］
+・能力上昇
+攻撃力1.2倍
+防御力1.2倍
+素早さ1.5倍
+賢さ1.5倍
+※系統バフなので通常バフと重複する(乗算)、2〜5ターン、上位はどうで剥がせる
+・無属性・踊り・体技無効状態と被ダメージ上限値250状態は上位はどうで剥がせない、このモンスターが倒れると消える
+・倒されても次ラウンド開始時に生存していればダメージ上昇状態となる。
+
+<img src=${getSkillTypeIcons(findSkillByName("究極の絶技"))}>究極の絶技【消費ＭＰ：７０】
+【みかわし不可】【反射不可】
+ランダムに７回　攻撃力依存でデイン系の斬撃攻撃　命中時　敵の状態変化を封じる
+
+※会心あり
+※AI使用不可
+※特技プラス不可
+※等倍1.05×7→全破壊します
+
+《NEW！》<img src=${getSkillTypeIcons(findSkillByName("真・天雷の舞い"))}>真・天雷の舞い【消費ＭＰ：５５】
+【みかわし不可】【マヌーサ無効】
+ランダムで５回　ギラ系の踊り攻撃　命中時　回復封じ　確率で行動停止
+※マインド38%
+※ダメージ計算と量は失望の光舞　∴+3等倍210×5
+
+■《《変更あり》》特性　
+・悪夢の追撃
+・マジェス・ブレイク
+・魔神のチカラ
+・真・悪夢の化身
+・《NEW！》魂の解放
+・素早さ＋５０
+
+悪夢の追撃　
+１ラウンドで２〜３回行動し　２〜３回目の行動時には通常攻撃を行う　通常攻撃が封じ系の状態の敵に効果大　
+※2.0倍
+
+《《変更あり》》真・悪夢の化身　
+常に行動停止状態になるのを防ぎ　「不屈の闘志」状態　２ラウンド目開始時　１ターンの間　状態異常無効状態にし　「魔神の構え」が発動する
+
+《NEW！》魂の解放
+攻撃特技使用時　「悪夢の構え」を行う　戦闘中１回　ラウンド開始時　HPが４分の１以下で　弱体以外の状態異常を解除し　「魂喰らい」を行う
+※封印とゴールドアストロンは解除しないが、封印時でも魂喰らいが発動する
+
+《NEW！》<img src=${getSkillTypeIcons(findSkillByName("魂喰らい"))}>魂喰らい【消費ＭＰ：１２０】
+【みがわり無視】【反射無視】【軽減無視】
+ランダムに４回　呪文計算で無属性の儀式攻撃 　確率で即死させる　命中時　くじけぬ心を解除し　蘇生封じ状態にする　ダメージの５０%の　自分のＨＰを回復する　超伝説系の敵に　威力２倍
+※特技プラス不可
+※ザキ等倍100%
+※賢さの差によるダメージ増あり
+※賢さ100(180)〜500(400)
+
+■リーダー特性
+全系統　全属性斬撃ダメージ40％アップ
+
+■系統
+・悪魔系
+新生転生前の「マジェス・ドレアム」(ランクＳＳ)とは系統が異なります。
+
+［既存のとくぎの上方修正］
+・特技「轟雷滅殺剣」を【マヌーサ無効】【軽減無視】に変更
+※新生転生前「マジェス・ドレアム」(ランクＳＳ)にも適用`;
   } else {
     return;
   }
