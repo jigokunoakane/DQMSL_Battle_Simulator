@@ -2507,7 +2507,7 @@ function decideTurnOrder(parties) {
 // 各monsterの行動を実行する関数
 async function processMonsterAction(skillUser) {
   // damagedMonstersを用意
-  const damagedMonsters = [];
+  const damagedMonsters = {};
   // 1. バフ状態異常継続時間確認
   // 行動直前に持続時間を減少させる decreaseBeforeAction
   decreaseBuffDurationBeforeAction(skillUser);
@@ -2916,14 +2916,14 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     await checkRecentlyKilledFlagForPoison(skillUser);
   }
 
-  // 7-13. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし
+  // 7-13. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし 敵限定で左から順に発動
   for (const monster of parties[skillUser.enemyTeamID]) {
-    if (!isBattleOver() && damagedMonsters.includes(monster.monsterId)) {
-      await executeCounterAbilities(monster);
+    if (!isBattleOver() && damagedMonsters[monster.monsterId]) {
+      await executeCounterAbilities(monster, damagedMonsters[monster.monsterId]);
     }
   }
   // 優先度: 装備 特性 特技の順で一つだけ実行 counter本体: 特性を初期値として装備存在時は関数内で上書き additional: 特技を一時的に格納
-  async function executeCounterAbilities(monster) {
+  async function executeCounterAbilities(monster, receivedSkill) {
     // 反撃者が死亡時はまたは亡者は反撃しない リザオなどで蘇生してたら反撃  被反撃者の生死は考慮しない(リザオ等で蘇生しても発動,反射や死亡時で死んでも他に飛んでいくので制限なし)
     if (monster.flags.isDead || monster.flags.isZombie) {
       return;
@@ -2935,7 +2935,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     abilitiesToExecute.push(...(monster.abilities.additionalCounterAbilities ?? []));
     for (const ability of abilitiesToExecute) {
       // oneTimeUseで実行済 または発動不可能条件に当てはまった場合次のabilityへ
-      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster))) {
+      if (monster.flags.executedAbilities.includes(ability.name) || (ability.unavailableIf && ability.unavailableIf(monster, receivedSkill))) {
         continue;
       }
       await sleep(300);
@@ -2949,7 +2949,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
         }
       }
       //実行済skillを渡して実行 最初の要素が選択したskill  反撃先としてskillUserを渡す
-      await ability.act(monster, skillUser);
+      await ability.act(monster, skillUser, receivedSkill);
       //実行後の記録
       if (ability.isOneTimeUse) {
         monster.flags.executedAbilities.push(ability.name);
@@ -3989,10 +3989,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
-  // monsterActionまたはAI追撃のとき、反撃対象にする
+  // monsterActionまたはAI追撃のとき、反撃対象にする monsterIdがkey, 受けたskillInfoがvalue
   if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
-    if (!damagedMonsters.includes(skillTarget.monsterId)) {
-      damagedMonsters.push(skillTarget.monsterId);
+    damagedMonsters[skillTarget.monsterId] = damagedMonsters[skillTarget.monsterId] || [];
+    // 重複排除
+    if (!damagedMonsters[skillTarget.monsterId].includes(executingSkill)) {
+      damagedMonsters[skillTarget.monsterId].push(executingSkill);
     }
   }
 
@@ -9779,11 +9781,31 @@ function getMonsterAbilities(monsterId) {
         {
           name: "悪夢の覚醒",
           disableMessage: true,
-          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || skillUser.flags.hasTransformed,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || skillUser.flags.hasTransformed || !skillUser.flags.totalDamage,
           act: async function (skillUser, executingSkill) {
             await sleep(100);
             displayMessage(`${skillUser.name}は`, "覚醒した！");
             await transformTyoma(skillUser);
+          },
+        },
+      ],
+      counterAbilities: [
+        {
+          name: "無に帰すチカラ",
+          unavailableIf: (skillUser, receivedSkill) => !receivedSkill.some((skillInfo) => ["slash", "spell", "breath"].includes(skillInfo.type)),
+          act: async function (skillUser, counterTarget, receivedSkill) {
+            if (receivedSkill.some((skillInfo) => skillInfo.type === "slash")) {
+              applyBuff(skillUser, { slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              await sleep(100);
+            }
+            if (receivedSkill.some((skillInfo) => skillInfo.type === "spell")) {
+              applyBuff(skillUser, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              await sleep(100);
+            }
+            if (receivedSkill.some((skillInfo) => skillInfo.type === "breath")) {
+              applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              await sleep(100);
+            }
           },
         },
       ],
@@ -14073,6 +14095,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 98,
+    appliedEffect: { reviveBlock: { duration: 1 } },
   },
   {
     name: "殺りくの雷刃",
