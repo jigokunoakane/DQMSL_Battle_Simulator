@@ -608,7 +608,10 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
     }
     //みがわり系の場合、自分自身と覆う中・覆われ中の対象を暗転&無効化
     const singleSubstituteSkills = ["みがわり", "かばう", "おおいかくす", "みがわり・マインドバリア"];
-    if (singleSubstituteSkills.includes(selectedSkill.name) && (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute)) {
+    if (
+      singleSubstituteSkills.includes(selectedSkill.name) &&
+      (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute || targetMonster.buffs.substituteSeal)
+    ) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -12072,7 +12075,7 @@ const skill = [
       3: 4,
       4: 5,
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
         return "ツイスター下位";
@@ -12831,7 +12834,7 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方全体への　敵の行動を　かわりにうける",
   },
   {
@@ -12845,7 +12848,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, null, true);
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "大樹の守り",
@@ -12879,7 +12882,7 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方1体への　敵の行動を　かわりにうける",
   },
   {
@@ -12899,7 +12902,7 @@ const skill = [
       await sleep(100);
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方全体への　敵の行動を　かわりにうける",
     description2: "自分を　行動停止無効状態にする",
   },
@@ -15217,7 +15220,7 @@ const skill = [
       await sleep(150);
       applyBuff(skillUser, { slashBarrier: { strength: 1 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "いてつくゆきだま",
@@ -15312,7 +15315,7 @@ const skill = [
         applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "みかわしのひやく",
@@ -16223,7 +16226,7 @@ const skill = [
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "闇の紋章",
@@ -17373,7 +17376,7 @@ const skill = [
         applySubstitute(skillUser, null, true);
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute,
+    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description2: "悪魔系の味方が　4体以上なら",
     description3: "味方全体への　敵の行動を　かわりにうける",
   },
@@ -17813,7 +17816,7 @@ const skill = [
           //全部削除
           delete monster.flags.isSubstituting;
           delete monster.flags.hasSubstitute;
-          skillTarget.flags.thisTurn.substituteSeal = true;
+          applyBuff(monster, { substituteSeal: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
           await updateMonsterBuffsDisplay(monster);
           displayMessage(`${monster.name}は`, "みがわりを ふうじられた！");
           await sleep(50);
@@ -22218,7 +22221,8 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
   ) {
     return;
   }
-  if (skillTarget.buffs.stoned || skillTarget.flags.thisTurn.substituteSeal || skillUser.flags.thisTurn.substituteSeal || skillTarget.flags.isSubstituting || skillTarget.flags.hasSubstitute) {
+  // みがわり中 またはuser targetいずれかにみがわり封じでmiss
+  if (skillTarget.buffs.stoned || skillTarget.buffs.substituteSeal || skillUser.buffs.substituteSeal || skillTarget.flags.isSubstituting || skillTarget.flags.hasSubstitute) {
     displayMiss(skillTarget);
     return;
   }
@@ -22967,8 +22971,7 @@ async function transformTyoma(monster) {
     await sleep(150);
     displayMessage(`${monster.name}は`, "みがわり・石化を ふうじられた！");
     deleteSubstitute(monster);
-    // みがわり封じ付与・みがわり選択画面で選択不可に
-    applyBuff(monster, { stoneBarrier: { keepOnDeath: true } });
+    applyBuff(monster, { substituteSeal: { keepOnDeath: true }, stoneBarrier: { keepOnDeath: true } });
   }
   await sleep(400);
 }
