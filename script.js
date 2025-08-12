@@ -1676,6 +1676,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         paralyzed: "paralyzeBarrier",
         sealed: "sealBarrier",
         reviveBlock: "reviveBlockBarrier",
+        stoned: "stoneBarrier",
       };
       // 防壁や魔王バリアで防ぐ
       if ((buffTarget.buffs.sacredBarrier || buffTarget.buffs.demonKingBarrier) && buffName !== "sealed" && buffName !== "stoned" && buffName !== "reviveBlock") {
@@ -4045,7 +4046,7 @@ function calculateDamage(
     let targetDef = skillTarget.currentStatus.def;
     if (skillTarget.buffs.tempted) {
       targetDef = 1;
-    } else if (skillUser.name === "超ドレアム") {
+    } else if (skillUser.name === "殺りくの神ダークドレアム") {
       targetDef *= 0.5;
     }
 
@@ -8917,6 +8918,33 @@ const monsters = [
     resistance: { fire: 1.5, ice: 0, thunder: 1, wind: 0.5, io: 1, light: 0.5, dark: 1, poisoned: 0.5, asleep: 1, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "殺りくの神ダークドレアム", //4
+    id: "tyodream",
+    rank: 10,
+    race: ["超魔王"],
+    weight: 40,
+    status: { HP: 858, MP: 361, atk: 715, def: 647, spd: 501, int: 312 },
+    initialSkill: ["滅びの妙技", "魔神のはやわざ", "秘技グランドクロス", "殺りくの雷刃"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        mindBarrier: { keepOnDeath: true },
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
+      },
+      evenTurnBuffs: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [3],
+    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "やきとり",
     id: "bossmaen",
     rank: 10,
@@ -9721,6 +9749,38 @@ function getMonsterAbilities(monsterId) {
                 });
               },
             });
+          },
+        },
+      ],
+    },
+    tyodream: {
+      supportAbilities: {
+        permanentAbilities: [
+          {
+            name: "無常の衣",
+            disableMessage: true,
+            act: async function (skillUser) {
+              await executeRadiantWave(skillUser);
+            },
+          },
+        ],
+        evenTurnAbilities: [
+          {
+            act: async function (skillUser) {
+              applyHeal(skillUser, 45, true);
+            },
+          },
+        ],
+      },
+      afterActionAbilities: [
+        {
+          name: "悪夢の覚醒",
+          disableMessage: true,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || skillUser.flags.hasTransformed,
+          act: async function (skillUser, executingSkill) {
+            await sleep(100);
+            displayMessage(`${skillUser.name}は`, "覚醒した！");
+            await transformTyoma(skillUser);
           },
         },
       ],
@@ -13960,6 +14020,72 @@ const skill = [
     ignoreProtection: true,
     ignoreDazzle: true,
     followingSkill: "轟雷滅殺剣後半",
+  },
+  {
+    name: "滅びの妙技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.21,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 99,
+    ignoreReflection: true,
+    appliedEffect: { slashBarrier: { strength: -1, probability: 0.66 } },
+  },
+  {
+    name: "滅亡の絶技",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.21,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 8,
+    MPcost: 99,
+    ignoreReflection: true,
+    ignoreProtection: true,
+    appliedEffect: { reviveBlock: { duration: 1 }, slashBarrier: { strength: -1 } },
+  },
+  {
+    name: "魔神のはやわざ",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.08,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 99,
+    ignoreEvasion: true,
+    appliedEffect: "divineWave", // プラスのもののみ削除
+  },
+  {
+    name: "秘技グランドクロス",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 315,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 98,
+  },
+  {
+    name: "殺りくの雷刃",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.12,
+    element: "thunder",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 99,
+    ignoreProtection: true,
+    zakiProbability: 0.78,
+    appliedEffect: "disruptiveWave",
+    description1: "【軽減無視】敵全体に　攻撃力依存で",
+    description2: "ギラ系の斬撃攻撃　命中時　状態変化解除　確率で　即死させる",
+    description3: "敵が1体以上チカラつきたなら　もう一度繰り返す",
   },
   {
     name: "魔壊裂き",
@@ -21882,7 +22008,7 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
     activeBuffs.push({ key: "dragonPreemptiveAction", src: `images/buffIcons/dragonPreemptiveAction${monster.buffs.dragonPreemptiveAction.strength}.png` });
   }
   // 石化封じアイコンをpush
-  if (fieldState.stonedBlock) {
+  if (fieldState.stonedBlock || monster.buffs.stoneBarrier) {
     activeBuffs.push({ key: "stonedBlock", src: "images/buffIcons/stonedBlock.png" });
   }
   // 亡者アイコンを先頭に挿入
@@ -22496,6 +22622,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "マヒの効果が 効かなくなった！",
     },
+    stoneBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "アストロンの効果が 効かなくなった！",
+    },
     protection: {
       start: `${buffTarget.name}の`,
       message: "受けるダメージが減少した！",
@@ -22727,6 +22857,10 @@ async function transformTyoma(monster) {
     monster.skill[1] = "ねだやしの業火";
     applyBuff(monster, { thunderBreak: { keepOnDeath: true, strength: 2 } });
     displayMessage("＊「ぐはあああ……！", "  ねだやしにしてくれるわっ！");
+  } else if (monster.name === "殺りくの神ダークドレアム") {
+    monster.skill[0] = "滅亡の絶技";
+    applyBuff(monster, { slashBreak: { keepOnDeath: true, strength: 2 } });
+    displayMessage("＊「さて……  おあそびは  ここまでだな。", "  そろそろ  おわらせよう……。");
   }
   await sleep(400);
 
@@ -22821,6 +22955,20 @@ async function transformTyoma(monster) {
       fieldState.disableReverse = 6;
     }
     adjustFieldStateDisplay();
+  } else if (monster.name === "殺りくの神ダークドレアム") {
+    // 悪夢の覚醒 全属性シールド付与
+    const damageDealt = monster.flags.damageDealt;
+    applyBuff(monster, { elementalShield: { targetElement: "all", remain: damageDealt, unDispellable: true, iconSrc: "elementalShieldAll" } });
+    displayMessage(`${monster.name}は`, `${damageDealt}の全属性シールドを得た！`);
+    monster.flags.damageDealt = 0;
+    await sleep(150);
+    // 孤高の覇者 みがわり・ゴルアス封じ(変身解除時削除)
+    displayMessage(`${monster.name}の特性`, "孤高の覇者 が発動！");
+    await sleep(150);
+    displayMessage(`${monster.name}は`, "みがわり・石化を ふうじられた！");
+    deleteSubstitute(monster);
+    // みがわり封じ付与・みがわり選択画面で選択不可に
+    applyBuff(monster, { stoneBarrier: { keepOnDeath: true } });
   }
   await sleep(400);
 }
