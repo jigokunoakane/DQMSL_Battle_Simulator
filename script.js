@@ -4906,6 +4906,7 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
 
 // 耐性ダウン 氷の王国・フロスペ・氷縛等属性処理 通常状態異常耐性判定 通常属性耐性判定(AI2種) ザキ 実際の通常属性耐性判定 耐性表示で実行 　耐性ダウン確率判定などではskillUserをnull指定
 // 通常属性耐性判定とAIシミュ、耐性表示(うち通常属性耐性判定)のみ、skillInfoを指定
+// skillUser使用時はnullチェック(耐性ダウン計算などではnullのため)
 function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false, skillInfo = null) {
   const element = executingSkillElement;
   const executingSkillType = skillInfo ? skillInfo.type : null;
@@ -4915,16 +4916,24 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
   const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; // 状態異常やザキと区別
   let isHazamaReduction = false;
-  // skillInfo存在時(かつ念の為damage存在時)のみ狭間装備を反映
-  if (executingSkillType && isDamageExisting && skillTarget.gear && (element === "none" || AllElements.includes(element))) {
-    const gearName = skillTarget.gear.name;
-    if (
-      (gearName === "狭間の闇の大剣" && executingSkillType === "slash") ||
-      (gearName === "狭間の闇のヤリ" && executingSkillType === "martial") ||
-      (gearName === "狭間の闇の盾" && executingSkillType === "spell") ||
-      (gearName === "狭間の闇のうでわ" && executingSkillType === "breath")
-    ) {
-      isHazamaReduction = true;
+  let isSlashBreak = false;
+  // skillInfo存在時(かつ念の為damage存在時)のみ反映
+  if (executingSkillType && isDamageExisting && (element === "none" || AllElements.includes(element))) {
+    // 狭間装備有効判定
+    if (skillTarget.gear) {
+      const gearName = skillTarget.gear.name;
+      if (
+        (gearName === "狭間の闇の大剣" && executingSkillType === "slash") ||
+        (gearName === "狭間の闇のヤリ" && executingSkillType === "martial") ||
+        (gearName === "狭間の闇の盾" && executingSkillType === "spell") ||
+        (gearName === "狭間の闇のうでわ" && executingSkillType === "breath")
+      ) {
+        isHazamaReduction = true;
+      }
+    }
+    // 斬撃ブレイク有効判定
+    if (executingSkillType === "slash" && skillUser && skillUser.buffs.slashBreak) {
+      isSlashBreak = true;
     }
   }
 
@@ -4945,6 +4954,8 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         }
       } else if (skillTarget.buffs.nonElementalResistance) {
         noneResistance = 0;
+      } else if (isSlashBreak) {
+        noneResistance = 1.5; // 斬撃ブレイク・狭間同時は結局弱点
       } else if (isHazamaReduction) {
         noneResistance = 0.75;
       }
@@ -5034,7 +5045,9 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 
     // skillUserが渡された場合のみ使い手効果を適用
     if (skillUser) {
-      if (skillUser.buffs[element + "Break"]) {
+      if (isSlashBreak) {
+        normalResistanceIndex += 2;
+      } else if (skillUser.buffs[element + "Break"]) {
         // 通常ブレイク こちらは状態異常使い手なども反映
         normalResistanceIndex += skillUser.buffs[element + "Break"].strength;
         if (skillUser.buffs[element + "BreakBoost"]) {
@@ -8943,11 +8956,11 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    seed: { atk: 45, def: 0, spd: 75, int: 0 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [3],
-    resistance: { fire: 0, ice: 0.5, thunder: 1, wind: 1, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
+    resistance: { fire: 0, ice: 0.5, thunder: 0, wind: 0.5, io: 1, light: 0, dark: 0, poisoned: 1, asleep: 0, confused: 0, paralyzed: 0, zaki: 0, dazzle: 0, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "やきとり",
@@ -14101,7 +14114,7 @@ const skill = [
     name: "殺りくの雷刃",
     type: "slash",
     howToCalculate: "atk",
-    ratio: 1.12,
+    ratio: 2.2,
     element: "thunder",
     targetType: "all",
     targetTeam: "enemy",
