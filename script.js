@@ -4004,6 +4004,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     applyDamage(skillUser, absorptionAmount, -1);
   }
 
+  // 未覚醒時の累計与ダメージ記録
+  if (skillUser.name === "殺りくの神ダークドレアム" && !skillUser.flags.hasTransformed && skillUser.flags.hasOwnProperty("damageDealt") && !isReflection && resistance !== -1 && damage > 0) {
+    skillUser.flags.damageDealt += damage;
+  }
+
   // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
   checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
 }
@@ -9772,6 +9777,14 @@ function getMonsterAbilities(monsterId) {
       ],
     },
     tyodream: {
+      initialAbilities: [
+        {
+          name: "悪夢の覚醒累計ダメージカウンター付与",
+          act: function (skillUser) {
+            skillUser.flags.damageDealt = 0;
+          },
+        },
+      ],
       supportAbilities: {
         permanentAbilities: [
           {
@@ -9794,11 +9807,15 @@ function getMonsterAbilities(monsterId) {
         {
           name: "悪夢の覚醒",
           disableMessage: true,
-          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || skillUser.flags.hasTransformed || !skillUser.flags.totalDamage,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || skillUser.flags.hasTransformed || !skillUser.flags.hasOwnProperty("damageDealt"),
           act: async function (skillUser, executingSkill) {
-            await sleep(100);
-            displayMessage(`${skillUser.name}は`, "覚醒した！");
-            await transformTyoma(skillUser);
+            await sleep(200);
+            displayMessage(`${skillUser.name}は`, `累計${skillUser.flags.damageDealt}ダメージを与えた！`);
+            if (skillUser.flags.damageDealt >= 3000) {
+              await sleep(200);
+              displayMessage(`${skillUser.name}は`, "覚醒した！");
+              await transformTyoma(skillUser);
+            }
           },
         },
       ],
@@ -22898,6 +22915,7 @@ async function transformTyoma(monster) {
     applyBuff(monster, { thunderBreak: { keepOnDeath: true, strength: 2 } });
     displayMessage("＊「ぐはあああ……！", "  ねだやしにしてくれるわっ！");
   } else if (monster.name === "殺りくの神ダークドレアム") {
+    await sleep(300);
     monster.skill[0] = "滅亡の絶技";
     applyBuff(monster, { slashBreak: { keepOnDeath: true, strength: 2 } });
     displayMessage("＊「さて……  おあそびは  ここまでだな。", "  そろそろ  おわらせよう……。");
@@ -22997,14 +23015,14 @@ async function transformTyoma(monster) {
     adjustFieldStateDisplay();
   } else if (monster.name === "殺りくの神ダークドレアム") {
     // 悪夢の覚醒 全属性シールド付与
-    const damageDealt = monster.flags.damageDealt;
+    const damageDealt = monster.flags.damageDealt - 3000;
+    await sleep(300);
     applyBuff(monster, { elementalShield: { targetElement: "all", remain: damageDealt, unDispellable: true, iconSrc: "elementalShieldAll" } });
     displayMessage(`${monster.name}は`, `${damageDealt}の全属性シールドを得た！`);
-    monster.flags.damageDealt = 0;
-    await sleep(150);
+    await sleep(450);
     // 孤高の覇者 みがわり・ゴルアス封じ(変身解除時削除)
     displayMessage(`${monster.name}の特性`, "孤高の覇者 が発動！");
-    await sleep(150);
+    await sleep(200);
     displayMessage(`${monster.name}は`, "みがわり・石化を ふうじられた！");
     deleteSubstitute(monster);
     applyBuff(monster, { substituteSeal: { keepOnDeath: true }, stoneBarrier: { keepOnDeath: true } });
