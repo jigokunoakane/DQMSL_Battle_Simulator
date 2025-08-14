@@ -925,6 +925,11 @@ document.getElementById("howToCommandEnemyBtnImprovedAI").addEventListener("clic
 
 //ターン開始時処理、毎ラウンド移行時とprepareBattleから起動
 async function startTurn() {
+  // ターン終了時処理
+  // 超ドレアム処理 1ターン目(turnNum0)以降で実行
+  if (fieldState.turnNum > 0) {
+    await releaseDreamTransformation();
+  }
   // ターン終了時loop
   for (const party of parties) {
     for (const monster of party) {
@@ -940,6 +945,7 @@ async function startTurn() {
     await processReviveNextTurn(true); //戦闘終了時は演出skipで蘇生を実行して終了
     return;
   }
+  // ターン開始時処理
   fieldState.turnNum++;
   console.log(`ラウンド${fieldState.turnNum}`);
   const turnNum = fieldState.turnNum;
@@ -8961,7 +8967,7 @@ const monsters = [
         intUp: { strength: 1 },
       },
     },
-    seed: { atk: 45, def: 0, spd: 75, int: 0 },
+    seed: { atk: 55, def: 0, spd: 65, int: 0 },
     ls: { HP: 1 },
     lsTarget: "all",
     AINormalAttack: [3],
@@ -10279,6 +10285,7 @@ function getMonsterAbilities(monsterId) {
           name: "氷晶の加護",
           act: async function (skillUser, counterTarget) {
             applyHeal(skillUser, skillUser.defaultStatus.HP * 0.2);
+            await sleep(300);
             await executeRadiantWave(skillUser);
           },
         },
@@ -22919,6 +22926,7 @@ async function transformTyoma(monster) {
     monster.skill[0] = "滅亡の絶技";
     applyBuff(monster, { slashBreak: { keepOnDeath: true, strength: 2 } });
     displayMessage("＊「さて……  おあそびは  ここまでだな。", "  そろそろ  おわらせよう……。");
+    monster.flags.releaseDreamTransformationTurn = fieldState.turnNum + 1;
   }
   await sleep(400);
 
@@ -23019,6 +23027,7 @@ async function transformTyoma(monster) {
     await sleep(300);
     applyBuff(monster, { elementalShield: { targetElement: "all", remain: damageDealt, unDispellable: true, iconSrc: "elementalShieldAll" } });
     displayMessage(`${monster.name}は`, `${damageDealt}の全属性シールドを得た！`);
+    col(`${monster.name}は ${damageDealt}の全属性シールドを得た！`);
     await sleep(450);
     // 孤高の覇者 みがわり・ゴルアス封じ(変身解除時削除)
     displayMessage(`${monster.name}の特性`, "孤高の覇者 が発動！");
@@ -24834,3 +24843,91 @@ document.getElementById("closeGameRuleButton").addEventListener("click", functio
   document.getElementById("gameRuleOverlay").style.visibility = "hidden";
   document.getElementById("gameRulePopupWindow").style.opacity = "0";
 });
+
+// ドレアム変身解除判定
+async function releaseDreamTransformation() {
+  for (const monster of turnOrder) {
+    // ターン超過時も解除処理
+    if (monster.name !== "殺りくの神ダークドレアム" || monster.flags.isDead || !monster.flags.hasTransformed || monster.flags.releaseDreamTransformationTurn > fieldState.turnNum) {
+      continue;
+    }
+    // 各種初期化
+    displayMessage(`${monster.name}は`, `もとの姿に戻った！`);
+    col(`${monster.name}はもとの姿に戻った！`);
+    delete monster.flags.hasTransformed;
+    monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
+    updateBattleIcons(monster);
+    monster.flags.damageDealt = 0;
+    monster.skill[0] = "滅びの妙技";
+    delete monster.buffs.slashBreak;
+    delete monster.buffs.demonKingBarrier;
+    delete monster.buffs.nonElementalResistance;
+    delete monster.buffs.substituteSeal;
+    delete monster.buffs.stoneBarrier;
+    if (monster.buffs.protection && monster.buffs.protection.divineDispellable && monster.buffs.protection.strength === 0.5) {
+      delete monster.buffs.protection;
+    }
+    updateMonsterBuffsDisplay(monster);
+    await sleep(350);
+
+    // いては処理 一度死亡すると姿は戻るがいてはは発動しない
+    const executingSkill = findSkillByName("いてつくはどう");
+    displaySkillExecutionMessage(monster, executingSkill);
+    await executeSkill(monster, executingSkill, null, true, true); // 状態異常check無視 封じcheck無視
+
+    // 全属性シールド残留時の即死処理 (死亡で解除されるため生存時限定)
+    if (monster.buffs.elementalShield && monster.buffs.elementalShield.targetElement === "all") {
+      delete monster.buffs.elementalShield;
+      const targetDemonKing = [
+        "邪竜神ナドラガ",
+        "真・魔王ザラーム",
+        "支配王レゾム・レザーム",
+        "邪神ニズゼルファ",
+        "闇竜シャムダ",
+        "魔界神マデュラーシャ",
+        "ヒヒュドラード",
+        "魔王ウルノーガ",
+        "冥竜王ヴェルザー",
+        "堕天使エルギオス",
+        "ダグジャガルマ",
+        "暗黒神ラプソーン",
+        "真・異魔神",
+        "真・災厄の王",
+        "ネオ・ドーク",
+        "真・大魔王バーン",
+        "超魔生物ハドラー",
+        "凶帝王エスターク",
+        "ガルマザード",
+        "魔王オルゴ・デミーラ",
+        "魔王オムド・レクス",
+        "創造神マデサゴーラ",
+        "魔壺インヘーラー",
+        "魔神ダークドレアム",
+        "冥獣王ネルゲル",
+        "地獄の帝王エスターク",
+        "大魔王デスタムーア",
+        "闇の大魔王ゾーマ",
+        "大魔王ミルドラース",
+        "魔剣士ピサロ",
+        "バラモスブロス",
+        "破壊神シドー",
+        "竜王",
+      ];
+      await sleep(300);
+      for (const zakiTarget of parties[monster.enemyTeamID]) {
+        if (
+          zakiTarget.name !== "殺りくの神ダークドレアム" &&
+          !zakiTarget.flags.isDead &&
+          !zakiTarget.flags.isZombie &&
+          (zakiTarget.race.includes("超魔王") || targetDemonKing.includes(zakiTarget.name))
+        ) {
+          handleDeath(zakiTarget, false, true, null, true); // isCountDownをtrue
+          displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
+          await checkRecentlyKilledFlagForPoison(zakiTarget);
+        }
+      }
+      updateMonsterBuffsDisplay(monster);
+    }
+    await sleep(300);
+  }
+}
