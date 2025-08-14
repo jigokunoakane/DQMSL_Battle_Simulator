@@ -6019,7 +6019,7 @@ function switchTab(tabNumber) {
     addTabClass(tabNumber);
     disableSeedSelect(false);
     // 性能詳細の表示制御
-    if (["新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム"].includes(selectingParty[currentTab].name)) {
+    if (["新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム", "殺りくの神ダークドレアム"].includes(selectingParty[currentTab].name)) {
       document.getElementById("monsterDescriptionButton").style.display = "inline";
     }
   } else if (tabNumber == 0) {
@@ -6079,7 +6079,7 @@ function disableSeedSelect(boolean) {
 
 document.getElementById("randomParty").addEventListener("click", function () {
   function getRandomUniqueMonsterIds(count) {
-    const excludeNames = ["やきとり", "新生イブール", "強新生アウルート"];
+    const excludeNames = ["やきとり", "新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム"];
     const filteredMonsters = monsters.filter((monster) => !excludeNames.includes(monster.name));
     const randomIds = [];
     while (randomIds.length < count) {
@@ -24822,6 +24822,58 @@ document.getElementById("monsterDescriptionButton").addEventListener("click", fu
 ［既存のとくぎの上方修正］
 ・特技「轟雷滅殺剣」を【マヌーサ無効】【軽減無視】に変更
 ※新生転生前「マジェス・ドレアム」(ランクＳＳ)にも適用`;
+  } else if (monsterName === "殺りくの神ダークドレアム") {
+    div.innerHTML = `殺りくの神ダークドレアム
+
+■特性
+
+・AI3回行動
+
+・魔神のチカラ
+秘めたる+MP回復
+
+・無常の衣
+
+・殺りくの化身
+自分の攻撃時 相手の防御力を半分にして計算する つねにマインドバリア・自然治癒
+
+・悪夢の覚醒
+未覚醒の状態で自分が累計ダメージ3000以上与えると行動後に覚醒する
+覚醒時 3000を超えて与えたダメージぶんの全属性シールドを得る
+
+・無に帰すチカラ
+斬撃 呪文 息攻撃を受けるたび そのラウンドの間 受けた種別に対する無効状態になる
+
+
+■特性 (覚醒)
+
+・斬撃ブレイク
+
+・強者の猶予
+覚醒した次のラウンドの最後に 敵全体の状態変化を解除して 元の姿に戻る
+その際 全属性シールドが壊れていなければ 敵全体の魔王・超魔王を耐性を無視して即死させる
+
+・孤高の覇者
+みがわりの対象にならない アストロン・ゴールドアストロン状態にならない
+
+
+■耐性
+
+メラ  ：無効
+ヒャド：半減
+ギラ  ：無効
+バギ  ：半減
+イオ  ：普通
+デイン：無効
+ドルマ：無効
+毒    ：普通
+眠り  ：無効
+混乱  ：無効
+マヒ  ：無効
+ザキ  ：無効
+マヌーサ：無効
+マホトーン：普通
+息封じ：普通`;
   } else {
     return;
   }
