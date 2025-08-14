@@ -2746,10 +2746,20 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   // 7-4. AI追撃後発動skill (非反撃対象 非断罪対象) executingSkillがnullの場合は実行しない 処理全体の実行前に初回skip確認
   if (!skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && executingSkill) {
     const skillsToExecute = [];
-    // skill本体に依存する追加特技(仮) 反射で状態異常になっても発動 反射死しても使用する模様?   todo: 破壊衝動解除では追加せず、復活後限定
-    if (["昏睡のカギ爪", "殺りくの雷刃"].includes(executingSkill.name)) {
-      skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "破壊衝動の効果により", lastMessage: `もう一度 ${executingSkill.name}を はなった！` });
+    // 殺りくの雷刃の連続push用関数を抽出 そのターンに敵を倒してexecuteNextHitフラグを付与された場合のみ、フラグを削除して実行する 実行中に再度フラグを付与されればそれを繰り返す
+    function pushSatsuriku(skillUser, executingSkill) {
+      if (skillUser.flags.thisTurn.executeNextHit && ["殺りくの雷刃"].includes(executingSkill.name) && skillUser.commandInput !== "skipThisTurn") {
+        delete skillUser.flags.thisTurn.executeNextHit;
+        skillsToExecute.push({ skillInfo: executingSkill, firstMessage: `もう一度 ${executingSkill.name}を はなった！`, lastMessage: "" });
+      }
     }
+    // skill本体に依存する追加特技(仮) 反射で状態異常になっても発動 反射死しても使用する模様?   todo: 破壊衝動解除では追加せず、復活後限定
+    if (["昏睡のカギ爪"].includes(executingSkill.name)) {
+      skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "破壊衝動の効果により", lastMessage: `もう一度 ${executingSkill.name}を はなった！` });
+    } else {
+      pushSatsuriku(skillUser, executingSkill);
+    }
+
     // 錬金依存の追加特技: 追加で咆哮など
     //if (skillUser.gear?.alchemy?.some((alchemy) => alchemy.additionalSkillName === executingSkill.name)) {
     if ((skillUser.gear?.skillAlchemy === executingSkill.name && executingSkill.name === "咆哮") || (executingSkill.name === "凶帝王の双閃" && skillUser.gear?.name === "凶帝王のつるぎ")) {
@@ -2789,6 +2799,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       } else if (skipThisMonsterAction(skillUser)) {
         break; // skip状態の場合は毒や継続を続けて実行
       }
+      pushSatsuriku(skillUser, skillInfo);
     }
   }
 
@@ -3794,7 +3805,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
         handleDeath(zakiTarget, false, isZakiReflection, null);
         if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
-        checkRecentlyKilledFlag(skillUser, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
+        checkRecentlyKilledFlag(skillUser, executingSkill, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
         return;
       } else if (executingSkill.howToCalculate === "none") {
         // ザキ失敗かつダメージなし特技の場合はmiss表示
@@ -3831,12 +3842,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     await processAppliedEffectWave(skillTarget, executingSkill, false);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-    checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
+    checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection);
     // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
     // todo: excludedTargetsを利用するわけではないので、供物内で直接入れれば良い？
     for (const party of parties) {
       for (const monster of party) {
-        checkRecentlyKilledFlag(null, monster, excludedTargets, killedByThisSkill, isReflection);
+        checkRecentlyKilledFlag(null, executingSkill, monster, excludedTargets, killedByThisSkill, isReflection);
       }
     }
     return;
@@ -4016,7 +4027,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-  checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection);
+  checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection);
 }
 
 function calculateDamage(
@@ -5097,7 +5108,7 @@ async function deleteElementalBuffs() {
 }
 
 // recentlyを持っているmonsterをkilledに追加して回収、ついでに反射死判定
-function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killedByThisSkill, isReflection) {
+function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection) {
   if (skillTarget.flags.recentlyKilled) {
     if (!excludedTargets.has(skillTarget)) {
       excludedTargets.add(skillTarget);
@@ -5108,6 +5119,10 @@ function checkRecentlyKilledFlag(skillUser, skillTarget, excludedTargets, killed
         if (!(skillTarget.buffs.revive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
           skillUser.flags.thisTurn.applyDreamEvasion = true;
         }
+      }
+      // 超ドレアム 殺りくの雷刃連続判定
+      if (executingSkill && executingSkill.name === "殺りくの雷刃" && !isReflection) {
+        skillUser.flags.thisTurn.executeNextHit = true;
       }
       // エルギ判定 自分以外の味方のエルギのカウントを増やす
       // 通常ダメージ 供物(ダメージなしact) ザキ 反射でカウント増加 カウント刻印毒継続は対象外
@@ -23032,9 +23047,9 @@ async function transformTyoma(monster) {
     // 孤高の覇者 みがわり・ゴルアス封じ(変身解除時削除)
     displayMessage(`${monster.name}の特性`, "孤高の覇者 が発動！");
     await sleep(200);
-    displayMessage(`${monster.name}は`, "みがわり・石化を ふうじられた！");
     deleteSubstitute(monster);
     applyBuff(monster, { substituteSeal: { keepOnDeath: true }, stoneBarrier: { keepOnDeath: true } });
+    displayMessage(`${monster.name}は`, "みがわり・石化を ふうじられた！");
   }
   await sleep(400);
 }
@@ -24868,7 +24883,7 @@ async function releaseDreamTransformation() {
       delete monster.buffs.protection;
     }
     updateMonsterBuffsDisplay(monster);
-    await sleep(350);
+    await sleep(400);
 
     // いては処理 一度死亡すると姿は戻るがいてはは発動しない
     const executingSkill = findSkillByName("いてつくはどう");
