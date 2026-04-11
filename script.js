@@ -14359,7 +14359,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          // 間隔skip 蘇生成功時に全回復表示
+          // 間隔skip 蘇生成功時のみ全回復表示
           if (await reviveMonster(monster, 1, false, true)) {
             displayDamage(monster, monster.defaultStatus.HP, -1);
           }
@@ -14384,7 +14384,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          // 間隔skip 蘇生成功時に全回復表示
+          // 間隔skip 蘇生成功時のみ全回復表示
           if (await reviveMonster(monster, 1, false, true)) {
             displayDamage(monster, monster.defaultStatus.HP, -1);
           }
@@ -15401,8 +15401,10 @@ const skill = [
     targetTeam: "ally",
     MPcost: 108,
     act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget);
-      applyBuff(skillTarget, { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } });
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget)) {
+        applyBuff(skillTarget, { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } });
+      }
     },
   },
   {
@@ -18981,8 +18983,10 @@ const skill = [
     targetTeam: "ally",
     MPcost: 118,
     act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget);
-      applyBuff(skillTarget, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget)) {
+        applyBuff(skillTarget, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+      }
     },
   },
   {
@@ -19467,14 +19471,16 @@ const skill = [
     targetTeam: "ally",
     MPcost: 58,
     act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget, 0.5);
-      skillTarget.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
-      skillTarget.attribute.additionalEvenTurnBuffs = {
-        ...skillTarget.attribute.additionalEvenTurnBuffs,
-        baiki: { strength: 1 },
-        spdUp: { strength: 1 },
-        intUp: { strength: 1 },
-      };
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget, 0.5)) {
+        skillTarget.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
+        skillTarget.attribute.additionalEvenTurnBuffs = {
+          ...skillTarget.attribute.additionalEvenTurnBuffs,
+          baiki: { strength: 1 },
+          spdUp: { strength: 1 },
+          intUp: { strength: 1 },
+        };
+      }
     },
   },
   {
