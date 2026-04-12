@@ -2754,7 +2754,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       }
     }
     // skill本体に依存する追加特技(仮) 反射で状態異常になっても発動 反射死しても使用する模様?   todo: 破壊衝動解除では追加せず、復活後限定
-    if (["昏睡のカギ爪"].includes(executingSkill.name)) {
+    if (skillUser.flags.revivedByDestructiveImpulse && ["昏睡のカギ爪"].includes(executingSkill.name)) {
       skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "破壊衝動の効果により", lastMessage: `もう一度 ${executingSkill.name}を はなった！` });
     } else {
       pushSatsuriku(skillUser, executingSkill);
@@ -4658,8 +4658,12 @@ function calculateDamage(
   if ((allyLeaderName === "万物の王オルゴ・デミーラ" || allyLeaderName === "剛拳の姫と獅子王" || allyLeaderName === "死を統べる者ネルゲル") && executingSkill.type === "martial") {
     damageModifier += 0.2;
   }
-  // バーバラLS 息up
-  if (allyLeaderName === "天空竜と夢の魔女" && executingSkill.type === "breath") {
+  // バーバラゴアしんLS 息up
+  if ((allyLeaderName === "天空竜と夢の魔女" || allyLeaderName === "ゴア・しんりゅうおう") && executingSkill.type === "breath") {
+    damageModifier += 0.2;
+  }
+  // ゴアしんLS メラup
+  if (allyLeaderName === "ゴア・しんりゅうおう" && executingSkill.element === "fire") {
     damageModifier += 0.2;
   }
   // ネルLS 斬撃up
@@ -6738,6 +6742,35 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: -1, io: 1, light: 1, dark: 0, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ゴア・しんりゅうおう", //44
+    id: "goashin",
+    rank: 10,
+    race: ["???"],
+    weight: 32,
+    status: { HP: 852, MP: 349, atk: 676, def: 504, spd: 532, int: 194 },
+    initialSkill: ["焦熱の儀式", "昏睡のカギ爪", "虚無の剛拳", "体技よそく"],
+    anotherSkills: ["灼熱の息吹"],
+    defaultGear: "kudaki",
+    attribute: {
+      initialBuffs: {
+        breathReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, //いては解除可能
+        danceReflection: { strength: 1, duration: 3, decreaseTurnEnd: true }, //いては解除可能
+        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" },
+        fireBreak: { keepOnDeath: true, strength: 2, iconSrc: "fireBreakBoost" },
+        mindBarrier: { duration: 3 },
+        ritualReflection: { strength: 1.5, duration: 3, unDispellable: true, dispellableByAbnormality: true },
+      },
+      evenTurnBuffs: {
+        powerCharge: { strength: 2 },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: -1, ice: 1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "アレフガルドの伝説", //44
@@ -9990,6 +10023,32 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+    },
+    goashin: {
+      supportAbilities: {
+        1: [
+          {
+            name: "竜王の痕跡炎の使い手付与",
+            disableMessage: true,
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { fireBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "fireBreakBoost" } }); //本来は2R行動後に解除
+                displayMessage(`${monster.name}は`, "炎の使い手状態になった！");
+                await sleep(150);
+              }
+            },
+          },
+        ],
+      },
+      reviveAct: async function (monster, buffName) {
+        if (buffName === "破壊衝動") {
+          monster.flags.revivedByDestructiveImpulse = true;
+          applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
+          if (Math.random() < 0.72) {
+            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" } });
+          }
+        }
       },
     },
     snogu: {
@@ -14260,6 +14319,19 @@ const skill = [
     appliedEffect: { paralyzed: { probability: 0.4 } },
   },
   {
+    name: "焦熱の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 56,
+    weakness18: true,
+    appliedEffect: { reviveBlock: { duration: 1 } },
+  },
+  {
     name: "禁忌の左腕",
     type: "slash",
     howToCalculate: "atk",
@@ -14294,6 +14366,41 @@ const skill = [
         applyBuff(skillTarget, { dotDamage: { strength: 0.2 } });
       }
     },
+  },
+  {
+    name: "昏睡のカギ爪",
+    type: "slash",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 67,
+    appliedEffect: { asleep: { probability: 0.369 }, fear: { probability: 0.203 } },
+  },
+  {
+    name: "虚無の剛拳",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 61,
+    ignoreEvasion: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "灼熱の息吹",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 230,
+    element: "fire",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 55,
   },
   {
     name: "勇者の一撃",
