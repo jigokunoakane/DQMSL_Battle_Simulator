@@ -5533,7 +5533,7 @@ function addSkillOptions() {
     悪魔: ["イオナルーン", "冷酷な氷撃"],
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
     魔獣: ["ラピッドショット", "聖なる息吹"],
-    //自然: ["やすらぎの光", "天光の裁き"],
+    自然: ["やすらぎの光", "天光の裁き"],
     物質: ["れっぱの息吹", "氷撃波"], //"リベンジアーツ"
   }[monster.race[0]];
   const familySkillsAvailableForRankS = {
@@ -8550,6 +8550,30 @@ const monsters = [
     ls: { HP: 1.2, def: 1.2 },
     lsTarget: "自然",
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "オーシャンボーン", //最強 新生HP+50
+    id: "oshabo",
+    rank: 10,
+    race: ["自然"],
+    weight: 25,
+    status: { HP: 929, MP: 379, atk: 521, def: 449, spd: 418, int: 282 },
+    initialSkill: ["におうだち", "だいぼうぎょ", "やすらぎの光", "ザオリク"],
+    anotherSkills: ["みがわり", "しゃくねつ", "白くかがやく光"],
+    defaultGear: "dragonCaneWithoutSpd", //回復20%・体技10%・斬撃10%が適用、におうだち効果アップは非適用
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        metal: { keepOnDeath: true, strength: 0.75 },
+        mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
+        breathReflection: { strength: 1, keepOnDeath: true },
+      },
+    },
+    seed: { atk: 30, def: 45, spd: 10, int: 35 }, // やすらぎの光用
+    ls: { HP: 1.15, def: 1.15 },
+    lsTarget: "自然",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: -1, thunder: 1, wind: 0, io: 0.5, light: 0.5, dark: 1, poisoned: 1, asleep: 0, confused: 1, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1.5, breathSeal: 0 },
   },
   {
     name: "スカルスパイダー",
@@ -15760,6 +15784,16 @@ const skill = [
     MPcost: 124,
   },
   {
+    name: "白くかがやく光",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 245,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 110,
+  },
+  {
     name: "ルカナン",
     type: "spell",
     howToCalculate: "none",
@@ -20577,6 +20611,20 @@ const skill = [
     followingSkill: "光のはどう",
   },
   {
+    name: "やすらぎの光",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 64,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
+      await executeRadiantWave(skillTarget, false, true); // マソも解除
+    },
+  },
+  {
     name: "天の裁き",
     type: "martial",
     howToCalculate: "fix",
@@ -20590,6 +20638,20 @@ const skill = [
       if (Math.random() < 0.83) {
         deleteUnbreakable(skillTarget);
       }
+    },
+  },
+  {
+    name: "天光の裁き",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 145,
+    element: "light",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 72,
+    damageByLevel: true,
+    act: function (skillUser, skillTarget) {
+      deleteUnbreakable(skillTarget);
     },
   },
   {
@@ -21242,6 +21304,7 @@ const gear = [
     initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
     skillAlchemy: "咆哮",
     skillAlchemyStrength: 0.25,
+    healBoost: 1.2,
   },
   {
     name: "しゅくふくの杖", //+10
@@ -21305,7 +21368,7 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
   {
-    name: "獣王グレイトアックス", //+10 回復錬金
+    name: "獣王グレイトアックス", //+10
     id: "ioCounter",
     weight: 5,
     noWeightMonsters: ["獣王クロコダイン"],
