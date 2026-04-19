@@ -2947,7 +2947,8 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     }
     await sleep(300);
     const abilitiesToExecute = [];
-    // 各ability配列の中身を展開して追加
+    // 各ability配列の中身を展開して追加 もともとのcounterAbilitiesが優先されるように順番にpush
+    // 現状additionalCounterAbilities付与特技は、additionalを上書きしている 本来はpushして複数のabilityを保持するべき(天風のたずななどが残らず上書きされてしまう)
     abilitiesToExecute.push(...(monster.abilities.counterAbilities ?? []));
     abilitiesToExecute.push(...(monster.abilities.additionalCounterAbilities ?? []));
     for (const ability of abilitiesToExecute) {
@@ -8552,6 +8553,31 @@ const monsters = [
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "アマカムシカ", //4
+    id: "amakamu",
+    rank: 10,
+    race: ["自然"],
+    weight: 28,
+    status: { HP: 845, MP: 385, atk: 275, def: 618, spd: 383, int: 476 },
+    initialSkill: ["雷鳴の舞踏", "天風の陣", "アイアンゲイザー", "ザオリク"],
+    anotherSkills: ["鮮烈な稲妻"],
+    defaultGear: "platinumShield", //mirudora
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        thunderBreak: { keepOnDeath: true, strength: 1 },
+      },
+      1: {
+        confusionBarrier: { duration: 4, targetType: "ally"},
+        mindBarrier: { duration: 4, targetType: "ally" },
+      },
+    },
+    seed: { atk: 40, def: 80, spd: 0, int: 0 },
+    ls: { HP: 1.35 },
+    lsTarget: "自然",
+    resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "オーシャンボーン", //最強 新生HP+50
     id: "oshabo",
     rank: 10,
@@ -9970,7 +9996,7 @@ function getMonsterAbilities(monsterId) {
             isOneTimeUse: true,
             unavailableIf: (skillUser) => skillUser.buffs.stoned || skillUser.currentStatus.HP / skillUser.defaultStatus.HP > 0.25,
             act: async function (skillUser) {
-              executeRadiantWave(skillUser);
+              await executeRadiantWave(skillUser);
               await executeSkill(skillUser, findSkillByName("魂喰らい"), null, true, true); // 状態異常check無視 封じcheck無視
             },
           },
@@ -11623,6 +11649,62 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    amakamu: {
+      initialAbilities: [
+        {
+          name: "天風のたづな", // 本来反撃特技よりも優先されるが、現状反撃特技を使うとadditionalAbilityが上書きされてしまう
+          disableMessage: true,
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.teamID]) {
+              if (monster.race.includes("自然")) {
+                monster.abilities.additionalCounterAbilities = [
+                  {
+                    name: "天風のたづな",
+                    message: function (skillUser) {
+                      displayMessage("天風のたずなの 効果が発動！");
+                    },
+                    act: async function (skillUser, counterTarget) {
+                      const newBuffs = {};
+                      let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
+                      const deleteKeys = ["slashSeal", "martialSeal", "spellSeal", "breathSeal", "reviveBlock", "healBlock", "fear", "tempted"];
+                      for (const key in skillUser.buffs) {
+                        const value = skillUser.buffs[key];
+                        if (!value.unDispellableByRadiantWave && deleteKeys.includes(key)) {
+                          debuffRemoved = true; // 削除フラグ
+                        } else {
+                          newBuffs[key] = value;
+                        }
+                      }
+                      skillUser.buffs = newBuffs;
+                      if (!debuffRemoved) {
+                        displayMiss(skillUser);
+                      } else {
+                        await updateMonsterBuffsDisplay(skillUser);
+                      }
+                    },
+                  },
+                ];
+              }
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "慈愛の声",
+            act: async function (skillUser) {
+              const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
+              if (aliveAllys.length > 0) {
+                const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
+                applyBuff(randomTarget, { revive: { keepOnDeath: true, strength: 0.5 } });
+                await sleep(100);
+              }
+            },
+          },
+        ],
+      },
     },
     skullspider: {
       initialAbilities: [
@@ -14898,7 +14980,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       delete skillUser.buffs.abanPreemptive;
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
-      executeRadiantWave(skillUser, true);
+      await executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
       skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3, iconSrc: "fireBreakBoost" };
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
@@ -14925,7 +15007,7 @@ const skill = [
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
       displayMessage("＊「いきますよ…！", "  ド・ラ・ゴ・ラ・ム！！");
-      executeRadiantWave(skillUser, true);
+      await executeRadiantWave(skillUser, true);
       skillUser.flags.abanTransformed = true;
       skillUser.buffs.fireBreak = { keepOnDeath: true, strength: 3, iconSrc: "fireBreakBoost" };
       applyBuff(skillUser, { metal: { keepOnDeath: true, strength: 0.33 }, prismVeil: { strength: 2, duration: 2 } });
@@ -19057,8 +19139,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     ignoreSubstitute: true,
-    ignoreEvasion: true,
-    ignoreDazzle: true,
     appliedEffect: { slashSeal: { probability: 0.713 } },
   },
   {
@@ -19073,6 +19153,37 @@ const skill = [
     MPcost: 44,
     ignoreEvasion: true,
     ignoreDazzle: true,
+  },
+  {
+    name: "雷鳴の舞踏",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 138,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 50,
+    RaceBane: ["物質", "悪魔"],
+    RaceBaneValue: 3,
+  },
+  {
+    name: "天風の陣",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 46,
+    isOneTimeUse: true,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.race.includes("自然")) {
+        applyBuff(skillTarget, { martialBarrier: { strength: 2 } });
+        await executeRadiantWave(skillTarget, true);
+      }
+    },
   },
   {
     name: "ヴェノムパニック",
