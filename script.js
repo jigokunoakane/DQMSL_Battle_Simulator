@@ -1488,7 +1488,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     ioResistance: { max: 3, min: -3 },
     lightResistance: { max: 3, min: -3 },
     darkResistance: { max: 3, min: -3 },
-    zakiResistance: { max: 3, min: -3 },
+    zakiResistance: { max: 1, min: -3 },
   };
 
   // Resistance 系バフの場合の属性名
@@ -8528,6 +8528,30 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 1.5, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "カシャル", //4
+    id: "kashal",
+    rank: 10,
+    race: ["自然"],
+    weight: 28,
+    status: { HP: 817, MP: 376, atk: 270, def: 554, spd: 464, int: 504 },
+    initialSkill: ["サンゴの牢獄", "ためらいの水泡", "メゾラゴン", "ザオリク"],
+    anotherSkills: ["ミジカルウェイブ", "テイルフィニッシュ"],
+    defaultGear: "platinumShield",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        iceBreak: { keepOnDeath: true, strength: 1 },
+        paralyzedBreak: { keepOnDeath: true, strength: 1 },
+        protection: { strength: 0.5, duration: 3, noCrimsonMist: true },
+        sacredBarrier: { duration: 1, removeAtTurnStart: true },
+      },
+    },
+    seed: { atk: 0, def: 20, spd: 35, int: 65 },
+    ls: { HP: 1.2, def: 1.2 },
+    lsTarget: "自然",
+    resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "スカルスパイダー",
     id: "skullspider",
     rank: 10,
@@ -11537,6 +11561,45 @@ function getMonsterAbilities(monsterId) {
         },
       ],
     },
+    kashal: {
+      supportAbilities: {
+        1: [
+          {
+            name: "自然衆の神速",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "自然", 5),
+            act: function (skillUser) {
+              applyBuff(skillUser, { preemptiveAction: { duration: 2 } });
+            },
+          },
+        ],
+      },
+      initialAttackAbilities: [
+        {
+          name: "やすらぎの潮付与", //発動タイミング不明、棺桶アイコンなし
+          disableMessage: true,
+          unavailableIf: (skillUser) => parties[skillUser.enemyTeamID].some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "やすらぎの潮")),
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              monster.abilities.additionalDeathAbilities.push({
+                name: "やすらぎの潮", //タッグ変化・リザオは不発動、毒 反射 供物も不明であり不発動とした 
+                message: function (skillUser) {
+                  displayMessage(`${skillUser.name} がチカラつき`, "やすらぎの潮 の効果が発動！");
+                },
+                act: async function (skillUser) {
+                  for (const monster of parties[skillUser.enemyTeamID]) {
+                    if (monster.race.includes("自然")) {
+                      await executeRadiantWave(monster, true); // ミス表示なし
+                      applyBuff(monster, { zakiResistance: { strength: 1, probability: 0.598 } });
+                      await sleep(150);
+                    }
+                  }
+                },
+              });
+            }
+          },
+        },
+      ],
+    },
     skullspider: {
       initialAbilities: [
         {
@@ -11767,7 +11830,7 @@ function getMonsterAbilities(monsterId) {
             name: "死者のまねき",
             act: function (skillUser) {
               for (const monster of parties[skillUser.enemyTeamID]) {
-                applyBuff(monster, { zakiResistance: { strength: -1, iconSrc: "zakiResistancestr-1" } });
+                applyBuff(monster, { zakiResistance: { strength: -1 } });
               }
             },
           },
@@ -18939,6 +19002,45 @@ const skill = [
     },
   },
   {
+    name: "サンゴの牢獄",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 310,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 95,
+    appliedEffect: { paralyzed: { probability: 0.405 }, fear: { probability: 0.285 } },
+  },
+  {
+    name: "ミジカルウェイブ",
+    type: "dance",
+    howToCalculate: "fix",
+    damage: 180,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreSubstitute: true,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    appliedEffect: { slashSeal: { probability: 0.713 } },
+  },
+  {
+    name: "テイルフィニッシュ",
+    type: "martial",
+    howToCalculate: "def",
+    ratio: 0.82,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 44,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+  },
+  {
     name: "ヴェノムパニック",
     type: "martial",
     howToCalculate: "fix",
@@ -19933,6 +20035,20 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       applyBuff(skillTarget, { maso: { probability: 0.3, maxDepth: 3 } });
     },
+  },
+  {
+    name: "ためらいの水泡",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 44,
+    isOneTimeUse: true,
+    order: "preemptive",
+    preemptiveGroup: 7,
+    ignoreSubstitute: true, //反射は可能
+    appliedEffect: { powerWeaken: { strength: 0.5, duration: 2 }, manaReduction: { strength: 0.5, duration: 2 } },
   },
   {
     name: "マ素汚染",
@@ -22166,6 +22282,9 @@ async function updateMonsterBuffsDisplay(monster, isReversed = false) {
       // カウントダウン処理
       const ifUnDispellableByRadiantWave = monster.buffs.countDown.unDispellableByRadiantWave ? "unDispellableByRadiantWave" : "";
       iconSrc = `images/buffIcons/countDown${monster.buffs.countDown.count}${ifUnDispellableByRadiantWave}.png`;
+    } else if (buffKey === "zakiResistance" && monster.buffs.zakiResistance && monster.buffs.zakiResistance.strength < 0) {
+      // ザキ耐性処理
+      iconSrc = "images/buffIcons/zakiResistancestr-1.png";
     } else {
       // 指定以外の場合、keepOnDeath, divineDispellable, unDispellableByRadiantWave, strength の順に確認
       const buffAttributes = ["keepOnDeath", "unDispellable", "divineDispellable", "unDispellableByRadiantWave", "strength"];
