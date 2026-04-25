@@ -4590,6 +4590,14 @@ function calculateDamage(
     if (gearName === "凶帝王のつるぎ" && executingSkill.element === "io") {
       damageModifier += 0.25;
     }
+    // 装備本体 - ミルドラースのローブ
+    if ((gearName === "ミルドラースのローブ体技錬金" || gearName === "ミルドラースのローブ素早さ20%減錬金") && executingSkill.element === "thunder") {
+      damageModifier += 0.25;
+    }
+    // 装備錬金 - ミルドラースのローブ体技錬金
+    if (gearName === "ミルドラースのローブ体技錬金" && executingSkill.type === "martial") {
+      damageModifier += 0.05;
+    }
 
     // 特技錬金の反映
     const skillAlchemyTarget = skillUser.gear.skillAlchemy;
@@ -8561,7 +8569,7 @@ const monsters = [
         mindAndSealBarrier: { keepOnDeath: true },
       },
     },
-    seed: { atk: 20, def: 85, spd: 15, int: 0 },
+    seed: { atk: 20, def: 65, spd: 35, int: 0 }, //アマカムより速く
     ls: { HP: 1.4, def: 1.2 },
     lsTarget: "自然",
     resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
@@ -8623,7 +8631,7 @@ const monsters = [
     status: { HP: 845, MP: 385, atk: 275, def: 618, spd: 383, int: 476 },
     initialSkill: ["雷鳴の舞踏", "天風の陣", "アイアンゲイザー", "ザオリク"],
     anotherSkills: ["鮮烈な稲妻"],
-    defaultGear: "platinumShield", //mirudora
+    defaultGear: "mirudraasRobeSpdMinus",
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -21956,6 +21964,21 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["闇の大魔王ゾーマ"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 58 },
+  },
+  {
+    name: "ミルドラースのローブ体技錬金", //+10 体技5%
+    id: "mirudraasRobeMartial",
+    weight: 5,
+    noWeightMonsters: ["大魔王ミルドラース"],
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 53 },
+  },
+  {
+    name: "ミルドラースのローブ素早さ20%減錬金", //+10 S-20%
+    id: "mirudraasRobeSpdMinus",
+    weight: 5,
+    noWeightMonsters: ["大魔王ミルドラース"],
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 53 },
+    statusMultiplier: { spd: -0.2 },
   },
   {
     name: "輝石のベルト", //+7
