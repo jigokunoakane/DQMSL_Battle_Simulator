@@ -1229,6 +1229,9 @@ async function startTurn() {
     if (turnNum >= 2 && currentAbilities?.abilitiesFromTurn2?.length) {
       allAbilities.push(...currentAbilities.abilitiesFromTurn2);
     }
+    if (turnNum >= 4 && currentAbilities?.abilitiesFromTurn4?.length) {
+      allAbilities.push(...currentAbilities.abilitiesFromTurn4);
+    }
     if (currentAbilities?.nextTurnAbilitiesToExecute?.length) {
       allAbilities.push(...currentAbilities.nextTurnAbilitiesToExecute);
     }
@@ -1539,7 +1542,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "shamuInt", "goddessDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
+  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "shamuInt", "goddessDefUp", "poseidonDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1887,6 +1890,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.defUp;
         delete buffTarget.buffs.heavenlyBreath;
         delete buffTarget.buffs.goddessDefUp;
+        delete buffTarget.buffs.poseidonDefUp;
         delete buffTarget.buffs.castleDefUp;
       }
       //みがわり解除 みがわられは解除しない
@@ -2311,6 +2315,10 @@ function updateCurrentStatus(monster) {
   // ゴッデス
   if (monster.buffs.goddessDefUp) {
     defMultiplier += monster.buffs.goddessDefUp.strength;
+  }
+  // ポセイドン
+  if (monster.buffs.poseidonDefUp) {
+    defMultiplier += monster.buffs.poseidonDefUp.strength;
   }
   // 城
   if (monster.buffs.castleDefUp) {
@@ -2867,7 +2875,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       await sleep(300);
       let healAmount = 50;
       if (monster.buffs.continuousMPHealing.strength) {
-        healAmount = monster.buffs.continuousMPHealing.strength * monster.defaultStatus.HP;
+        healAmount = monster.buffs.continuousMPHealing.strength * monster.defaultStatus.MP;
       }
       applyHeal(monster, healAmount, true);
       await sleep(200);
@@ -3498,7 +3506,7 @@ async function executeSkill(
   let executedSingleSkillTarget = [];
   let MPused = MPusedParameter;
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
-  // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置 トラウマ 邪悪な残り火)
+  // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム 原始の嵐) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置 トラウマ 邪悪な残り火)
   while (
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
@@ -4370,6 +4378,10 @@ function calculateDamage(
   // クリミス
   if (skillTarget.buffs.crimsonMist) {
     damage *= 1 + skillTarget.buffs.crimsonMist.strength;
+  }
+  // ポセイドンダメージ軽減
+  if (skillTarget.buffs.poseidonProtection) {
+    damage *= 1 - skillTarget.buffs.poseidonProtection.strength;
   }
 
   // 特技の種族特効 反射には乗らない
@@ -6156,6 +6168,10 @@ document.getElementById("slimehazama").addEventListener("click", function () {
 
 document.getElementById("materialParty").addEventListener("click", function () {
   selectAllPartyMembers(["matter", "him", "weapon", "castle", "golem"]);
+});
+
+document.getElementById("naturalParty").addEventListener("click", function () {
+  selectAllPartyMembers(["poseidon", "kashal", "summergemma", "amakamu", "oshabo"]);
 });
 
 document.getElementById("zombieParty").addEventListener("click", function () {
@@ -8530,6 +8546,27 @@ const monsters = [
     resistance: { fire: 0.5, ice: 1, thunder: 0.5, wind: 1, io: 0.5, light: 1, dark: 0.5, poisoned: 0, asleep: 1, confused: 1.5, paralyzed: 0.5, zaki: 0.5, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "ポセイドン", //44
+    id: "poseidon",
+    rank: 10,
+    race: ["自然"],
+    weight: 30,
+    status: { HP: 932, MP: 472, atk: 272, def: 625, spd: 306, int: 381 },
+    initialSkill: ["太古の舞踏", "深海のソーマ", "ガイアシールド", "体技よそく"],
+    anotherSkills: ["聖なる防壁"],
+    defaultGear: "holyKingShield",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        mindAndSealBarrier: { keepOnDeath: true },
+      },
+    },
+    seed: { atk: 20, def: 85, spd: 15, int: 0 },
+    ls: { HP: 1.4, def: 1.2 },
+    lsTarget: "自然",
+    resistance: { fire: 0.5, ice: -1, thunder: 1, wind: 0, io: 1, light: 1, dark: 1, poisoned: 1, asleep: 0.5, confused: 0.5, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "カシャル", //4
     id: "kashal",
     rank: 10,
@@ -8573,7 +8610,7 @@ const monsters = [
       },
     },
     seed: { atk: 30, def: 25, spd: 10, int: 55 },
-    ls: { MP: 1 },
+    ls: { HP: 1 },
     lsTarget: "all",
     resistance: { fire: 0, ice: 0, thunder: 0.5, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0, confused: 1, paralyzed: 1, zaki: 1, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
@@ -8597,7 +8634,7 @@ const monsters = [
         mindBarrier: { duration: 4, targetType: "ally" },
       },
     },
-    seed: { atk: 50, def: 60, spd: 10, int: 0 },
+    seed: { atk: 40, def: 80, spd: 0, int: 0 }, //S20%減でポセより遅くするためspd0（HPは損）
     ls: { HP: 1.35 },
     lsTarget: "自然",
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
@@ -11635,6 +11672,109 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    poseidon: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "あまつゆのカーテン",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  applyBuff(monster, { slashBarrier: { strength: 1 } });
+                  await sleep(150);
+                  applyBuff(monster, { continuousMPHealing: { strength: 0.15, removeAtTurnStart: true, duration: 1 } }); //Lv100: 67,69/490 61,64/432（実はLv依存・Lv20:4%前後）
+                }
+              }
+            },
+          },
+        ],
+        1: [
+          {
+            name: "原始の活力",
+            disableMessage: true,
+            unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "原始の活力"),
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  monster.abilities.additionalAfterActionAbilities.push({
+                    name: "原始の活力発動",
+                    message: function (skillUser) {
+                      displayMessage("原始の活力の 効果が発動！");
+                    },
+                    unavailableIf: (skillUser, executingSkill, executedSkills) => {
+                      // ポセが死亡状態でも発動
+                      // 対象外：供物, 正体をあらわす, MP回復, 光のはどう
+                      if (!executingSkill) {
+                        return true;
+                      } else if (executingSkill.targetType === "dead" || executingSkill.isHealSkill || ["再召喚の儀", "六芒魔法陣", "冥府の邪法", "亡者の儀式", "オーバーホール", "防衛司令", "リザオラル", "ひかりのたま"].includes(executingSkill.name)) {
+                        return false;
+                      } else {
+                        return true;
+                      }
+                    },
+                    act: async function (skillUser, executingSkill) {
+                      for (const monster of parties[skillUser.teamID]) {
+                        applyBuff(monster, { defUp: { strength: 1 } });
+                      }
+                    },
+                  });
+                }
+              }
+            },
+          },
+          {
+            name: "わだつみの庇護",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  applyBuff(monster, { poseidonProtection: { strength: 0.1, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } });
+                }
+              }
+            },
+          },
+        ],
+        2: [
+          {
+            name: "わだつみの庇護",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  applyBuff(monster, { poseidonProtection: { strength: 0.2, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } });
+                }
+              }
+            },
+          },
+        ],
+        permanentAbilities: [
+          {
+            name: "一族のめぐみ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  const buffStrength = {
+                    1: 0.05,
+                    2: 0.1,
+                    3: 0.2,
+                  }[fieldState.turnNum] || 1;
+                  applyBuff(monster, { poseidonDefUp: { strength: buffStrength, duration: 3 } });
+                }
+              }
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        abilitiesFromTurn4: [
+          {
+            name: "原始の嵐",
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "自然", 5),
+            act: async function (skillUser) {
+              await executeSkill(skillUser, findSkillByName("原始の嵐"), null, true, true); // 状態異常check無視 封じcheck無視
+            },
+          },
+        ],
+      },
     },
     kashal: {
       supportAbilities: {
@@ -15684,6 +15824,21 @@ const skill = [
     description2: "敵味方全体の　攻撃力を2段階上げ　防御力を2段階下げる",
   },
   {
+    name: "聖なる防壁",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 54,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { sacredBarrier: {} },
+    act: async function (skillUser, skillTarget) {
+      await executeRadiantWave(skillTarget, true, true); // マソも解除
+    },
+  },
+  {
     name: "神獣王の防壁",
     type: "martial",
     howToCalculate: "none",
@@ -15734,6 +15889,21 @@ const skill = [
     },
   },
   {
+    name: "深海のソーマ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 113,
+    act: async function (skillUser, skillTarget) {
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget)) {
+        applyBuff(skillTarget, { defUp: { strength: 2 } });
+      }
+    },
+  },
+  {
     name: "とこなつのひやく",
     type: "martial",
     howToCalculate: "none",
@@ -15759,6 +15929,7 @@ const skill = [
     hitNum: 4,
     MPcost: 56,
     ignoreEvasion: true,
+    ignoreDazzle: true, //推定
     criticalHitProbability: 0,
     RaceBane: ["???"],
     RaceBaneValue: 2,
@@ -18521,6 +18692,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 33,
     ignoreEvasion: true,
+    ignoreDazzle: true,
   },
   {
     name: "アイアンロンド",
@@ -18912,6 +19084,23 @@ const skill = [
     appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
   },
   {
+    name: "ガイアシールド",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 84,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    isOneTimeUse: true,
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.race.includes("自然")) {
+        applyBuff(skillTarget, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
+      }
+    },
+  },
+  {
     name: "報復の大嵐",
     type: "spell",
     howToCalculate: "int",
@@ -19195,6 +19384,20 @@ const skill = [
     },
   },
   {
+    name: "太古の舞踏",
+    type: "dance",
+    howToCalculate: "def",
+    ratio: 1.05,
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 65,
+    ignoreEvasion: true,
+    ignoreDazzle: true,
+    criticalHitProbability: 0,
+    appliedEffect: "divineWave",
+  },
+  {
     name: "サンゴの牢獄",
     type: "martial",
     howToCalculate: "fix",
@@ -19230,6 +19433,7 @@ const skill = [
     MPcost: 44,
     ignoreEvasion: true,
     ignoreDazzle: true,
+    criticalHitProbability: 0, //推定
   },
   {
     name: "グレイシャルサマー",
@@ -20403,6 +20607,21 @@ const skill = [
       3: 2.4,
       4: 2.6,
     },
+  },
+  {
+    name: "原始の嵐",
+    type: "notskill",
+    howToCalculate: "fix",
+    damage: 80,
+    element: "thunder",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 0,
+    ignoreReflection: true,
+    ignoreTypeEvasion: true,
+    ignorePowerCharge: true,
+    ignoreBarrier: true,
   },
   {
     name: "あらしの乱舞",
@@ -23084,7 +23303,7 @@ function hasEnoughMpForSkill(skillUser, executingSkill) {
 
 // 基本的に封じは有効: AI後追加skill 自動発動skillの一部(超はどうほう) 反撃系全て 竜の心臓 涼風(どちらかでも封じ状態ならば両方ミス)
 // 封じ有効なもののうち、一部はskillではなくabilityのunavailableIfで指定: しのルーレット 極天地(どちらかでも封じ状態ならば両方ミス)
-// 封じ無視 引数指定: 自動発動skillの一部(真いては 防衛指令 アスゼロ? 堕天使? ブレイクシステム?) 一応死亡時(起爆装置 トラウマ 邪悪な残り火?) オーブのチカラ
+// 封じ無視 引数指定: 自動発動skillの一部(真いては 防衛指令 アスゼロ? 堕天使? ブレイクシステム? 原始の嵐?) 一応死亡時(起爆装置 トラウマ 邪悪な残り火?) オーブのチカラ
 // 封じ無視 skipSkillSealCheckに直接指定: AI後追加skill(教団の光) 勇者の家庭教師
 
 function isSkillSealed(skillUser, executingSkill, displaySealedMessage = false) {
@@ -23315,6 +23534,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       message: "メラ系のダメージが あがった！",
     },
     goddessDefUp: {
+      start: `${buffTarget.name}の`,
+      message: "防御力が あがった！",
+    },
+    poseidonDefUp: {
       start: `${buffTarget.name}の`,
       message: "防御力が あがった！",
     },
