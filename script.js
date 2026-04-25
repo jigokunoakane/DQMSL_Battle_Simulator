@@ -4193,6 +4193,7 @@ function calculateDamage(
       "アルマゲスト",
       "報復の大嵐",
       "クラウンスパーク",
+      "グレイシャルサマー",
       "インパクトキャノン",
     ];
     if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name) && !isSimulatedCalculation) {
@@ -5660,7 +5661,7 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加 (狭間を除く)
-    const noFamilySkillMonsters = ["ルバンカ", "降臨しんりゅう"];
+    const noFamilySkillMonsters = ["ルバンカ", "降臨しんりゅう", "常夏少女ジェマ"];
     if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) && !noFamilySkillMonsters.includes(monster.name)) {
       const familySkillsToUse = [];
       if (monster.rank === 10 && familySkills) {
@@ -5697,7 +5698,7 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    const noSuperOptMonsters = ["氷炎の化身", "降臨しんりゅう"];
+    const noSuperOptMonsters = ["氷炎の化身", "降臨しんりゅう", "常夏少女ジェマ"];
     if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && monster.rank > 7) {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
@@ -8293,7 +8294,7 @@ const monsters = [
     weight: 30,
     status: { HP: 298, MP: 521, atk: 325, def: 889, spd: 502, int: 542 },
     initialSkill: ["キングストーム", "メタ・マダンテ", "ベホマラー", "ダメージバリア"],
-    anotherSkills: ["ブレードターン", "苛烈な暴風", "みがわり"],
+    anotherSkills: ["ブレードターン", "クラウンスパーク", "苛烈な暴風", "みがわり"],
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
@@ -8547,10 +8548,34 @@ const monsters = [
         sacredBarrier: { duration: 1, removeAtTurnStart: true },
       },
     },
-    seed: { atk: 0, def: 20, spd: 35, int: 65 },
+    seed: { atk: 0, def: 25, spd: 30, int: 65 },
     ls: { HP: 1.2, def: 1.2 },
     lsTarget: "自然",
     resistance: { fire: 0.5, ice: 0, thunder: 1, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0.5, confused: 0, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "常夏少女ジェマ", //44
+    id: "summergemma",
+    rank: 10,
+    race: ["自然"],
+    weight: 20,
+    status: { HP: 829, MP: 349, atk: 258, def: 423, spd: 470, int: 469 },
+    initialSkill: ["グレイシャルサマー", "とこなつの守護", "とこなつのひやく", "斬撃よそく"],
+    anotherSkills: ["やすらぎのひざし", "とこなつのワルツ", "タップダンス", "マジックバリア", "フバーハ"],
+    defaultGear: "familyNailRadiantWave",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        spellBarrier: { strength: 2 },
+      },
+      permanentBuffs: {
+        mindAndSealBarrier: { divineDispellable: true, duration: 3, probability: 0.25, noMissDisplay: true },
+      },
+    },
+    seed: { atk: 30, def: 25, spd: 10, int: 55 },
+    ls: { MP: 1 },
+    lsTarget: "all",
+    resistance: { fire: 0, ice: 0, thunder: 0.5, wind: 1, io: 1, light: 0.5, dark: 1, poisoned: 1, asleep: 0, confused: 1, paralyzed: 1, zaki: 1, dazzle: 1, spellSeal: 0.5, breathSeal: 1 },
   },
   {
     name: "アマカムシカ", //4
@@ -8572,7 +8597,7 @@ const monsters = [
         mindBarrier: { duration: 4, targetType: "ally" },
       },
     },
-    seed: { atk: 40, def: 80, spd: 0, int: 0 },
+    seed: { atk: 50, def: 60, spd: 10, int: 0 },
     ls: { HP: 1.35 },
     lsTarget: "自然",
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
@@ -8595,7 +8620,7 @@ const monsters = [
         breathReflection: { strength: 1, keepOnDeath: true },
       },
     },
-    seed: { atk: 30, def: 45, spd: 10, int: 35 }, // やすらぎの光用
+    seed: { atk: 50, def: 60, spd: 10, int: 0 }, // やすらぎの光用に30,45,10,35もありか?
     ls: { HP: 1.15, def: 1.15 },
     lsTarget: "自然",
     AINormalAttack: [2],
@@ -9341,7 +9366,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+              applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
             }
           },
         },
@@ -9409,7 +9434,7 @@ function getMonsterAbilities(monsterId) {
           },
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
-              applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+              applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
             }
           },
         },
@@ -11270,7 +11295,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("スライム")) {
-                applyBuff(monster, { continuousHealing: { removeAtTurnStart: true, duration: 3 } });
+                applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
               }
             }
           },
@@ -11649,6 +11674,31 @@ function getMonsterAbilities(monsterId) {
           },
         },
       ],
+    },
+    summergemma: {
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "夕涼み",
+            act: async function (skillUser) {
+              applyBuff(skillUser, { intUp: { strength: 1 } });
+              applyHeal(skillUser, 55, true); // maxMP395・回復20錬金状態で63 64 66 69 69から逆算
+            },
+          },
+        ],
+        permanentAbilities: [
+          {
+            name: "自然系のみんなにベホイミ",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  executeHealSkill(skillUser, monster, 1, 90, 400, 248, 1); //ベホイミ+0相当 星4・回復20錬金で281 285 287 291 297 299 311から逆算
+                }
+              }
+            },
+          },
+        ],
+      },
     },
     amakamu: {
       initialAbilities: [
@@ -15684,6 +15734,21 @@ const skill = [
     },
   },
   {
+    name: "とこなつのひやく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 108,
+    act: async function (skillUser, skillTarget) {
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget)) {
+        applyBuff(skillTarget, { defUp: { strength: 1 }, martialBarrier: { strength: 1 }, breathBarrier: { strength: 1 } });
+      }
+    },
+  },
+  {
     name: "聖なる流星",
     type: "martial",
     howToCalculate: "def",
@@ -17665,6 +17730,18 @@ const skill = [
     appliedEffect: { protection: { divineDispellable: true, strength: 0.34, duration: 1, removeAtTurnStart: true, iconSrc: "protectiondivineDispellablestr0.34" } },
   },
   {
+    name: "とこなつの守護",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 104,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true } },
+  },
+  {
     name: "巨岩投げ",
     type: "martial",
     howToCalculate: "fix",
@@ -19153,6 +19230,54 @@ const skill = [
     MPcost: 44,
     ignoreEvasion: true,
     ignoreDazzle: true,
+  },
+  {
+    name: "グレイシャルサマー",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 276,
+    skillPlus: 1.09,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4, //todo: 3-4
+    MPcost: 38,
+    appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
+  },
+  {
+    name: "クラウンスパーク",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 276,
+    skillPlus: 1.09,
+    element: "light",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4, //todo: 3-4
+    MPcost: 38,
+    appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
+  },
+  {
+    name: "とこなつのワルツ",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 200,
+    minIntDamage: 130,
+    maxInt: 1000,
+    maxIntDamage: 280,
+    skillPlus: 1.09,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 33,
+    appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
   },
   {
     name: "雷鳴の舞踏",
@@ -20733,6 +20858,20 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
       await executeRadiantWave(skillTarget, false, true); // マソも解除
+    },
+  },
+  {
+    name: "やすらぎのひざし",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 70,
+    isHealSkill: true,
+    appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // いやしの雨と同値、+0で275、+3で318
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 200, 96, 500, 240, 1.15);
     },
   },
   {
@@ -23591,7 +23730,7 @@ async function applyDragonPreemptiveAction(skillUser, executingSkill) {
 async function executeContinuousHealing(monster) {
   if (monster.buffs.continuousHealing) {
     await sleep(200);
-    applyHeal(monster, 275);
+    applyHeal(monster, monster.buffs.continuousHealing.strength);
     await sleep(200);
   }
 }
