@@ -19870,8 +19870,6 @@ const skill = [
     hitNum: 5,
     MPcost: 48,
     zakiProbability: 0.41,
-    description2: "ランダムに5回　イオ系の呪文攻撃",
-    description3: "確率で即死させる",
   },
   {
     name: "亡者の儀式",
@@ -24919,11 +24917,10 @@ function createSDappliedEffect(skillInfo) {
       } else {
         skillDescriptionText += "命中時　くじけぬ心を解除する　"; // ぶちのめす, 真カラミは同時にappliedEffectもあるが表示省略
       }
+    } else if (skillInfo.zakiProbability) {
+      skillDescriptionText += "確率で即死させる　";
     }
 
-    if (skillInfo.RaceBane) {
-      skillDescriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
-    }
     // HP割合依存
     if (skillInfo.damageByHpPercent) {
       skillDescriptionText += "自分の残りHPが多いほど　威力大　";
@@ -24932,38 +24929,35 @@ function createSDappliedEffect(skillInfo) {
     if (skillInfo.lowHpDamageMultiplier) {
       skillDescriptionText += "自分の残りHPが少ないほど　威力大　";
     }
+    // 種族特効
+    if (skillInfo.RaceBane) {
+      skillDescriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
+    }
+    // みがわり特効
+    if (skillInfo.substituteBreaker) {
+      skillDescriptionText += `みがわり状態の敵に　威力${skillInfo.substituteBreaker}倍　`;
+    }
     // 状態異常特効・マ素特効
-    // 倍率ごとに状態名をまとめるオブジェクト
+    // 1. データの集約
     const multiplierGroups = {};
-    // 1. abnormalityMultiplier の処理
     if (skillInfo.abnormalityMultiplier) {
       Object.entries(skillInfo.abnormalityMultiplier).forEach(([key, mult]) => {
-        // 共通マッピングから名称取得（なければキー名をそのまま使用）
-        let name = abnormalityBuffNameList[key] || key;
-        // 威力倍率をキーにして配列に格納
-        if (!multiplierGroups[mult]) multiplierGroups[mult] = [];
-        multiplierGroups[mult].push(name);
+        (multiplierGroups[mult] ??= []).push(abnormalityBuffNameList[key] || key);
       });
     }
-    // 2. masoMultiplier の処理（レベル1の倍率を使用）
-    if (skillInfo.masoMultiplier && skillInfo.masoMultiplier[1]) {
-      const masoMult = skillInfo.masoMultiplier[1];
-      if (!multiplierGroups[masoMult]) multiplierGroups[masoMult] = [];
-      multiplierGroups[masoMult].push("マ素");
+    if (skillInfo.masoMultiplier?.[1]) {
+      (multiplierGroups[skillInfo.masoMultiplier[1]] ??= []).push("マ素");
     }
-    // 3. テキストの組み立てと追記（「さらに」の判定付き）
-    Object.entries(multiplierGroups).forEach(([mult, names]) => {
-      const uniqueNames = Array.from(new Set(names));
-      const newDescription = `${uniqueNames.join("・")}状態の敵に 威力${mult}倍 `;
-
-      // 末尾が「倍」で終わっているかチェック（トリムして末尾1文字を確認）
-      // ※「威力1.5倍 」のように末尾にスペースがあっても判定できるように trim() を使用
-      if (skillDescriptionText.trim().endsWith("倍")) {
-        skillDescriptionText += "さらに " + newDescription;
-      } else {
-        skillDescriptionText += newDescription;
-      }
-    });
+    // 2. 追加するテキストの配列を作成
+    const additions = Object.entries(multiplierGroups).map(([mult, names]) => 
+      `${[...new Set(names)].join("・")}状態の敵に 威力${mult}倍 `
+    );
+    // 3. 「さらに」の判定と結合
+    // 直前が"倍"で終わる場合だけ先頭に「さらに 」を付与
+    if (additions.length > 0 && skillDescriptionText.trim().endsWith("倍")) {
+      additions[0] = "さらに " + additions[0];
+    }
+    skillDescriptionText += additions.join("");
   } else {
     // ダメージなしの場合
     if (appliedEffectText) {
