@@ -3884,7 +3884,16 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (executingSkill.appliedEffect && executingSkill.appliedEffect !== "radiantWave" && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
       applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection, false, isDamageExisting);
     }
-    //act処理と、barおよびバフ表示更新
+    // くじけぬ解除処理を行い、バフ表示を更新
+    if (executingSkill.deleteUnbreakableProbability) {
+      if (Math.random() < executingSkill.deleteUnbreakableProbability) {
+          if (!buffTarget.flags.isDead && !buffTarget.flags.isZombie) {
+           delete buffTarget.buffs.isUnbreakable;
+        }
+        await updateMonsterBuffsDisplay(buffTarget);
+      }
+    }
+    // act処理を行い、barとバフ表示を更新
     if (executingSkill.act) {
       await executingSkill.act(skillUser, buffTarget);
       updateCurrentStatus(skillUser);
@@ -12555,6 +12564,7 @@ const skill = [
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     zakiProbability: 0.78,
     absorptionRatio: 0.5,
+    deleteUnbreakableProbability: 1, //処理としてはactと同じ、分離
     act: function (skillUser, skillTarget) {
       console.log("hoge");
     },
@@ -12756,9 +12766,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "防御力依存攻撃",
@@ -12901,9 +12909,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 96,
     followingSkill: "涼風一陣後半",
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     description1: "敵全体に【みかわし不可】【マヌーサ無効】でヒャド系体技",
     description2: "その後　敵全体に【軽減無視】で無属性息　どちらか命中時",
     description3: "くじけぬ心解除　後半はドラゴン系の味方が多いほど威力大",
@@ -12919,9 +12925,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     ignoreProtection: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "神楽の術",
@@ -13533,9 +13537,7 @@ const skill = [
     hitNum: 6,
     MPcost: 56,
     ignoreEvasion: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     abnormalityMultiplier: function (skillUser, skillTarget) {
       if (skillTarget.buffs.fear || skillTarget.buffs.tempted || skillTarget.buffs.sealed || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
         return 1.5;
@@ -13899,9 +13901,7 @@ const skill = [
     specialMessage: function (skillUserName, skillName) {
       displayMessage(`${skillUserName}の 反撃！`);
     },
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "グレイトアックス反撃",
@@ -13933,9 +13933,7 @@ const skill = [
     hitNum: 5,
     MPcost: 65,
     appliedEffect: "disruptiveWave",
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "絶望の天舞",
@@ -13948,9 +13946,7 @@ const skill = [
     hitNum: 6,
     MPcost: 75,
     appliedEffect: "divineWave",
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "パニッシュスパーク",
@@ -14188,9 +14184,7 @@ const skill = [
     MPcost: 38,
     ignoreEvasion: true,
     ignoreSubstitute: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "ひかりのたま",
@@ -14297,9 +14291,7 @@ const skill = [
     ignoreReflection: true,
     RaceBane: ["???"],
     RaceBaneValue: 3,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "ダークミナデイン",
@@ -14508,9 +14500,7 @@ const skill = [
     ignoreBarrier: true,
     zakiProbability: 1,
     appliedEffect: { reviveBlock: { duration: 1 } },
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     absorptionRatio: 0.5,
     RaceBane: ["超伝説"],
     RaceBaneValue: 2,
@@ -15082,9 +15072,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 108,
     ignoreReflection: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "クロスレジェンド",
@@ -15341,9 +15329,7 @@ const skill = [
     MPcost: 53,
     ignoreEvasion: true,
     criticalHitProbability: 0,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "王の竜牙",
@@ -15357,9 +15343,7 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true,
     criticalHitProbability: 0,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "覇者の竜牙",
@@ -15373,9 +15357,7 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true,
     criticalHitProbability: 1,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     description2: "敵1体に　攻撃力依存で　無属性の斬撃攻撃",
     description3: "この攻撃は必ず会心の一撃になる　命中時　くじけぬ心解除", //spaceなし
   },
@@ -15629,9 +15611,7 @@ const skill = [
     ignoreSubstitute: true,
     ignoreDazzle: true,
     appliedEffect: { kiganLevel: { keepOnDeath: true, strength: 2 } },
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     followingSkill: "真・カラミティエンド後半",
     description1: "【みかわし不可】【マヌーサ無効】【みがわり無視】",
     description2: "【反射無視】敵1体の　鬼眼レベルを2上げ　くじけぬ心解除",
@@ -15711,9 +15691,7 @@ const skill = [
     MPcost: 0,
     isOneTimeUse: true,
     ignoreReflection: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     description1: "【戦闘中1回】【アンカー】【みかわし不可】",
     description2: "【マヌーサ無効】【反射無視】敵全体に　無属性の体技攻撃",
     description3: "命中時　くじけぬ心解除　最後の行動なら　威力2倍",
@@ -16377,9 +16355,7 @@ const skill = [
     RaceBaneValue: 0.333,
     ignoreReflection: true,
     damageByLevel: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "爆炎の儀式",
@@ -16512,9 +16488,7 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     followingSkill: "必殺の双撃後半",
   },
   {
@@ -16529,9 +16503,7 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "帝王のかまえ",
@@ -17044,9 +17016,7 @@ const skill = [
     MPcost: 68,
     hitNum: 3,
     ignoreReflection: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "神速メラガイアー",
@@ -17239,9 +17209,7 @@ const skill = [
     MPcost: 47,
     RaceBane: ["???"],
     RaceBaneValue: 3,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "陰惨な暗闇",
@@ -17598,9 +17566,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 45,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "キャンセルステップ",
@@ -18461,9 +18427,7 @@ const skill = [
     hitNum: 6,
     MPcost: 48,
     ignoreEvasion: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "超こうねつガス",
@@ -19056,9 +19020,7 @@ const skill = [
     hitNum: 4,
     MPcost: 55,
     appliedEffect: { defUp: { strength: -1, probability: 0.3 } },
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
     description1: "ランダムに4回　攻撃力依存で　無属性の体技攻撃",
     description2: "命中時　くじけぬ心を解除し　確率で防御力を1段階下げる",
   },
@@ -21114,11 +21076,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 62,
     damageByLevel: true,
-    act: function (skillUser, skillTarget) {
-      if (Math.random() < 0.83) {
-        deleteUnbreakable(skillTarget);
-      }
-    },
+    deleteUnbreakableProbability: 0.83,
   },
   {
     name: "天光の裁き",
@@ -21130,9 +21088,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 72,
     damageByLevel: true,
-    act: function (skillUser, skillTarget) {
-      deleteUnbreakable(skillTarget);
-    },
+    deleteUnbreakableProbability: 1,
   },
   {
     name: "しゃくねつ",
@@ -24131,12 +24087,6 @@ function ascension(monster, ignoreUnAscensionable = false) {
   document.getElementById(monster.iconElementId).parentNode.classList.remove("recede");
 }
 
-function deleteUnbreakable(skillTarget) {
-  if (!skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
-    delete skillTarget.buffs.isUnbreakable;
-  }
-}
-
 function showCooperationEffect(currentTeamID, cooperationAmount) {
   const cooperationDisplayContainer = document.getElementById("cooperationDisplayContainer");
   const cooperationAmountSpan = document.getElementById("cooperationAmount");
@@ -24971,17 +24921,15 @@ function createSDappliedEffect(skillInfo) {
       skillDescriptionText += "命中時　状態変化・くじけぬ心解除　";
     } else if (skillInfo.name === "絶望の天舞") {
       skillDescriptionText += "命中時　状態変化解除（上位効果）・くじけぬ心解除　";
-    } else if (skillInfo.name === "天の裁き") {
-      skillDescriptionText += "命中時　確率でくじけぬ心を解除する　";
     } else if (skillInfo.name === "ほとばしる暗闇" || skillInfo.name === "すさまじいオーラ") {
       skillDescriptionText += "命中時　状態変化・ため状態を解除する　";
     } else if (appliedEffectText) {
       skillDescriptionText += `命中時　${appliedEffectText}`;
-    } else if (skillInfo.act) {
-      const expectedAct = "function(skillUser,skillTarget){deleteUnbreakable(skillTarget);}"; //ぶちのめす 真カラミは同時にappliedありだが省略
-      const actString = skillInfo.act.toString().replace(/\s/g, "");
-      if (actString === expectedAct) {
-        skillDescriptionText += "命中時　くじけぬ心を解除する　";
+    } else if (skillInfo.deleteUnbreakableProbability) {
+      if (skillInfo.deleteUnbreakableProbability < 1) {
+        skillDescriptionText += "命中時　確率でくじけぬ心を解除する　";
+      } else {
+        skillDescriptionText += "命中時　くじけぬ心を解除する　"; // ぶちのめす, 真カラミは同時にappliedEffectもあるが表示省略
       }
     }
 
