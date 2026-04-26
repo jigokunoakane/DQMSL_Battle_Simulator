@@ -4270,7 +4270,14 @@ function calculateDamage(
   }
   // skill特有の特殊計算 状態異常特効
   if (executingSkill.abnormalityMultiplier) {
-    abnormalityDamageMultiplier = executingSkill.abnormalityMultiplier(skillUser, skillTarget) || 1;
+    const mults = executingSkill.abnormalityMultiplier;
+    const targetBuffs = skillTarget.buffs;
+    for (const id in mults) {
+      // ターゲットがバフを持っており、かつ現在の最大値より大きい場合のみ更新
+      if (targetBuffs[id] && mults[id] > abnormalityDamageMultiplier) {
+        abnormalityDamageMultiplier = mults[id];
+      }
+    }
   }
   // どちらか高い方を適用
   damage *= Math.max(masoDamageMultiplier, abnormalityDamageMultiplier);
@@ -12535,7 +12542,7 @@ const skill = [
     skipAbnormalityCheck: true, // deleted 引数でも指定可能なため 状態異常check無効
     skipSkillSealCheck: true, // 封じ無視 引数ではなくskillで直接指定するもの(教団の光 勇者の家庭教師)
     weakness18: true,
-    criticalHitProbability: 1, //noSpellSurgeはリスト管理
+    criticalHitProbability: 1, //noSpellSurgeはリスト管理 def依存のマヌーサみかわし無視は確定で0
     missProbability: 0.3,
     RaceBane: ["スライム", "ドラゴン"],
     RaceBaneValue: 3,
@@ -12581,8 +12588,10 @@ const skill = [
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
       return 2; //初期値は1
     },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      return 2; //初期値は1 状態異常特効系 マソと競合
+    abnormalityMultiplier: { //初期値は1 状態異常特効系 マソと競合
+      poisoned: 2.5,
+      asleep: 2.5,
+      paralyzed: 2.5
     },
     masoMultiplier: {
       1: 2,
@@ -12701,10 +12710,10 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
-        return 2.5;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2.5,
+      asleep: 2.5,
+      paralyzed: 2.5
     },
     masoMultiplier: {
       1: 2.5,
@@ -12837,11 +12846,9 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 0,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.statusLock) {
-        return 2;
-      }
-    },
+    abnormalityMultiplier: {
+      statusLock: 2,
+    },    
   },
   {
     name: "ぼうぎょ",
@@ -13538,11 +13545,13 @@ const skill = [
     MPcost: 56,
     ignoreEvasion: true,
     deleteUnbreakableProbability: 1,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.fear || skillTarget.buffs.tempted || skillTarget.buffs.sealed || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
-        return 1.5;
-      }
-    },
+    abnormalityMultiplier: {
+      fear: 1.5,
+      tempted: 1.5,
+      sealed: 1.5,
+      asleep: 1.5,
+      paralyzed: 1.5
+    }
   },
   {
     name: "アバンストラッシュ",
@@ -15569,10 +15578,8 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 50,
     ignoreProtection: true,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.kiganLevel) {
-        return 2;
-      }
+    abnormalityMultiplier:  {
+      kiganLevel: 2,
     },
     description2: "敵全体に　メラ系の呪文攻撃",
     description3: "鬼眼レベルが1以上の敵に　威力2倍",
@@ -15592,11 +15599,9 @@ const skill = [
     MPcost: 0,
     ignoreProtection: true,
     ignoreSubstitute: true,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.kiganLevel) {
-        return 2;
-      }
-    },
+    abnormalityMultiplier: {
+      kiganLevel: 2
+    }
   },
   {
     name: "真・カラミティエンド",
@@ -15630,11 +15635,9 @@ const skill = [
     ignoreEvasion: true,
     ignoreSubstitute: true,
     ignoreDazzle: true,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.healBlock) {
-        return 2;
-      }
-    },
+    abnormalityMultiplier: {
+      healBlock: 2
+    }
   },
   {
     name: "極・天地魔闘の構え",
@@ -16546,7 +16549,7 @@ const skill = [
     },
     description1: "【戦闘中1回】【先制】4ターンの間",
     description2: "自分への　斬撃・呪文攻撃を　威力を2倍にして",
-    description3: "攻はね返す状態にする　次のラウンド　こうどうはやいになる",
+    description3: "はね返す状態にする　次のラウンド　こうどうはやいになる",
   },
   {
     name: "体砕きの斬舞",
@@ -19280,10 +19283,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 39,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.paralyzed) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      paralyzed: 2
     },
     masoMultiplier: {
       1: 2,
@@ -19304,10 +19305,9 @@ const skill = [
     MPcost: 45,
     order: "preemptive",
     preemptiveGroup: 8,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
-        return 3;
-      }
+    abnormalityMultiplier: {
+      poisoned: 3,
+      paralyzed: 3
     },
     masoMultiplier: {
       1: 3,
@@ -19586,10 +19586,10 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 4,
     MPcost: 48,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
-        return 2.5;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2.5,
+      asleep: 2.5,
+      paralyzed: 2.5
     },
     masoMultiplier: {
       1: 2.5,
@@ -19700,10 +19700,9 @@ const skill = [
     hitNum: 5,
     MPcost: 98,
     appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.25 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep) {
-        return 2.5;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2.5,
+      asleep: 2.5
     },
     masoMultiplier: {
       1: 1.5,
@@ -19738,10 +19737,11 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.asleep || skillTarget.buffs.confused || skillTarget.buffs.paralyzed) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2,
+      asleep: 2,
+      confused: 2,
+      paralyzed: 2
     },
   },
   {
@@ -19812,10 +19812,8 @@ const skill = [
     hitNum: 5,
     MPcost: 55,
     appliedEffect: { poisoned: { probability: 0.8 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2
     },
     description1: "ランダムに5回　メラ系の息攻撃　命中時　確率で猛毒状態",
     description2: "ゾンビ系の味方が多いほど威力大　最大6倍",
@@ -20080,10 +20078,8 @@ const skill = [
     hitNum: 5,
     MPcost: 73,
     appliedEffect: { poisoned: { isLight: true, probability: 0.8 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned) {
-        return 1.2;
-      }
+    abnormalityMultiplier: {
+      poisoned: 1.2
     },
   },
   {
@@ -20108,10 +20104,9 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 28,
     ignoreEvasion: true, // マヌーサ有効
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.dazzle) {
-        return 3;
-      }
+    abnormalityMultiplier: {
+      poisoned: 3,
+      dazzle: 3
     },
     masoMultiplier: {
       1: 1.5,
@@ -20228,10 +20223,9 @@ const skill = [
     MPcost: 50,
     zakiProbability: 0.4413,
     appliedEffect: { poisoned: { probability: 0.7 }, paralyzed: { probability: 0.4192 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2,
+      paralyzed: 2
     },
     masoMultiplier: {
       1: 1.5,
@@ -20271,10 +20265,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 86,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned) {
-        return 1.5;
-      }
+    abnormalityMultiplier: {
+      poisoned: 1.5
     },
     masoMultiplier: {
       1: 1.5,
@@ -20292,10 +20284,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 71,
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      poisoned: 2
     },
     masoMultiplier: {
       1: 1.2,
@@ -20547,10 +20537,9 @@ const skill = [
     ignoreReflection: true,
     ignoreEvasion: true,
     appliedEffect: { maso: { maxDepth: 4 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.poisoned || skillTarget.buffs.paralyzed) {
-        return 3;
-      }
+    abnormalityMultiplier: {
+      poisoned: 3,
+      paralyzed: 3
     },
     masoMultiplier: {
       1: 3,
@@ -21408,10 +21397,9 @@ const skill = [
     MPcost: 39,
     damageByLevel: true,
     appliedEffect: { asleep: { probability: 0.39 }, paralyzed: { probability: 0.1667 } },
-    abnormalityMultiplier: function (skillUser, skillTarget) {
-      if (skillTarget.buffs.asleep || skillTarget.buffs.paralyzed) {
-        return 2;
-      }
+    abnormalityMultiplier: {
+      asleep: 2,
+      paralyzed: 2
     },
     masoMultiplier: {
       1: 2,
@@ -24944,6 +24932,38 @@ function createSDappliedEffect(skillInfo) {
     if (skillInfo.lowHpDamageMultiplier) {
       skillDescriptionText += "自分の残りHPが少ないほど　威力大　";
     }
+    // 状態異常特効・マ素特効
+    // 倍率ごとに状態名をまとめるオブジェクト
+    const multiplierGroups = {};
+    // 1. abnormalityMultiplier の処理
+    if (skillInfo.abnormalityMultiplier) {
+      Object.entries(skillInfo.abnormalityMultiplier).forEach(([key, mult]) => {
+        // 共通マッピングから名称取得（なければキー名をそのまま使用）
+        let name = abnormalityBuffNameList[key] || key;
+        // 威力倍率をキーにして配列に格納
+        if (!multiplierGroups[mult]) multiplierGroups[mult] = [];
+        multiplierGroups[mult].push(name);
+      });
+    }
+    // 2. masoMultiplier の処理（レベル1の倍率を使用）
+    if (skillInfo.masoMultiplier && skillInfo.masoMultiplier[1]) {
+      const masoMult = skillInfo.masoMultiplier[1];
+      if (!multiplierGroups[masoMult]) multiplierGroups[masoMult] = [];
+      multiplierGroups[masoMult].push("マ素");
+    }
+    // 3. テキストの組み立てと追記（「さらに」の判定付き）
+    Object.entries(multiplierGroups).forEach(([mult, names]) => {
+      const uniqueNames = Array.from(new Set(names));
+      const newDescription = `${uniqueNames.join("・")}状態の敵に 威力${mult}倍 `;
+
+      // 末尾が「倍」で終わっているかチェック（トリムして末尾1文字を確認）
+      // ※「威力1.5倍 」のように末尾にスペースがあっても判定できるように trim() を使用
+      if (skillDescriptionText.trim().endsWith("倍")) {
+        skillDescriptionText += "さらに " + newDescription;
+      } else {
+        skillDescriptionText += newDescription;
+      }
+    });
   } else {
     // ダメージなしの場合
     if (appliedEffectText) {
@@ -24991,6 +25011,58 @@ function getSkillTypeName(skillType) {
   }[skillType];
 }
 
+// global変数: まとめて--状態とつけられる状態異常名
+const abnormalityBuffNameList = {
+  //powerChargeなど
+  //damageLimit: `被ダメージ上限値${buffData.strength}`
+  //statusLock: "状態変化を封じる",
+  //反射
+  //familybuff
+  //dodgeBuff
+
+  spellSeal: "呪文封じ",
+  breathSeal: "息封じ",
+  slashSeal: "斬撃封じ",
+  martialSeal: "体技封じ",
+  fear: "行動停止",
+  tempted: "みりょう",
+  sealed: "封印",
+  asleep: "眠り",
+  confused: "混乱",
+  paralyzed: "マヒ",
+  stoned: "石化",
+  dazzle: "マヌーサ",
+  poisoned: "毒",
+  dotDamage: "継続ダメージ",
+  dotMPdamage: "継続MPダメージ",
+  MPabsorption: "MP吸収",
+  healBlock: "回復封じ",
+  reviveBlock: "蘇生封じ",
+  zombifyBlock: "執念封じ",
+  murakumo: "息被ダメージ上昇",
+  manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
+  powerWeaken: "攻撃ダメージ50%減少", // 浸食 邪悪な灯火
+
+  revive: "自動復活",
+  sacredBarrier: "状態異常無効",
+  confusionBarrier: "混乱無効",
+  mindBarrier: "行動停止無効",
+  /*
+  spellEvasion: "呪文無効状態",
+  slashEvasion: "斬撃無効状態",
+  martialEvasion: "体技無効状態",
+  breathEvasion: "息無効状態",
+  ritualEvasion: "儀式無効状態",
+  danceEvasion: "踊り無効状態",
+  spellReflection: "呪文反射状態",
+  slashReflection: "斬撃反射状態",
+  martialReflection: "体技反射状態",
+  breathReflection: "息反射状態",
+  ritualReflection: "儀式反射状態",
+  danceReflection: "踊り反射状態",
+  */
+};
+
 function getBuffName(appliedEffect) {
   // 何段階上げる/下げると表記される群
   const stackableBuffNameList = {
@@ -25012,58 +25084,6 @@ function getBuffName(appliedEffect) {
     zakiResistance: "ザキ耐性",
     kiganLevel: "鬼眼レベル",
     maso: "マソ深度",
-  };
-
-  // まとめて--状態とつけられる群
-  const abnormalityBuffNameList = {
-    //powerChargeなど
-    //damageLimit: `被ダメージ上限値${buffData.strength}`
-    //statusLock: "状態変化を封じる",
-    //反射
-    //familybuff
-    //dodgeBuff
-
-    spellSeal: "呪文封じ",
-    breathSeal: "息封じ",
-    slashSeal: "斬撃封じ",
-    martialSeal: "体技封じ",
-    fear: "行動停止",
-    tempted: "みりょう",
-    sealed: "封印",
-    asleep: "眠り",
-    confused: "混乱",
-    paralyzed: "マヒ",
-    stoned: "石化",
-    dazzle: "マヌーサ",
-    poisoned: "猛毒",
-    dotDamage: "継続ダメージ",
-    dotMPdamage: "継続MPダメージ",
-    MPabsorption: "MP吸収",
-    healBlock: "回復封じ",
-    reviveBlock: "蘇生封じ",
-    zombifyBlock: "執念封じ",
-    murakumo: "息被ダメージ上昇",
-    manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
-    powerWeaken: "攻撃ダメージ50%減少", // 浸食 邪悪な灯火
-
-    revive: "自動復活",
-    sacredBarrier: "状態異常無効",
-    confusionBarrier: "混乱無効",
-    mindBarrier: "行動停止無効",
-    /*
-    spellEvasion: "呪文無効状態",
-    slashEvasion: "斬撃無効状態",
-    martialEvasion: "体技無効状態",
-    breathEvasion: "息無効状態",
-    ritualEvasion: "儀式無効状態",
-    danceEvasion: "踊り無効状態",
-    spellReflection: "呪文反射状態",
-    slashReflection: "斬撃反射状態",
-    martialReflection: "体技反射状態",
-    breathReflection: "息反射状態",
-    ritualReflection: "儀式反射状態",
-    danceReflection: "踊り反射状態",
-    */
   };
 
   const specialBuffHandlers = {
@@ -25105,9 +25125,9 @@ function getBuffName(appliedEffect) {
         text = abnormalityBuffNameList[buffName];
       }
       if (text) {
-        // 調整
-        if (buffName === "poisoned" && buffData.isLight) {
-          text = "毒";
+        // 毒を猛毒に変更
+        if (buffName === "poisoned" && !buffData.isLight) {
+          text = "猛毒";
         }
         if (["poisoned", "healBlock", "reviveBlock", "countDown"].includes(buffName) && buffData.unDispellableByRadiantWave) {
           text = `解除不可の${text}`;
