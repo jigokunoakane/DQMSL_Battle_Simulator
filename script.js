@@ -1590,6 +1590,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
     }
+    // familuBuffsをdivineDispellable化・duration付与
+    if (familyBuffs.includes(buffName)) {
+      buffData.divineDispellable = true;
+      buffData.duration = 4;
+    }
     // 1-6. keepOnDeath > unDispellable > divineDispellable > else の順位付けで負けてるときはcontinue (イブール上位リザオ、黄泉の封印vs普通、つねバイキ、トリリオン、ネル行動前バフ)
     // divineDispellableを上書き可能なバフは除外: protection
     if (currentBuff && !["protection"].includes(buffName)) {
@@ -6734,9 +6739,9 @@ const monsters = [
         darkBreak: { keepOnDeath: true, strength: 2 },
       },
       1: {
-        shamuAtk: { strength: 0.2, divineDispellable: true, duration: 3 },
-        shamuDef: { strength: 0.2, divineDispellable: true, duration: 3 },
-        shamuSpd: { strength: 0.5, divineDispellable: true, duration: 3 },
+        shamuAtk: { strength: 0.2 },
+        shamuDef: { strength: 0.2 },
+        shamuSpd: { strength: 0.5 },
       },
     },
     seed: { atk: 75, def: 0, spd: 45, int: 0 },
@@ -10790,7 +10795,7 @@ function getMonsterAbilities(monsterId) {
                 applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
                   if (buffName === "悪夢の再生") {
-                    applyBuff(monster, { iburuSpdUp: { divineDispellable: true, duration: 3, strength: 0.5 } });
+                    applyBuff(monster, { iburuSpdUp: { strength: 0.5 } });
                   }
                 };
               }
@@ -10810,7 +10815,7 @@ function getMonsterAbilities(monsterId) {
                 applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
                   if (buffName === "悪夢の再生") {
-                    applyBuff(monster, { iburuSpdUp: { divineDispellable: true, duration: 3, strength: 0.5 } });
+                    applyBuff(monster, { iburuSpdUp: { strength: 0.5 } });
                   }
                 };
               }
@@ -11103,8 +11108,8 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("魔獣")) {
-                applyBuff(monster, { goragoAtk: { strength: 0.15, divineDispellable: true } });
-                applyBuff(monster, { goragoSpd: { strength: 0.15, divineDispellable: true } });
+                applyBuff(monster, { goragoAtk: { strength: 0.15 } });
+                applyBuff(monster, { goragoSpd: { strength: 0.15 } });
               }
             }
           },
@@ -11292,7 +11297,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("スライム")) {
-                  applyBuff(monster, { goddessDefUp: { strength: 0.4, divineDispellable: true, duration: 3 } });
+                  applyBuff(monster, { goddessDefUp: { strength: 0.4 } });
                   await sleep(150);
                   applyBuff(monster, { continuousMPHealing: { strength: 0.2, removeAtTurnStart: true, duration: 3 } });
                 }
@@ -11327,7 +11332,7 @@ function getMonsterAbilities(monsterId) {
             name: "孤高の使命",
             unavailableIf: (skillUser) => hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3),
             act: async function (skillUser) {
-              applyBuff(skillUser, { goddessDefUp: { strength: 0.2, divineDispellable: true, duration: 3, iconSrc: "heroDefUp" } });
+              applyBuff(skillUser, { goddessDefUp: { strength: 0.2, iconSrc: "heroDefUp" } });
             },
           },
         ],
@@ -11609,7 +11614,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("物質")) {
-                  applyBuff(monster, { castleDefUp: { strength: 0.3, divineDispellable: true, duration: 3 } });
+                  applyBuff(monster, { castleDefUp: { strength: 0.3 } });
                   await sleep(100);
                 }
               }
@@ -11736,7 +11741,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("自然")) {
-                  applyBuff(monster, { poseidonProtection: { strength: 0.1, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } });
+                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.1, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } }); // keepOnDeath
                 }
               }
             },
@@ -11748,7 +11753,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("自然")) {
-                  applyBuff(monster, { poseidonProtection: { strength: 0.2, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } });
+                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.2, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } }); // keepOnDeath
                 }
               }
             },
@@ -11765,7 +11770,7 @@ function getMonsterAbilities(monsterId) {
                     2: 0.1,
                     3: 0.2,
                   }[fieldState.turnNum] || 1;
-                  applyBuff(monster, { poseidonDefUp: { strength: buffStrength, duration: 3 } });
+                  applyBuff(monster, { poseidonDefUp: { strength: buffStrength } });
                 }
               }
             },
@@ -11810,7 +11815,7 @@ function getMonsterAbilities(monsterId) {
                 },
                 act: async function (skillUser) {
                   for (const monster of parties[skillUser.enemyTeamID]) {
-                    if (monster.race.includes("自然")) {
+                    if (monster.race.includes("自然") && !monster.flags.isDead) {
                       await executeRadiantWave(monster, true); // ミス表示なし
                       applyBuff(monster, { zakiResistance: { strength: 1, probability: 0.598 } });
                       await sleep(150);
@@ -14435,10 +14440,10 @@ const skill = [
     MPcost: 64,
     isOneTimeUse: true,
     appliedEffect: {
-      shamuAtk: { strength: 0.2, divineDispellable: true, duration: 3 },
-      shamuDef: { strength: 0.2, divineDispellable: true, duration: 3 },
-      shamuSpd: { strength: 0.5, divineDispellable: true, duration: 3 },
-      shamuInt: { strength: 0.5, divineDispellable: true, duration: 3 },
+      shamuAtk: { strength: 0.2 },
+      shamuDef: { strength: 0.2 },
+      shamuSpd: { strength: 0.5 },
+      shamuInt: { strength: 0.5 },
       nonElementalResistance: { decreaseBeforeAction: true, duration: 1 },
       martialEvasion: { unDispellable: true, duration: 1 },
       danceEvasion: { unDispellable: true, duration: 1 },
@@ -18248,7 +18253,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 71,
-    appliedEffect: { heavenlyBreath: { divineDispellable: true, duration: 3, probability: 0.42 } },
+    appliedEffect: { heavenlyBreath: { probability: 0.42 } },
   },
   {
     name: "裁きの極光",
@@ -18855,7 +18860,7 @@ const skill = [
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.race.includes("物質")) {
-          applyBuff(monster, { matterBuffAtk: { strength: 0.3, divineDispellable: true, duration: 3 }, matterBuffSpd: { strength: 0.3, divineDispellable: true, duration: 3 } });
+          applyBuff(monster, { matterBuffAtk: { strength: 0.3 }, matterBuffSpd: { strength: 0.3 } });
         }
       }
     },
@@ -20527,8 +20532,6 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 44,
     isOneTimeUse: true,
-    order: "preemptive",
-    preemptiveGroup: 7,
     ignoreSubstitute: true, //反射は可能
     appliedEffect: { powerWeaken: { strength: 0.5, duration: 2 }, manaReduction: { strength: 0.5, duration: 2 } },
   },
