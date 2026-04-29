@@ -1875,22 +1875,28 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
           }
         }
       }
-      //状態異常の付与時発動効果(上書き等)
-      //封印によるマインドの上書き 確率成功時にマインドを削除
-      if (buffTarget.buffs.fear && buffName === "sealed") {
-        delete buffTarget.buffs.fear;
+      // 状態異常付与時の発動効果（上書き等、確率判定成功時の処理）
+      // 封印付与時のマインドの上書き・目覚めの聖印解除 
+      if (buffName === "sealed") {
+        if (buffTarget.buffs.fear) {
+          delete buffTarget.buffs.fear;
+        }
+        if (buffTarget.buffs.ramiaElementalGuard) {
+          buffTarget.buffs.ramiaElementalGuard.isValid = true;
+          buffTarget.buffs.ramiaElementalGuard.iconSrc = "none";
+        }
       }
-      //他状態異常によるマインド魅了封印の上書き 確率成功時にマインド魅了封印削除
+      // 他状態異常付与時のマインド,魅了,封印の上書き
       if (buffName === "confused" || buffName === "paralyzed" || buffName === "asleep") {
         delete buffTarget.buffs.fear;
         delete buffTarget.buffs.tempted;
         delete buffTarget.buffs.sealed;
       }
-      //ぼうぎょ解除 マインド 封印 マヒは解除しない
+      // マインド,封印,マヒ以外の状態異常付与時のぼうぎょ解除
       if (["tempted", "confused", "asleep", "stoned"].includes(buffName) && buffTarget.flags.guard) {
         delete buffTarget.flags.guard;
       }
-      //魅了による防御バフ解除
+      // 魅了付与時の防御バフ解除
       if (buffName === "tempted") {
         delete buffTarget.buffs.defUp;
         delete buffTarget.buffs.heavenlyBreath;
@@ -1898,18 +1904,18 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.poseidonDefUp;
         delete buffTarget.buffs.castleDefUp;
       }
-      //みがわり解除 みがわられは解除しない
+      // みがわり解除 みがわられは解除しない
       if (removeSubstituteAbnormalities.includes(buffName) && buffTarget.flags.isSubstituting && !buffTarget.flags.isSubstituting.cover) {
         deleteSubstitute(buffTarget);
       }
-      //石化処理
+      // 石化処理
       if (buffName === "stoned") {
         const buffNames = Object.keys(buffTarget.buffs);
         // 力ため系は削除 いてはとは異なり、禁忌および天使のしるしは保持 会心ガードは保持
         const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
         for (const existingBuffName of buffNames) {
           const existingBuff = buffTarget.buffs[existingBuffName];
-          //以下は残す
+          // 以下は残す
           if (
             !(
               keepKeys.includes(existingBuffName) ||
@@ -1977,9 +1983,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.poisoned.isLight;
       }
     }
-    //付与成功時処理 duration設定
+    // 付与成功時処理 duration設定
     const buffDurations = {
-      //decreaseTurnEnd 行動前後がデクリメントに寄与しないタイプ stackableと反射系
+      // decreaseTurnEnd 行動前後がデクリメントに寄与しないタイプ stackableと反射系
       baiki: {
         16: 3,
         48: 4,
@@ -2037,7 +2043,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       dodgeBuff: {
         100: 1,
       },
-      //decreaseBeforeAction 行動前にデクリメントして消える
+      // decreaseBeforeAction 行動前にデクリメントして消える
       manaBoost: {
         100: 2,
       },
@@ -2127,32 +2133,32 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
       }
     };
-    //duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、帝王の構えなどduration設定時は自動設定しない) さらに上位蘇生封じや常バイキ等の場合も設定しない
+    // duration表に含まれるバフかつduration未指定の場合のみduration更新 (力ため等は自動設定だが、帝王の構えなどduration設定時は自動設定しない) さらに上位蘇生封じや常バイキ等の場合も設定しない
     if (buffName in buffDurations && !buffData.hasOwnProperty("duration") && !buffData.hasOwnProperty("keepOnDeath")) {
       buffTarget.buffs[buffName].duration = getDuration(buffName);
     }
 
-    //継続時間指定されている場合に、デクリメントのタイプを設定
+    // 継続時間指定されている場合に、デクリメントのタイプを設定
     if (buffTarget.buffs[buffName].hasOwnProperty("duration")) {
-      //decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
-      //うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
+      // decreaseTurnEnd: ターン経過で一律にデクリメント 行動前後はデクリメントに寄与しない
+      // うち、removeAtTurnStartなし： 各monster行動前に削除  付与されたnターン後の行動前に切れる
       // stackable スキルターン
-      //うち、removeAtTurnStart付与： ターン最初に削除  付与されたnターン後のターン最初に切れる
+      // うち、removeAtTurnStart付与： ターン最初に削除  付与されたnターン後のターン最初に切れる
       const removeAtTurnStartBuffs = ["reviveBlock", "preemptiveAction", "anchorAction", "stoned", "damageLimit", "dodgeBuff"];
       if (removeAtTurnStartBuffs.includes(buffName) && !buffTarget.buffs[buffName].decreaseTurnEnd && !buffTarget.buffs[buffName].decreaseBeforeAction) {
         buffTarget.buffs[buffName].removeAtTurnStart = true;
       }
-      //stackableBuffs または  removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与) または既に手動設定されている場合
+      // stackableBuffs または  removeAtTurnStartを所持 (初期設定or removeAtTurnStartBuffsによる自動付与) または既に手動設定されている場合
       if (buffName in stackableBuffs || buffTarget.buffs[buffName].removeAtTurnStart || buffTarget.buffs[buffName].decreaseTurnEnd) {
         buffTarget.buffs[buffName].decreaseTurnEnd = true;
       } else {
-        //decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
-        //removeAtTurnStartなし：行動前のデクリメント後にそのまま削除
+        // decreaseBeforeAction: 行動前にデクリメント 発動してからn回目の行動直前に削除 それ以外にはこれを自動付与
+        // removeAtTurnStartなし：行動前のデクリメント後にそのまま削除
         buffTarget.buffs[buffName].decreaseBeforeAction = true;
       }
     }
 
-    //状態異常付与時、dispellableByAbnormality指定された予測系を解除
+    // 状態異常付与時、dispellableByAbnormality指定された予測系を解除
     if (removeSubstituteAbnormalities.includes(buffName)) {
       for (const reflection of reflectionMap) {
         if (
@@ -2169,7 +2175,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         delete buffTarget.buffs.counterAttack;
       }
     }
-    //反射の場合にエフェクト追加
+    // 反射の場合にエフェクト追加
     if (reflectionMap.includes(buffName) && !buffTarget.buffs[buffName].skipReflectionEffect) {
       addMirrorEffect(buffTarget.iconElementId);
     }
@@ -4393,8 +4399,14 @@ function calculateDamage(
   }
 
   // ダメージ軽減
-  if (!executingSkill.ignoreProtection && skillTarget.buffs.protection) {
-    damage *= 1 - skillTarget.buffs.protection.strength;
+  if (skillTarget.buffs.protection) {
+    const strength = skillTarget.buffs.protection.strength;
+    // 不滅のたましい・業炎の加護は強制的に0とする
+    if (strength >= 1) {
+      damage = 0;
+    } else if (!executingSkill.ignoreProtection) {
+      damage *= 1 - strength;
+    }
   }
   // クリミス
   if (skillTarget.buffs.crimsonMist) {
@@ -4815,8 +4827,15 @@ function calculateDamage(
   }
 
   // 全属性軽減
-  if (skillTarget.buffs.allElementalBarrier && AllElements.includes(executingSkill.element)) {
-    damageModifier -= skillTarget.buffs.allElementalBarrier.strength;
+  if (AllElements.includes(executingSkill.element)) {
+    // 全属性軽減
+    if (skillTarget.buffs.allElementalBarrier) {
+      damageModifier -= skillTarget.buffs.allElementalBarrier.strength;
+    }
+    // 目覚めの聖印（有効時）
+    if (skillTarget.buffs.ramiaElementalGuard && skillTarget.buffs.ramiaElementalGuard.isValid) {
+      damageModifier -= skillTarget.buffs.ramiaElementalGuard.strength;
+    }
   }
   // 無属性軽減
   if (skillTarget.buffs.nonElementalReduction && executingSkill.element === "none") {
@@ -8669,6 +8688,33 @@ const monsters = [
     resistance: { fire: 1, ice: 0.5, thunder: 0.5, wind: 0, io: 1, light: -1, dark: 1, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0.5, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "神鳥ラーミア", //4
+    id: "ramia",
+    rank: 10,
+    race: ["自然"],
+    weight: 28,
+    status: { HP: 788, MP: 467, atk: 308, def: 577, spd: 341, int: 502 },
+    initialSkill: ["神秘のはごろも", "大空の守り", "ジゴデイン", "神鳥の蘇生"],
+    anotherSkills: ["いやしの雨", "聖なる息吹"],
+    defaultGear: "lightCane",
+    defaultAiType: "いのちだいじに",
+    attribute: {
+      initialBuffs: {
+        lightBreak: { keepOnDeath: true, strength: 2 },
+        healEnhancement: { keepOnDeath: true },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "不滅のたましい" },
+      },
+      evenTurnBuffs: {
+        defUp: { strength: 1 },
+        spellBarrier: { strength: 1 }
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 45, int: 75 }, // 奮起ラプ365抜きのためS383.7必要
+    ls: { HP: 1.18, def: 1.15 },
+    lsTarget: "自然",
+    resistance: { fire: 1, ice: 0.5, thunder: 1, wind: 0.5, io: 0.5, light: -1, dark: 1.5, poisoned: 1, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "オーシャンボーン", //最強 新生HP+50
     id: "oshabo",
     rank: 10,
@@ -9810,8 +9856,7 @@ function getMonsterAbilities(monsterId) {
               updateBattleIcons(skillUser);
               skillUser.flags.hasTransformed = true;
               skillUser.flags.hasTransformedSword = true;
-              delete skillUser.buffs.sealed; // 封印は共通で解除
-              await executeRadiantWave(skillUser);
+              await executeRadiantWave(skillUser, false, false, true); // 封印は共通で解除
               // skill変更
               skillUser.skill[0] = "剣聖刃";
               skillUser.skill[1] = "貴公子の円舞";
@@ -9944,8 +9989,7 @@ function getMonsterAbilities(monsterId) {
             updateBattleIcons(monster);
             monster.currentStatus.MP = 0;
             updateMonsterBar(monster);
-            delete monster.buffs.sealed;
-            await executeRadiantWave(monster);
+            await executeRadiantWave(monster, false, false, true); // 封印は共通で解除
             monster.skill[0] = "うちくだく";
             monster.skill[1] = "鬼眼砲";
             delete monster.attribute.additionalPermanentBuffs.slashBarrier;
@@ -10627,7 +10671,7 @@ function getMonsterAbilities(monsterId) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("悪魔")) {
                   // damageには自動的に、spdMultiplierには+0.5  tabooSeal所持時は0.5を引いて無効化
-                  applyBuff(monster, { tabooSeal: { keepOnDeath: true }, internalSpdUp: { keepOnDeath: true, strength: 0.5 } }, false, true);
+                  applyBuff(monster, { tabooSeal: { keepOnDeath: true }, internalSpdUp: { keepOnDeath: true, strength: 0.5 } });
                 } else {
                   displayMiss(skillUser);
                 }
@@ -10956,8 +11000,8 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             const buff =
               countRubisTarget(parties[skillUser.teamID]) > 4
-                ? { protection: { strength: 0.3, duration: 999, noCrimsonMist: true }, isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" } }
-                : { protection: { strength: 0.3, duration: 999, noCrimsonMist: true } };
+                ? { protection: { strength: 0.3, duration: 100000, noCrimsonMist: true }, isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" } }
+                : { protection: { strength: 0.3, duration: 100000, noCrimsonMist: true } };
             for (const monster of parties[skillUser.teamID]) {
               if (isRubisTarget(monster)) {
                 applyBuff(monster, buff);
@@ -11170,7 +11214,7 @@ function getMonsterAbilities(monsterId) {
         ],
         permanentAbilities: [
           {
-            name: "孤高の獣ぴかぱ",
+            name: "孤高の獣光の洗礼部分",
             disableMessage: true,
             act: async function (skillUser) {
               await executeRadiantWave(skillUser);
@@ -11923,6 +11967,46 @@ function getMonsterAbilities(monsterId) {
             },
           },
         ],
+      },
+    },
+    ramia: {
+      supportAbilities: {
+        1: [
+          {
+            name: "不滅のたましい",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true }, sealBarrier: { duration: 1, removeAtTurnStart: true }, reviveBlockBarrier: { duration: 1, removeAtTurnStart: true } });
+                }
+              }
+            },
+          },
+        ],
+      },
+      attackAbilities: {
+        1: [
+          {
+            name: "目覚めの聖印",
+            message: function (skillUser) {
+              displayMessage("特性により", "目覚めの聖印 が発動！");
+            },
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("自然")) {
+                  applyBuff(monster, { ramiaElementalGuard: { keepOnDeath: true, strength: 0.34, isValid: false } });
+                } else {
+                  displayMiss(skillUser);
+                }
+              }
+            },
+          },
+        ],
+      },
+      reviveAct: async function (monster, buffName) {
+        if (buffName === "不滅のたましい") {
+          applyBuff(monster, { protection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+        }
       },
     },
     skullspider: {
@@ -15827,7 +15911,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { sacredBarrier: {} },
+    appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true } },
     act: async function (skillUser, skillTarget) {
       await executeRadiantWave(skillTarget, true, true); // マソも解除
     },
@@ -15842,9 +15926,24 @@ const skill = [
     MPcost: 94,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { sacredBarrier: {}, slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } },
+    appliedEffect: { sacredBarrier: {}, slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } }, // ターン無制限
     act: async function (skillUser, skillTarget) {
       await executeRadiantWave(skillTarget, true, true); // マソも解除
+    },
+  },
+  {
+    name: "神秘のはごろも",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 66,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true }, sealBarrier: { duration: 1, removeAtTurnStart: true }, reviveBlockBarrier: { duration: 1, removeAtTurnStart: true } },
+    act: async function (skillUser, skillTarget) {
+      await executeRadiantWave(skillTarget, true, true, true); // マソ・封印解除
     },
   },
   {
@@ -15894,6 +15993,21 @@ const skill = [
       // 蘇生成功時のみバフ付与
       if (await reviveMonster(skillTarget)) {
         applyBuff(skillTarget, { defUp: { strength: 2 } });
+      }
+    },
+  },
+  {
+    name: "神鳥の蘇生",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 103,
+    act: async function (skillUser, skillTarget) {
+      // 蘇生成功時のみバフ付与
+      if (await reviveMonster(skillTarget)) {
+        applyBuff(skillTarget, { defUp: { strength: 1 } });
       }
     },
   },
@@ -17895,6 +18009,23 @@ const skill = [
     appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true } },
   },
   {
+    name: "大空の守り",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 124,
+    order: "preemptive",
+    preemptiveGroup: 2,
+    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true }, mindBarrier: { duration: 4 } },
+    act: async function (skillUser, skillTarget) {
+      if (skillTarget.race.includes("自然")) {
+        applyBuff(skillTarget, { lightResistance: { strength: 1 } });
+      }
+    },
+  },
+  {
     name: "巨岩投げ",
     type: "martial",
     howToCalculate: "fix",
@@ -19245,7 +19376,13 @@ const skill = [
       }
       // ダメージ軽減
       if (skillTarget.buffs.protection) {
-        damage *= 1 - skillTarget.buffs.protection.strength;
+        const strength = skillTarget.buffs.protection.strength;
+        // 不滅のたましい・業炎の加護は強制的に0とする
+        if (strength >= 1) {
+          damage = 0;
+        } else {
+          damage *= 1 - strength;
+        }
       }
       // 一族のつるぎ
       if (skillUser.buffs.weaponBuff) {
@@ -19485,7 +19622,7 @@ const skill = [
     act: async function (skillUser, skillTarget) {
       if (skillTarget.race.includes("自然")) {
         applyBuff(skillTarget, { martialBarrier: { strength: 2 } });
-        await executeRadiantWave(skillTarget, true);
+        await executeRadiantWave(skillTarget, false, true); // マソも解除
       }
     },
   },
@@ -21054,6 +21191,20 @@ const skill = [
     },
   },
   {
+    name: "いやしの雨",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 150,
+    isHealSkill: true,
+    appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // +0で275、+3で318
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 1, 280, 10000000, 280, 1.15);
+    },
+  },
+  {
     name: "天の裁き",
     type: "martial",
     howToCalculate: "fix",
@@ -22144,7 +22295,7 @@ const gearAbilities = {
           displayMessage("そうびの特性により", "光の洗礼 が発動！");
         },
         act: async function (skillUser) {
-          await executeRadiantWave(skillUser, false, true);
+          await executeRadiantWave(skillUser, false, true); // マソも解除
         },
       });
     },
@@ -22943,23 +23094,29 @@ function stopBuffDisplayLoop(monster) {
 }
 
 //光の波動 dispellableByRadiantWave指定以外を残す
-async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso = false) {
+async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso = false, removeSeal = false) {
   const newBuffs = {};
   let debuffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
     if (value.dispellableByRadiantWave) {
-      debuffRemoved = true; // 削除フラグ
+      debuffRemoved = true;
     } else {
       newBuffs[key] = value;
     }
   }
   monster.buffs = newBuffs;
+  // マ素解除判定
   if (removeMaso && monster.buffs.maso && monster.buffs.maso.strength !== 5) {
     delete monster.buffs.maso;
     debuffRemoved = true;
   }
-  // ひれつ強制みがわり中の場合、みがわりを解除
+  // 封印解除判定
+  if (removeSeal && monster.buffs.sealed) {
+    delete monster.buffs.sealed;
+    debuffRemoved = true;
+  }
+  // ひれつによる強制みがわり中の場合、みがわりを解除
   if (monster.flags.isSubstituting && monster.flags.isSubstituting.isBoogie) {
     deleteSubstitute(monster);
   }
@@ -23417,6 +23574,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "あらゆる状態異常が効かなくなった！",
     },
+    sacredBarrier: {
+      start: `${buffTarget.name}は`,
+      message: "あらゆる状態異常が効かなくなった！",
+    },
     mindBarrier: {
       start: "行動停止系の効果が 効かなくなった！",
       message: "",
@@ -23438,6 +23599,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       message: "アストロンの効果が 効かなくなった！",
     },
     protection: {
+      start: `${buffTarget.name}の`,
+      message: "受けるダメージが減少した！",
+    },
+    poseidonProtection: {
       start: `${buffTarget.name}の`,
       message: "受けるダメージが減少した！",
     },
@@ -23598,8 +23763,7 @@ async function transformTyoma(monster) {
   updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
-  delete monster.buffs.sealed; // 封印は共通で解除
-  await executeRadiantWave(monster);
+  await executeRadiantWave(monster, false, false, true); // 封印は共通で解除
 
   // skill変更と 各種message
   if (monster.name === "憎悪のエルギオス") {
@@ -24241,6 +24405,7 @@ function isSkillUnavailableForAI(skillName) {
     "ギガ・マホトラ",
     "ギガ・マホヘル",
     "究極の絶技",
+    "いやしの雨",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
@@ -25055,6 +25220,8 @@ const abnormalityBuffNameList = {
   ritualReflection: "儀式反射状態",
   danceReflection: "踊り反射状態",
   */
+  continuousHealing: "HP継続回復",
+  continuousMPHealing: "MP継続回復",
 };
 
 function getBuffName(appliedEffect) {
