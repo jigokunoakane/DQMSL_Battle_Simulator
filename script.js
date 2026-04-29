@@ -1599,8 +1599,8 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // divineDispellableを上書き可能なバフは除外: protection
     if (currentBuff && !["protection"].includes(buffName)) {
       function getBuffPriority(buff) {
-        // reviveは必ずkeepOnDeath持ちのため、3は返さずにkeepOnDeath以外で比較
-        if (buffName !== "revive" && buff.keepOnDeath) return 3;
+        // autoReviveは必ずkeepOnDeath持ちのため、3は返さずにkeepOnDeath以外で比較
+        if (buffName !== "autoRevive" && buff.keepOnDeath) return 3;
         if (buff.unDispellable) return 2;
         if (buff.divineDispellable) return 1;
         return 0;
@@ -1934,9 +1934,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
             }
           }
         }
-        // 竜王杖以外のrevive, reviveBlock(keepOnDeathだが), counterAttack, sealed, 上位毒は問答無用で削除
-        if (buffTarget.buffs.revive && !buffTarget.buffs.revive.unDispellable) {
-          delete buffTarget.buffs.revive;
+        // 竜王杖以外のautoRevive, reviveBlock(keepOnDeathだが), counterAttack, sealed, 上位毒は問答無用で削除
+        if (buffTarget.buffs.autoRevive && !buffTarget.buffs.autoRevive.unDispellable) {
+          delete buffTarget.buffs.autoRevive;
         }
         if (buffTarget.buffs.reviveBlock && !buffTarget.buffs.reviveBlock.unDispellableByRadiantWave) {
           delete buffTarget.buffs.reviveBlock;
@@ -3343,7 +3343,7 @@ function applyDamage(target, damage, resistance = 1, isMPdamage = false, reduced
               handleDeath(target, false, skipDeathAbility, perpetrator);
             }
           } else {
-            if (target.buffs.isUnbreakable.left > 0 && !target.buffs.revive) {
+            if (target.buffs.isUnbreakable.left > 0 && !target.buffs.autoRevive) {
               //確定枠がありかつリザオがない場合、確定枠を消費して耐える
               target.buffs.isUnbreakable.left--;
               handleUnbreakable(target);
@@ -3404,7 +3404,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   ++fieldState.deathCount[target.teamID];
   // タッグおよびリザオ蘇生予定がない場合、完全死亡カウントを増加
-  if (!target.buffs.tagTransformation && !(target.buffs.revive && !target.buffs.reviveBlock)) {
+  if (!target.buffs.tagTransformation && !(target.buffs.autoRevive && !target.buffs.reviveBlock)) {
     ++fieldState.completeDeathCount[target.teamID];
     // 支配持ちが蘇生予定なしで完全死亡した場合、rapu変身フラグを立てる
     if (target.buffs.controlOfRapu) {
@@ -3426,7 +3426,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   // リザオ蘇生もtag変化もリザオ蘇生もしない かつ亡者化予定の場合flagを付与 applySkipDeathAbilityがtrue指定(毒 供物 反射)の場合は亡者化しない
   if (
     !target.buffs.tagTransformation &&
-    !(target.buffs.revive && !target.buffs.reviveBlock) &&
+    !(target.buffs.autoRevive && !target.buffs.reviveBlock) &&
     (!target.buffs.zombifyBlock || target.flags.isUnAscensionable) &&
     (!applySkipDeathAbility || isCountDown || target.name === "非道兵器超魔ゾンビ" || target.name === "万物の王オルゴ・デミーラ") &&
     (target.buffs.zombification || (target.flags.zombieProbability && Math.random() < target.flags.zombieProbability))
@@ -3454,7 +3454,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
 
   // tag変化・リザオ・ゾンビ化・供物による(リザオ所持・未所持にかかわらず)確定蘇生など、当該monsterが蘇生系により戦闘継続する場合、戦闘継続判定のためのflagを付与
   // 供物は既に付与済 それぞれの実行直前に削除
-  if (target.buffs.tagTransformation || (target.buffs.revive && !target.buffs.reviveBlock) || target.flags.willZombify) {
+  if (target.buffs.tagTransformation || (target.buffs.autoRevive && !target.buffs.reviveBlock) || target.flags.willZombify) {
     target.flags.waitingForRevive = true;
   }
   // 戦闘終了判定 flag所持時は継続と判定する 超魔ゾンビ自傷によるhandleDeath実行後によって戦闘終了しないようここでは実行しない
@@ -3994,11 +3994,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     (reducedByElementalShield || damage > 0) &&
     executingSkill.appliedEffect &&
     (executingSkill.appliedEffect === "disruptiveWave" || executingSkill.appliedEffect === "divineWave") &&
-    skillTarget.buffs.revive &&
-    !skillTarget.buffs.revive.unDispellable
+    skillTarget.buffs.autoRevive &&
+    !skillTarget.buffs.autoRevive.unDispellable
   ) {
-    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.revive.divineDispellable) {
-      delete skillTarget.buffs.revive;
+    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.autoRevive.divineDispellable) {
+      delete skillTarget.buffs.autoRevive;
     }
   }
 
@@ -5162,8 +5162,8 @@ function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, exclude
       killedByThisSkill.add(skillTarget);
       // ドレアム判定 skillTargetが死亡してかつリザオではない場合、フラグを立てる(リザオ・変身等判定前に判別) 現状ざんよによる倒しは対象外
       if (skillUser && skillUser.name === "魔神ダークドレアム") {
-        // reviveしないならば
-        if (!(skillTarget.buffs.revive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
+        // autoReviveしないならば
+        if (!(skillTarget.buffs.autoRevive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
           skillUser.flags.thisTurn.applyDreamEvasion = true;
         }
       }
@@ -5226,7 +5226,7 @@ async function processDeathAction(skillUser, excludedTargets) {
     }
 
     // 死亡時発動能力の前に亡者化処理を実行 リザオや変身しない場合のみ
-    if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
+    if ((monster.buffs.autoRevive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
     } else if (monster.flags.willZombify) {
       await zombifyMonster(monster);
     }
@@ -5237,7 +5237,7 @@ async function processDeathAction(skillUser, excludedTargets) {
     delete monster.flags.skipDeathAbility;
 
     // 復活処理
-    if ((monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
+    if ((monster.buffs.autoRevive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation) {
       await reviveMonster(monster);
     }
   }
@@ -5248,7 +5248,7 @@ async function processDeathAction(skillUser, excludedTargets) {
 async function executeDeathAbilities(monster) {
   const abilitiesToExecute = [];
   // 復活とタグ変化が予定されているか判定
-  let isReviving = (monster.buffs.revive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation;
+  let isReviving = (monster.buffs.autoRevive && !monster.buffs.reviveBlock) || monster.buffs.tagTransformation;
   // 各ability配列の中身を展開して追加
   abilitiesToExecute.push(...(monster.abilities.deathAbilities ?? []));
   abilitiesToExecute.push(...(monster.abilities.additionalDeathAbilities ?? []));
@@ -5318,7 +5318,7 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
   } else {
     // リザオまたは通常蘇生時、蘇生封じ持ちの場合はreturn
     if (monster.buffs.reviveBlock && !ignoreReviveBlock) {
-      delete monster.buffs.revive;
+      delete monster.buffs.autoRevive;
       displayMiss(monster);
       return false;
     }
@@ -5330,16 +5330,16 @@ async function reviveMonster(monster, HPratio = 1, ignoreReviveBlock = false, sk
     }
 
     // リザオの場合の処理
-    if (monster.buffs.revive) {
-      monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * monster.buffs.revive.strength);
+    if (monster.buffs.autoRevive) {
+      monster.currentStatus.HP = Math.ceil(monster.defaultStatus.HP * monster.buffs.autoRevive.strength);
       // abilities.reviveActにmonsterとact: 名前を渡して、abilities内の名前と一致した場合にのみ実行
-      if (monster.buffs.revive.act && monster.abilities.reviveAct) {
-        // act実行でreviveを再付与してから削除してしまわないよう、nameを保存、バフ削除してからactで再付与
-        const oldReviveBuffName = monster.buffs.revive.act;
-        delete monster.buffs.revive;
+      if (monster.buffs.autoRevive.act && monster.abilities.reviveAct) {
+        // act実行でautoReviveを再付与してから削除してしまわないよう、nameを保存、バフ削除してからactで再付与
+        const oldReviveBuffName = monster.buffs.autoRevive.act;
+        delete monster.buffs.autoRevive;
         await monster.abilities.reviveAct(monster, oldReviveBuffName);
       } else {
-        delete monster.buffs.revive;
+        delete monster.buffs.autoRevive;
       }
     } else {
       // リザオ以外の通常蘇生の場合の処理
@@ -6392,7 +6392,7 @@ const monsters = [
         spdUp: { strength: 2 },
         spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, // 混乱でも保持
         mindBarrier: { duration: 2 },
-        revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "竜の血に選ばれし者" },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "竜の血に選ばれし者" },
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -6804,7 +6804,7 @@ const monsters = [
       initialBuffs: {
         breathReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, //いては解除可能
         danceReflection: { strength: 1, duration: 3, decreaseTurnEnd: true }, //いては解除可能
-        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" },
         fireBreak: { keepOnDeath: true, strength: 2, iconSrc: "fireBreakBoost" },
         mindBarrier: { duration: 3 },
         ritualReflection: { strength: 1.5, duration: 3, unDispellable: true, dispellableByAbnormality: true },
@@ -7057,7 +7057,7 @@ const monsters = [
       initialBuffs: {
         iceBreak: { keepOnDeath: true, strength: 1 },
         lightBreak: { keepOnDeath: true, strength: 1 },
-        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" },
         protection: { strength: 0.34, duration: 3, noCrimsonMist: true },
       },
       1: { lightResistance: { strength: 3, targetType: "ally" } },
@@ -7545,7 +7545,7 @@ const monsters = [
         healEnhancement: { keepOnDeath: true },
         demonKingBarrier: { divineDispellable: true },
         protection: { strength: 0.34, duration: 3 },
-        revive: { keepOnDeath: true, divineDispellable: true, strength: 1 },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -7862,7 +7862,7 @@ const monsters = [
       initialBuffs: {
         protection: { strength: 0.34, duration: 3, noCrimsonMist: true },
         intUp: { strength: 1 },
-        revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" },
+        autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" },
         spellBarrier: { strength: 2 },
       },
       evenTurnBuffs: { defUp: { strength: 1 }, intUp: { strength: 1 } },
@@ -8366,7 +8366,7 @@ const monsters = [
       initialBuffs: {
         metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
-        revive: { keepOnDeath: true, strength: 0.5 },
+        autoRevive: { keepOnDeath: true, strength: 0.5 },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -10211,7 +10211,7 @@ function getMonsterAbilities(monsterId) {
           monster.flags.revivedByDestructiveImpulse = true;
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
           if (Math.random() < 0.72) {
-            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" } });
+            applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" } });
           }
         }
       },
@@ -10644,7 +10644,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser, executingSkill, executedSkills) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("悪魔")) {
-                applyBuff(monster, { revive: { keepOnDeath: true, strength: 0.5 } });
+                applyBuff(monster, { autoRevive: { keepOnDeath: true, strength: 0.5 } });
               } else {
                 displayMiss(skillUser);
               }
@@ -10795,7 +10795,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "復讐の闘志") {
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
           if (Math.random() < 0.72) {
-            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" } });
+            applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "復讐の闘志" } });
           }
         }
       },
@@ -10808,7 +10808,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
-                applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
+                applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
                   if (buffName === "悪夢の再生") {
                     applyBuff(monster, { iburuSpdUp: { strength: 0.5 } });
@@ -10828,7 +10828,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.teamID]) {
               if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
-                applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
+                applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
                   if (buffName === "悪夢の再生") {
                     applyBuff(monster, { iburuSpdUp: { strength: 0.5 } });
@@ -10905,7 +10905,7 @@ function getMonsterAbilities(monsterId) {
         if (buffName === "神授のチカラ") {
           applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spellBarrier: { strength: 1 } });
           if (Math.random() < 0.72) {
-            applyBuff(monster, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" } });
+            applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "神授のチカラ" } });
           }
         }
       },
@@ -11917,7 +11917,7 @@ function getMonsterAbilities(monsterId) {
               const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
               if (aliveAllys.length > 0) {
                 const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
-                applyBuff(randomTarget, { revive: { keepOnDeath: true, strength: 0.5 } });
+                applyBuff(randomTarget, { autoRevive: { keepOnDeath: true, strength: 0.5 } });
                 await sleep(100);
               }
             },
@@ -12304,8 +12304,8 @@ function getMonsterAbilities(monsterId) {
           act: function (skillUser) {
             for (const party of parties) {
               for (const monster of party) {
-                if (monster.buffs.revive) {
-                  delete monster.buffs.revive;
+                if (monster.buffs.autoRevive) {
+                  delete monster.buffs.autoRevive;
                   updateMonsterBuffsDisplay(monster);
                 }
               }
@@ -13830,7 +13830,7 @@ const skill = [
         delete nerugeru.buffs.stoned;
         delete nerugeru.buffs.maso; // マソ深度5も解除
         // リザオ予定ではない場合、変身許可
-        if (!nerugeru.buffs.revive) {
+        if (!nerugeru.buffs.autoRevive) {
           nerugeru.flags.willTransformNerugeru = true;
         }
         // skipDeathAbility: trueでhandleDeath
@@ -18854,7 +18854,7 @@ const skill = [
     targetTeam: "ally",
     excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     MPcost: 32,
-    appliedEffect: { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
     act: async function (skillUser, skillTarget) {
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
@@ -20356,7 +20356,7 @@ const skill = [
     },
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
-      applyBuff(skillUser, { revive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
+      applyBuff(skillUser, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
     },
     description1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
     description2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
@@ -21190,7 +21190,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 120,
-    appliedEffect: { revive: { keepOnDeath: true, strength: 0.65 } },
+    appliedEffect: { autoRevive: { keepOnDeath: true, strength: 0.65 } },
   },
   {
     name: "パンプキンタイフーン",
@@ -21713,7 +21713,7 @@ const gear = [
     noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
-    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
+    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoReviveDivineDispellable" } },
     skillAlchemy: "咆哮",
     skillAlchemyStrength: 0.25,
   },
@@ -21723,7 +21723,7 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
-    initialBuffs: { revive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "revivedivineDispellable" } },
+    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoReviveDivineDispellable" } },
     skillAlchemy: "咆哮",
     skillAlchemyStrength: 0.25,
     healBoost: 1.2,
@@ -22066,7 +22066,7 @@ const gearAbilities = {
   rotoSword: {
     initialAbilities: async function (skillUser) {
       if (!skillUser.abilities.reviveAct) {
-        applyBuff(skillUser, { revive: { keepOnDeath: true, unDispellable: true, strength: 0.05, act: "ロトの加護", iconSrc: "revivedivineDispellable" } });
+        applyBuff(skillUser, { autoRevive: { keepOnDeath: true, unDispellable: true, strength: 0.05, act: "ロトの加護", iconSrc: "autoReviveDivineDispellable" } });
         skillUser.abilities.reviveAct = async function (monster, buffName) {
           if (buffName === "ロトの加護") {
             applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
@@ -22979,7 +22979,7 @@ async function executeWave(monster, isDivine = false, isDamageExisting = false) 
   for (const key in monster.buffs) {
     const value = monster.buffs[key];
     // keepOnDeathでも削除するバフ群 竜王杖や極天地のようなunDispellable指定以外は削除
-    const deleteKeys = ["counterAttack", "revive", "tabooSeal", "angelMark"];
+    const deleteKeys = ["counterAttack", "autoRevive", "tabooSeal", "angelMark"];
     if (deleteKeys.includes(key) && !value.unDispellable && (!value.divineDispellable || isDivine)) {
       buffRemoved = true; // バフが削除されたことを記録
       continue;
@@ -23087,7 +23087,7 @@ function preloadBuffImages() {
       "images/buffIcons/spellBarrierstr1.png",
       "images/buffIcons/fireResistancestr-1.png",
       "images/buffIcons/reviveBlock.png",
-      "images/buffIcons/revivedivineDispellable.png",
+      "images/buffIcons/autoReviveDivineDispellable.png",
       "images/buffIcons/protectionstr0.5.png",
       "images/buffIcons/elementalShieldDark.png",
       "images/buffIcons/damageLimitstr250.png",
@@ -23449,7 +23449,7 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}は`,
       message: "HPが 回復する状態になった！",
     },
-    revive: {
+    autoRevive: {
       start: `${buffTarget.name}は`,
       message: "自動で復活する状態になった！",
     },
@@ -25037,7 +25037,7 @@ const abnormalityBuffNameList = {
   manaReduction: "呪文ダメージ50%減少", // 浸食 闇討ち 宵 深淵の儀式
   powerWeaken: "攻撃ダメージ50%減少", // 浸食 邪悪な灯火
 
-  revive: "自動復活",
+  autoRevive: "自動復活",
   sacredBarrier: "状態異常無効",
   confusionBarrier: "混乱無効",
   mindBarrier: "行動停止無効",
