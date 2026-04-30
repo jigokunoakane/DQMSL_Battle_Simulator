@@ -25460,11 +25460,13 @@ const gameRuleData = [
       for (const party of parties) {
         for (const monster of party) {
           const availableSkills = getAvailableSkillsForOthers();
-          const randomSkillIndex0 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex1 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex2 = Math.floor(Math.random() * availableSkills.length);
-          const randomSkillIndex3 = Math.floor(Math.random() * availableSkills.length);
-          monster.skill = [availableSkills[randomSkillIndex0].name, availableSkills[randomSkillIndex1].name, availableSkills[randomSkillIndex2].name, availableSkills[randomSkillIndex3].name];
+          const selectedSkills = new Set(); // 重複を許さない集合
+          // 4つ選ばれるまで繰り返す
+          while (selectedSkills.size < 4) {
+            const randomIndex = Math.floor(Math.random() * availableSkills.length);
+            selectedSkills.add(availableSkills[randomIndex].name);
+          }
+          monster.skill = Array.from(selectedSkills);
         }
       }
     },
