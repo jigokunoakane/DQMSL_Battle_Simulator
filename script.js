@@ -3803,7 +3803,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let reflectionType = "yosoku";
 
   // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
-  if (skillTarget.buffs.stoned && !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) && !isWaveSkill(executingSkill)) {
+  if (skillTarget.buffs.stoned && !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) && !isNoDamageWaveSkill(executingSkill)) {
     applyDamage(skillTarget, 0);
     return;
   }
@@ -24367,7 +24367,7 @@ function isSkillReflected(executingSkill, skillTarget) {
     !skillTarget.buffs.disableReflection &&
     executingSkill.targetTeam === "enemy" &&
     !executingSkill.ignoreReflection &&
-    !isWaveSkill(executingSkill) &&
+    !isNoDamageWaveSkill(executingSkill) &&
     (skillTarget.buffs[executingSkill.type + "Reflection"] || (skillTarget.buffs.slashReflection && skillTarget.buffs.slashReflection.isKanta && executingSkill.type === "notskill"))
   );
 }
@@ -24410,7 +24410,7 @@ function isSkillUnavailableForAI(skillName) {
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
     unavailableSkillsOnAI.includes(skillName) ||
-    isWaveSkill(skillInfo) ||
+    isNoDamageWaveSkill(skillInfo) ||
     skillInfo.order !== undefined ||
     skillInfo.isOneTimeUse ||
     (skillInfo.followingSkill && !availableFollowingSkillsOnAI.includes(skillName))
@@ -24873,6 +24873,7 @@ function startBattleWithPresetCommands() {
   handleYesButtonClick();
 }
 
+// スキル説明文生成
 function displaySkillDescription(skillUser, skillInfo, displaySkillName) {
   const MPcost = calculateMPcost(skillUser, skillInfo);
   const SDproperties = createSDproperties(skillInfo);
@@ -24915,64 +24916,63 @@ function displaySkillDescription(skillUser, skillInfo, displaySkillName) {
   displayskillMessage(skillInfo, ...args);
 }
 
-// プロパティ生成
+// スキル説明文生成：プロパティ部分
 function createSDproperties(skillInfo) {
-  const ignoreProperties = [];
-  let ignorePropertiesText = "";
+  const skillProperties = [];
+  let skillPropertiesText = "";
   if (["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "業炎の息吹"].includes(skillInfo.name)) {
-    ignoreProperties.push("領界変化");
+    skillProperties.push("領界変化");
   }
   if (skillInfo.isOneTimeUse) {
-    ignoreProperties.push("戦闘中１回");
+    skillProperties.push("戦闘中１回");
   }
   if (skillInfo.order === "preemptive") {
-    ignoreProperties.push("先制");
+    skillProperties.push("先制");
   }
   if (skillInfo.order === "anchor") {
-    ignoreProperties.push("アンカー");
+    skillProperties.push("アンカー");
   }
   if (skillInfo.ignoreEvasion || (skillInfo.howToCalculate === "fix" && skillInfo.name !== "ステテコダンス" && (skillInfo.type === "martial" || skillInfo.type === "dance"))) {
-    ignoreProperties.push("みかわし不可");
+    skillProperties.push("みかわし不可");
   }
   if (skillInfo.ignoreDazzle || (skillInfo.howToCalculate === "fix" && skillInfo.name !== "キャンセルステップ" && (skillInfo.type === "martial" || skillInfo.type === "dance"))) {
-    ignoreProperties.push("マヌーサ無効");
+    skillProperties.push("マヌーサ無効");
   }
   if (skillInfo.ignoreSubstitute) {
-    ignoreProperties.push("みがわり無視");
+    skillProperties.push("みがわり無視");
   }
-  if (skillInfo.ignoreReflection || isWaveSkill(skillInfo)) {
-    ignoreProperties.push("反射無視");
+  if (skillInfo.ignoreReflection || isNoDamageWaveSkill(skillInfo)) {
+    skillProperties.push("反射無視");
   }
   if (skillInfo.ignoreProtection) {
-    ignoreProperties.push("軽減無視");
+    skillProperties.push("軽減無視");
   }
   if (skillInfo.ignoreGuard) {
-    ignoreProperties.push("ぼうぎょ無視");
+    skillProperties.push("ぼうぎょ無視");
   }
   if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string" && skillInfo.appliedEffect.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
     const maxDepth = skillInfo.appliedEffect.maso.maxDepth;
-    ignoreProperties.push(`深度${maxDepth}まで`);
+    skillProperties.push(`深度${maxDepth}まで`);
   }
-  // 動作確認
   if (skillInfo.masoMultiplier && skillInfo.masoMultiplier[4] >= 5) {
-    ignoreProperties.push("深度特効強");
+    skillProperties.push("深度特効強");
   }
   if (skillInfo.penetrateStoned) {
-    ignoreProperties.push("アストロン貫通");
+    skillProperties.push("アストロン貫通");
   }
   if (skillInfo.name === "イオラの嵐") {
-    ignoreProperties.push("鬼眼レベル2まで");
+    skillProperties.push("鬼眼レベル2まで");
   }
 
-  if (ignoreProperties.length > 0) {
-    for (const property of ignoreProperties) {
-      ignorePropertiesText += `【${property}】`;
+  if (skillProperties.length > 0) {
+    for (const property of skillProperties) {
+      skillPropertiesText += `【${property}】`;
     }
   }
-  return ignorePropertiesText;
+  return skillPropertiesText;
 }
 
-// 主要部分生成
+// スキル説明文生成：主要部分
 function createSDmain(skillInfo) {
   let skillDescriptionText = "";
   if (skillInfo.howToCalculate !== "none") {
@@ -25037,7 +25037,7 @@ function createSDmain(skillInfo) {
   return skillDescriptionText;
 }
 
-// 追加効果生成
+// スキル説明文生成：追加効果部分
 function createSDappliedEffect(skillInfo) {
   let skillDescriptionText = "";
   let appliedEffectText = "";
@@ -25118,9 +25118,9 @@ function createSDappliedEffect(skillInfo) {
       `${[...new Set(names)].join("・")}状態の敵に 威力${mult}倍 `
     );
     // 3. 「さらに」の判定と結合
-    // 直前が"倍"で終わる場合だけ先頭に「さらに 」を付与
+    // 直前が"倍"で終わる場合だけ先頭に「さらに」を付与
     if (additions.length > 0 && skillDescriptionText.trim().endsWith("倍")) {
-      additions[0] = "さらに " + additions[0];
+      additions[0] = "さらに　" + additions[0];
     }
     skillDescriptionText += additions.join("");
   } else {
@@ -25337,7 +25337,7 @@ function getBuffName(appliedEffect) {
   return [descriptionText, isStackableBuffExisting];
 }
 
-function isWaveSkill(skillInfo) {
+function isNoDamageWaveSkill(skillInfo) {
   return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
 }
 
