@@ -1754,11 +1754,11 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
       }
       // 種族数依存 対象系統が使用者含め0体の場合は付与確率0%となる
       let sameRaceCount = 1;
-      if (buffData.probabilityMultiplierBySameRace) {
+      if (buffData.sameRaceSuccessBonus) {
         if (isReflection) {
-          sameRaceCount = countSameRaceMonsters(buffTarget, buffData.probabilityMultiplierBySameRace);
+          sameRaceCount = countSameRaceMonsters(buffTarget, buffData.sameRaceSuccessBonus);
         } else {
-          sameRaceCount = skillUser ? countSameRaceMonsters(skillUser, buffData.probabilityMultiplierBySameRace) : 1;
+          sameRaceCount = skillUser ? countSameRaceMonsters(skillUser, buffData.sameRaceSuccessBonus) : 1;
         }
       }
       // 耐性と確率処理で失敗したら次へ
@@ -4262,8 +4262,8 @@ function calculateDamage(
   }
 
   // 種族数依存処理 反射時も元のskillUserを参照 対象系統が使用者含め0体の場合はダメージ1倍(本来はミスか？)
-  if (executingSkill.damageMultiplierBySameRace) {
-    const sameRaceCount = countSameRaceMonsters(assignedSkillUser, executingSkill.damageMultiplierBySameRace);
+  if (executingSkill.sameRaceDamageBonus) {
+    const sameRaceCount = countSameRaceMonsters(assignedSkillUser, executingSkill.sameRaceDamageBonus);
     damage *= sameRaceCount || 1;
   }
 
@@ -4390,7 +4390,7 @@ function calculateDamage(
     if (skillTarget.buffs.metal) {
       damage *= skillTarget.buffs.metal.strength;
       //メタルキラー処理
-      if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
+      if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetalKillerTarget) {
         damage *= skillUser.buffs.metalKiller.strength;
       }
     } else if (skillTarget.buffs.goddessLightMetal) {
@@ -4446,24 +4446,7 @@ function calculateDamage(
   if (executingSkill.lowHpDamageMultiplier) {
     damage *= -(skillUser.currentStatus.HP / skillUser.defaultStatus.HP) + 2;
   }
-  // 反射特攻系
-  if (executingSkill.name === "体砕きの斬舞" && skillTarget.buffs.martialReflection) {
-    damage *= 3;
-  }
-  if (
-    executingSkill.name === "すさまじいオーラ" &&
-    (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.danceReflection || skillTarget.buffs.ritualReflection)
-  ) {
-    damage *= 3;
-  }
-  if (
-    executingSkill.name === "破鏡の円舞" &&
-    (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection)
-  ) {
-    damage *= 3;
-  }
-
-  // skill特有の特殊計算
+  // skill特有の特殊計算（反射特効含む）
   if (executingSkill.damageMultiplier) {
     damage *= executingSkill.damageMultiplier(skillUser, skillTarget, isReflection) || 1;
   }
@@ -7319,7 +7302,7 @@ const monsters = [
     defaultGear: "familyNail",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
       },
     },
@@ -7586,7 +7569,7 @@ const monsters = [
     defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         baiki: { strength: 2 },
         mindBarrier: { keepOnDeath: true },
@@ -7652,7 +7635,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         elementalShield: { targetElement: "dark", remain: 250, unDispellable: true, targetType: "ally", iconSrc: "elementalShieldDark" },
         damageLimit: { unDispellable: true, strength: 250 },
@@ -7675,7 +7658,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         elementalShield: { targetElement: "ice", remain: 250, unDispellable: true, targetType: "ally", iconSrc: "elementalShieldIce" },
       },
@@ -7856,7 +7839,7 @@ const monsters = [
     defaultGear: "heavenlyClothes",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         breathReflection: { strength: 1, keepOnDeath: true },
       },
@@ -8275,7 +8258,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.25, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.25, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 2.5, keepOnDeath: true },
         mindBarrier: { duration: 3 },
       },
@@ -8340,7 +8323,7 @@ const monsters = [
     initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "アイアンゲイザー"],
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.33, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 2, keepOnDeath: true },
         ioBreak: { keepOnDeath: true, strength: 1 },
       },
@@ -8362,7 +8345,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.25, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.25, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 2.5, keepOnDeath: true },
       },
     },
@@ -8383,7 +8366,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.75, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.75, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 1.2, keepOnDeath: true },
         autoRevive: { keepOnDeath: true, strength: 0.5 },
       },
@@ -9127,7 +9110,7 @@ const monsters = [
     defaultGear: "familyNailRadiantWave",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.33, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 2, keepOnDeath: true },
         ioBreak: { keepOnDeath: true, strength: 1 },
         mindBarrier: { duration: 3 },
@@ -9150,7 +9133,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       initialBuffs: {
-        metal: { keepOnDeath: true, strength: 0.33, isMetal: true },
+        metal: { keepOnDeath: true, strength: 0.33, isMetalKillerTarget: true },
         mpCostMultiplier: { strength: 2, keepOnDeath: true },
       },
     },
@@ -12604,7 +12587,7 @@ const skill = [
     ratio: 1,
     MPdamageRatio: 1.5,
     damage: 142,
-    damageMultiplierBySameRace: "ゾンビ",
+    sameRaceDamageBonus: "ゾンビ",
     minInt: 500,
     minIntDamage: 222,
     maxInt: 1000,
@@ -13010,7 +12993,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 84, //420
-    damageMultiplierBySameRace: "ドラゴン",
+    sameRaceDamageBonus: "ドラゴン",
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
@@ -14345,11 +14328,17 @@ const skill = [
     MPcost: 82,
     damageByLevel: true,
     appliedEffect: "disruptiveWave",
-    //体技以外の反射に3倍
     act: function (skillUser, skillTarget) {
       delete skillTarget.buffs.powerCharge;
       delete skillTarget.buffs.manaBoost;
       delete skillTarget.buffs.breathCharge;
+    },
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
+      if (isReflection) {
+        return 1; // 反射時は1倍とした
+      } else if (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.danceReflection || skillTarget.buffs.ritualReflection) {
+        return 3;
+      }
     },
   },
   {
@@ -16542,6 +16531,13 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 51,
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
+      if (isReflection) {
+        return 1; // 反射時は1倍とした
+      } else if (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection) {
+        return 3;
+      }
+    },    
   },
   {
     name: "魔空の一撃",
@@ -16676,7 +16672,13 @@ const skill = [
     hitNum: 5,
     MPcost: 41,
     criticalHitProbability: 0,
-    //反射特攻はcalc内で
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
+      if (isReflection) {
+        return 1; // 反射時は1倍とした
+      } else if (skillTarget.buffs.martialReflection) {
+        return 3;
+      }
+    },
   },
   {
     name: "ミラクルムーン",
@@ -18447,7 +18449,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 29, //144
-    damageMultiplierBySameRace: "魔獣",
+    sameRaceDamageBonus: "魔獣",
     element: "wind",
     targetType: "single",
     targetTeam: "enemy",
@@ -18505,7 +18507,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
-    appliedEffect: { tempted: { probabilityMultiplierBySameRace: "魔獣", probability: 0.157 } }, //0.785
+    appliedEffect: { tempted: { sameRaceSuccessBonus: "魔獣", probability: 0.157 } }, //0.785
     description1: "敵全体を　確率でみりょう状態にする",
     description2: "魔獣系の味方が多いほど　成功率上昇　最大6倍",
   },
@@ -18517,7 +18519,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 55,
-    appliedEffect: { tempted: { probabilityMultiplierBySameRace: "悪魔", probability: 0.157 } }, //0.785
+    appliedEffect: { tempted: { sameRaceSuccessBonus: "悪魔", probability: 0.157 } }, //0.785
     description1: "敵全体を　確率でみりょう状態にする",
     description2: "悪魔系の味方が多いほど　成功率上昇　最大6倍",
   },
@@ -18639,7 +18641,7 @@ const skill = [
     type: "slash",
     howToCalculate: "atk",
     ratio: 0.26, //1.3
-    damageMultiplierBySameRace: "魔獣",
+    sameRaceDamageBonus: "魔獣",
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
@@ -18785,7 +18787,7 @@ const skill = [
     type: "slash",
     howToCalculate: "def",
     ratio: 0.36, //1.8
-    damageMultiplierBySameRace: "スライム",
+    sameRaceDamageBonus: "スライム",
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
@@ -19368,7 +19370,7 @@ const skill = [
       if (skillTarget.buffs.metal) {
         damage *= skillTarget.buffs.metal.strength;
         //メタルキラー処理
-        if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetal) {
+        if (skillUser.buffs.metalKiller && skillTarget.buffs.metal.isMetalKillerTarget) {
           damage *= skillUser.buffs.metalKiller.strength;
         }
       } else if (skillTarget.buffs.goddessLightMetal) {
@@ -19942,7 +19944,7 @@ const skill = [
     type: "breath",
     howToCalculate: "fix",
     damage: 40, //200
-    damageMultiplierBySameRace: "ゾンビ",
+    sameRaceDamageBonus: "ゾンビ",
     element: "fire",
     targetType: "random",
     targetTeam: "enemy",
@@ -19978,7 +19980,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: { asleep: { probabilityMultiplierBySameRace: "ゾンビ", probability: 0.081 }, confused: { probabilityMultiplierBySameRace: "ゾンビ", probability: 0.0856 } },
+    appliedEffect: { asleep: { sameRaceSuccessBonus: "ゾンビ", probability: 0.081 }, confused: { sameRaceSuccessBonus: "ゾンビ", probability: 0.0856 } },
     //0.405, 0.428
   },
   {
