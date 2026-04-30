@@ -21864,7 +21864,7 @@ const gear = [
     noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
     statusMultiplier: { spd: -0.2 },
-    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoReviveDivineDispellable" } },
+    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoRevivedivineDispellable" } },
     skillAlchemy: "咆哮",
     skillAlchemyStrength: 0.25,
   },
@@ -21874,7 +21874,7 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["りゅうおう", "竜王"],
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 116 },
-    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoReviveDivineDispellable" } },
+    initialBuffs: { autoRevive: { strength: 1, keepOnDeath: true, unDispellable: true, iconSrc: "autoRevivedivineDispellable" } },
     skillAlchemy: "咆哮",
     skillAlchemyStrength: 0.25,
     healBoost: 1.2,
@@ -22217,7 +22217,7 @@ const gearAbilities = {
   rotoSword: {
     initialAbilities: async function (skillUser) {
       if (!skillUser.abilities.reviveAct) {
-        applyBuff(skillUser, { autoRevive: { keepOnDeath: true, unDispellable: true, strength: 0.05, act: "ロトの加護", iconSrc: "autoReviveDivineDispellable" } });
+        applyBuff(skillUser, { autoRevive: { keepOnDeath: true, unDispellable: true, strength: 0.05, act: "ロトの加護", iconSrc: "autoRevivedivineDispellable" } });
         skillUser.abilities.reviveAct = async function (monster, buffName) {
           if (buffName === "ロトの加護") {
             applyBuff(monster, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
@@ -23244,7 +23244,7 @@ function preloadBuffImages() {
       "images/buffIcons/spellBarrierstr1.png",
       "images/buffIcons/fireResistancestr-1.png",
       "images/buffIcons/reviveBlock.png",
-      "images/buffIcons/autoReviveDivineDispellable.png",
+      "images/buffIcons/autoRevivedivineDispellable.png",
       "images/buffIcons/protectionstr0.5.png",
       "images/buffIcons/elementalShieldDark.png",
       "images/buffIcons/damageLimitstr250.png",
