@@ -4867,13 +4867,14 @@ function calculateDamage(
     damageModifier += executingSkill.damageModifier(skillUser, skillTarget);
   }
 
-  // MP依存ではなくかつ完全固定でもないとき、加減算とそしでんバリア・新たなる神・バーン魔獣化を反映
+  // MP依存ではなくかつ完全固定でもないとき、加減算・そしでんバリア・新たなる神・バーン魔獣化・退廃のかぜを反映
   if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
+    // 加減算を反映
     if (executingSkill.name === "混沌のキバ") {
       damageModifier *= 2;
     }
     damage *= damageModifier + 1;
-    // そしでん・新たなる神
+    // そしでん・新たなる神・バーン魔獣化を反映
     let sosidenBarrierMultiplier = 1;
     let garumaBarrierMultiplier = 1;
     let vearnBarrierMultiplier = 1;
@@ -4892,7 +4893,12 @@ function calculateDamage(
     if (skillTarget.buffs.vearnBarrier) {
       vearnBarrierMultiplier = 0.25;
     }
+    // 一応競合させておく
     damage *= Math.min(sosidenBarrierMultiplier, garumaBarrierMultiplier, vearnBarrierMultiplier);
+    // ヘルクラウダー退廃のかぜ 反射時の挙動は不明であり対象外とした HP50%で0.8倍、HP28%で0.63倍、HP1%で0.5倍から逆算
+    if (!isReflection && skillUser.buffs.hellclouderDebuff) {
+      damage *= Math.min(1, (skillUser.currentStatus.HP / skillUser.defaultStatus.HP) * 0.6 + 0.5);
+    }
   }
   // やみのころも時ダメージ半減 マダンテにも効く
   if (skillTarget.name === "闇の大魔王ゾーマ" && skillTarget.gear && skillTarget.gear.name === "ゾーマのローブ") {
@@ -8489,6 +8495,27 @@ const monsters = [
     resistance: { fire: 0, ice: 1, thunder: 1, wind: 1, io: 1, light: 0, dark: 1, poisoned: 0, asleep: 0, confused: 1.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
+    name: "恐怖の風ヘルクラウダー", //4
+    id: "hellclouder",
+    rank: 10,
+    race: ["物質"],
+    weight: 28,
+    status: { HP: 793, MP: 308, atk: 280, def: 610, spd: 508, int: 491 },
+    initialSkill: ["真空の凶嵐", "きょうふのはもん", "フロストガスト", "奈落の風"],
+    defaultGear: "hunkiNail",
+    attribute: {
+      initialBuffs: {
+        windBreak: { keepOnDeath: true, strength: 2 },
+        dodgeBuff: { strength: 0.7, duration: 2, removeAtTurnStart: true },
+      },
+    },
+    seed: { atk: 0, def: 0, spd: 95, int: 25 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2],
+    resistance: { fire: 1, ice: 0, thunder: 1, wind: 0, io: 1, light: 0.5, dark: 1, poisoned: 0, asleep: 0, confused: 0.5, paralyzed: 1, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
     name: "ヘルクラウド", //4
     id: "castle",
     rank: 10,
@@ -9228,7 +9255,6 @@ const monsters = [
     weight: 25,
     status: { HP: 300000, MP: 999, atk: 600, def: 450, spd: 300, int: 600 },
     initialSkill: ["終の流星", "溶熱の儀式", "debugbreath", "神のはどう"],
-    initialAIDisabledSkills: ["永劫の闇冥", "必殺の双撃", "ソウルハーベスト"],
     anotherSkills: ["ベホマラー"],
     defaultGear: "ryujinNail",
     defaultAiType: "いのちだいじに",
@@ -9583,7 +9609,7 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性`, "天使のしるし が発動！");
           },
-          act: function (skillUser) {
+          act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
               applyBuff(monster, { angelMark: { keepOnDeath: true } });
             }
@@ -11653,6 +11679,38 @@ function getMonsterAbilities(monsterId) {
         ],
       },
     },
+    hellclouder: {
+      initialAttackAbilities: [
+        {
+          name: "退廃のかぜ",
+          disableMessage: true,
+          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5),
+          act: async function (skillUser) {
+            for (const monster of parties[skillUser.enemyTeamID]) {
+              applyBuff(monster, { hellclouderDebuff: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } }); // タッグ・リザオ等でも解除不可 亡者にも有効
+              await sleep(150);
+            }
+          },
+        },
+      ],
+      supportAbilities: {
+        evenTurnAbilities: [
+          {
+            name: "ウェザーアーマー",
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                if (monster.race.includes("物質")) {
+                  applyBuff(monster, { spellBarrier: { strength: 1 } });
+                  await sleep(100);
+                  applyBuff(monster, { martialBarrier: { strength: 1 } });
+                  await sleep(100);
+                }
+              }
+            },
+          },
+        ],
+      },
+    },
     castle: {
       supportAbilities: {
         permanentAbilities: [
@@ -12014,7 +12072,7 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性`, "汚毒の巣 が発動！");
           },
-          act: function (skillUser) {
+          act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
               applyBuff(monster, { poisoned: { isLight: true }, poisonDepth: { keepOnDeath: true, strength: 3 } }, skillUser);
             }
@@ -13237,6 +13295,17 @@ const skill = [
     MPcost: 47,
   },
   {
+    name: "フロストガスト",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 367, // 自己検証値
+    element: "ice",
+    targetType: "single",
+    targetTeam: "enemy",
+    hitNum: 3,
+    MPcost: 57,
+  },
+  {
     name: "煉獄火炎",
     type: "breath",
     howToCalculate: "fix",
@@ -13248,7 +13317,7 @@ const skill = [
     appliedEffect: { fear: { probability: 0.213 } },
   },
   {
-    name: "はげしい炎", //searchとくぎレベルアップ調査から
+    name: "はげしい炎", // searchとくぎレベルアップ調査から
     type: "breath",
     howToCalculate: "fix",
     damage: 142,
@@ -16545,7 +16614,7 @@ const skill = [
       } else if (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection) {
         return 3;
       }
-    },    
+    },
   },
   {
     name: "魔空の一撃",
@@ -17958,6 +18027,22 @@ const skill = [
     MPcost: 38,
   },
   {
+    name: "奈落の風",
+    type: "spell",
+    howToCalculate: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "wind",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 6,
+    MPcost: 43,
+    appliedEffect: { asleep: { probability: 0.25 } }, // 確率不明
+  },
+  {
     name: "幻術のひとみ",
     type: "martial",
     howToCalculate: "none",
@@ -19167,6 +19252,68 @@ const skill = [
     deleteUnbreakableProbability: 1,
     description1: "ランダムに4回　攻撃力依存で　無属性の体技攻撃",
     description2: "命中時　くじけぬ心を解除し　確率で防御力を1段階下げる",
+  },
+  {
+    name: "真空の凶嵐",
+    type: "breath",
+    howToCalculate: "fix",
+    damage: 700, // 自己検証値
+    element: "wind",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 88,
+    damageByHpPercent: true, // 全体攻撃途中の反射により与ダメージが減少しうる
+  },
+  {
+    name: "きょうふのはもん",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 210, // 自己検証値
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 78,
+    ignoreSubstitute: true,
+    ignoreProtection: true,
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
+      if (isReflection) {
+        return 1; // 反射時はuserまたはtargetがみがわられ状態であっても1倍となる
+      } else if (skillTarget.flags.waveOfDreadTarget) {
+        return 3;
+      }
+    },
+    act: function (skillUser, skillTarget) {
+      // 反射時、元の使用者（今回ダメージを受ける側）がみがわられ状態の場合、回復封じ付与対象となる
+      if (skillTarget.flags.waveOfDreadTarget) {
+        applyBuff(skillTarget, { healBlock: { keepOnDeath: true, unDispellableByRadiantWave: true } });
+      }
+    },
+    onStart: async function (skillUser) {
+      // skill発動時点でのhasSubstituteを基準にダメージ増幅判定
+      // におうだちmonsterが全体攻撃途中で死亡してhasSubstituteが抜けても、ダメージ増幅対象とするよう、flagsに状態を保存
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+        for (const party of parties) {
+          for (const monster of party) {
+            if (monster.flags.hasSubstitute) {
+              monster.flags.waveOfDreadTarget = true;
+            }
+          }
+        }
+      }
+    },
+    onComplete: async function (skillUser) {
+      // ヒット処理後に全体のフラグ削除
+      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+        for (const party of parties) {
+          for (const monster of party) {
+            delete monster.flags.waveOfDreadTarget;
+          }
+        }
+      }
+    },
+    description1: "【みかわし不可】【みがわり無視】【軽減無視】敵全体に",
+    description2: "無属性の体技攻撃　物質系の味方が5体以上なら　みがわり",
+    description3: "されている敵に　威力3倍で命中時解除不可の回復封じ状態",
   },
   {
     name: "ろうじょうのかまえ",
@@ -23716,6 +23863,10 @@ function displayBuffMessage(buffTarget, buffName, buffData) {
       start: `${buffTarget.name}の`,
       message: "全属性耐性が あがった！",
     },
+    hellclouderDebuff: {
+      start: `${buffTarget.name}は HPが少ないほど`,
+      message: "与えるダメージがさがる状態になった！",
+    },
   };
 
   const stackableBuffs = {
@@ -24416,6 +24567,7 @@ function isSkillUnavailableForAI(skillName) {
     "ギガ・マホヘル",
     "究極の絶技",
     "いやしの雨",
+    "きょうふのはもん",
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
