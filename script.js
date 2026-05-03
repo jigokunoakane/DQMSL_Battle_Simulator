@@ -2708,10 +2708,10 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
   // 7-3. AI追撃処理 処理全体の実行前に初回skip確認
   if (skillUser.AINormalAttack && !skipThisMonsterAction(skillUser) && skillUser.commandInput !== "skipThisTurn" && !hasAbnormality(skillUser)) {
-    const noAIskills = ["黄泉の封印", "神獣の封印", "けがれの封印", "供物をささげる", "超魔改良", "しはいのさくせん"];
-    const AIskills = ["火竜変化呪文先制"];
+    const skillsWithoutPursuit = ["黄泉の封印", "神獣の封印", "けがれの封印", "雪だるま", "氷の王国", "封印の光", "しはいのさくせん", "供物をささげる", "超魔改良", "ひかりの旋風"]; // 神獣の氷縛等ゴルアスは追撃あり
+    const skillsWithPursuit = ["火竜変化呪文先制", "オーバーホール"];
     // executingSkillが存在しなければ常にAIを出す それ以外の場合は特技の性質に依存
-    if (!executingSkill || AIskills.includes(executingSkill.name) || (!noAIskills.includes(executingSkill.name) && !(executingSkill.order && !isDamageExistingSkill(executingSkill)))) {
+    if (!executingSkill || skillsWithPursuit.includes(executingSkill.name) || (!skillsWithoutPursuit.includes(executingSkill.name) && !(executingSkill.order && !isDamageExistingSkill(executingSkill)))) {
       let attackTimes =
         skillUser.AINormalAttack.length === 1
           ? skillUser.AINormalAttack[0] - 1
@@ -8431,7 +8431,7 @@ const monsters = [
         ioBreak: { keepOnDeath: true, strength: 2 },
       },
     },
-    seed: { atk: 0, def: 25, spd: 95, int: 0 },
+    seed: { atk: 30, def: 40, spd: 15, int: 35 },
     ls: { HP: 1.6, spd: 1.15 },
     lsTarget: "物質",
     AINormalAttack: [2, 3],
@@ -25117,7 +25117,7 @@ function createSDappliedEffect(skillInfo) {
     }
     // 2. 追加するテキストの配列を作成
     const additions = Object.entries(multiplierGroups).map(([mult, names]) => 
-      `${[...new Set(names)].join("・")}状態の敵に 威力${mult}倍 `
+      `${[...new Set(names)].join("・")}状態の敵に　威力${mult}倍 `
     );
     // 3. 「さらに」の判定と結合
     // 直前が"倍"で終わる場合だけ先頭に「さらに」を付与
