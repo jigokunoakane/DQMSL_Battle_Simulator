@@ -3561,22 +3561,27 @@ async function executeSkill(
       skillTarget = null;
     }
 
+    // ヒット処理前に一括で実行する処理
+    if (currentSkill.onStart) {
+      await currentSkill.onStart(skillUser);
+    }
+
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
     await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack, MPused);
 
-    // currentSkill実行後、生存にかかわらず実行するact 行動skip判定前に実行
-    if (currentSkill.afterActionAct) {
-      await currentSkill.afterActionAct(skillUser);
+    // ヒット処理後に一括で実行する処理 生存にかかわらず、行動skip判定前に実行
+    if (currentSkill.onComplete) {
+      await currentSkill.onComplete(skillUser);
     }
 
-    // afterActionAct実行後に全滅判定 全滅時も実行する起爆装置等はfollowingがないのでこのままでOK
+    // onComplete実行後に全滅判定 全滅時も実行する起爆装置等はfollowingがないのでこのままでOK
     if (isBattleOver()) {
       break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfAppliedEffectやfollowingは実行しない
     } else if (skipThisMonsterAction(skillUser)) {
       // skip時はフラグを立て、selfAppliedEffectは実行せず、followingSkill存在時はようす表示だけしてbreak
     } else {
-      //currentSkill実行後、生存している場合はselfAppliedEffect付与 戦闘継続時のみ実行
+      // currentSkill実行後、生存している場合はselfAppliedEffect付与 戦闘継続時のみ実行
       if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
         await currentSkill.selfAppliedEffect(skillUser);
       }
@@ -12643,11 +12648,14 @@ const skill = [
       console.log("hoge");
     },
     alwaysAct: true,
-    afterActionAct: async function (skillUser) {
-      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 死亡していても実行 行動skip判定前
+    onStart: async function (skillUser) {
+      console.log("hoge"); // ヒット処理前に実行
+    },
+    onComplete: async function (skillUser) {
+      console.log("hoge"); // ヒット処理後に実行 miss・死亡にかかわらず実行 行動skip判定前
     },
     selfAppliedEffect: async function (skillUser) {
-      console.log("hoge"); //missとかにかかわらず、一回だけ実行するact 行動skipされる可能性あり
+      console.log("hoge"); // ヒット処理後に実行 missにかかわらず実行 行動skip判定後のため、skipされうる
     },
     damageModifier: function (skillUser, skillTarget) {
       return Math.pow(1.6, power) - 1;
@@ -13211,7 +13219,7 @@ const skill = [
       const power = skillUser.buffs.dragonPreemptiveAction?.strength ?? 0;
       return Math.pow(1.6, power) - 1;
     },
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       delete skillUser.buffs.dragonPreemptiveAction;
     },
     description2: "天の竜気レベルを全て消費し　敵全体に　無属性の息攻撃",
@@ -15121,7 +15129,7 @@ const skill = [
     hitNum: 6,
     MPcost: 0,
     ignoreReflection: true,
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       await sleep(200);
       applyDamage(skillUser, 360, 1, false, false, false, false, null);
       await checkRecentlyKilledFlagForPoison(skillUser);
@@ -16086,7 +16094,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreDazzle: true,
     ignoreProtection: true,
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       for (let i = 0; i < skillUser.skill.length; i++) {
         if (skillUser.skill[i] === "グランドショット") {
           skillUser.skill[i] = "暗黒しょうへき";
@@ -18743,7 +18751,7 @@ const skill = [
     MPcostRatio: 0.1,
     ignoreReflection: true,
     followingSkill: "クアトロマダンテ3発目",
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
@@ -18760,7 +18768,7 @@ const skill = [
     MPcostRatio: 0.1,
     ignoreReflection: true,
     followingSkill: "クアトロマダンテ4発目",
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
@@ -18776,7 +18784,7 @@ const skill = [
     targetTeam: "enemy",
     MPcostRatio: 0.1,
     ignoreReflection: true,
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       const MPused = calculateMPcost(skillUser, findSkillByName("クアトロマダンテ"));
       skillUser.currentStatus.MP -= MPused;
       updateMonsterBar(skillUser);
@@ -19137,7 +19145,7 @@ const skill = [
     MPcost: 90,
     isOneTimeUse: true,
     appliedEffect: { fear: { probability: 0.4233 } },
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       await sleep(200);
       const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
       applyDamage(skillUser, 480 * randomMultiplier, 1, false, false, false, false, null);
@@ -20182,7 +20190,7 @@ const skill = [
     hitNum: 6,
     MPcost: 58,
     ignoreEvasion: true,
-    afterActionAct: async function (skillUser) {
+    onComplete: async function (skillUser) {
       await sleep(200);
       applyDamage(skillUser, 500, 1, false, false, false, false, null);
       await checkRecentlyKilledFlagForPoison(skillUser);
