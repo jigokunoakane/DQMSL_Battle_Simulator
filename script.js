@@ -4475,9 +4475,21 @@ function calculateDamage(
     if (gearName === "竜神のツメ" && (skillTarget.race.includes("???") || skillTarget.race.includes("ドラゴン"))) {
       damageModifier += 0.1;
     }
+    // 装備本体 - ドラゴンクロー
+    if (gearName === "ドラゴンクロー" && skillTarget.race.includes("ドラゴン")) {
+      damageModifier += 0.17;
+    }
     // 装備本体 - 強戦士ハート・闇
     if (gearName === "強戦士ハート・闇" && skillUser.race.includes("悪魔") && executingSkill.type === "spell") {
       damageModifier += 0.15;
+    }
+    // 装備本体 - 武闘家ハート・鋼
+    if (gearName === "武闘家ハート・鋼" && skillUser.race.includes("物質") && executingSkill.type === "martial") {
+      damageModifier += 0.2;
+    }
+    // 装備本体 - 武闘家ハート・竜
+    if (gearName === "武闘家ハート・竜" && skillUser.race.includes("ドラゴン") && executingSkill.type === "martial") {
+      damageModifier += 0.2;
     }
     // 装備本体&錬金 - かがやく魔神剣
     if (gearName === "かがやく魔神剣" && executingSkill.type === "slash") {
@@ -5715,7 +5727,7 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加 (狭間を除く)
-    const noFamilySkillMonsters = ["ルバンカ", "降臨しんりゅう", "常夏少女ジェマ"];
+    const noFamilySkillMonsters = ["ルバンカ", "降臨しんりゅう", "常夏少女ジェマ", "タイプG"];
     if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) && !noFamilySkillMonsters.includes(monster.name)) {
       const familySkillsToUse = [];
       if (monster.rank === 10 && familySkills) {
@@ -5752,7 +5764,7 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    const noSuperOptMonsters = ["氷炎の化身", "降臨しんりゅう", "常夏少女ジェマ"];
+    const noSuperOptMonsters = ["氷炎の化身", "降臨しんりゅう", "常夏少女ジェマ", "タイプG"];
     if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && monster.rank > 7) {
       superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
@@ -8587,6 +8599,32 @@ const monsters = [
     lsTarget: "物質",
     AINormalAttack: [1, 3],
     resistance: { fire: 0.5, ice: 0.5, thunder: 1, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 0, asleep: 0.5, confused: 1, paralyzed: 0, zaki: 0.5, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "タイプG", //99
+    id: "typeG",
+    rank: 10,
+    race: ["物質"],
+    weight: 25,
+    status: { HP: 730, MP: 362, atk: 435, def: 487, spd: 751, int: 311 },
+    initialSkill: ["流星斬り", "パイロビーム", "ラピッドショット", "ピオリーマ"],
+    defaultGear: "falconClaw",
+    attribute: {
+      initialBuffs: {
+        spdUp: { strength: 2 },
+      },
+      evenTurnBuffs: { 
+        matterBuffSpd: { strength: 0.5 }, // オバホのspd30%より強力だが、画像がないためアイコン共用
+      },
+      permanentBuffs: {
+        mindBarrier: { duration: 3, probability: 0.25, noMissDisplay: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { MP: 1.15, spd: 1.15 },
+    lsTarget: "物質",
+    AINormalAttack: [1, 3],
+    resistance: { fire: 0, ice: 1, thunder: 1, wind: 0.5, io: 0, light: 1, dark: 1, poisoned: 0, asleep: 0, confused: 0, paralyzed: 1, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "ダーティードール", //444 新生全ステ20
@@ -12648,7 +12686,7 @@ const skill = [
     howToCalculate: "", //atk int fix def spd MP
     fixedDamage: true, // 完全固定ダメージ ボンスキュ反撃 紅蓮剣 星皇 アルテマ誇り エクスカリパー 針10本 ミルスト ブラジョ 屍大狂乱 キャスリング
     ratio: 1,
-    MPdamageRatio: 1.5,
+    MPDamageRatio: 1.5,
     damage: 142,
     sameRaceDamageBonus: "ゾンビ",
     minInt: 500,
@@ -12894,6 +12932,16 @@ const skill = [
     type: "notskill",
     howToCalculate: "spd",
     ratio: 0.6,
+    element: "notskill",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+  },
+  {
+    name: "ファルコンクロー攻撃",
+    type: "notskill",
+    howToCalculate: "spd",
+    ratio: 0.3,
     element: "notskill",
     targetType: "single",
     targetTeam: "enemy",
@@ -19569,6 +19617,28 @@ const skill = [
     },
   },
   {
+    name: "流星斬り",
+    type: "slash",
+    howToCalculate: "spd",
+    ratio: 0.5,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 52,
+  },
+  {
+    name: "パイロビーム",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 240,
+    element: "io",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 89,
+    appliedEffect: { fear: { probability: 0.26 } }, // 確率不明、神罰の光と同確率に設定
+  },
+  {
     name: "オカルトソード",
     type: "slash",
     howToCalculate: "atk",
@@ -21189,6 +21259,16 @@ const skill = [
     appliedEffect: { spdUp: { strength: 1 } },
   },
   {
+    name: "ピオリーマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    MPcost: 42,
+    appliedEffect: { spdUp: { strength: 2 } },
+  },
+  {
     name: "ピオラ",
     type: "spell",
     howToCalculate: "none",
@@ -21918,6 +21998,20 @@ const gear = [
     alchemy: true,
   },
   {
+    name: "ドラゴンクロー", //+10
+    id: "dragonClaw",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+    alchemy: true,
+  },
+  {
+    name: "ファルコンクロー", //+10
+    id: "falconClaw",
+    weight: 2,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 42, int: 0 },
+    alchemy: true,
+  },
+  {
     name: "呪われし爪", //+10
     id: "cursedNail",
     weight: 1,
@@ -22312,6 +22406,18 @@ const gear = [
     id: "devilSpellHeart",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+  },
+  {
+    name: "武闘家ハート・鋼",
+    id: "materialMartialHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+  },
+  {
+    name: "武闘家ハート・竜",
+    id: "dragonMartialHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
   },
   {
     name: "パラディンハート・蒼",
@@ -24159,6 +24265,8 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "おうごんのツメ攻撃";
   } else if (skillUser.gear?.name === "ハザードネイル") {
     NormalAttackName = "ハザードネイル攻撃";
+  } else if (skillUser.gear?.name === "ファルコンクロー") {
+    NormalAttackName = "ファルコンクロー攻撃";
   } else if (skillUser.gear?.name === "メガトンハンマー") {
     NormalAttackName = "通常攻撃アイアンヒット";
   } else if (skillUser.buffs.alwaysCrit) {
