@@ -1590,7 +1590,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (breakBoosts.includes(buffName)) {
       buffData.divineDispellable = true;
     }
-    // familuBuffsをdivineDispellable化・duration付与
+    // familyBuffsをdivineDispellable化・duration付与
     if (familyBuffs.includes(buffName)) {
       buffData.divineDispellable = true;
       buffData.duration = 4;
@@ -2251,132 +2251,71 @@ async function removeExpiredBuffsAtTurnStart() {
   }
 }
 
+// global: 系統バフ一覧
+const FAMILY_BUFF_MAP = {
+  goragoAtk: "atk", shamuAtk: "atk", matterBuffAtk: "atk",
+  heavenlyBreath: "def", shamuDef: "def", goddessDefUp: "def", poseidonDefUp: "def", castleDefUp: "def",
+  goragoSpd: "spd", shamuSpd: "spd", matterBuffSpd: "spd", iburuSpdUp: "spd",
+  shamuInt: "int",
+};
+
+const INTERNAL_BUFF_MAP = {
+  internalAtkUp: "atk",
+  internalDefUp: "def",
+  internalSpdUp: "spd",
+  internalIntUp: "int",
+};
+
 // currentStatusを更新する関数
 // applyBuffの追加時および持続時間切れ、解除時に起動
 function updateCurrentStatus(monster) {
-  // currentStatus を defaultStatus の値で初期化
-  monster.currentStatus.atk = monster.defaultStatus.atk;
-  monster.currentStatus.def = monster.defaultStatus.def;
-  monster.currentStatus.spd = monster.defaultStatus.spd;
-  monster.currentStatus.int = monster.defaultStatus.int;
-
-  const strengthMultipliersForDef = {
-    0: 0.6, // -2 + 2
-    1: 0.8, // -1 + 2
-    3: 1.2, //  1 + 2
-    4: 1.4, //  2 + 2
-  };
-  const strengthMultipliersForSpdInt = {
-    0: 0.25, // -2 + 2
-    1: 0.5, // -1 + 2
-    3: 1.5, //  1 + 2
-    4: 2, //  2 + 2
+  const stats = ["atk", "def", "spd", "int"];
+  // 通常バフ倍率
+  const STANDARD_BUFF_TABLES = {
+    def: { 0: 0.6, 1: 0.8, 3: 1.2, 4: 1.4 },
+    spd: { 0: 0.25, 1: 0.5, 3: 1.5, 4: 2 },
+    int: { 0: 0.25, 1: 0.5, 3: 1.5, 4: 2 },
   };
 
-  // 通常バフ バイキ除く
-  if (monster.buffs.defUp) {
-    const strengthKey = monster.buffs.defUp.strength + 2;
-    const Multiplier = strengthMultipliersForDef[strengthKey];
-    monster.currentStatus.def *= Multiplier;
-  }
-  if (monster.buffs.spdUp) {
-    const strengthKey = monster.buffs.spdUp.strength + 2;
-    const Multiplier = strengthMultipliersForSpdInt[strengthKey];
-    monster.currentStatus.spd *= Multiplier;
-  }
-  if (monster.buffs.intUp) {
-    const strengthKey = monster.buffs.intUp.strength + 2;
-    const Multiplier = strengthMultipliersForSpdInt[strengthKey];
-    monster.currentStatus.int *= Multiplier;
-  }
+  // 1. 各ステータスの倍率管理用オブジェクトを初期化
+  const systemMultipliers = { atk: 1, def: 1, spd: 1, int: 1 };
 
-  //内部バフと系統バフ 1.5ではなく0.5等と指定することに注意
-  // 攻撃
-  let atkMultiplier = 1;
-  if (monster.buffs.internalAtkUp) {
-    atkMultiplier += monster.buffs.internalAtkUp.strength;
-  }
-  // ゴラゴ
-  if (monster.buffs.goragoAtk) {
-    atkMultiplier += monster.buffs.goragoAtk.strength;
-  }
-  // シャムダ
-  if (monster.buffs.shamuAtk) {
-    atkMultiplier += monster.buffs.shamuAtk.strength;
-  }
-  // マター
-  if (monster.buffs.matterBuffAtk) {
-    atkMultiplier += monster.buffs.matterBuffAtk.strength;
-  }
-  monster.currentStatus.atk *= atkMultiplier;
-
-  // 防御
-  let defMultiplier = 1;
-  if (monster.buffs.internalDefUp) {
-    defMultiplier += monster.buffs.internalDefUp.strength;
-  }
-  // アズ
-  if (monster.buffs.heavenlyBreath) {
-    defMultiplier -= 0.2;
-  }
-  // シャムダ
-  if (monster.buffs.shamuDef) {
-    defMultiplier += monster.buffs.shamuDef.strength;
-  }
-  // ゴッデス
-  if (monster.buffs.goddessDefUp) {
-    defMultiplier += monster.buffs.goddessDefUp.strength;
-  }
-  // ポセイドン
-  if (monster.buffs.poseidonDefUp) {
-    defMultiplier += monster.buffs.poseidonDefUp.strength;
-  }
-  // 城
-  if (monster.buffs.castleDefUp) {
-    defMultiplier += monster.buffs.castleDefUp.strength;
-  }
-  // 系統爪防御力20%錬金
-  if (monster.gear?.name === "系統爪ザキ&防御力20%") {
-    defMultiplier += 0.2;
-  }
-  monster.currentStatus.def *= defMultiplier;
-
-  // 素早さ
-  let spdMultiplier = 1;
-  if (monster.buffs.internalSpdUp) {
-    spdMultiplier += monster.buffs.internalSpdUp.strength;
-    if (monster.buffs.tabooSeal) {
-      spdMultiplier -= 0.5;
+  // 2. 系統バフ（family系）の加算
+  for (const [buffKey, targetStat] of Object.entries(FAMILY_BUFF_MAP)) {
+    const buff = monster.buffs[buffKey];
+    if (buff) {
+      systemMultipliers[targetStat] += buff.strength;
     }
   }
-  // ゴラゴ
-  if (monster.buffs.goragoSpd) {
-    spdMultiplier += monster.buffs.goragoSpd.strength;
-  }
-  // シャムダ
-  if (monster.buffs.shamuSpd) {
-    spdMultiplier += monster.buffs.shamuSpd.strength;
-  }
-  // マター
-  if (monster.buffs.matterBuffSpd) {
-    spdMultiplier += monster.buffs.matterBuffSpd.strength;
-  }
-  // イブール
-  if (monster.buffs.iburuSpdUp) {
-    spdMultiplier += monster.buffs.iburuSpdUp.strength;
-  }
-  monster.currentStatus.spd *= spdMultiplier;
 
-  // 賢さ
-  let intMultiplier = 1;
-  if (monster.buffs.internalIntUp) {
-    intMultiplier += monster.buffs.internalIntUp.strength;
+  // 3. 内部バフ（internal系）の加算
+  for (const [buffKey, targetStat] of Object.entries(INTERNAL_BUFF_MAP)) {
+    const buff = monster.buffs[buffKey];
+    if (buff) {
+      systemMultipliers[targetStat] += buff.strength;
+    }
   }
-  // シャムダ
-  if (monster.buffs.shamuInt) {
-    intMultiplier += monster.buffs.shamuInt.strength;
+
+  // 4. 特殊な例外処理（固定ルール）
+  if (monster.buffs.internalSpdUp && monster.buffs.tabooSeal) {
+    systemMultipliers.spd -= 0.5;
   }
-  monster.currentStatus.int *= intMultiplier;
+
+  // 5. 最終計算
+  for (const stat of stats) {
+    // A. 初期値のセット
+    let val = monster.defaultStatus[stat];
+
+    // B. 通常バフの適用 (buffs.defUp などランク制のもの)
+    const standardBuff = monster.buffs[`${stat}Up`];
+    const table = STANDARD_BUFF_TABLES[stat];
+    if (standardBuff && table) {
+      val *= (table[standardBuff.strength + 2] || 1); // -2~+2 を 0~4 に変換
+    }
+
+    // C. 集計された倍率（内部＋系統）を一括適用
+    monster.currentStatus[stat] = val * systemMultipliers[stat];
+  }
 }
 
 // 行動順を決定する関数 コマンド決定後にstartBattleで起動
@@ -18496,7 +18435,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 71,
-    appliedEffect: { heavenlyBreath: { probability: 0.42 } },
+    appliedEffect: { heavenlyBreath: { strength: -0.2, probability: 0.42 } },
   },
   {
     name: "裁きの極光",
@@ -21950,6 +21889,7 @@ const gear = [
     id: "familyNailSlime",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    statusMultiplier: { def: 0.2 },
   },
   {
     name: "エビルクロー",
@@ -22967,9 +22907,9 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   const skillName = skillInfo.name;
   let type;
   // 直接指定から
-  if (["ダークミナデイン"].includes(skillName)) {
+  if (["ダークミナデイン", "ビーストアイ"].includes(skillName)) {
     type = "abnormality";
-  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
+  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
     type = "special";
   } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {// その他光の波動系統も本来ここ
     type = "heal";
