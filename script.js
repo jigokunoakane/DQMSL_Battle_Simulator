@@ -22969,7 +22969,7 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   // 直接指定から
   if (["ダークミナデイン"].includes(skillName)) {
     type = "abnormality";
-  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
+  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
     type = "special";
   } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {// その他光の波動系統も本来ここ
     type = "heal";
@@ -22977,10 +22977,10 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
     type = "special";
   } else if (skillInfo.targetTeam === "ally") {
     type = "support";
-  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act) {
-    type = "attack";
-  } else if (skillInfo.appliedEffect) { // 波動系はspecial判定済み
+  } else if (skillInfo.appliedEffect || skillInfo.zakiProbability) { // 波動系はspecial判定済み
     type = "abnormality";
+  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.act) {
+    type = "attack";
   } else {
     type = "special";
   }
