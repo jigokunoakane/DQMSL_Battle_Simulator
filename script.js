@@ -11861,10 +11861,10 @@ function getMonsterAbilities(monsterId) {
                     },
                     unavailableIf: (skillUser, executingSkill, executedSkills) => {
                       // ポセが死亡状態でも発動
-                      // 対象外：供物, 正体をあらわす, MP回復, 光のはどう
+                      // 対象外：供物, 正体をあらわす, MP回復, 光のはどう, 防衛司令, ひかりのたま
                       if (!executingSkill) {
                         return true;
-                      } else if (executingSkill.targetType === "dead" || executingSkill.isHealSkill || ["再召喚の儀", "六芒魔法陣", "冥府の邪法", "亡者の儀式", "オーバーホール", "防衛司令", "リザオラル", "ひかりのたま"].includes(executingSkill.name)) {
+                      } else if (executingSkill.targetType === "dead" || executingSkill.isHealSkill) {
                         return false;
                       } else {
                         return true;
@@ -19088,6 +19088,7 @@ const skill = [
     order: "anchor",
     MPcost: 80,
     isOneTimeUse: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.race.includes("物質")) {
@@ -20244,6 +20245,7 @@ const skill = [
     targetTeam: "ally",
     order: "anchor",
     MPcost: 152,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       if (skillTarget.name === "デスソシスト") {
         displayMiss(skillTarget);
@@ -20281,6 +20283,7 @@ const skill = [
     targetTeam: "ally",
     order: "anchor",
     MPcost: 152,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       if (skillTarget.name === "真・冥王ゴルゴナ") {
         displayMiss(skillTarget);
@@ -20318,6 +20321,7 @@ const skill = [
     order: "anchor",
     isOneTimeUse: true,
     MPcostRatio: 1,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       if (skillTarget.name === "真・冥王ゴルゴナ") {
         displayMiss(skillTarget);
@@ -20709,6 +20713,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 108,
     isOneTimeUse: true,
+    isHealSkill: true,
     act: async function (skillUser, skillTarget) {
       for (const monster of parties[skillUser.teamID]) {
         if (monster.flags.isDead && !monster.buffs.reviveBlock && !["???", "超魔王", "超伝説"].some((targetRace) => monster.race.includes(targetRace))) {
@@ -21578,6 +21583,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 120,
+    isHealSkill: true,
     appliedEffect: { autoRevive: { keepOnDeath: true, strength: 0.65 } },
   },
   {
@@ -22960,22 +22966,22 @@ function displayskillMessage(skillInfo, line1Text = "", line2Text = "", line3Tex
 function getSkillTypeIcons(skillInfo, returnColor = false) {
   const skillName = skillInfo.name;
   let type;
-  if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
-    type = "heal";
-  } else if (skillInfo.targetTeam === "ally" && skillInfo.type !== "ritual") {
-    type = "support";
-  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act && skillInfo.howToCalculate !== "MP") {
-    type = "attack";
-  } else if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string" && !skillInfo.appliedEffect.statusLock) {
-    type = "abnormality";
-  } else {
-    type = "special";
-  }
-  // 上書きするもの
+  // 直接指定から
   if (["ダークミナデイン"].includes(skillName)) {
     type = "abnormality";
-  }
-  if (["エレメントエラー", "かくせいリバース", "しのルーレット", "アストロンゼロ"].includes(skillName)) {
+  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
+    type = "special";
+  } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {// その他光の波動系統も本来ここ
+    type = "heal";
+  } else if (skillInfo.deleteUnbreakableProbability || hasWaveEffect(skillInfo) || skillInfo.howToCalculate === "MP" || skillInfo.appliedEffect?.statusLock || skillInfo.appliedEffect?.stoned) {
+    type = "special";
+  } else if (skillInfo.targetTeam === "ally") {
+    type = "support";
+  } else if (isDamageExistingSkill(skillInfo) && !skillInfo.appliedEffect && !skillInfo.act) {
+    type = "attack";
+  } else if (skillInfo.appliedEffect) { // 波動系はspecial判定済み
+    type = "abnormality";
+  } else {
     type = "special";
   }
   if (returnColor) {
@@ -22993,20 +22999,29 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
 }
 
 function isDamageExistingSkill(skillInfo) {
-  if (skillInfo.howToCalculate !== "none") return true;
-
-  let nextSkill = skillInfo.followingSkill;
-  while (nextSkill) {
-    const nextSkillInfo = findSkillByName(nextSkill);
-    if (!nextSkillInfo) break; // スキルが見つからない場合はループを終了
-
-    if (nextSkillInfo.howToCalculate !== "none") {
+  let currentSkill = skillInfo;
+  while (currentSkill) {
+    if (currentSkill.howToCalculate !== "none") {
       return true;
-    } else {
-      nextSkill = nextSkillInfo.followingSkill;
     }
+    // 次のスキルがあればループを継続
+    if (!currentSkill.followingSkill) break;
+    currentSkill = findSkillByName(currentSkill.followingSkill);
   }
+  return false;
+}
 
+function hasWaveEffect(skillInfo) {
+  let currentSkill = skillInfo;
+  while (currentSkill) {
+    const waveEffects = ["disruptiveWave", "divineWave"];
+    if (waveEffects.includes(currentSkill.appliedEffect)) {
+      return true;
+    }
+    // 次のスキルがあればループを継続
+    if (!currentSkill.followingSkill) break;
+    currentSkill = findSkillByName(currentSkill.followingSkill);
+  }
   return false;
 }
 
@@ -24676,6 +24691,7 @@ function isSkillUnavailableForAI(skillName) {
     "究極の絶技",
     "いやしの雨",
     "きょうふのはもん",
+    "リザオラル", // isHealSkillを指定しているため、いのちだいじに使用特技に対象に選ばれることを仮防止
   ];
   const availableFollowingSkillsOnAI = ["必殺の双撃", "無双のつるぎ", "いてつくマヒャド", "クアトロマダンテ"];
   return (
