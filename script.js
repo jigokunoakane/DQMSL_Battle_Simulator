@@ -5541,7 +5541,7 @@ function addSkillOptions() {
     スライム: ["アイアンゲイザー", "ふしぎなとばり"],
     魔獣: ["ラピッドショット", "聖なる息吹"],
     自然: ["やすらぎの光", "天光の裁き"],
-    物質: ["れっぱの息吹", "氷撃波"], //"リベンジアーツ"
+    物質: ["れっぱの息吹", "氷撃波", "リベンジアーツ"],
   }[monster.race[0]];
   const familySkillsAvailableForRankS = {
     //ドラゴン: [],
@@ -6782,6 +6782,31 @@ const monsters = [
     lsTarget: "all",
     AINormalAttack: [2, 3],
     resistance: { fire: -1, ice: 1, thunder: 1, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 0, confused: 0.5, paralyzed: 0, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
+  },
+  {
+    name: "ゴア・アスラゾーマ",
+    id: "kibunga",
+    rank: 10,
+    race: "???",
+    weight: 32,
+    status: { HP: 860, MP: 342, atk: 629, def: 570, spd: 505, int: 204 },
+    initialSkill: ["氷華の儀式", "修羅の闘技", "ブリザーウォール", "リベンジアーツ"],
+    defaultGear: "cursedNail",
+    attribute: {
+      initialBuffs: {
+        isUnbreakable: { keepOnDeath: true, left: 3, name: "ラストスタンド" },
+        iceBreak: { keepOnDeath: true, strength: 2 },
+        dodgeBuff: { strength: 0.5, duration: 99 },
+        spdUp: { strength: 2 },
+        mindBarrier: { duration: 3 },
+        ritualReflection: { strength: 1.5, duration: 3, unDispellable: true, dispellableByAbnormality: true },
+      },
+    },
+    seed: { atk: 25, def: 0, spd: 95, int: 0 },
+    ls: { HP: 1 },
+    lsTarget: "all",
+    AINormalAttack: [2, 3],
+    resistance: { fire: 1, ice: -1, thunder: 0, wind: 1, io: 0.5, light: 1, dark: 0, poisoned: 1, asleep: 1, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 1, spellSeal: 1, breathSeal: 1 },
   },
   {
     name: "アレフガルドの伝説", //44
@@ -10249,6 +10274,23 @@ function getMonsterAbilities(monsterId) {
             applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" } });
           }
         }
+      },
+    },
+    kibunga: {
+      supportAbilities: {
+        1: [
+          {
+            name: "大魔王の痕跡氷の使い手付与",
+            disableMessage: true,
+            act: async function (skillUser) {
+              for (const monster of parties[skillUser.teamID]) {
+                applyBuff(monster, { iceBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1 } }); //本来は2R行動後に解除
+                displayMessage(`${monster.name}は`, "氷の使い手状態になった！");
+                await sleep(150);
+              }
+            }
+          }
+        ]
       },
     },
     snogu: {
@@ -14021,7 +14063,7 @@ const skill = [
             await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
           },
         },
-      ];
+      ];  
     },
   },
   {
@@ -14838,6 +14880,95 @@ const skill = [
     MPcost: 56,
     weakness18: true,
     appliedEffect: { reviveBlock: { duration: 1 } },
+  },
+  {
+    name: "氷華の儀式",
+    type: "ritual",
+    howToCalculate: "fix",
+    damage: 280,
+    element: "ice",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 5,
+    MPcost: 56,
+    weakness18: true,
+    appliedEffect: { fear: { probability: 0.3 } }, // 推測確率
+  },
+  {
+    name: "修羅の闘技",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.15,
+    element: "none",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitNum: 4,
+    MPcost: 72,
+    order: "anchor",
+    lowHpDamageMultiplier: true,
+    appliedEffect: "divineWave",
+  },
+  {
+    name: "ブリザーウォール",
+    type: "martial",
+    howToCalculate: "fix",
+    damage: 305,
+    element: "ice",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 85,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.92 } },
+    act: function (skillUser, skillTarget) {
+      applyBuff(skillTarget, { spdUp: { strength: -1, probability: 0.48, noMissDisplay: true } });
+    },
+  },
+  {
+    name: "リベンジアーツ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "self",
+    targetTeam: "ally",
+    isOneTimeUse: true,
+    order: "preemptive",
+    preemptiveGroup: 5,
+    MPcost: 59,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}は`, "攻撃に対して 反撃する状態になった！");
+    },
+    appliedEffect: { protection: { divineDispellable: true, strength: 0.5, duration: 3 }, counterAttack: { divineDispellable: true, removeAtTurnStart: true, duration: 1 } },
+    act: function (skillUser, skillTarget) {
+      skillUser.abilities.additionalCounterAbilities = [
+        {
+          name: "リベンジアーツ反撃状態",
+          message: function (skillUser) {
+            displayMessage(`${skillUser.name}の 反撃！`);
+          },
+          unavailableIf: (skillUser) => !skillUser.buffs.counterAttack,
+          act: async function (skillUser, counterTarget) {
+            await executeSkill(skillUser, findSkillByName("リベンジアーツ反撃"), counterTarget);
+          },
+        },
+      ];
+    },
+  },
+  {
+    name: "リベンジアーツ反撃",
+    type: "martial",
+    howToCalculate: "atk",
+    ratio: 1.5,
+    element: "none",
+    targetType: "single",
+    targetTeam: "enemy",
+    MPcost: 0,
+    ignoreSubstitute: true,
+    ignoreEvasion: true, // マヌーサ有効
+    isCounterSkill: true,
+    criticalHitProbability: 0, // 会心なし 無刀陣は不明
+    lowHpDamageMultiplier: true,
+    specialMessage: function (skillUserName, skillName) {
+      displayMessage(`${skillUserName}の 反撃！`);
+    },
   },
   {
     name: "禁忌の左腕",
