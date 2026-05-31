@@ -1022,7 +1022,7 @@ async function startTurn() {
         const initialBuffs = Object.assign(
           {}, // 空のオブジェクトから始める
           monster.gear?.initialBuffs || {}, // monster.gear?.initialBuffs を先にマージ
-          monster.attribute.initialBuffs || {} // monster.attribute.initialBuffs を後でマージ（上書き）
+          monster.attribute.initialBuffs || {}, // monster.attribute.initialBuffs を後でマージ（上書き）
         );
         // バフを適用 (間隔なし、skipMessageとskipSleep: trueを渡すことで付与時messageと付与間隔を削除)
         await applyBuffsAsync(monster, initialBuffs, true, true);
@@ -1543,7 +1543,21 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 
   const breakBoosts = ["fireBreakBoost", "iceBreakBoost", "thunderBreakBoost", "windBreakBoost", "ioBreakBoost", "lightBreakBoost", "darkBreakBoost"];
 
-  const familyBuffs = ["goragoAtk", "goragoSpd", "heavenlyBreath", "shamuAtk", "shamuDef", "shamuSpd", "shamuInt", "goddessDefUp", "poseidonDefUp", "castleDefUp", "matterBuffAtk", "matterBuffSpd", "iburuSpdUp"];
+  const familyBuffs = [
+    "goragoAtk",
+    "goragoSpd",
+    "heavenlyBreath",
+    "shamuAtk",
+    "shamuDef",
+    "shamuSpd",
+    "shamuInt",
+    "goddessDefUp",
+    "poseidonDefUp",
+    "castleDefUp",
+    "matterBuffAtk",
+    "matterBuffSpd",
+    "iburuSpdUp",
+  ];
 
   for (const buffName in newBuff) {
     // 0. 新規バフと既存バフを定義
@@ -1901,7 +1915,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
         }
       }
       // 状態異常付与時の発動効果（上書き等、確率判定成功時の処理）
-      // 封印付与時のマインドの上書き・目覚めの聖印解除 
+      // 封印付与時のマインドの上書き・目覚めの聖印解除
       if (buffName === "sealed") {
         if (buffTarget.buffs.fear) {
           delete buffTarget.buffs.fear;
@@ -2286,9 +2300,18 @@ async function removeExpiredBuffsAtTurnStart() {
 
 // global: 系統バフ一覧
 const FAMILY_BUFF_MAP = {
-  goragoAtk: "atk", shamuAtk: "atk", matterBuffAtk: "atk",
-  heavenlyBreath: "def", shamuDef: "def", goddessDefUp: "def", poseidonDefUp: "def", castleDefUp: "def",
-  goragoSpd: "spd", shamuSpd: "spd", matterBuffSpd: "spd", iburuSpdUp: "spd",
+  goragoAtk: "atk",
+  shamuAtk: "atk",
+  matterBuffAtk: "atk",
+  heavenlyBreath: "def",
+  shamuDef: "def",
+  goddessDefUp: "def",
+  poseidonDefUp: "def",
+  castleDefUp: "def",
+  goragoSpd: "spd",
+  shamuSpd: "spd",
+  matterBuffSpd: "spd",
+  iburuSpdUp: "spd",
   shamuInt: "int",
 };
 
@@ -2343,7 +2366,7 @@ function updateCurrentStatus(monster) {
     const standardBuff = monster.buffs[`${stat}Up`];
     const table = STANDARD_BUFF_TABLES[stat];
     if (standardBuff && table) {
-      val *= (table[standardBuff.strength + 2] || 1); // -2~+2 を 0~4 に変換
+      val *= table[standardBuff.strength + 2] || 1; // -2~+2 を 0~4 に変換
     }
 
     // C. 集計された倍率（内部＋系統）を一括適用
@@ -2431,7 +2454,7 @@ function decideTurnOrder(parties) {
     turnOrder.push(
       ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort(sortBySpeedReverseRandom),
       ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort(sortByModifiedSpeedReverseRandom),
-      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort(sortBySpeedReverseRandom)
+      ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort(sortBySpeedReverseRandom),
     );
 
     // 3. anchorActionを持つモンスターを追加 (currentStatus.spdの遅い順)
@@ -2494,7 +2517,7 @@ function decideTurnOrder(parties) {
     turnOrder.push(
       ...anchorMonsters.filter((monster) => monster.buffs.preemptiveAction).sort(sortBySpeedRandom),
       ...anchorMonsters.filter((monster) => !monster.buffs.anchorAction && !monster.buffs.preemptiveAction).sort(sortByModifiedSpeedRandom),
-      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort(sortBySpeedRandom)
+      ...anchorMonsters.filter((monster) => monster.buffs.anchorAction).sort(sortBySpeedRandom),
     );
   }
   console.log(turnOrder);
@@ -2681,7 +2704,11 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     const skillsWithoutPursuit = ["黄泉の封印", "神獣の封印", "けがれの封印", "雪だるま", "氷の王国", "封印の光", "しはいのさくせん", "供物をささげる", "超魔改良", "ひかりの旋風"]; // 神獣の氷縛等ゴルアスは追撃あり
     const skillsWithPursuit = ["火竜変化呪文先制", "オーバーホール", "狩人のまなざし", "属性代償の刻印", "体技代償の刻印", "キルトラップ", "諸刃の刻印"];
     // executingSkillが存在しなければ常にAIを出す それ以外の場合は特技の性質に依存
-    if (!executingSkill || skillsWithPursuit.includes(executingSkill.name) || (!skillsWithoutPursuit.includes(executingSkill.name) && !(executingSkill.order && !isDamageExistingSkill(executingSkill)))) {
+    if (
+      !executingSkill ||
+      skillsWithPursuit.includes(executingSkill.name) ||
+      (!skillsWithoutPursuit.includes(executingSkill.name) && !(executingSkill.order && !isDamageExistingSkill(executingSkill)))
+    ) {
       let attackTimes =
         skillUser.AINormalAttack.length === 1
           ? skillUser.AINormalAttack[0] - 1
@@ -2748,7 +2775,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     } else if (["クアトロマダンテ"].includes(executingSkill.name)) {
       // クアトロマダンテは3回追加
       for (let i = 0; i < 3; i++) {
-        skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "", lastMessage: ""});
+        skillsToExecute.push({ skillInfo: executingSkill, firstMessage: "", lastMessage: "" });
       }
     } else {
       // それ以外の場合、殺りくの雷刃追加可否を判定
@@ -2891,7 +2918,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
       const poisonMessage = poison.isLight ? "どくにおかされている！" : "もうどくにおかされている！";
       const poisonDepth = skillUser.buffs.poisonDepth?.strength ?? 1;
       await applyDotDamage(skillUser, baseRatio * poisonDepth, poisonMessage);
-    }    
+    }
     // 2. 継続HPダメージ処理
     else if (key === "dotDamage") {
       if (isBattleOver()) return;
@@ -3525,7 +3552,7 @@ async function executeSkill(
   damagedMonsters = null,
   MPusedParameter = null,
   isProcessMonsterAction = false,
-  isAIattack = false
+  isAIattack = false,
 ) {
   let currentSkill = executingSkill;
   let isMonsterAction = isProcessMonsterAction;
@@ -3630,7 +3657,7 @@ async function processHitSequence(
   isProcessMonsterAction = false,
   damagedMonsters = null,
   isAIattack = false,
-  MPused
+  MPused,
 ) {
   if (currentHit >= (executingSkill.hitNum ?? 1)) {
     return; // ヒット数が上限に達したら終了
@@ -3655,7 +3682,7 @@ async function processHitSequence(
       // 全体攻撃
       // 生きているモンスターかつexcludedTargets対象外をtargetとする
       const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter(
-        (monster) => !monster.flags.isDead && !excludedTargets.has(monster)
+        (monster) => !monster.flags.isDead && !excludedTargets.has(monster),
       );
       if (aliveMonsters.length === 0) {
         return;
@@ -3739,7 +3766,7 @@ async function processHitSequence(
   // エルギ変身判定
   for (const party of parties) {
     const targetMonsters = party.filter(
-      (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2
+      (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2,
     );
     for (const targetErugi of targetMonsters) {
       await transformTyoma(targetErugi);
@@ -3917,7 +3944,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // ため解除処理（亡者も適用対象とした）
     if (executingSkill.tensionClearProbability && !buffTarget.flags.isDead) {
       if (Math.random() < executingSkill.tensionClearProbability) {
-        const targetBuffs = ['powerCharge', 'manaBoost', 'breathCharge'];
+        const targetBuffs = ["powerCharge", "manaBoost", "breathCharge"];
         for (const buffName of targetBuffs) {
           const buff = buffTarget.buffs[buffName];
           if (buff && !buff.immuneToTensionClear) {
@@ -4007,7 +4034,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     isReflection,
     reflectionType,
     reflectionStrength,
-    MPused
+    MPused,
   );
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
@@ -4108,7 +4135,7 @@ function calculateDamage(
   isReflection = false,
   reflectionType = null,
   reflectionStrength = 1,
-  MPused = null
+  MPused = null,
 ) {
   let baseDamage = 0;
   let randomMultiplier = 1;
@@ -4205,36 +4232,36 @@ function calculateDamage(
       intDiff >= 150
         ? 1.25
         : intDiff >= 140
-        ? 1.24
-        : intDiff >= 130
-        ? 1.23
-        : intDiff >= 120
-        ? 1.22
-        : intDiff >= 110
-        ? 1.21
-        : intDiff >= 100
-        ? 1.2
-        : intDiff >= 90
-        ? 1.19
-        : intDiff >= 80
-        ? 1.18
-        : intDiff >= 70
-        ? 1.17
-        : intDiff >= 60
-        ? 1.16
-        : intDiff >= 50
-        ? 1.15
-        : intDiff >= 40
-        ? 1.14
-        : intDiff >= 30
-        ? 1.13
-        : intDiff >= 20
-        ? 1.12
-        : intDiff >= 10
-        ? 1.11
-        : intDiff >= 1
-        ? 1.1
-        : 1;
+          ? 1.24
+          : intDiff >= 130
+            ? 1.23
+            : intDiff >= 120
+              ? 1.22
+              : intDiff >= 110
+                ? 1.21
+                : intDiff >= 100
+                  ? 1.2
+                  : intDiff >= 90
+                    ? 1.19
+                    : intDiff >= 80
+                      ? 1.18
+                      : intDiff >= 70
+                        ? 1.17
+                        : intDiff >= 60
+                          ? 1.16
+                          : intDiff >= 50
+                            ? 1.15
+                            : intDiff >= 40
+                              ? 1.14
+                              : intDiff >= 30
+                                ? 1.13
+                                : intDiff >= 20
+                                  ? 1.12
+                                  : intDiff >= 10
+                                    ? 1.11
+                                    : intDiff >= 1
+                                      ? 1.1
+                                      : 1;
     baseDamage *= executingSkill.skillPlus * intBonus;
     randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
     //呪文会心
@@ -5238,7 +5265,7 @@ function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, exclude
       // エルギ判定 自分以外の味方のエルギのカウントを増やす
       // 通常ダメージ 供物(ダメージなしact) ザキ 反射でカウント増加 カウント刻印毒継続は対象外
       const targetMonsters = parties[skillTarget.teamID].filter(
-        (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId
+        (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId,
       );
       for (const targetErugi of targetMonsters) {
         if (!targetErugi.flags.transformationCount) {
@@ -8708,7 +8735,7 @@ const monsters = [
       initialBuffs: {
         spdUp: { strength: 2 },
       },
-      evenTurnBuffs: { 
+      evenTurnBuffs: {
         matterBuffSpd: { strength: 0.5 }, // オバホのspd30%より強力だが、画像がないためアイコン共用
       },
       permanentBuffs: {
@@ -8826,7 +8853,7 @@ const monsters = [
         thunderBreak: { keepOnDeath: true, strength: 1 },
       },
       1: {
-        confusionBarrier: { duration: 4, targetType: "ally"},
+        confusionBarrier: { duration: 4, targetType: "ally" },
         mindBarrier: { duration: 4, targetType: "ally" },
       },
     },
@@ -8854,7 +8881,7 @@ const monsters = [
       },
       evenTurnBuffs: {
         defUp: { strength: 1 },
-        spellBarrier: { strength: 1 }
+        spellBarrier: { strength: 1 },
       },
     },
     seed: { atk: 0, def: 0, spd: 45, int: 75 }, // 奮起ラプ365抜きのためS383.7必要
@@ -10419,9 +10446,9 @@ function getMonsterAbilities(monsterId) {
                 displayMessage(`${monster.name}は`, "氷の使い手状態になった！");
                 await sleep(150);
               }
-            }
-          }
-        ]
+            },
+          },
+        ],
       },
     },
     snogu: {
@@ -12034,11 +12061,12 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("自然")) {
-                  const buffStrength = {
-                    1: 0.05,
-                    2: 0.1,
-                    3: 0.2,
-                  }[fieldState.turnNum] || 1;
+                  const buffStrength =
+                    {
+                      1: 0.05,
+                      2: 0.1,
+                      3: 0.2,
+                    }[fieldState.turnNum] || 1;
                   applyBuff(monster, { poseidonDefUp: { strength: buffStrength } });
                 }
               }
@@ -12078,7 +12106,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of parties[skillUser.enemyTeamID]) {
               monster.abilities.additionalDeathAbilities.push({
-                name: "やすらぎの潮", //タッグ変化・リザオは不発動、毒 反射 供物も不明であり不発動とした 
+                name: "やすらぎの潮", //タッグ変化・リザオは不発動、毒 反射 供物も不明であり不発動とした
                 message: function (skillUser) {
                   displayMessage(`${skillUser.name} がチカラつき`, "やすらぎの潮 の効果が発動！");
                 },
@@ -12186,7 +12214,11 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("自然")) {
-                  applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true }, sealBarrier: { duration: 1, removeAtTurnStart: true }, reviveBlockBarrier: { duration: 1, removeAtTurnStart: true } });
+                  applyBuff(monster, {
+                    sacredBarrier: { duration: 1, removeAtTurnStart: true },
+                    sealBarrier: { duration: 1, removeAtTurnStart: true },
+                    reviveBlockBarrier: { duration: 1, removeAtTurnStart: true },
+                  });
                 }
               }
             },
@@ -12313,7 +12345,7 @@ function getMonsterAbilities(monsterId) {
             name: "死者の解放",
             unavailableIf: (skillUser) => {
               parties[skillUser.teamID].some(
-                (monster) => monster.abilities && monster.abilities.additionalDeathAbilities && monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "死者の解放")
+                (monster) => monster.abilities && monster.abilities.additionalDeathAbilities && monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "死者の解放"),
               );
             },
             act: async function (skillUser) {
@@ -12885,10 +12917,11 @@ const skill = [
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
       return 2; //初期値は1
     },
-    abnormalityMultiplier: { //初期値は1 状態異常特効系 マソと競合
+    abnormalityMultiplier: {
+      //初期値は1 状態異常特効系 マソと競合
       poisoned: 2.5,
       asleep: 2.5,
-      paralyzed: 2.5
+      paralyzed: 2.5,
     },
     masoMultiplier: {
       1: 2,
@@ -13010,7 +13043,7 @@ const skill = [
     abnormalityMultiplier: {
       poisoned: 2.5,
       asleep: 2.5,
-      paralyzed: 2.5
+      paralyzed: 2.5,
     },
     masoMultiplier: {
       1: 2.5,
@@ -13155,7 +13188,7 @@ const skill = [
     MPcost: 0,
     abnormalityMultiplier: {
       statusLock: 2,
-    },    
+    },
   },
   {
     name: "ぼうぎょ",
@@ -13478,7 +13511,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 57,
-    appliedEffect: "divineWave",    
+    appliedEffect: "divineWave",
   },
   {
     name: "煉獄火炎",
@@ -13893,8 +13926,8 @@ const skill = [
       tempted: 1.5,
       sealed: 1.5,
       asleep: 1.5,
-      paralyzed: 1.5
-    }
+      paralyzed: 1.5,
+    },
   },
   {
     name: "アバンストラッシュ",
@@ -14233,7 +14266,7 @@ const skill = [
             await executeSkill(skillUser, findSkillByName("冥王の構え反撃"), counterTarget);
           },
         },
-      ];  
+      ];
     },
   },
   {
@@ -14425,8 +14458,20 @@ const skill = [
     MPcost: 0,
     ignoreReflection: true,
     appliedEffect: {
-      martialBarrier: { strength: -1, randomStrengths: [ { value: -1, probability: 0.6 }, { value: -2, probability: 0.4 } ] },
-      breathBarrier: { strength: -1, randomStrengths: [ { value: -1, probability: 0.6 }, { value: -2, probability: 0.4 } ] },
+      martialBarrier: {
+        strength: -1,
+        randomStrengths: [
+          { value: -1, probability: 0.6 },
+          { value: -2, probability: 0.4 },
+        ],
+      },
+      breathBarrier: {
+        strength: -1,
+        randomStrengths: [
+          { value: -1, probability: 0.6 },
+          { value: -2, probability: 0.4 },
+        ],
+      },
     },
   },
   {
@@ -14608,7 +14653,13 @@ const skill = [
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
       if (isReflection) {
         return 1; // 反射時は1倍とした
-      } else if (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.danceReflection || skillTarget.buffs.ritualReflection) {
+      } else if (
+        skillTarget.buffs.slashReflection ||
+        skillTarget.buffs.spellReflection ||
+        skillTarget.buffs.breathReflection ||
+        skillTarget.buffs.danceReflection ||
+        skillTarget.buffs.ritualReflection
+      ) {
         return 3;
       }
     },
@@ -15083,7 +15134,16 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 85,
-    appliedEffect: { spdUp: { strength: -1, probability: 0.92, randomStrengths: [ { value: -1, probability: 0.44 }, { value: -2, probability: 0.48 } ] } },
+    appliedEffect: {
+      spdUp: {
+        strength: -1,
+        probability: 0.92,
+        randomStrengths: [
+          { value: -1, probability: 0.44 },
+          { value: -2, probability: 0.48 },
+        ],
+      },
+    },
   },
   {
     name: "リベンジアーツ",
@@ -16009,7 +16069,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 50,
     ignoreProtection: true,
-    abnormalityMultiplier:  {
+    abnormalityMultiplier: {
       kiganLevel: 2,
     },
     description2: "敵全体に　メラ系の呪文攻撃",
@@ -16031,8 +16091,8 @@ const skill = [
     ignoreProtection: true,
     ignoreSubstitute: true,
     abnormalityMultiplier: {
-      kiganLevel: 2
-    }
+      kiganLevel: 2,
+    },
   },
   {
     name: "真・カラミティエンド",
@@ -16067,8 +16127,8 @@ const skill = [
     ignoreSubstitute: true,
     ignoreDazzle: true,
     abnormalityMultiplier: {
-      healBlock: 2
-    }
+      healBlock: 2,
+    },
   },
   {
     name: "極・天地魔闘の構え",
@@ -16964,7 +17024,13 @@ const skill = [
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
       if (isReflection) {
         return 1; // 反射時は1倍とした
-      } else if (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection) {
+      } else if (
+        skillTarget.buffs.slashReflection ||
+        skillTarget.buffs.spellReflection ||
+        skillTarget.buffs.breathReflection ||
+        skillTarget.buffs.martialReflection ||
+        skillTarget.buffs.ritualReflection
+      ) {
         return 3;
       }
     },
@@ -19950,7 +20016,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 39,
     abnormalityMultiplier: {
-      paralyzed: 2
+      paralyzed: 2,
     },
     masoMultiplier: {
       1: 2,
@@ -19973,7 +20039,7 @@ const skill = [
     preemptiveGroup: 8,
     abnormalityMultiplier: {
       poisoned: 3,
-      paralyzed: 3
+      paralyzed: 3,
     },
     masoMultiplier: {
       1: 3,
@@ -20255,7 +20321,7 @@ const skill = [
     abnormalityMultiplier: {
       poisoned: 2.5,
       asleep: 2.5,
-      paralyzed: 2.5
+      paralyzed: 2.5,
     },
     masoMultiplier: {
       1: 2.5,
@@ -20368,7 +20434,7 @@ const skill = [
     appliedEffect: { poisoned: { probability: 0.7 }, asleep: { probability: 0.25 } },
     abnormalityMultiplier: {
       poisoned: 2.5,
-      asleep: 2.5
+      asleep: 2.5,
     },
     masoMultiplier: {
       1: 1.5,
@@ -20407,7 +20473,7 @@ const skill = [
       poisoned: 2,
       asleep: 2,
       confused: 2,
-      paralyzed: 2
+      paralyzed: 2,
     },
   },
   {
@@ -20479,7 +20545,7 @@ const skill = [
     MPcost: 55,
     appliedEffect: { poisoned: { probability: 0.8 } },
     abnormalityMultiplier: {
-      poisoned: 2
+      poisoned: 2,
     },
     description1: "ランダムに5回　メラ系の息攻撃　命中時　確率で猛毒状態",
     description2: "ゾンビ系の味方が多いほど威力大　最大6倍",
@@ -20746,7 +20812,7 @@ const skill = [
     MPcost: 73,
     appliedEffect: { poisoned: { isLight: true, probability: 0.8 } },
     abnormalityMultiplier: {
-      poisoned: 1.2
+      poisoned: 1.2,
     },
   },
   {
@@ -20773,7 +20839,7 @@ const skill = [
     ignoreEvasion: true, // マヌーサ有効
     abnormalityMultiplier: {
       poisoned: 3,
-      dazzle: 3
+      dazzle: 3,
     },
     masoMultiplier: {
       1: 1.5,
@@ -20892,7 +20958,7 @@ const skill = [
     appliedEffect: { poisoned: { probability: 0.7 }, paralyzed: { probability: 0.4192 } },
     abnormalityMultiplier: {
       poisoned: 2,
-      paralyzed: 2
+      paralyzed: 2,
     },
     masoMultiplier: {
       1: 1.5,
@@ -20933,7 +20999,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 86,
     abnormalityMultiplier: {
-      poisoned: 1.5
+      poisoned: 1.5,
     },
     masoMultiplier: {
       1: 1.5,
@@ -20952,7 +21018,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 71,
     abnormalityMultiplier: {
-      poisoned: 2
+      poisoned: 2,
     },
     masoMultiplier: {
       1: 1.2,
@@ -21207,7 +21273,7 @@ const skill = [
     appliedEffect: { maso: { maxDepth: 4 } },
     abnormalityMultiplier: {
       poisoned: 3,
-      paralyzed: 3
+      paralyzed: 3,
     },
     masoMultiplier: {
       1: 3,
@@ -22114,7 +22180,7 @@ const skill = [
     appliedEffect: { asleep: { probability: 0.39 }, paralyzed: { probability: 0.1667 } },
     abnormalityMultiplier: {
       asleep: 2,
-      paralyzed: 2
+      paralyzed: 2,
     },
     masoMultiplier: {
       1: 2,
@@ -22927,7 +22993,7 @@ const gearAbilities = {
   },
   heartOrb: {
     initialAbilities: async function (skillUser) {
-      skillUser.attribute.additionalPermanentBuffs.autoRevive =  { keepOnDeath: true, strength: 0.5, probability: 0.1, noMissDisplay: true };
+      skillUser.attribute.additionalPermanentBuffs.autoRevive = { keepOnDeath: true, strength: 0.5, probability: 0.1, noMissDisplay: true };
     },
   },
 };
@@ -23024,8 +23090,8 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
       effectImagePath = isMPdamage
         ? "images/systems/effectImages/enemyDamaged.png" //MPDamaged?
         : monster.teamID === 0
-        ? "images/systems/effectImages/allyDamaged.png"
-        : "images/systems/effectImages/enemyDamaged.png";
+          ? "images/systems/effectImages/allyDamaged.png"
+          : "images/systems/effectImages/enemyDamaged.png";
 
       // 耐性によって画像を変更 (HPダメージの場合のみ)
       if (!isMPdamage) {
@@ -23114,8 +23180,8 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
             ? `images/systems/MPRecoveryNumbers/${digits[i]}.png`
             : `images/systems/HPRecoveryNumbers/${digits[i]}.png`
           : isMPdamage
-          ? `images/systems/MPDamageNumbers/${digits[i]}.png`
-          : `images/systems/HPDamageNumbers/${digits[i]}.png`;
+            ? `images/systems/MPDamageNumbers/${digits[i]}.png`
+            : `images/systems/HPDamageNumbers/${digits[i]}.png`;
       digitImage.style.maxWidth = "60%";
       if (resistance > 1.4) {
         digitImage.style.maxWidth = "80%";
@@ -23143,9 +23209,12 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
     }
 
     // ダメージ/回復表示を消去
-    setTimeout(() => {
-      damageEffectContainer.remove(); // コンテナごと削除
-    }, digits.length * 30 + 90 + 140);
+    setTimeout(
+      () => {
+        damageEffectContainer.remove(); // コンテナごと削除
+      },
+      digits.length * 30 + 90 + 140,
+    );
   }
 }
 
@@ -23304,15 +23373,20 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   // 直接指定から
   if (["ダークミナデイン", "ビーストアイ"].includes(skillName)) {
     type = "abnormality";
-  } else if (["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)) { // sameRaceSuccessBonusを含むもの等
+  } else if (
+    ["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)
+  ) {
+    // sameRaceSuccessBonusを含むもの等
     type = "special";
-  } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {// その他光の波動系統も本来ここ
+  } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
+    // その他光の波動系統も本来ここ
     type = "heal";
   } else if (skillInfo.deleteUnbreakableProbability || hasWaveEffect(skillInfo) || skillInfo.howToCalculate === "MP" || skillInfo.appliedEffect?.statusLock || skillInfo.appliedEffect?.stoned) {
     type = "special";
   } else if (skillInfo.targetTeam === "ally") {
     type = "support";
-  } else if (skillInfo.appliedEffect || skillInfo.zakiProbability) { // 波動系はspecial判定済み
+  } else if (skillInfo.appliedEffect || skillInfo.zakiProbability) {
+    // 波動系はspecial判定済み
     type = "abnormality";
   } else if (isDamageExistingSkill(skillInfo) && !skillInfo.act) {
     type = "attack";
@@ -24906,7 +24980,7 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
         cooperationDisplayContainer.style.opacity = "1";
         cooperationDisplayContainer.style.transition = ""; // transitionをリセット
       },
-      { once: true }
+      { once: true },
     );
   }, 500);
 }
@@ -25163,7 +25237,20 @@ function clearResistanceDisplay(targetWrapper) {
 function displaySkillResistances(skillUser, originalSkillInfo) {
   clearAllSkillResistance();
   // originalがhowToCalc: "none"で、followingがnoneではないskillは対象を入れ替えて、適切な属性や反射表示を行う
-  const followingSkills = ["昇天斬り", "昇天のこぶし", "蘇生封じの術", "真・カラミティエンド", "グランドアビス", "修羅の闇", "ミナデイン", "ダークミナデイン", "クロスレジェンド", "真・闘気拳", "超はどうほう", "はどうほう"];
+  const followingSkills = [
+    "昇天斬り",
+    "昇天のこぶし",
+    "蘇生封じの術",
+    "真・カラミティエンド",
+    "グランドアビス",
+    "修羅の闇",
+    "ミナデイン",
+    "ダークミナデイン",
+    "クロスレジェンド",
+    "真・闘気拳",
+    "超はどうほう",
+    "はどうほう",
+  ];
   const skillInfo = followingSkills.includes(originalSkillInfo.name) ? findSkillByName(originalSkillInfo.followingSkill) : originalSkillInfo;
 
   if (skillInfo.targetTeam !== "enemy" || skillInfo.targetType === "dead" || skillInfo.targetType === "self") {
@@ -25744,9 +25831,7 @@ function createSDappliedEffect(skillInfo) {
       (multiplierGroups[skillInfo.masoMultiplier[1]] ??= []).push("マ素");
     }
     // 2. 追加するテキストの配列を作成
-    const additions = Object.entries(multiplierGroups).map(([mult, names]) => 
-      `${[...new Set(names)].join("・")}状態の敵に　威力${mult}倍 `
-    );
+    const additions = Object.entries(multiplierGroups).map(([mult, names]) => `${[...new Set(names)].join("・")}状態の敵に　威力${mult}倍 `);
     // 3. 「さらに」の判定と結合
     // 直前が"倍"で終わる場合だけ先頭に「さらに」を付与
     if (additions.length > 0 && skillDescriptionText.trim().endsWith("倍")) {
@@ -25906,12 +25991,12 @@ function getBuffName(appliedEffect) {
 
       // 2. 基準強度の算出
       const multiplier = isBuff ? 1 : -1;
-      const baseStrength = (buffData.strength * multiplier) || 1;
+      const baseStrength = buffData.strength * multiplier || 1;
 
       // 3. ランダム強度を含めた最終強度の算出
       let finalStrength;
       if (Array.isArray(buffData.randomStrengths) && buffData.randomStrengths.length > 0) {
-        const values = buffData.randomStrengths.map(item => item.value);
+        const values = buffData.randomStrengths.map((item) => item.value);
         // バフなら最大値、デバフなら最小値の反転（=最大減少値）を取得
         const limitVal = isBuff ? Math.max(...values) : Math.min(...values) * -1;
         finalStrength = `${baseStrength}〜${limitVal}`;
