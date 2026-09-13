@@ -1,8 +1,6 @@
 // 初期処理とglobal変数群
 let isDeveloperMode = false;
-const allParties = Array(10)
-  .fill(null)
-  .map(() => Array(5).fill({}));
+const allParties = Array.from({ length: 10 }, () => Array.from({ length: 5 }, () => ({})));
 const parties = [];
 
 let selectingPartyNum = 0;
@@ -46,6 +44,10 @@ let waitMultiplier = 1;
 // preloadしたかどうかのフラグ
 let hasPreloadedImages = false;
 
+const STAT_KEYS = ["HP", "MP", "atk", "def", "spd", "int"];
+const SEED_KEYS = ["atk", "def", "spd", "int"];
+const ALL_ELEMENTS = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
+
 function switchParty() {
   // selectingPartyNumを選択値に更新して、パテ切り替え
   //switchPartyに変更
@@ -65,60 +67,69 @@ function switchParty() {
 // selectingPartyのうちn番目のpartyIconを更新する関数
 function updatePartyIcon(number) {
   const monster = selectingParty[number];
-  const iconSrc = Object.keys(monster).length !== 0 ? "images/icons/" + monster.id + ".jpeg" : "images/icons/unselected.jpeg";
-  const gearSrc = Object.keys(monster).length !== 0 && monster.gear ? "images/gear/" + monster.gear?.id + ".jpeg" : "images/gear/unGeared.jpeg";
+  const iconSrc = Object.keys(monster).length !== 0 ? `images/icons/${monster.id}.jpeg` : `images/icons/unselected.jpeg`;
+  const gearSrc = Object.keys(monster).length !== 0 && monster.gear ? `images/gear/${monster.gear?.id}.jpeg` : `images/gear/unGeared.jpeg`;
   document.getElementById(`partyIcon${number}`).src = iconSrc;
   document.getElementById(`partyGear${number}`).src = gearSrc;
 }
 
-//どちらのプレイヤーがパテ選択中かの関数定義
+// switchPartyのoptionを安全かつ一括で再構築するヘルパー
+function updatePartySelectOptions(selectElement, startValue, endValue, labelOffset) {
+  selectElement.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  for (let i = startValue; i <= endValue; i++) {
+    const option = document.createElement("option");
+    option.value = i - 1;
+    option.textContent = `パーティ${i - labelOffset}`;
+    fragment.appendChild(option);
+  }
+  selectElement.appendChild(fragment);
+}
+
 function decideParty() {
   const switchPartyElement = document.getElementById("switchParty");
-  if (currentPlayer === "A") {
-    //現在の仮partyを対戦用partiesにcopy 空monsterは削除
-    parties[0] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
-    // 空の場合は停止
-    if (parties[0].length === 0) return;
-    // playerBの選択に移行
+  const isPlayerA = currentPlayer === "A";
+  const teamIndex = isPlayerA ? 0 : 1;
+
+  // 1. 空モンスターを除去して現在のパーティを保存
+  parties[teamIndex] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
+  if (parties[teamIndex].length === 0) return;
+
+  // 2. 現在の選択パテ番号を退避
+  if (isPlayerA) {
+    playerASelectedPartyNumber = selectingPartyNum;
+  } else {
+    playerBSelectedPartyNumber = selectingPartyNum;
+  }
+
+  // 3. 次のプレイヤー向けにセレクトボックスの選択肢と表示を更新
+  if (isPlayerA) {
+    // Player A 確定時 -> Player B の選択準備へ
     currentPlayer = "B";
     document.getElementById("playerAorB").textContent = "player B";
-    // 保存
-    playerASelectedPartyNumber = selectingPartyNum;
-    // selectのoptionを変更
-    for (let i = 6; i <= 10; i++) {
-      switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i - 5}</option>`;
-    }
-    switchPartyElement.querySelectorAll('option[value="0"], option[value="1"], option[value="2"], option[value="3"], option[value="4"]').forEach((option) => option.remove());
-    // switchPartyElementを5にして敵を表示状態にした上で、switchPartyで展開
-    document.getElementById("switchParty").value = playerBSelectedPartyNumber; //保存していた番号に切替え
+
+    // パーティ6〜10（value: 5〜9, ラベル: パーティ1〜5）を生成
+    updatePartySelectOptions(switchPartyElement, 6, 10, 5);
+    switchPartyElement.value = playerBSelectedPartyNumber;
     switchParty();
-    preloadBuffImages(); //バフ系画像 段階的読み込み
+    preloadBuffImages();
   } else {
-    // 対戦用partiesにcopy 空monsterは削除
-    parties[1] = structuredClone(selectingParty).filter((element) => Object.keys(element).length !== 0);
-    // 空の場合は停止
-    if (parties[1].length === 0) return;
-    // playerAの選択に戻す
+    // Player B 確定時 -> Player A 側の選択肢に戻して戦闘画面へ移行
     currentPlayer = "A";
     document.getElementById("playerAorB").textContent = "player A";
-    // 保存
-    playerBSelectedPartyNumber = selectingPartyNum;
-    // selectのoptionを変更
-    for (let i = 1; i <= 5; i++) {
-      switchPartyElement.innerHTML += `<option value="${i - 1}">パーティ${i}</option>`;
-    }
-    switchPartyElement.querySelectorAll('option[value="5"], option[value="6"], option[value="7"], option[value="8"], option[value="9"]').forEach((option) => option.remove());
-    // switchPartyElementを0にして味方を表示状態にした上で、switchPartyで展開
-    document.getElementById("switchParty").value = playerASelectedPartyNumber; //保存していた番号に切替え
+
+    // パーティ1〜5（value: 0〜4, ラベル: パーティ1〜5）を生成
+    updatePartySelectOptions(switchPartyElement, 1, 5, 0);
+    switchPartyElement.value = playerASelectedPartyNumber;
     switchParty();
 
-    //displayで全体切り替え、battle画面へ
+    // 戦闘画面へ切り替え
     document.getElementById("pageHeader").style.display = "none";
     document.getElementById("adjustPartyPage").style.display = "none";
     document.getElementById("battlePage").style.display = "flex";
-    // skip状態を解除し、skip解除表示を戻す
+
     setSkipMode(false);
-    preloadImages(); // system系とskillType画像 段階的読み込み
+    preloadImages();
     prepareBattle();
   }
 }
@@ -155,7 +166,7 @@ async function prepareBattle() {
       monster.monsterId = `parties[${i}][${j}]`;
       monster.iconElementId = `${prefix}BattleIcon${j}`;
       monster.reversedIconElementId = `${reversedPrefix}BattleIcon${j}`;
-      monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
+      monster.iconSrc = `images/icons/${monster.id}.jpeg`;
 
       // skill生成
       monster.skill = [...monster.defaultSkill];
@@ -303,35 +314,20 @@ function updateBattleIcons(monster, reverseDisplay = false) {
   }
 }
 
-function deleteIconAndBuffDisplay(enemyTargetElementId) {
-  //buffContainerを削除
-  document
-    .getElementById(enemyTargetElementId)
-    .parentNode.querySelectorAll(".buffContainer")
-    .forEach((buffContainer) => {
-      buffContainer.remove();
-    });
-  document.getElementById(enemyTargetElementId).src = "";
-  document.getElementById(enemyTargetElementId).style.visibility = "hidden";
+function deleteIconAndBuffDisplay(elementId) {
+  const elem = document.getElementById(elementId);
+  if (!elem) return;
+  elem.parentNode.querySelectorAll(".buffContainer").forEach((c) => c.remove());
+  elem.src = "";
+  elem.style.visibility = "hidden";
 }
 
 //敵コマンド入力時に引数にtrueを渡して一時的に反転 反転戻す時と初期処理では引数なしで通常表示
 function prepareBattlePageIcons(reverseDisplay = false) {
   // 初期化で全て非表示にする 対面は削除できるが、両方ともに2体の場合残り3体の表示が残るのを防止
-  const iconElements = [
-    "allyBattleIcon0",
-    "allyBattleIcon1",
-    "allyBattleIcon2",
-    "allyBattleIcon3",
-    "allyBattleIcon4",
-    "enemyBattleIcon0",
-    "enemyBattleIcon1",
-    "enemyBattleIcon2",
-    "enemyBattleIcon3",
-    "enemyBattleIcon4",
-  ];
-  for (const element of iconElements) {
-    deleteIconAndBuffDisplay(element);
+  for (let i = 0; i < 5; i++) {
+    deleteIconAndBuffDisplay(`allyBattleIcon${i}`);
+    deleteIconAndBuffDisplay(`enemyBattleIcon${i}`);
   }
   for (const party of parties) {
     for (const monster of party) {
@@ -348,21 +344,13 @@ function updateMonsterBar(monster, displayRedBar = false, isReversed = false) {
     prefix = prefix === "ally" ? "enemy" : "ally"; // 逆転フラグがtrueならプレフィックスを反転
   }
 
-  // IDを生成
-  const hpBarElementId = `${prefix}HpBar${monster.index}`;
-  const mpBarElementId = `${prefix}MpBar${monster.index}`;
-  const hpBarInnerId = `${prefix}HpBarInner${monster.index}`;
-  const mpBarInnerId = `${prefix}MpBarInner${monster.index}`;
-  const hpBarTextElementId = `${prefix}HpBarText${monster.index}`;
-  const mpBarTextElementId = `${prefix}MpBarText${monster.index}`;
-
   // 表示対象の要素を取得
-  const hpBarElement = document.getElementById(hpBarElementId);
-  const mpBarElement = document.getElementById(mpBarElementId);
-  const hpBarInner = document.getElementById(hpBarInnerId);
-  const mpBarInner = document.getElementById(mpBarInnerId);
-  const hpBarTextElement = document.getElementById(hpBarTextElementId);
-  const mpBarTextElement = document.getElementById(mpBarTextElementId);
+  const hpBarElement = document.getElementById(`${prefix}HpBar${monster.index}`);
+  const mpBarElement = document.getElementById(`${prefix}MpBar${monster.index}`);
+  const hpBarInner = document.getElementById(`${prefix}HpBarInner${monster.index}`);
+  const mpBarInner = document.getElementById(`${prefix}MpBarInner${monster.index}`);
+  const hpBarTextElement = document.getElementById(`${prefix}HpBarText${monster.index}`);
+  const mpBarTextElement = document.getElementById(`${prefix}MpBarText${monster.index}`);
 
   // prefixが敵かつ死亡(亡者化)している場合は非表示化
   if (prefix === "enemy" && (monster.flags.isDead || monster.flags.isZombie)) {
@@ -651,11 +639,11 @@ document.querySelectorAll(".selectSkillTarget").forEach((img) => {
 function finishSelectingEachMonstersCommand() {
   document.getElementById("selectSkillTargetAll").style.visibility = "hidden";
 
-  // [0][4]の終了時、5が引数に渡されてreturn 100
+  // [0][4]の終了時、5が引数に渡されてreturn null
   const nextMonsterIndex = findNextActionableMonsterIndex(currentMonsterIndex + 1);
 
   // すべてのモンスターの選択が終了した場合
-  if (nextMonsterIndex === 100) {
+  if (nextMonsterIndex === null) {
     askFinishCommand();
   } else {
     // 行動可能なモンスターが見つかった場合
@@ -666,14 +654,21 @@ function finishSelectingEachMonstersCommand() {
     disableCommandBtn(false);
   }
 }
-function findNextActionableMonsterIndex(startIndex) {
-  for (let i = startIndex; i < parties[currentTeamIndex].length; i++) {
-    const monster = parties[currentTeamIndex][i];
-    if (!isDead(monster) && !monster.flags.isZombie && !hasAbnormality(monster)) {
+
+function isActionable(monster) {
+  return Boolean(monster && !isDead(monster) && !monster.flags?.isZombie && !hasAbnormality(monster));
+}
+
+// startIndex（開始位置）と teamNum（対象チーム）を受け取り、行動可能なモンスターのインデックスを返す
+// 引数を省略した場合は「先頭(0)から」「現在選択中のチーム」を探す
+function findNextActionableMonsterIndex(startIndex = 0, teamNum = currentTeamIndex) {
+  const party = parties[teamNum];
+  for (let i = startIndex; i < party.length; i++) {
+    if (isActionable(party[i])) {
       return i;
     }
   }
-  return 100;
+  return null;
 }
 
 // コマンド選択開始関数
@@ -682,13 +677,13 @@ function startSelectingCommandForFirstMonster(teamNum) {
 
   // parties[teamNum]の先頭から、行動可能なモンスターを探す
   currentTeamIndex = teamNum;
-  const firstActionableMonsterIndex = findFirstActionableMonsterIndex(teamNum);
+  const firstActionableMonsterIndex = findNextActionableMonsterIndex(0, teamNum);
 
   // 前の戦闘で全員選択不能で非表示になっていた場合に備え、最初に解除
   document.getElementById("closeCommandPopupWindowBtn").style.display = "block";
 
   // 敵が全員行動不能な場合
-  if (firstActionableMonsterIndex === 100) {
+  if (firstActionableMonsterIndex === null) {
     if (teamNum === 1) {
       //敵コマンド選択でplayerを選んだ場合用
       document.getElementById("howToCommandEnemy").style.visibility = "hidden";
@@ -733,16 +728,6 @@ function initializeMonsterCommands(teamNum) {
       monster.commandInput = "normalAICommand";
     }
   }
-}
-
-function findFirstActionableMonsterIndex(teamNum) {
-  for (let i = 0; i < parties[teamNum].length; i++) {
-    const monster = parties[teamNum][i];
-    if (!isDead(monster) && !monster.flags.isZombie && !hasAbnormality(monster)) {
-      return i;
-    }
-  }
-  return 100;
 }
 
 //allのyes btnと、skillTarget選択後に起動する場合、+=1された次のモンスターをstickOut
@@ -1150,13 +1135,8 @@ async function startTurn() {
           }
           break;
         case BuffTargetType.All:
-          //allyとenemyを両方実行
-          for (const ally of aliveAllys) {
-            applyBuff(ally, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
-            if (!skipSleep) await sleep(150);
-          }
-          for (const enemy of aliveEnemies) {
-            applyBuff(enemy, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
+          for (const target of [...aliveAllys, ...aliveEnemies]) {
+            applyBuff(target, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
             if (!skipSleep) await sleep(150);
           }
           break;
@@ -1448,13 +1428,7 @@ async function startBattle() {
 
 // buffの直接挿入 死亡や石化相手でも強制的に追加後、updateする propertyの自動補完がないので注意
 function insertBuff(buffTarget, newBuff) {
-  const copiedNewBuff = {};
-  // for文で疑似deepcopy
-  for (const key in newBuff) {
-    const value = newBuff[key];
-    copiedNewBuff[key] = { ...value };
-  }
-  buffTarget.buffs = { ...buffTarget.buffs, ...copiedNewBuff };
+  buffTarget.buffs = { ...buffTarget.buffs, ...structuredClone(newBuff) };
   updateMonsterBuffsDisplay(buffTarget);
 }
 
@@ -3259,28 +3233,25 @@ async function checkRecentlyKilledFlagForPoison(monster) {
   }
 }
 
-// 死亡判定を行う関数
 function isDead(monster) {
-  return monster.flags.isDead === true;
+  return Boolean(monster.flags?.isDead);
 }
 
 // 状態異常判定を行う関数
-function hasAbnormality(monster) {
-  const abnormalityMessages = {
-    stoned: "鉄のようになり みがまえている！",
-    paralyzed: "からだがしびれて動けない！",
-    asleep: "ねむっている！",
-    confused: "こんらんしている！",
-    fear: "動きを ふうじられている！",
-    tempted: "動きを ふうじられている！",
-    sealed: "動きを ふうじられている！",
-    boogieCurseSubstituting: "動きを ふうじられている！",
-  };
+const ABNORMALITY_MESSAGES = {
+  stoned: "鉄のようになり みがまえている！",
+  paralyzed: "からだがしびれて動けない！",
+  asleep: "ねむっている！",
+  confused: "こんらんしている！",
+  fear: "動きを ふうじられている！",
+  tempted: "動きを ふうじられている！",
+  sealed: "動きを ふうじられている！",
+  boogieCurseSubstituting: "動きを ふうじられている！",
+};
 
-  for (const key in abnormalityMessages) {
-    if (monster.buffs[key]) {
-      return abnormalityMessages[key];
-    }
+function hasAbnormality(monster) {
+  for (const key in ABNORMALITY_MESSAGES) {
+    if (monster.buffs[key]) return ABNORMALITY_MESSAGES[key];
   }
   return false;
 }
@@ -4039,12 +4010,11 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
   let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (
     !isReflection &&
     damage > 0 &&
     skillTarget.buffs.elementalShield &&
-    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && AllElements.includes(executingSkill.element)))
+    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && ALL_ELEMENTS.includes(executingSkill.element)))
   ) {
     reducedByElementalShield = true;
     if (skillTarget.buffs.elementalShield.remain <= damage) {
@@ -4141,7 +4111,6 @@ function calculateDamage(
   let randomMultiplier = 1;
   let damage = 0;
   let isCriticalHit = false;
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   if (executingSkill.howToCalculate === "fix") {
     baseDamage = executingSkill.damage;
     if (!executingSkill.fixedDamage) {
@@ -4228,40 +4197,7 @@ function calculateDamage(
     }
     // 特技プラスと賢さ差ボーナスを乗算
     const intDiff = skillUser.currentStatus.int - skillTarget.currentStatus.int;
-    const intBonus =
-      intDiff >= 150
-        ? 1.25
-        : intDiff >= 140
-          ? 1.24
-          : intDiff >= 130
-            ? 1.23
-            : intDiff >= 120
-              ? 1.22
-              : intDiff >= 110
-                ? 1.21
-                : intDiff >= 100
-                  ? 1.2
-                  : intDiff >= 90
-                    ? 1.19
-                    : intDiff >= 80
-                      ? 1.18
-                      : intDiff >= 70
-                        ? 1.17
-                        : intDiff >= 60
-                          ? 1.16
-                          : intDiff >= 50
-                            ? 1.15
-                            : intDiff >= 40
-                              ? 1.14
-                              : intDiff >= 30
-                                ? 1.13
-                                : intDiff >= 20
-                                  ? 1.12
-                                  : intDiff >= 10
-                                    ? 1.11
-                                    : intDiff >= 1
-                                      ? 1.1
-                                      : 1;
+    const intBonus = intDiff >= 150 ? 1.25 : intDiff > 0 ? 1.09 + Math.floor(intDiff / 10) * 0.01 : 1;
     baseDamage *= executingSkill.skillPlus * intBonus;
     randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
     //呪文会心
@@ -4700,7 +4636,7 @@ function calculateDamage(
   }
 
   // 全属性バフ
-  if (skillUser.buffs.allElementalBoost && AllElements.includes(executingSkill.element)) {
+  if (skillUser.buffs.allElementalBoost && ALL_ELEMENTS.includes(executingSkill.element)) {
     damageModifier += skillUser.buffs.allElementalBoost.strength;
   }
   // 爆発の導き
@@ -4858,7 +4794,7 @@ function calculateDamage(
   // skillTargetのLSによる軽減
   const enemyLeaderName = parties[skillTarget.teamID][0].name;
   // 属性30軽減など
-  if (AllElements.includes(executingSkill.element)) {
+  if (ALL_ELEMENTS.includes(executingSkill.element)) {
     if (enemyLeaderName === "メタルゴッデス" && skillTarget.race.includes("スライム")) {
       damageModifier -= 0.3;
     }
@@ -4879,7 +4815,7 @@ function calculateDamage(
   }
 
   // 全属性軽減
-  if (AllElements.includes(executingSkill.element)) {
+  if (ALL_ELEMENTS.includes(executingSkill.element)) {
     // 全属性軽減
     if (skillTarget.buffs.allElementalBarrier) {
       damageModifier -= skillTarget.buffs.allElementalBarrier.strength;
@@ -5069,16 +5005,15 @@ function checkEvasionAndDazzle(skillUser, executingSkill, skillTarget) {
 // skillUser使用時はnullチェック(耐性ダウン計算などではnullのため)
 function calculateResistance(skillUser, executingSkillElement, skillTarget, distorted = false, skillInfo = null) {
   const element = executingSkillElement;
-  const executingSkillType = skillInfo ? skillInfo.type : null;
+  const executingSkillType = skillInfo?.type ?? null;
   const isDamageExisting = skillInfo && skillInfo.howToCalculate !== "none" ? true : false;
   const baseResistance = skillTarget.resistance[element] ?? 1;
   const resistanceValues = [-1, 0, 0.25, 0.5, 0.75, 1, 1.5];
   const distortedResistanceValues = [1.5, 1.5, 1.5, 1, 1, 0, -1];
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"]; // 状態異常やザキと区別
   let isHazamaReduction = false;
   let isSlashBreak = false;
   // skillInfo存在時(かつ念の為damage存在時)のみ反映
-  if (executingSkillType && isDamageExisting && (element === "none" || AllElements.includes(element))) {
+  if (executingSkillType && isDamageExisting && (element === "none" || ALL_ELEMENTS.includes(element))) {
     // 狭間装備有効判定
     if (skillTarget.gear) {
       const gearName = skillTarget.gear.name;
@@ -5124,7 +5059,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
   }
 
   // --- 属性歪曲時 かつ歪曲対象の7属性の処理 ---
-  if (distorted && AllElements.includes(element)) {
+  if (distorted && ALL_ELEMENTS.includes(element)) {
     let distortedResistanceIndex = resistanceValues.indexOf(baseResistance);
 
     // 装備効果・属性耐性バフデバフ効果 反転後に無効吸収になる弱点普通は変化させない
@@ -5194,7 +5129,7 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         normalResistanceIndex -= skillTarget.buffs[element + "Resistance"].strength;
       }
       // プリズムヴェール
-      if (skillTarget.buffs.prismVeil && AllElements.includes(element)) {
+      if (skillTarget.buffs.prismVeil && ALL_ELEMENTS.includes(element)) {
         normalResistanceIndex -= skillTarget.buffs.prismVeil.strength;
       }
       // インデックスの範囲を制限 最大でも無効
@@ -5213,16 +5148,16 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
         if (skillUser.buffs[element + "BreakBoost"]) {
           normalResistanceIndex += skillUser.buffs[element + "BreakBoost"].strength;
         }
-      } else if (skillUser.buffs.allElementalBreak && AllElements.includes(element)) {
+      } else if (skillUser.buffs.allElementalBreak && ALL_ELEMENTS.includes(element)) {
         // 全属性の使い手 こちらは状態異常以外の7属性に限定
         normalResistanceIndex += skillUser.buffs.allElementalBreak.strength;
       }
       normalResistanceIndex = Math.max(0, Math.min(normalResistanceIndex, 6));
       normalResistance = resistanceValues[normalResistanceIndex];
       // 大弱点・超弱点処理
-      if (normalResistance == 1.5 && skillUser.buffs[element + "SuperBreak"]) {
+      if (normalResistance === 1.5 && skillUser.buffs[element + "SuperBreak"]) {
         normalResistance = 2;
-      } else if (normalResistance == 1.5 && skillUser.buffs[element + "UltraBreak"]) {
+      } else if (normalResistance === 1.5 && skillUser.buffs[element + "UltraBreak"]) {
         normalResistance = 2.5;
       }
     }
@@ -5232,10 +5167,9 @@ function calculateResistance(skillUser, executingSkillElement, skillTarget, dist
 
 // 歪曲時に全モンスターに対して、もとが普通弱点の属性の耐性アップダウンバフデバフを削除
 async function deleteElementalBuffs() {
-  const AllElements = ["fire", "ice", "thunder", "wind", "io", "light", "dark"];
   for (const party of parties) {
     for (const monster of party) {
-      for (const element of AllElements) {
+      for (const element of ALL_ELEMENTS) {
         if (monster.resistance[element] >= 1) {
           delete monster.buffs[`${element}Resistance`];
         }
@@ -5268,11 +5202,7 @@ function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, exclude
         (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId,
       );
       for (const targetErugi of targetMonsters) {
-        if (!targetErugi.flags.transformationCount) {
-          targetErugi.flags.transformationCount = 1;
-        } else if (targetErugi.flags.transformationCount === 1) {
-          targetErugi.flags.transformationCount = 2;
-        }
+        targetErugi.flags.transformationCount = Math.min((targetErugi.flags.transformationCount || 0) + 1, 2);
       }
     }
     delete skillTarget.flags.recentlyKilled;
@@ -5512,13 +5442,7 @@ function findLowestHPRateTarget(candidates) {
 }
 
 function hasAbnormalityOfAINormalAttack(monster) {
-  const abnormalityKeys = ["confused", "paralyzed", "asleep"];
-  for (const key of abnormalityKeys) {
-    if (monster.buffs[key]) {
-      return true;
-    }
-  }
-  return false;
+  return ["confused", "paralyzed", "asleep"].some((k) => monster.buffs[k]);
 }
 
 //monster選択部分
@@ -5556,7 +5480,7 @@ document.querySelectorAll(".monsterListIcon").forEach((img) => {
 //ポップアップ内各画像クリックで、そのモンスターを代入してウィンドウを閉じる
 function selectMonster(monsterName) {
   //選択中partyの該当monsterに引数monsterNameとidが等しいmonsterのデータの配列を丸ごと代入
-  selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id == monsterName));
+  selectingParty[selectingMonsterNum] = structuredClone(monsters.find((monster) => monster.id === monsterName));
   // 新規生成したselectingMonster内に、initialからdefaultを作成、以下defaultを操作する
   selectingParty[selectingMonsterNum].defaultSkill = [...selectingParty[selectingMonsterNum].initialSkill];
   // disabledSkillsByPlayer配列を生成
@@ -5646,14 +5570,12 @@ function adjustStatusAndSkillDisplay() {
   //丸ごと放り込まれているor操作済みのため、ただ引っ張ってくれば良い
   //所持特技名表示変更
   addSkillOptions();
-  //種表示変更
-  document.getElementById("selectSeedAtk").value = selectingParty[currentTab].seed.atk;
-  document.getElementById("selectSeedDef").value = selectingParty[currentTab].seed.def;
-  document.getElementById("selectSeedSpd").value = selectingParty[currentTab].seed.spd;
-  document.getElementById("selectSeedInt").value = selectingParty[currentTab].seed.int;
+  // 種表示変更
+  SEED_KEYS.forEach((key) => {
+    document.getElementById(`selectSeed${key}`).value = selectingParty[currentTab].seed[key];
+  });
   displayGearIncrement();
   changeSeedSelect();
-  // AI表示変更
   document.getElementById("changeDefaultAiType").value = selectingParty[currentTab].defaultAiType || "ガンガンいこうぜ";
 }
 
@@ -5774,7 +5696,7 @@ function addSkillOptions() {
     selectElement.appendChild(option);
 
     // 固有特技を追加 (ここはdefaultではなくinitial)
-    defaultOptGroup = document.createElement("optgroup");
+    const defaultOptGroup = document.createElement("optgroup");
     defaultOptGroup.label = "固有特技";
     for (const skill of initialSkills) {
       const option = document.createElement("option");
@@ -5786,7 +5708,7 @@ function addSkillOptions() {
 
     // その他特技を追加
     if (anotherSkills) {
-      anotherOptGroup = document.createElement("optgroup");
+      const anotherOptGroup = document.createElement("optgroup");
       anotherOptGroup.label = "その他特技";
       for (const skill of anotherSkills) {
         const option = document.createElement("option");
@@ -5823,7 +5745,7 @@ function addSkillOptions() {
 
     // コラボ特技を追加
     if (targetCollabSkills) {
-      collabOptGroup = document.createElement("optgroup");
+      const collabOptGroup = document.createElement("optgroup");
       collabOptGroup.label = "コラボ卵特技";
       for (const skill of targetCollabSkills) {
         const option = document.createElement("option");
@@ -5837,7 +5759,7 @@ function addSkillOptions() {
     // 超マス特技を追加
     const noSuperOptMonsters = ["常夏少女ジェマ", "タイプG"];
     if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && !FFBETargets.includes(monster.name) && monster.rank > 7) {
-      superOptGroup = document.createElement("optgroup");
+      const superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
       for (const skill of superSkills) {
         const option = document.createElement("option");
@@ -5850,7 +5772,7 @@ function addSkillOptions() {
 
     // 全特技を追加
     if (document.getElementById("enableAllSkill").checked) {
-      allOptGroup = document.createElement("optgroup");
+      const allOptGroup = document.createElement("optgroup");
       allOptGroup.label = "全特技";
 
       const allSkills = getAvailableSkillsForOthers();
@@ -5941,27 +5863,26 @@ document.getElementById("enableAllSkill").addEventListener("change", function (e
   }
 });
 
-//種変更時: 値を取得、party内の現在のtabのmonsterに格納、種max120処理と、seedIncrementCalcによる増分計算、格納、表示
+//種変更時: 選択された数値を取得しparty内の現在のtabのmonster情報として格納、種max120処理と、seedIncrementCalcによる増分計算、格納、表示
 //tab遷移・モンスター変更時: switchTabからadjustStatusAndSkillDisplay、changeSeedSelectを起動、seedIncrementCalcで増分計算 このとき種表示変更は実行済なので前半は無意味
 function changeSeedSelect() {
-  // 選択された数値を取得
-  const selectSeedAtk = document.getElementById("selectSeedAtk").value;
-  const selectSeedDef = document.getElementById("selectSeedDef").value;
-  const selectSeedSpd = document.getElementById("selectSeedSpd").value;
-  const selectSeedInt = document.getElementById("selectSeedInt").value;
+  const monster = selectingParty[currentTab];
+  let totalSeed = 0;
 
-  // この新たな値を、selectingParty内の表示中のタブのseed情報に格納
-  selectingParty[currentTab].seed.atk = selectSeedAtk;
-  selectingParty[currentTab].seed.def = selectSeedDef;
-  selectingParty[currentTab].seed.spd = selectSeedSpd;
-  selectingParty[currentTab].seed.int = selectSeedInt;
-  seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSeedInt);
+  // 各種の値を取得・代入・合計値を加算
+  SEED_KEYS.forEach((key) => {
+    const val = Number(document.getElementById(`selectSeed${key}`).value);
+    monster.seed[key] = val;
+    totalSeed += val;
+  });
 
-  // 120上限種無効化処理
-  const seedLimit = selectingParty[currentTab].seedLimit || 120;
-  // select変化時、全部の合計値を算出、120-その合計値を算出 = remain
-  const remainingSelectSeedSum = seedLimit - Number(selectSeedAtk) - Number(selectSeedDef) - Number(selectSeedSpd) - Number(selectSeedInt);
-  // すべてのselectで、現状の値+remainを超える選択肢をdisable化
+  // 増分計算・表示
+  seedIncrementCalc();
+
+  // 上限120を超えて種を振れないよう無効化
+  const seedLimit = monster.seedLimit || 120;
+  const remainingSelectSeedSum = seedLimit - totalSeed;
+
   document.querySelectorAll(".selectSeed").forEach(function (element) {
     const selectedValue = parseInt(element.value);
     const newLimit = remainingSelectSeedSum + selectedValue;
@@ -5969,18 +5890,13 @@ function changeSeedSelect() {
     const options = element.options;
     for (let i = 0; i < options.length; i++) {
       const optionValue = parseInt(options[i].value);
-      if (optionValue > newLimit) {
-        options[i].disabled = true;
-      } else {
-        options[i].disabled = false;
-      }
+      options[i].disabled = optionValue > newLimit;
     }
   });
 }
 
-//増分計算fun selectSeedAtkを元に、増分計算、増分格納、増分表示更新  さらに表示値を更新
-function seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSeedInt) {
-  //事前定義
+// 種の増分を計算し、selectingParty[currentTab].seedIncrementに格納、表示を更新する
+function seedIncrementCalc() {
   function seedCalc(limit, targetArray) {
     let sum = 0;
     for (let i = 0; i < limit; i++) {
@@ -5988,67 +5904,50 @@ function seedIncrementCalc(selectSeedAtk, selectSeedDef, selectSeedSpd, selectSe
     }
     return sum;
   }
-  //種を5で割った数値までの配列内の項をすべて足す
+
   const atkSeedArrayAtk = [4, 0, 10, 0, 10, 0, 10, 0, 6, 0, 6, 0, 6, 0, 4, 0, 2, 0, 2, 0];
   const atkSeedArrayHP = [0, 4, 0, 4, 0, 4, 0, 3, 0, 3, 0, 2, 0, 2, 0, 2, 0, 1, 0, 1];
   const defSeedArrayDef = [8, 0, 20, 0, 20, 0, 20, 0, 12, 0, 12, 0, 12, 0, 8, 0, 4, 0, 4, 0];
   const defSeedArrayHP = [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2];
   const defSeedArrayMP = [0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0];
 
-  const atkSeedLimit = selectSeedAtk / 5;
-  const defSeedLimit = selectSeedDef / 5;
-  const spdSeedLimit = selectSeedSpd / 5;
-  const intSeedLimit = selectSeedInt / 5;
+  const seed = selectingParty[currentTab].seed;
+  const limits = {
+    atk: seed.atk / 5,
+    def: seed.def / 5,
+    spd: seed.spd / 5,
+    int: seed.int / 5,
+  };
 
-  const HPIncrement = seedCalc(atkSeedLimit, atkSeedArrayHP) + seedCalc(defSeedLimit, defSeedArrayHP) + seedCalc(spdSeedLimit, defSeedArrayMP);
-  const MPIncrement = seedCalc(defSeedLimit, defSeedArrayMP) + seedCalc(spdSeedLimit, defSeedArrayHP) + seedCalc(intSeedLimit, atkSeedArrayHP);
-  const atkIncrement = seedCalc(atkSeedLimit, atkSeedArrayAtk);
-  const defIncrement = seedCalc(defSeedLimit, defSeedArrayDef);
-  const spdIncrement = seedCalc(spdSeedLimit, atkSeedArrayAtk);
-  const intIncrement = seedCalc(intSeedLimit, defSeedArrayDef);
+  // 各増分をまとめて格納
+  selectingParty[currentTab].seedIncrement = {
+    HP: seedCalc(limits.atk, atkSeedArrayHP) + seedCalc(limits.def, defSeedArrayHP) + seedCalc(limits.spd, defSeedArrayMP),
+    MP: seedCalc(limits.def, defSeedArrayMP) + seedCalc(limits.spd, defSeedArrayHP) + seedCalc(limits.int, atkSeedArrayHP),
+    atk: seedCalc(limits.atk, atkSeedArrayAtk),
+    def: seedCalc(limits.def, defSeedArrayDef),
+    spd: seedCalc(limits.spd, atkSeedArrayAtk),
+    int: seedCalc(limits.int, defSeedArrayDef),
+  };
 
-  //格納
-  if (!selectingParty[currentTab].hasOwnProperty("seedIncrement")) {
-    selectingParty[currentTab].seedIncrement = {};
-  }
-  selectingParty[currentTab].seedIncrement.HP = HPIncrement;
-  selectingParty[currentTab].seedIncrement.MP = MPIncrement;
-  selectingParty[currentTab].seedIncrement.atk = atkIncrement;
-  selectingParty[currentTab].seedIncrement.def = defIncrement;
-  selectingParty[currentTab].seedIncrement.spd = spdIncrement;
-  selectingParty[currentTab].seedIncrement.int = intIncrement;
-
-  //増分表示
-  document.getElementById("statusInfoSeedIncrementHP").textContent = `(+${HPIncrement})`;
-  document.getElementById("statusInfoSeedIncrementMP").textContent = `(+${MPIncrement})`;
-  document.getElementById("statusInfoSeedIncrementatk").textContent = `(+${atkIncrement})`;
-  document.getElementById("statusInfoSeedIncrementdef").textContent = `(+${defIncrement})`;
-  document.getElementById("statusInfoSeedIncrementspd").textContent = `(+${spdIncrement})`;
-  document.getElementById("statusInfoSeedIncrementint").textContent = `(+${intIncrement})`;
+  // 増分表示（既存のループ処理）
+  STAT_KEYS.forEach((key) => {
+    document.getElementById(`statusInfoSeedIncrement${key}`).textContent = `(+${selectingParty[currentTab].seedIncrement[key]})`;
+  });
 
   calcAndAdjustDisplayStatus();
 }
 
 function calcAndAdjustDisplayStatus() {
-  //statusとseedIncrementとgearIncrementを足して、displayStatusを計算、表示値を更新
   const monster = selectingParty[currentTab];
   const gearStatus = monster.gear?.status || {};
 
-  monster.displayStatus = {
-    HP: monster.status.HP + monster.seedIncrement.HP + (gearStatus.HP || 0),
-    MP: monster.status.MP + monster.seedIncrement.MP + (gearStatus.MP || 0),
-    atk: monster.status.atk + monster.seedIncrement.atk + (gearStatus.atk || 0),
-    def: monster.status.def + monster.seedIncrement.def + (gearStatus.def || 0),
-    spd: monster.status.spd + monster.seedIncrement.spd + (gearStatus.spd || 0),
-    int: monster.status.int + monster.seedIncrement.int + (gearStatus.int || 0),
-  };
+  monster.displayStatus = {};
 
-  document.getElementById("statusInfoDisplayStatusHP").textContent = monster.displayStatus.HP;
-  document.getElementById("statusInfoDisplayStatusMP").textContent = monster.displayStatus.MP;
-  document.getElementById("statusInfoDisplayStatusatk").textContent = monster.displayStatus.atk;
-  document.getElementById("statusInfoDisplayStatusdef").textContent = monster.displayStatus.def;
-  document.getElementById("statusInfoDisplayStatusspd").textContent = monster.displayStatus.spd;
-  document.getElementById("statusInfoDisplayStatusint").textContent = monster.displayStatus.int;
+  // ステータス計算とテキスト表示更新を一括ループ化
+  STAT_KEYS.forEach((key) => {
+    monster.displayStatus[key] = monster.status[key] + monster.seedIncrement[key] + (gearStatus[key] || 0);
+    document.getElementById(`statusInfoDisplayStatus${key}`).textContent = monster.displayStatus[key];
+  });
 
   // ウェイト更新
   calculateWeight();
@@ -6087,7 +5986,6 @@ function calcAndAdjustDisplayStatus() {
     if (monster.race.includes("悪魔") && gearName === "うみなりの杖悪魔錬金") {
       lsMultiplier += 0.05;
     }
-    // 盗賊ハート
     if (monster.race.includes("悪魔") && gearName === "盗賊ハート・闇") {
       lsMultiplier += 0.05;
     }
@@ -6121,13 +6019,7 @@ function displayGearIncrement() {
       }
     }
   };
-
-  updateStatus("HP");
-  updateStatus("MP");
-  updateStatus("atk");
-  updateStatus("def");
-  updateStatus("spd");
-  updateStatus("int");
+  STAT_KEYS.forEach(updateStatus);
 }
 
 // AI変更
@@ -6165,44 +6057,32 @@ function switchTab(tabNumber) {
     if (["新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム", "殺りくの神ダークドレアム"].includes(selectingParty[currentTab].name)) {
       document.getElementById("monsterDescriptionButton").style.display = "inline";
     }
-  } else if (tabNumber == 0) {
+  } else if (tabNumber === 0) {
     // 中身が空かつ0は例外的に空tab選択可能にして、初期表示
     currentTab = tabNumber;
     // タブ自体の詳細/表示中を切り替え
     addTabClass(tabNumber);
     // 各種表示reset
-    // skill表示空に
-    document.getElementById("skill0").value = "";
-    document.getElementById("skill1").value = "";
-    document.getElementById("skill2").value = "";
-    document.getElementById("skill3").value = "";
+    // skill表示を空に
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`skill${i}`).value = "";
+    }
     document.querySelectorAll(".skillEnabledCheckBox").forEach((checkbox) => {
       checkbox.disabled = true;
       checkbox.checked = false;
     });
-    // AIreset
-    document.getElementById("changeDefaultAiType").value = "ガンガンいこうぜ";
-    // 種表示reset
-    document.getElementById("selectSeedAtk").value = 0;
-    document.getElementById("selectSeedDef").value = 0;
-    document.getElementById("selectSeedSpd").value = 0;
-    document.getElementById("selectSeedInt").value = 0;
-    // 増分表示reset
-    document.getElementById("statusInfoSeedIncrementHP").textContent = "(+0)";
-    document.getElementById("statusInfoSeedIncrementMP").textContent = "(+0)";
-    document.getElementById("statusInfoSeedIncrementatk").textContent = "(+0)";
-    document.getElementById("statusInfoSeedIncrementdef").textContent = "(+0)";
-    document.getElementById("statusInfoSeedIncrementspd").textContent = "(+0)";
-    document.getElementById("statusInfoSeedIncrementint").textContent = "(+0)";
-    // 表示値reset
-    document.getElementById("statusInfoDisplayStatusHP").textContent = "0";
-    document.getElementById("statusInfoDisplayStatusMP").textContent = "0";
-    document.getElementById("statusInfoDisplayStatusatk").textContent = "0";
-    document.getElementById("statusInfoDisplayStatusdef").textContent = "0";
-    document.getElementById("statusInfoDisplayStatusspd").textContent = "0";
-    document.getElementById("statusInfoDisplayStatusint").textContent = "0";
+    // 種表示reset（SEED_KEYSを使用）
+    SEED_KEYS.forEach((key) => {
+      document.getElementById(`selectSeed${key}`).value = 0;
+    });
+    // 増分表示・表示値reset
+    STAT_KEYS.forEach((stat) => {
+      document.getElementById(`statusInfoSeedIncrement${stat}`).textContent = "(+0)";
+      document.getElementById(`statusInfoDisplayStatus${stat}`).textContent = "0";
+    });
     // 素早さ予測値reset
     document.getElementById("predictedSpeed").textContent = "";
+    document.getElementById("changeDefaultAiType").value = "ガンガンいこうぜ";
     // ウェイトresetは関数 空ではないpartyでswitchTab(0)した場合に0表示にならないよう
     calculateWeight();
     // 装備増分表示reset adjustStatusAndSkillDisplayを実行しない分ここで
@@ -6222,17 +6102,14 @@ function disableSeedSelect(boolean) {
 
 document.getElementById("randomParty").addEventListener("click", function () {
   function getRandomUniqueMonsterIds(count) {
-    const excludeNames = ["やきとり", "新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム"];
-    const filteredMonsters = monsters.filter((monster) => !excludeNames.includes(monster.name));
-    const randomIds = [];
-    while (randomIds.length < count) {
-      const randomIndex = Math.floor(Math.random() * filteredMonsters.length);
-      const randomMonster = filteredMonsters[randomIndex];
-      if (!randomIds.includes(randomMonster.id)) {
-        randomIds.push(randomMonster.id);
-      }
-    }
-    return randomIds;
+    const excludeNames = new Set(["やきとり", "新生イブール", "強新生アウルート", "新生転生マジェス・ドレアム"]);
+    const candidates = monsters.filter((m) => !excludeNames.has(m.name));
+
+    // 簡易シャッフルして先頭から count 個取得
+    return candidates
+      .sort(() => Math.random() - 0.5)
+      .slice(0, count)
+      .map((m) => m.id);
   }
   selectAllPartyMembers(getRandomUniqueMonsterIds(5));
 });
@@ -6312,7 +6189,7 @@ document.getElementById("masoParty").addEventListener("click", function () {
 });
 
 async function selectAllPartyMembers(monsters) {
-  for (i = 0; i < monsters.length; i++) {
+  for (let i = 0; i < monsters.length; i++) {
     selectingMonsterNum = i;
     selectMonster(monsters[selectingMonsterNum]);
   }
@@ -6795,7 +6672,7 @@ const monsters = [
     resistance: { fire: 1, ice: 1, thunder: 0, wind: 1, io: -1, light: 0, dark: 1, poisoned: 1.5, asleep: 1, confused: 0, paralyzed: 0.5, zaki: 0, dazzle: 0.5, spellSeal: 1, breathSeal: 1 },
   },
   {
-    name: "新生転生マジェス・ドレアム", //4 いおすぺなどと同様に使用不可処理およびあれを実施
+    name: "新生転生マジェス・ドレアム", //4
     id: "newMajesu",
     rank: 10,
     race: ["悪魔"], // why？
@@ -6918,7 +6795,7 @@ const monsters = [
     name: "ゴア・アスラゾーマ",
     id: "kibunga",
     rank: 10,
-    race: "???",
+    race: ["???"],
     weight: 32,
     status: { HP: 860, MP: 342, atk: 629, def: 570, spd: 505, int: 204 },
     initialSkill: ["氷華の儀式", "修羅の闘技", "ブリザーウォール", "リベンジアーツ"],
@@ -9814,7 +9691,7 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "伝説のタッグ3") {
           monster.skill[1] = "ひかりのたま";
-          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -9842,7 +9719,7 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "伝説のタッグ1") {
           monster.skill[1] = "王女の愛";
-          //monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          //monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           //updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -9859,7 +9736,7 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "伝説のタッグ4") {
           monster.skill[1] = "ひしょうきゃく";
-          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -9876,7 +9753,7 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "伝説のタッグ6") {
           monster.skill[1] = "至高の閃光";
-          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -9901,7 +9778,7 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "伝説のタッグ8") {
           monster.skill[1] = "セクシービーム";
-          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -9918,7 +9795,7 @@ function getMonsterAbilities(monsterId) {
     aban: {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "因縁のタッグ") {
-          monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+          monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
           updateBattleIcons(monster);
           await sleep(150);
           applyHeal(monster, monster.defaultStatus.MP, true);
@@ -10026,7 +9903,7 @@ function getMonsterAbilities(monsterId) {
             // 変身処理
             if (fieldState.turnNum === 2 && !skillUser.flags.hasTransformed) {
               displayMessage(`${skillUser.name}は`, "覚醒した！");
-              skillUser.iconSrc = "images/icons/" + skillUser.id + "TransformedSword.jpeg";
+              skillUser.iconSrc = `images/icons/${skillUser.id}TransformedSword.jpeg`;
               updateBattleIcons(skillUser);
               skillUser.flags.hasTransformed = true;
               skillUser.flags.hasTransformedSword = true;
@@ -11946,7 +11823,7 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
-          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive),
+          unavailableIf: (skillUser) => isPartyWipedOut(parties[skillUser.teamID]),
           finalAbility: true,
           isOneTimeUse: true,
           act: async function (skillUser) {
@@ -11966,7 +11843,7 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
-          unavailableIf: (skillUser) => parties[skillUser.teamID].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive),
+          unavailableIf: (skillUser) => isPartyWipedOut(parties[skillUser.teamID]),
           finalAbility: true,
           isOneTimeUse: true,
           act: async function (skillUser) {
@@ -12343,11 +12220,7 @@ function getMonsterAbilities(monsterId) {
           },
           {
             name: "死者の解放",
-            unavailableIf: (skillUser) => {
-              parties[skillUser.teamID].some(
-                (monster) => monster.abilities && monster.abilities.additionalDeathAbilities && monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "死者の解放"),
-              );
-            },
+            unavailableIf: (skillUser) => parties[skillUser.teamID].some((monster) => monster.abilities?.additionalDeathAbilities?.some((ability) => ability.name === "死者の解放")),
             act: async function (skillUser) {
               for (const monster of parties[skillUser.teamID]) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス") {
@@ -12531,7 +12404,7 @@ function getMonsterAbilities(monsterId) {
       afterActionAbilities: [
         {
           name: "超魔の再生力",
-          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill == null || executingSkill.type === "notskill" || fieldState.turnNum > 5,
+          unavailableIf: (skillUser, executingSkill, executedSkills) => executingSkill === null || executingSkill.type === "notskill" || fieldState.turnNum > 5,
           act: async function (skillUser, executingSkill) {
             ascension(skillUser);
             skillUser.currentStatus.MP -= 50;
@@ -22276,6 +22149,18 @@ const skill = [
   },
 ];
 
+const skillMap = new Map();
+function initSkillMap() {
+  skillMap.clear();
+  for (const s of skill) {
+    skillMap.set(s.name, s);
+  }
+}
+initSkillMap();
+function findSkillByName(skillName) {
+  return skillMap.get(skillName);
+}
+
 const gear = [
   {
     name: "hoge",
@@ -23033,11 +22918,6 @@ function toggleDarkenAndClick(imgElement, enable) {
   }
 }
 
-function findSkillByName(skillName) {
-  // グローバル変数 skill を参照して、一致するスキルを検索
-  return skill.find((skill) => skill.name === skillName);
-}
-
 function displayDamage(monster, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false) {
   const monsterIcon = document.getElementById(monster.iconElementId);
 
@@ -23141,8 +23021,7 @@ function displayDamage(monster, damage, resistance = 1, isMPdamage = false, redu
       criticalTextContainer.style.textAlign = "center"; // 文字列を中央揃え
       criticalTextContainer.style.textShadow =
         "black 0.3px 0px 0.7px, black -0.3px 0px 0.7px, black 0px -0.3px 0.7px, black 0px 0.3px 0.7px, black 0.3px 0.3px 0.7px, black -0.3px 0.3px 0.7px, black 0.3px -0.3px 0.7px, black -0.3px -0.3px 0.7px";
-      criticalTextContainer.style.fontfamily = "Hiragino Maru Gothic ProN";
-      criticalTextContainer.style.webkittextstroke = "1.5px black";
+      criticalTextContainer.style.fontFamily = "Hiragino Maru Gothic ProN";
       criticalTextContainer.style.fontSize = "1rem"; // フォントサイズを調整
       criticalTextContainer.style.fontWeight = "bold"; // 太字に
       criticalTextContainer.style.transform = "translateX(-50%) rotate(-5deg)";
@@ -23322,8 +23201,8 @@ function displayMessage(line1Text, line2Text = "", centerText = false) {
   consoleScreen.style.height = "3.7rem";
 
   // 空白を挿入 全角スペース
-  if (line1Text) line1Text = line1Text.replace(/ /g, "　");
-  if (line2Text) line2Text = line2Text.replace(/ /g, "　");
+  line1Text = line1Text?.replaceAll(" ", "　") ?? "";
+  line2Text = line2Text?.replaceAll(" ", "　") ?? "";
   messageLine1.textContent = line1Text;
   messageLine2.textContent = line2Text;
   if (centerText) {
@@ -23868,7 +23747,7 @@ function processSubstitute(skillUser, skillTarget, isAll, isCover, isBoogie) {
     skillTarget.flags.isZombie ||
     skillUser.flags.isDead ||
     skillUser.flags.isZombie ||
-    skillUser.monsterId == skillTarget.monsterId //自分自身は仁王立ちの対象にしない
+    skillUser.monsterId === skillTarget.monsterId //自分自身は仁王立ちの対象にしない
   ) {
     return;
   }
@@ -24454,7 +24333,7 @@ async function transformTyoma(monster) {
     return;
   }
   await sleep(200);
-  monster.iconSrc = "images/icons/" + monster.id + "Transformed.jpeg";
+  monster.iconSrc = `images/icons/${monster.id}Transformed.jpeg`;
   updateBattleIcons(monster);
   // 複数回変身に注意
   monster.flags.hasTransformed = true;
@@ -24650,9 +24529,10 @@ async function transformTyoma(monster) {
 }
 
 function deleteSubstitute(target) {
+  const allMonsters = parties.flat();
   if (target.flags.isSubstituting) {
     // targetがみがわり中の場合 targetがみがわっている相手(hasSubstituteのtargetが死亡者と一致)からみがわり所持を削除 その後targetのみがわり中も削除
-    for (const monster of parties.flat()) {
+    for (const monster of allMonsters) {
       if (monster.flags.hasSubstitute && monster.flags.hasSubstitute.targetMonsterId === target.monsterId) {
         delete monster.flags.hasSubstitute;
         updateMonsterBuffsDisplay(monster);
@@ -24663,7 +24543,7 @@ function deleteSubstitute(target) {
   }
   if (target.flags.hasSubstitute) {
     // targetがみがわられ中の場合 みがわり中の相手のみがわり先一覧からtargetを削除 もし空になったら完全削除 その後targetのみがわられ中を削除
-    const substitutingMonster = parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
+    const substitutingMonster = allMonsters.find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
     if (substitutingMonster) {
       // その要素のflags.isSubstituting.targetMonsterIdの配列内から、target.monsterIdと等しい文字列を削除する。
       substitutingMonster.flags.isSubstituting.targetMonsterId = substitutingMonster.flags.isSubstituting.targetMonsterId.filter((id) => id !== target.monsterId);
@@ -24730,30 +24610,15 @@ function displayMiss(skillTarget) {
   displayDamage(skillTarget, 0);
 }
 
-// 自分を含めた数
+// 自分を含めた数 requiredCountが0以下の場合はtrue
 function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
-  if (requiredCount <= 0) {
-    return true; // requiredCountが0以下の場合はtrue
-  }
-  let count = 0;
-  for (const monster of party) {
-    if (monster && monster.race.includes(targetRace)) {
-      count++;
-    }
-  }
-  return count >= requiredCount;
+  return requiredCount <= 0 || party.filter((m) => m?.race?.includes(targetRace)).length >= requiredCount;
 }
 
 // 自分を含め味方内の対象系統数をカウント
 function countSameRaceMonsters(skillUser, targetRaceArg = null) {
   const targetRace = targetRaceArg || skillUser.race[0];
-  let count = 0;
-  for (const monster of parties[skillUser.teamID]) {
-    if (monster && monster.race.includes(targetRace)) {
-      count++;
-    }
-  }
-  return count;
+  return parties[skillUser.teamID].filter((m) => m?.race?.includes(targetRace)).length;
 }
 
 // 竜気 行動後に上げる
@@ -24910,15 +24775,9 @@ function ascension(monster, ignoreUnAscensionable = false) {
   delete monster.flags.isZombie;
   // zombieBuffableのバフの一部を個別に削除  全削除：封印(黄泉・神獣・氷の王国)  個別削除：亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 反撃ののろし 超魔改良 蘇生封じの術 グランドアビス 修羅の闇は残す
   delete monster.buffs.sealed;
-  if (monster.buffs.slashReflection && monster.buffs.slashReflection.zombieBuffable) {
-    delete monster.buffs.slashReflection;
-  }
-  if (monster.buffs.baiki && monster.buffs.baiki.zombieBuffable) {
-    delete monster.buffs.baiki;
-  }
-  if (monster.buffs.paralyzedBreak && monster.buffs.paralyzedBreak.zombieBuffable) {
-    delete monster.buffs.paralyzedBreak;
-  }
+  ["slashReflection", "baiki", "paralyzedBreak"].forEach((key) => {
+    if (monster.buffs[key]?.zombieBuffable) delete monster.buffs[key];
+  });
   monster.flags.isDead = true;
   monster.commandInput = "skipThisTurn";
   updateMonsterBar(monster); //isDead付与後にupdateでbar非表示化
@@ -24985,16 +24844,23 @@ function showCooperationEffect(currentTeamID, cooperationAmount) {
   }, 500);
 }
 
+function isPartyWipedOut(party) {
+  return party.every((m) => isDead(m) && !m.flags.reviveNextTurn && !m.flags.waitingForRevive);
+}
+
 // 戦闘終了判断
 // updateIsBattleOverを分離してhandleDeathと昇天でisDead付与時に起動する案は保留
 function isBattleOver() {
+  // 既にこの関数であるいはbtnで終了フラグが立てられている場合
   if (fieldState.isBattleOver) {
-    // 既にこの関数であるいはbtnで終了フラグが立てられている場合
     return true;
-  } else if (parties.some((party) => party.every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive))) {
-    // どちらかのパテで、全員が死亡かつ次ターン蘇生もリザオ・tag・亡者化・供物変身による蘇生もない場合 戦闘終了フラグを立てる
+  }
+  // どちらかのパテで、全員が死亡かつ次ターン蘇生もリザオ・tag・亡者化・供物変身による蘇生もない場合 戦闘終了フラグを立てる
+  const allyWiped = isPartyWipedOut(parties[0]);
+  const enemyWiped = isPartyWipedOut(parties[1]);
+  if (allyWiped || enemyWiped) {
     fieldState.isBattleOver = true;
-    if (parties[0].every((monster) => monster.flags.isDead && !monster.flags.reviveNextTurn && !monster.flags.waitingForRevive)) {
+    if (allyWiped) {
       col("味方全滅により戦闘終了フラグが立てられました");
       displayMessage("試合をあきらめた");
     } else {
@@ -25118,7 +24984,7 @@ function isSkillUnavailableForAI(skillName) {
 }
 
 function intensityPoisonDepth(skillTarget) {
-  if (skillTarget.buffs.poisonDepth && !skillTarget.flags.isdead && !skillTarget.flags.isZombie) {
+  if (skillTarget.buffs.poisonDepth && !skillTarget.flags.isDead && !skillTarget.flags.isZombie) {
     displayMessage(`${skillTarget.name}は`, "毒性深化が すすんだ！");
     skillTarget.buffs.poisonDepth.strength = Math.min(skillTarget.buffs.poisonDepth.strength + 2, 7);
   }
@@ -25158,7 +25024,7 @@ function playBGM() {
 
 function stopBGM() {
   if (YTplayer && YTplayer.getPlayerState() === YT.PlayerState.PLAYING) {
-    initialVolume = YTplayer.getVolume(); // フェードアウト開始時のボリュームを保存
+    const initialVolume = YTplayer.getVolume(); // フェードアウト開始時のボリュームを保存
     let volume = initialVolume;
     const fadeOutInterval = 50; // フェードアウト間隔（ミリ秒）
     const fadeOutStep = 5; // ボリュームを減らすステップ
@@ -25180,9 +25046,9 @@ function stopBGM() {
 }
 
 // YouTube Iframe API をロード
-var tag = document.createElement("script");
+const tag = document.createElement("script");
 tag.src = "https://www.youtube.com/iframe_api";
-var firstScriptTag = document.getElementsByTagName("script")[0];
+const firstScriptTag = document.getElementsByTagName("script")[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 function getRandomIntInclusive(min, max) {
@@ -25192,13 +25058,7 @@ function getRandomIntInclusive(min, max) {
 }
 
 function countBreakMonster(party) {
-  let count = 0;
-  for (const monster of party) {
-    if (isBreakMonster(monster)) {
-      count++;
-    }
-  }
-  return count;
+  return party.filter(isBreakMonster).length;
 }
 
 function isBreakMonster(monster) {
@@ -25220,10 +25080,9 @@ function isBreakMonster(monster) {
 
 // 耐性表示を全てクリア preparebattleでも実行して初期化
 function clearAllSkillResistance() {
-  const iconElements = ["enemyBattleIcon0", "enemyBattleIcon1", "enemyBattleIcon2", "enemyBattleIcon3", "enemyBattleIcon4"];
-  for (const element of iconElements) {
-    const targetWrapper = document.getElementById(element).parentNode;
-    clearResistanceDisplay(targetWrapper);
+  for (let i = 0; i < 5; i++) {
+    const iconElement = document.getElementById(`enemyBattleIcon${i}`);
+    clearResistanceDisplay(iconElement.parentNode);
   }
 }
 
@@ -25445,27 +25304,27 @@ function createResistanceIcon(iconType, color) {
       iconContainer.appendChild(invalidIcon);
       break;
     case "greatlyReduce":
-      iconContainer.appendChild(createDownArrows(3, color));
+      iconContainer.appendChild(createArrows(3, color, "down"));
       iconContainer.style.transform = "translate(0%, 55%)";
       break;
     case "half":
-      iconContainer.appendChild(createDownArrows(2, color));
+      iconContainer.appendChild(createArrows(2, color, "down"));
       iconContainer.style.transform = "translate(0%, 55%)";
       break;
     case "reduce":
-      iconContainer.appendChild(createDownArrows(1, color));
+      iconContainer.appendChild(createArrows(1, color, "down"));
       iconContainer.style.transform = "translate(0%, 55%)";
       break;
     case "weak":
-      iconContainer.appendChild(createUpArrows(1, color));
+      iconContainer.appendChild(createArrows(1, color, "up"));
       iconContainer.style.transform = "translate(0%, -30%)";
       break;
     case "majorWeak":
-      iconContainer.appendChild(createUpArrows(2, color));
+      iconContainer.appendChild(createArrows(2, color, "up"));
       iconContainer.style.transform = "translate(0%, -30%)";
       break;
     case "superWeak":
-      iconContainer.appendChild(createUpArrows(3, color));
+      iconContainer.appendChild(createArrows(3, color, "up"));
       iconContainer.style.transform = "translate(0%, -30%)";
       break;
   }
@@ -25473,7 +25332,8 @@ function createResistanceIcon(iconType, color) {
   return iconContainer;
 }
 
-function createDownArrows(count, color) {
+function createArrows(count, color, direction = "down") {
+  const isUp = direction === "up";
   const arrowsContainer = document.createElement("div");
   arrowsContainer.style.display = "flex";
 
@@ -25481,7 +25341,7 @@ function createDownArrows(count, color) {
     const arrow = document.createElement("div");
     arrow.style.position = "relative";
     arrow.style.margin = "-0.2rem";
-    // 真ん中だけ下げる
+    // 3本表示のとき真ん中だけずらす
     if (count === 3 && i === 1) {
       arrow.style.transform = "translate(0%, 40%)";
     }
@@ -25492,58 +25352,31 @@ function createDownArrows(count, color) {
     triangle.style.height = "0";
     triangle.style.borderLeft = "0.5rem solid transparent";
     triangle.style.borderRight = "0.5rem solid transparent";
-    triangle.style.borderTop = `0.8rem solid ${color}`;
+    // 上向きなら borderBottom、下向きなら borderTop に色をつける
+    triangle.style[isUp ? "borderBottom" : "borderTop"] = `0.8rem solid ${color}`;
 
     // 長方形（柄）部分
     const rect = document.createElement("div");
     rect.style.position = "absolute";
-    rect.style.top = "-1.6rem"; // 三角形の下に配置
     rect.style.left = "50%";
     rect.style.transform = "translateX(-50%)";
     rect.style.width = "0.5rem";
     rect.style.height = "1.6rem";
     rect.style.backgroundColor = color;
-
-    arrow.appendChild(rect);
-    arrow.appendChild(triangle);
-    arrowsContainer.appendChild(arrow);
-  }
-  return arrowsContainer;
-}
-
-function createUpArrows(count, color) {
-  const arrowsContainer = document.createElement("div");
-  arrowsContainer.style.display = "flex";
-
-  for (let i = 0; i < count; i++) {
-    const arrow = document.createElement("div");
-    arrow.style.position = "relative";
-    arrow.style.margin = "-0.2rem";
-    // 真ん中だけ下げる
-    if (count === 3 && i === 1) {
-      arrow.style.transform = "translate(0%, 40%)";
+    // 下向き矢印のときは傘の上に柄を配置
+    if (!isUp) {
+      rect.style.top = "-1.6rem";
     }
 
-    // 三角形（傘）部分
-    const triangle = document.createElement("div");
-    triangle.style.width = "0";
-    triangle.style.height = "0";
-    triangle.style.borderLeft = "0.5rem solid transparent";
-    triangle.style.borderRight = "0.5rem solid transparent";
-    triangle.style.borderBottom = `0.8rem solid ${color}`;
+    // 要素の追加順序（上向きは傘→柄、下向きは柄→傘）
+    if (isUp) {
+      arrow.appendChild(triangle);
+      arrow.appendChild(rect);
+    } else {
+      arrow.appendChild(rect);
+      arrow.appendChild(triangle);
+    }
 
-    // 長方形（柄）部分
-    const rect = document.createElement("div");
-    rect.style.position = "absolute";
-
-    rect.style.left = "50%";
-    rect.style.transform = "translateX(-50%)";
-    rect.style.width = "0.5rem";
-    rect.style.height = "1.6rem";
-    rect.style.backgroundColor = color;
-
-    arrow.appendChild(triangle);
-    arrow.appendChild(rect);
     arrowsContainer.appendChild(arrow);
   }
   return arrowsContainer;
@@ -26355,7 +26188,7 @@ document.addEventListener("DOMContentLoaded", generateGameRuleCheckboxes);
 // 詳細をクリック時、popupを表示
 document.getElementById("monsterDescriptionButton").addEventListener("click", function () {
   const div = document.getElementById("monsterDescriptionContents");
-  div.ineerHTML = "";
+  div.innerHTML = "";
   const monsterName = selectingParty[currentTab].name;
   if (monsterName === "新生イブール") {
     div.innerHTML = `新生転生イブール (by あかね)
@@ -26581,7 +26414,7 @@ async function releaseDreamTransformation() {
     displayMessage(`${monster.name}は`, `もとの姿に戻った！`);
     col(`${monster.name}はもとの姿に戻った！`);
     delete monster.flags.hasTransformed;
-    monster.iconSrc = "images/icons/" + monster.id + ".jpeg";
+    monster.iconSrc = `images/icons/${monster.id}.jpeg`;
     updateBattleIcons(monster);
     monster.flags.damageDealt = 0;
     monster.skill[0] = "滅びの妙技";
