@@ -134,6 +134,74 @@ function decideParty() {
   }
 }
 
+// 装備によるステータス倍率増分を取得
+function getGearMultiplierBonus(monster, statKey) {
+  if (!monster.gear) return 0;
+
+  let bonus = 0;
+  const { gear } = monster;
+
+  // 1. 基礎倍率 (既存の statusMultiplier)
+  if (gear.statusMultiplier?.[statKey]) {
+    bonus += gear.statusMultiplier[statKey];
+  }
+
+  // 2. 錬金効果 (素早さ: 特定4系統で +5%)
+  if (statKey === "spd" && gear.alchemy) {
+    const targetRaces = ["魔獣", "ドラゴン", "ゾンビ", "物質"];
+    if (targetRaces.some((r) => monster.race.includes(r))) {
+      bonus += 0.05;
+    }
+  }
+
+  // 3. ハート・ブレイク8%錬金
+  if (gear.conditionalMultipliers) {
+    for (const cond of gear.conditionalMultipliers) {
+      if (cond.stat !== statKey) continue;
+
+      const matchRace = cond.targetRace && monster.race.includes(cond.targetRace);
+      const matchBreak = cond.checkBreak && isBreakMonster(monster);
+
+      if (matchRace || matchBreak) {
+        bonus += cond.value;
+      }
+    }
+  }
+
+  return bonus;
+}
+
+// 装備による固定値加算を取得（パラディンハート等）
+function getGearFlatIncrement(monster, statKey) {
+  if (!monster.gear?.conditionalIncrements) return 0;
+
+  let increment = 0;
+  for (const cond of monster.gear.conditionalIncrements) {
+    if (cond.stat === statKey && cond.targetRace && monster.race.includes(cond.targetRace)) {
+      increment += cond.value;
+    }
+  }
+  return increment;
+}
+
+// リーダー特性による倍率を取得
+function getLeaderSkillMultiplier(monster, leaderMonster, statKey, party = []) {
+  if (!leaderMonster) return 1;
+
+  // ルビス特殊処理
+  if (leaderMonster.name === "大地の精霊ルビス" && (statKey === "HP" || statKey === "spd")) {
+    const rate = statKey === "HP" ? 0.1 : 0.03;
+    return countRubisTarget(party) * rate + 1;
+  }
+
+  const { ls, lsTarget, excludeLsTarget } = leaderMonster;
+  if (!ls?.[statKey]) return 1;
+
+  const isTarget = (lsTarget === "all" && (!excludeLsTarget || !monster.race.includes(excludeLsTarget))) || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster));
+
+  return isTarget ? ls[statKey] : 1;
+}
+
 //パテ設定画面の確定で起動
 async function prepareBattle() {
   // 初期化
@@ -150,9 +218,6 @@ async function prepareBattle() {
 
     // リーダースキルの取得
     const firstMonster = party[0];
-    const leaderSkill = firstMonster.ls;
-    const lsTarget = firstMonster.lsTarget;
-    const excludeLsTarget = firstMonster.excludeLsTarget;
 
     for (let j = 0; j < party.length; j++) {
       const monster = party[j];
@@ -175,62 +240,18 @@ async function prepareBattle() {
       // ステータス処理
       monster.defaultStatus = {};
       for (const key in monster.displayStatus) {
-        // リーダースキル適用
-        let lsMultiplier = 1;
-        if (
-          leaderSkill[key] &&
-          ((lsTarget === "all" && (!excludeLsTarget || !monster.race.includes(excludeLsTarget))) || monster.race.includes(lsTarget) || (lsTarget === "break" && isBreakMonster(monster)))
-        ) {
-          lsMultiplier = leaderSkill[key];
-        }
-        // ルビスを起点に
-        if (firstMonster.name === "大地の精霊ルビス" && (key === "HP" || key === "spd")) {
-          const multiplier = key === "HP" ? 0.1 : 0.03;
-          lsMultiplier = countRubisTarget(party) * multiplier + 1;
-        }
-        // 装備効果
-        if (monster.gear) {
-          // 素早さ錬金
-          if (key === "spd") {
-            const gearName = monster.gear.name;
-            if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
-              lsMultiplier += 0.05;
-            }
-            if (isBreakMonster(monster) && (gearName === "凶帝王のつるぎ" || gearName === "ハザードネイル")) {
-              lsMultiplier += 0.08;
-            }
-            if (monster.race.includes("悪魔") && gearName === "うみなりの杖悪魔錬金") {
-              lsMultiplier += 0.05;
-            }
-            if (monster.race.includes("悪魔") && gearName === "盗賊ハート・闇") {
-              lsMultiplier += 0.05;
-            }
-            if (monster.race.includes("魔獣") && gearName === "盗賊ハート・獣") {
-              lsMultiplier += 0.05;
-            }
-            if (gearName === "エビルクロー") {
-              lsMultiplier += 0.05;
-            }
-          }
-          // 装備のstatusMultiplierを適用
-          if (monster.gear.statusMultiplier && monster.gear.statusMultiplier[key]) {
-            lsMultiplier += monster.gear.statusMultiplier[key];
-          }
-          // ゾーマローブ
-          if (key === "HP" && monster.race.includes("???") && monster.gear.name === "ゾーマのローブ") {
-            lsMultiplier += 0.1;
-          }
-        }
-        // HPまたはMPの場合、乗数を0.04加算
+        // 1. リーダースキル倍率
+        let multiplier = getLeaderSkillMultiplier(monster, firstMonster, key, party);
+        // 2. 装備倍率
+        multiplier += getGearMultiplierBonus(monster, key);
+        // 3. HP/MP共通ボーナス (+4%)
         if (key === "HP" || key === "MP") {
-          lsMultiplier += 0.04;
+          multiplier += 0.04;
         }
-        // パラディンハート
-        let HPIncrement = 0;
-        if (monster.race.includes("スライム") && monster.gear?.name === "パラディンハート・蒼" && key === "HP") {
-          HPIncrement = 30;
-        }
-        monster.defaultStatus[key] = Math.ceil(monster.displayStatus[key] * lsMultiplier) + HPIncrement;
+        // 4. 固定値加算
+        const flatIncrement = getGearFlatIncrement(monster, key);
+        // 最終ステータス計算（切り上げ）
+        monster.defaultStatus[key] = Math.ceil(monster.displayStatus[key] * multiplier) + flatIncrement;
       }
       monster.currentStatus = { ...monster.defaultStatus };
 
@@ -5942,8 +5963,6 @@ function calcAndAdjustDisplayStatus() {
   const gearStatus = monster.gear?.status || {};
 
   monster.displayStatus = {};
-
-  // ステータス計算とテキスト表示更新を一括ループ化
   STAT_KEYS.forEach((key) => {
     monster.displayStatus[key] = monster.status[key] + monster.seedIncrement[key] + (gearStatus[key] || 0);
     document.getElementById(`statusInfoDisplayStatus${key}`).textContent = monster.displayStatus[key];
@@ -5953,54 +5972,11 @@ function calcAndAdjustDisplayStatus() {
   calculateWeight();
 
   // 素早さ予測値の更新
-  let firstMonster = null;
-  for (const obj of selectingParty) {
-    if (Object.keys(obj).length !== 0) {
-      // オブジェクトが空でなければ設定してbreak
-      firstMonster = obj;
-      break;
-    }
-  }
-  // lsや錬金を反映して更新
-  const leaderSkill = firstMonster.ls;
-  const lsTarget = firstMonster.lsTarget;
+  const firstMonster = selectingParty.find((obj) => Object.keys(obj).length !== 0);
 
-  let lsMultiplier = 1;
-  // 狭間lsのようなexcludedLsTarget制限はなし
-  if ((lsTarget === "all" || monster.race.includes(lsTarget)) && leaderSkill.spd) {
-    lsMultiplier = leaderSkill.spd;
-  }
-  // ルビスを起点に
-  if (firstMonster.name === "大地の精霊ルビス") {
-    lsMultiplier = countRubisTarget(selectingParty) * 0.03 + 1;
-  }
-  // 装備効果 key === "spd"はなし
-  if (monster.gear) {
-    const gearName = monster.gear.name;
-    if (monster.gear.alchemy && ["魔獣", "ドラゴン", "ゾンビ", "物質"].some((r) => monster.race.includes(r))) {
-      lsMultiplier += 0.05;
-    }
-    if (isBreakMonster(monster) && (gearName === "凶帝王のつるぎ" || gearName === "ハザードネイル")) {
-      lsMultiplier += 0.08;
-    }
-    if (monster.race.includes("悪魔") && gearName === "うみなりの杖悪魔錬金") {
-      lsMultiplier += 0.05;
-    }
-    if (monster.race.includes("悪魔") && gearName === "盗賊ハート・闇") {
-      lsMultiplier += 0.05;
-    }
-    if (monster.race.includes("魔獣") && gearName === "盗賊ハート・獣") {
-      lsMultiplier += 0.05;
-    }
-    if (gearName === "エビルクロー") {
-      lsMultiplier += 0.05;
-    }
-    // 装備のstatusMultiplierを適用
-    if (monster.gear.statusMultiplier?.spd) {
-      lsMultiplier += monster.gear.statusMultiplier.spd;
-    }
-  }
-  const predictedSpeed = Math.ceil(monster.displayStatus.spd * lsMultiplier);
+  // リーダー倍率 + 装備倍率を取得
+  const spdMultiplier = getLeaderSkillMultiplier(monster, firstMonster, "spd", selectingParty) + getGearMultiplierBonus(monster, "spd");
+  const predictedSpeed = Math.ceil(monster.displayStatus.spd * spdMultiplier);
   document.getElementById("predictedSpeed").textContent = predictedSpeed;
 }
 
@@ -22231,6 +22207,7 @@ const gear = [
     id: "evilClaw",
     weight: 500,
     status: { HP: 0, MP: 0, atk: 20, def: 0, spd: 55, int: 0 },
+    statusMultiplier: { spd: 0.05 }, // 系統条件なし
   },
   {
     name: "おうごんのツメ", //+10
@@ -22244,24 +22221,6 @@ const gear = [
     weight: 5,
     noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
-  },
-  {
-    name: "ハザードネイル", //+15
-    id: "hazardNail",
-    weight: 5,
-    noWeightMonsters: [
-      "ガルマザード",
-      "ガルマッゾ",
-      "凶帝王エスターク",
-      "凶ライオネック",
-      "凶ブオーン",
-      "凶ウルトラメタキン",
-      "凶メタルキング",
-      "凶グレートオーラス",
-      "凶シーライオン",
-      "凶アンドレアル",
-    ],
-    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
   },
   {
     name: "メタルキングの爪", //+10
@@ -22341,13 +22300,6 @@ const gear = [
     statusMultiplier: { atk: 0.08, spd: -0.1 },
     skillAlchemy: "必殺の双撃",
     skillAlchemyStrength: 0.3,
-  },
-  {
-    name: "凶帝王のつるぎ", //+15 イオ25% 双閃追加 マソ8%
-    id: "cursedestaSword",
-    weight: 5,
-    noWeightMonsters: ["凶帝王エスターク"],
-    status: { HP: 0, MP: 0, atk: 70, def: 0, spd: 0, int: 0 },
   },
   {
     name: "トリリオンダガー", //+7 斬撃3%
@@ -22457,12 +22409,6 @@ const gear = [
   {
     name: "うみなりの杖", //+10
     id: "iceCane",
-    weight: 1,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
-  },
-  {
-    name: "うみなりの杖悪魔錬金", //+10
-    id: "iceCaneDevil",
     weight: 1,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
   },
@@ -22587,13 +22533,6 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
   },
   {
-    name: "ゾーマのローブ", //+15 偶数真いては ダメージ半減
-    id: "zomaRobe",
-    weight: 5,
-    noWeightMonsters: ["闇の大魔王ゾーマ"],
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 58 },
-  },
-  {
     name: "ミルドラースのローブ体技錬金", //+10 体技5%
     id: "mirudraasRobeMartial",
     weight: 5,
@@ -22707,18 +22646,6 @@ const gear = [
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
   },
   {
-    name: "盗賊ハート・闇",
-    id: "devilSpdHeart",
-    weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
-  },
-  {
-    name: "盗賊ハート・獣",
-    id: "beastSpdHeart",
-    weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
-  },
-  {
     name: "闇の覇者ハート",
     id: "tyoryuHeart",
     weight: 0,
@@ -22754,6 +22681,73 @@ const gear = [
     id: "heartOrb",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+  },
+  {
+    name: "うみなりの杖悪魔錬金", //+10
+    id: "iceCaneDevil",
+    weight: 1,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 68 },
+    conditionalMultipliers: [{ targetRace: "悪魔", stat: "spd", value: 0.05 }],
+  },
+  {
+    name: "盗賊ハート・闇", //+5
+    id: "devilSpdHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+    conditionalMultipliers: [{ targetRace: "悪魔", stat: "spd", value: 0.05 }],
+  },
+  {
+    name: "盗賊ハート・獣", //+5
+    id: "beastSpdHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
+    conditionalMultipliers: [{ targetRace: "魔獣", stat: "spd", value: 0.05 }],
+  },
+  {
+    name: "ハザードネイル", //+15
+    id: "hazardNail",
+    weight: 5,
+    noWeightMonsters: [
+      "ガルマザード",
+      "ガルマッゾ",
+      "凶帝王エスターク",
+      "凶ライオネック",
+      "凶ブオーン",
+      "凶ウルトラメタキン",
+      "凶メタルキング",
+      "凶グレートオーラス",
+      "凶シーライオン",
+      "凶アンドレアル",
+    ],
+    status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
+    // ブレイクモンスターなら素早さ +8%
+    conditionalMultipliers: [{ checkBreak: true, stat: "spd", value: 0.08 }],
+  },
+  {
+    name: "凶帝王のつるぎ", //+15 イオ25% 双閃追加
+    id: "cursedestaSword",
+    weight: 5,
+    noWeightMonsters: ["凶帝王エスターク"],
+    status: { HP: 0, MP: 0, atk: 70, def: 0, spd: 0, int: 0 },
+    // ブレイクモンスターなら素早さ +8%
+    conditionalMultipliers: [{ checkBreak: true, stat: "spd", value: 0.08 }],
+  },
+  {
+    name: "ゾーマのローブ", //+15 偶数真いては ダメージ半減
+    id: "zomaRobe",
+    weight: 5,
+    noWeightMonsters: ["闇の大魔王ゾーマ"],
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 24, int: 58 },
+    // ???系ならHP +10%
+    conditionalMultipliers: [{ targetRace: "???", stat: "HP", value: 0.1 }],
+  },
+  {
+    name: "パラディンハート・蒼",
+    id: "slimeHeart",
+    weight: 0,
+    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 0, int: 0 },
+    // 固定値加算+30
+    conditionalIncrements: [{ targetRace: "スライム", stat: "HP", value: 30 }],
   },
 ];
 
