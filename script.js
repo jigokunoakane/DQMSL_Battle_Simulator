@@ -1,5 +1,4 @@
 // 初期処理とglobal変数群
-let isDeveloperMode = false;
 const allParties = Array.from({ length: 10 }, () => Array.from({ length: 5 }, () => ({})));
 const parties = [];
 
@@ -616,11 +615,7 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわり系の場合、自分自身と覆う中・覆われ中の対象を暗転&無効化
-    const singleSubstituteSkills = ["みがわり", "かばう", "おおいかくす", "みがわり・マインドバリア"];
-    if (
-      singleSubstituteSkills.includes(selectedSkill.name) &&
-      (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute || targetMonster.buffs.substituteSeal)
-    ) {
+    if (selectedSkill.substituteScope === "single" && (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute || targetMonster.buffs.substituteSeal)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -2320,7 +2315,6 @@ const INTERNAL_BUFF_MAP = {
 // currentStatusを更新する関数
 // applyBuffの追加時および持続時間切れ、解除時に起動
 function updateCurrentStatus(monster) {
-  const stats = ["atk", "def", "spd", "int"];
   // 通常バフ倍率
   const STANDARD_BUFF_TABLES = {
     def: { 0: 0.6, 1: 0.8, 3: 1.2, 4: 1.4 },
@@ -2353,7 +2347,7 @@ function updateCurrentStatus(monster) {
   }
 
   // 5. 最終計算
-  for (const stat of stats) {
+  for (const stat of SEED_KEYS) {
     // A. 初期値のセット
     let val = monster.defaultStatus[stat];
 
@@ -2682,13 +2676,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   // 7-2. ナドラガ領界判定 skill実行が行われており、かつ対応したdomainの場合にtrueフラグを立てておく 死亡判定は後で
   let domainCheck = false;
   if (skillUser.name === "邪竜神ナドラガ" && executingSkill) {
-    const targetDomain = {
-      翠嵐の息吹: "thunderDomain",
-      竜の波濤: "iceDomain",
-      冥闇の息吹: "darkDomain",
-      業炎の息吹: "fireDomain",
-    }[executingSkill.name];
-    if (skillUser.buffs[targetDomain]) {
+    if (skillUser.buffs[executingSkill.domainElement]) {
       domainCheck = true;
     }
   }
@@ -3603,6 +3591,14 @@ async function executeSkill(
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
     await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack, MPused);
 
+    // 自傷処理 敵を全滅させた後でも自傷・蘇生は実行される
+    if (executingSkill.selfDamage) {
+      await sleep(200);
+      const randomMultiplier = executingSkill.selfDamage.isRandomDamage ? Math.floor(Math.random() * 11) * 0.01 + 0.95 : 1;
+      applyDamage(skillUser, executingSkill.selfDamage.damage * randomMultiplier, 1, false, false, false, false, null);
+      await checkRecentlyKilledFlagForPoison(skillUser);
+    }
+
     // ヒット処理後に一括で実行する処理 生存にかかわらず、行動skip判定前に実行
     if (currentSkill.onComplete) {
       await currentSkill.onComplete(skillUser, isMonsterAction);
@@ -3835,7 +3831,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let reflectionType = "yosoku";
 
   // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
-  if (skillTarget.buffs.stoned && !["石化の呪い", "ゴールドアストロン"].includes(executingSkill.name) && !isNoDamageWaveSkill(executingSkill)) {
+  if (skillTarget.buffs.stoned && !executingSkill.appliedEffect?.stoned?.isGolden && !isNoDamageWaveSkill(executingSkill)) {
     applyDamage(skillTarget, 0);
     return;
   }
@@ -4221,7 +4217,7 @@ function calculateDamage(
     const intBonus = intDiff >= 150 ? 1.25 : intDiff > 0 ? 1.09 + Math.floor(intDiff / 10) * 0.01 : 1;
     baseDamage *= executingSkill.skillPlus * intBonus;
     randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
-    //呪文会心
+    // int依存で呪文会心がないもの
     const noSpellSurgeList = [
       "カオスストーム",
       "クラックストーム",
@@ -4232,7 +4228,6 @@ function calculateDamage(
       "メテオ",
       "マヒャドストーム",
       "メドローア",
-      "ハザードウェポン",
       "リーサルウェポン",
       "破壊の魔砲",
       "魔弾の流星",
@@ -4244,7 +4239,6 @@ function calculateDamage(
       "報復の大嵐",
       "クラウンスパーク",
       "グレイシャルサマー",
-      "インパクトキャノン",
     ];
     if (executingSkill.type === "spell" && !noSpellSurgeList.includes(executingSkill.name) && !isSimulatedCalculation) {
       isCriticalHit = Math.random() < 0.009;
@@ -4712,66 +4706,28 @@ function calculateDamage(
     damageModifier += skillUser.buffs.makaiBoost.strength;
   }
 
-  // skillUserのLSによる増分
+  // skillUserのLSによる補正
   const allyLeaderName = parties[skillUser.teamID][0].name;
-  // シャムダLS
-  if (allyLeaderName === "闇竜シャムダ" && executingSkill.element === "dark" && executingSkill.type === "slash") {
-    damageModifier += 0.25;
-  }
-  // オルゴアリーナネルLS 体技up
-  if ((allyLeaderName === "万物の王オルゴ・デミーラ" || allyLeaderName === "剛拳の姫と獅子王" || allyLeaderName === "死を統べる者ネルゲル") && executingSkill.type === "martial") {
-    damageModifier += 0.2;
-  }
-  // バーバラゴアしんLS 息up
-  if ((allyLeaderName === "天空竜と夢の魔女" || allyLeaderName === "ゴア・しんりゅうおう") && executingSkill.type === "breath") {
-    damageModifier += 0.2;
-  }
-  // ゴアしんLS メラup
-  if (allyLeaderName === "ゴア・しんりゅうおう" && executingSkill.element === "fire") {
-    damageModifier += 0.2;
-  }
-  // ネルLS 斬撃up
-  if (allyLeaderName === "死を統べる者ネルゲル" && executingSkill.type === "slash") {
-    damageModifier += 0.2;
-  }
-  // 超ピLS 斬撃up
-  if (allyLeaderName === "剣神ピサロ" && executingSkill.type === "slash") {
-    damageModifier += 0.3;
-  }
-  // そしでんLS 呪文デインup
-  if (allyLeaderName === "そして伝説へ") {
-    if (executingSkill.type === "spell") {
-      damageModifier += 0.2;
-    }
-    if (executingSkill.element === "light") {
-      damageModifier += 0.2;
-    }
-  }
-  // バーンLS 呪文up
-  if (allyLeaderName === "魔界の神バーン" && executingSkill.type === "spell") {
-    damageModifier += 0.25;
-  }
-  // レザームLS 息・乱打up
-  if (allyLeaderName === "支配王レゾム・レザーム") {
-    if (executingSkill.type === "breath") {
-      damageModifier += 0.25;
-    }
-    if (executingSkill.targetType === "random") {
-      damageModifier += 0.1;
-    }
-  }
-  // ラザマLS ゾンビ斬撃息up
-  if (allyLeaderName === "ラザマナス" && skillUser.race.includes("ゾンビ") && (executingSkill.type === "slash" || executingSkill.type === "breath")) {
-    damageModifier += 0.1;
-  }
-  // スカスパLS 毒10%
-  if (allyLeaderName === "スカルスパイダー" && skillUser.race.includes("ゾンビ") && skillTarget.buffs.poisoned) {
-    damageModifier += 0.1;
-  }
-  // しんりゅうLS ドラゴン呪文18%
-  if (allyLeaderName === "降臨しんりゅう" && skillUser.race.includes("ドラゴン") && executingSkill.type === "spell") {
-    damageModifier += 0.18;
-  }
+  const { type, element, targetType } = executingSkill;
+  const isZombie = skillUser.race.includes("ゾンビ");
+
+  // リーダーごとの補正計算テーブル
+  const LEADER_SKILL_MODIFIERS = {
+    "闇竜シャムダ": () => (element === "dark" && type === "slash" ? 0.25 : 0),
+    "万物の王オルゴ・デミーラ": () => (type === "martial" ? 0.2 : 0),
+    "剛拳の姫と獅子王": () => (type === "martial" ? 0.2 : 0),
+    "死を統べる者ネルゲル": () => (type === "martial" || type === "slash" ? 0.2 : 0),
+    "天空竜と夢の魔女": () => (type === "breath" ? 0.2 : 0),
+    "ゴア・しんりゅうおう": () => (type === "breath" ? 0.2 : 0) + (element === "fire" ? 0.2 : 0),
+    "剣神ピサロ": () => (type === "slash" ? 0.3 : 0),
+    "そして伝説へ": () => (type === "spell" ? 0.2 : 0) + (element === "light" ? 0.2 : 0),
+    "魔界の神バーン": () => (type === "spell" ? 0.25 : 0),
+    "支配王レゾム・レザーム": () => (type === "breath" ? 0.25 : 0) + (targetType === "random" ? 0.1 : 0),
+    "ラザマナス": () => (isZombie && (type === "slash" || type === "breath") ? 0.1 : 0),
+    "スカルスパイダー": () => (isZombie && skillTarget.buffs.poisoned ? 0.1 : 0),
+    "降臨しんりゅう": () => (skillUser.race.includes("ドラゴン") && type === "spell" ? 0.18 : 0),
+  };
+  damageModifier += LEADER_SKILL_MODIFIERS[allyLeaderName]?.() ?? 0;
 
   ///////// skillTarget対象バフ
   // 装備 錬金が一意に定まるように注意
@@ -5206,16 +5162,18 @@ function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, exclude
     if (!excludedTargets.has(skillTarget)) {
       excludedTargets.add(skillTarget);
       killedByThisSkill.add(skillTarget);
-      // ドレアム判定 skillTargetが死亡してかつリザオではない場合、フラグを立てる(リザオ・変身等判定前に判別) 現状ざんよによる倒しは対象外
-      if (skillUser && skillUser.name === "魔神ダークドレアム") {
-        // autoReviveしないならば
-        if (!(skillTarget.buffs.autoRevive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
-          skillUser.flags.thisTurn.applyDreamEvasion = true;
+      if (skillUser) {
+        // ドレアム判定 skillTargetが死亡してかつリザオではない場合、フラグを立てる(リザオ・変身等判定前に判別) 現状ざんよによる倒しは対象外
+        if (skillUser.name === "魔神ダークドレアム") {
+          // autoReviveしないならば
+          if (!(skillTarget.buffs.autoRevive && !skillTarget.buffs.reviveBlock && !skillTarget.buffs.tagTransformation)) {
+            skillUser.flags.thisTurn.applyDreamEvasion = true;
+          }
         }
-      }
-      // 超ドレアム 殺りくの雷刃連続判定
-      if (executingSkill && executingSkill.name === "殺りくの雷刃" && !isReflection) {
-        skillUser.flags.thisTurn.executeNextHit = true;
+        // 超ドレアム 殺りくの雷刃連続判定
+        if (executingSkill?.name === "殺りくの雷刃" && !isReflection) {
+          skillUser.flags.thisTurn.executeNextHit = true;
+        }
       }
       // エルギ判定 自分以外の味方のエルギのカウントを増やす
       // 通常ダメージ 供物(ダメージなしact) ザキ 反射でカウント増加 カウント刻印毒継続は対象外
@@ -6170,7 +6128,6 @@ async function selectAllPartyMembers(monsters) {
     selectMonster(monsters[selectingMonsterNum]);
   }
   switchTab(0);
-  if (!isDeveloperMode) return;
   decideParty();
   await sleep(9);
   // 選択画面を開く
@@ -10527,18 +10484,11 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性`, "領界召喚 が発動！");
           },
-          unavailableIf: (skillUser, executingSkill, executedSkills) =>
-            !executingSkill || (executingSkill.name !== "翠嵐の息吹" && executingSkill.name !== "竜の波濤" && executingSkill.name !== "冥闇の息吹" && executingSkill.name !== "業炎の息吹"),
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || !executingSkill.domainElement,
           act: async function (skillUser, executingSkill) {
             await sleep(200);
-            const targetDomain = {
-              翠嵐の息吹: "thunderDomain",
-              竜の波濤: "iceDomain",
-              冥闇の息吹: "darkDomain",
-              業炎の息吹: "fireDomain",
-            }[executingSkill.name];
             const buffToApply = {};
-            buffToApply[targetDomain] = { keepOnDeath: true };
+            buffToApply[executingSkill.domainElement] = { keepOnDeath: true };
             for (const monster of parties[skillUser.teamID]) {
               delete monster.buffs.iceDomain;
               delete monster.buffs.thunderDomain;
@@ -12684,6 +12634,7 @@ function getMonsterAbilities(monsterId) {
 }
 
 const skill = [
+  /*
   {
     name: "sample",
     displayName: "hoge", //任意 ある場合はこちらがdisplayされる
@@ -12742,6 +12693,8 @@ const skill = [
     },
     followingSkill: "涼風一陣後半",
     additionalVersion: "追加用咆哮",
+    domainElement: "fireDomain",
+    substituteScope === "single",
     appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
     zakiProbability: 0.78,
     absorptionRatio: 0.5,
@@ -12754,6 +12707,7 @@ const skill = [
     onStart: async function (skillUser) {
       console.log("hoge"); // ヒット処理前に実行
     },
+    selfDamage: { damage: 480, isRandomDamage: true },
     onComplete: async function (skillUser) {
       console.log("hoge"); // ヒット処理後に実行 miss・死亡にかかわらず実行 行動skip判定前
     },
@@ -12788,6 +12742,7 @@ const skill = [
     description2: "hoge",
     description3: "hoge",
   },
+  */
   {
     name: "通常攻撃",
     type: "notskill",
@@ -13586,6 +13541,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 4,
+    substituteScope: "single",
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
     },
@@ -13608,6 +13564,7 @@ const skill = [
     MPcost: 11,
     order: "preemptive",
     preemptiveGroup: 4,
+    substituteScope: "single",
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
     },
@@ -15388,12 +15345,7 @@ const skill = [
     hitNum: 6,
     MPcost: 0,
     ignoreReflection: true,
-    onComplete: async function (skillUser) {
-      await sleep(200);
-      applyDamage(skillUser, 360, 1, false, false, false, false, null);
-      await checkRecentlyKilledFlagForPoison(skillUser);
-      // 全滅させた後にも自傷と蘇生を実行
-    },
+    selfDamage: { damage: 360, isRandomDamage: false },
   },
   {
     name: "セクシービーム",
@@ -16088,6 +16040,7 @@ const skill = [
     MPcost: 9,
     order: "preemptive",
     preemptiveGroup: 4,
+    substituteScope: "single",
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget);
     },
@@ -17049,6 +17002,7 @@ const skill = [
     MPcost: 48,
     ignoreReflection: true,
     appliedEffect: { paralyzed: { probability: 0.56 } },
+    domainElement: "thunderDomain",
   },
   {
     name: "竜の波濤",
@@ -17061,6 +17015,7 @@ const skill = [
     MPcost: 84,
     damageByLevel: true,
     appliedEffect: { crimsonMist: { strength: 0.33 } },
+    domainElement: "iceDomain",
   },
   {
     name: "冥闇の息吹",
@@ -17074,6 +17029,7 @@ const skill = [
     MPcost: 76,
     ignoreProtection: true,
     appliedEffect: { reviveBlock: { duration: 1 }, dazzle: {} },
+    domainElement: "darkDomain",
   },
   {
     name: "業炎の息吹",
@@ -17084,6 +17040,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 120,
+    domainElement: "fireDomain",
   },
   {
     name: "虚空神の福音",
@@ -17271,6 +17228,7 @@ const skill = [
     MPcost: 16,
     order: "preemptive",
     preemptiveGroup: 4,
+    substituteScope: "single",
     act: function (skillUser, skillTarget) {
       applySubstitute(skillUser, skillTarget, false, true);
     },
@@ -19495,13 +19453,7 @@ const skill = [
     MPcost: 90,
     isOneTimeUse: true,
     appliedEffect: { fear: { probability: 0.4233 } },
-    onComplete: async function (skillUser) {
-      await sleep(200);
-      const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
-      applyDamage(skillUser, 480 * randomMultiplier, 1, false, false, false, false, null);
-      await checkRecentlyKilledFlagForPoison(skillUser);
-      // 全滅させた後にも自傷と蘇生を実行
-    },
+    selfDamage: { damage: 480, isRandomDamage: true },
   },
   {
     name: "ぶちのめす",
@@ -20627,12 +20579,7 @@ const skill = [
     hitNum: 6,
     MPcost: 58,
     ignoreEvasion: true,
-    onComplete: async function (skillUser) {
-      await sleep(200);
-      applyDamage(skillUser, 500, 1, false, false, false, false, null);
-      await checkRecentlyKilledFlagForPoison(skillUser);
-      // 全滅させた後にも自傷と蘇生を実行
-    },
+    selfDamage: { damage: 500, isRandomDamage: false },
   },
   {
     name: "超魔改良",
@@ -22638,12 +22585,6 @@ const gear = [
     id: "dragonMartialHeart",
     weight: 0,
     status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 15, int: 0 },
-  },
-  {
-    name: "パラディンハート・蒼",
-    id: "slimeHeart",
-    weight: 0,
-    status: { HP: 0, MP: 0, atk: 0, def: 0, spd: 10, int: 0 },
   },
   {
     name: "闇の覇者ハート",
@@ -25460,7 +25401,7 @@ function displaySkillDescription(skillUser, skillInfo, displaySkillName) {
 function createSDproperties(skillInfo) {
   const skillProperties = [];
   let skillPropertiesText = "";
-  if (["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "業炎の息吹"].includes(skillInfo.name)) {
+  if (skillInfo.domainElement) {
     skillProperties.push("領界変化");
   }
   if (skillInfo.isOneTimeUse) {
@@ -25697,6 +25638,9 @@ function createSDappliedEffect(skillInfo) {
     if (skillTypeName) {
       skillDescriptionText += `${skillTypeName}無効状態を貫通する　`;
     }
+  }
+  if (skillInfo.selfDamage) {
+    skillDescriptionText += "その後　自分もダメージを受ける　";
   }
   return skillDescriptionText;
 }
