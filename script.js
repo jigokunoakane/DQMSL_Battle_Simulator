@@ -5637,32 +5637,23 @@ function addSkillOptions() {
     "極光斬り",
     "暗獄斬り",
   ];
+
   let targetCollabSkills = null;
-  const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ", "封印の光"];
-  const hosigoronTargets = [
-    "DARK",
-    "まものテリー&ミレーユ",
-    "スライダーガール",
-    "スライダーヒーロー",
-    "極彩鳥にじくじゃく",
-    "スライダーキッズ",
-    "マジェス・ドレアム",
-    "新生転生マジェス・ドレアム",
-    "支配王レゾム・レザーム",
-  ];
-  if (hosigoronTargets.includes(monster.name)) {
-    targetCollabSkills = hosigoronSkills;
+  if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説")) {
+    if (monster.subRace.includes("DQMAS")) {
+      const hosigoronSkills = ["竜の眼光", "カオスストーム", "ゆうきの旋風", "ほうしの嵐", "息よそく", "クラスマダンテ", "がんせきおとし", "ステテコダンス", "ベホイマ", "封印の光"];
+      targetCollabSkills = hosigoronSkills;
+    }
+    if (monster.subRace.includes("ダイの大冒険")) {
+      const daikoraSkills = ["息よそく", "ミナカトール", "いやしの光", "黒くかがやく闇", "一刀両断", "ギラマータ", "イオマータ", "バギマータ", "極大消滅呪文"];
+      targetCollabSkills = daikoraSkills;
+    }
+    if (monster.subRace.includes("FFBE")) {
+      const FFBESkills = ["メテオ", "アレイズ", "レイズ", "カウンター", "エスナガ", "プリズムヴェール", "ヘイスト", "雷電波", "ブラスター", "ホーリー", "フレア"];
+      targetCollabSkills = FFBESkills;
+    }
   }
-  const daikoraSkills = ["息よそく", "ミナカトール", "いやしの光", "黒くかがやく闇", "一刀両断", "ギラマータ", "イオマータ", "バギマータ", "極大消滅呪文"];
-  const daikoraTargets = ["竜の騎士ダイ", "アバンの使徒ダイ", "冥竜王ヴェルザー", "陸戦騎ラーハルト", "魂の継承者ヒム", "獣王クロコダイン"];
-  if (daikoraTargets.includes(monster.name)) {
-    targetCollabSkills = daikoraSkills;
-  }
-  const FFBESkills = ["メテオ", "アレイズ", "レイズ", "カウンター", "エスナガ", "プリズムヴェール", "ヘイスト", "雷電波", "ブラスター", "ホーリー", "フレア"];
-  const FFBETargets = ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"];
-  if (FFBETargets.includes(monster.name)) {
-    targetCollabSkills = FFBESkills;
-  }
+
   for (let j = 0; j < 4; j++) {
     const selectElement = document.getElementById(`skill${j}`);
     selectElement.innerHTML = "";
@@ -5699,8 +5690,14 @@ function addSkillOptions() {
     }
 
     // 系統特技を追加 (狭間を除く)
-    const noFamilySkillMonsters = ["ルバンカ", "常夏少女ジェマ", "タイプG"];
-    if (monster.race.length < 2 && ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) && !noFamilySkillMonsters.includes(monster.name) && !FFBETargets.includes(monster.name)) {
+    const noFamilySkillMonsters = ["ルバンカ", "タイプG"];
+    if (
+      monster.race.length < 2 &&
+      ((monster.rank === 10 && familySkills) || familySkillsAvailableForRankS) &&
+      !noFamilySkillMonsters.includes(monster.name) &&
+      !monster.subRace.includes("魔童子") &&
+      !monster.subRace.includes("FFBE")
+    ) {
       const familySkillsToUse = [];
       if (monster.rank === 10 && familySkills) {
         familySkillsToUse.push(...familySkills);
@@ -5736,8 +5733,15 @@ function addSkillOptions() {
     }
 
     // 超マス特技を追加
-    const noSuperOptMonsters = ["常夏少女ジェマ", "タイプG"];
-    if (!monster.race.includes("超魔王") && !monster.race.includes("超伝説") && !noSuperOptMonsters.includes(monster.name) && !FFBETargets.includes(monster.name) && monster.rank > 7) {
+    const noSuperOptMonsters = ["タイプG"];
+    if (
+      !noSuperOptMonsters.includes(monster.name) &&
+      !monster.race.includes("超魔王") &&
+      !monster.race.includes("超伝説") &&
+      !monster.subRace.includes("魔童子") &&
+      !monster.subRace.includes("FFBE") &&
+      monster.rank > 7
+    ) {
       const superOptGroup = document.createElement("optgroup");
       superOptGroup.label = "超マス特技";
       for (const skill of superSkills) {
@@ -6128,15 +6132,6 @@ async function selectAllPartyMembers(monsters) {
     selectMonster(monsters[selectingMonsterNum]);
   }
   switchTab(0);
-  decideParty();
-  await sleep(9);
-  // 選択画面を開く
-  if (currentPlayer === "B") {
-    document.body.classList.add("noScroll");
-    document.getElementById("selectMonsterOverlay").style.visibility = "visible";
-    document.getElementById("selectMonsterPopupWindow").style.opacity = "1";
-    selectingMonsterNum = 0;
-  }
 }
 
 const monsters = [
@@ -6145,6 +6140,7 @@ const monsters = [
     id: "masudora",
     rank: 10, // SSが10でそこから下げる
     race: ["ドラゴン"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 886, MP: 398, atk: 474, def: 521, spd: 500, int: 259 },
     initialSkill: ["天空竜の息吹", "エンドブレス", "テンペストブレス", "煉獄火炎"],
@@ -6171,6 +6167,7 @@ const monsters = [
     id: "sinri",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["サマー"],
     weight: 25,
     status: { HP: 796, MP: 376, atk: 303, def: 352, spd: 542, int: 498 },
     initialSkill: ["涼風一陣", "神楽の術", "昇天斬り", "タップダンス"],
@@ -6191,6 +6188,7 @@ const monsters = [
     id: "rusia",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["サマー"],
     weight: 28,
     status: { HP: 809, MP: 328, atk: 614, def: 460, spd: 559, int: 304 },
     initialSkill: ["氷華大繚乱", "フローズンシャワー", "おぞましいおたけび", "スパークふんしゃ"],
@@ -6219,6 +6217,7 @@ const monsters = [
     id: "orochi",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 909, MP: 368, atk: 449, def: 675, spd: 296, int: 286 },
     initialSkill: ["むらくもの息吹", "獄炎の息吹", "ほとばしる暗闇", "防刃の守り"],
@@ -6243,6 +6242,7 @@ const monsters = [
     id: "voruka",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: [],
     weight: 25,
     status: { HP: 1025, MP: 569, atk: 297, def: 532, spd: 146, int: 317 },
     initialSkill: ["ラヴァフレア", "におうだち", "大樹の守り", "みがわり"],
@@ -6265,6 +6265,7 @@ const monsters = [
     id: "sinryu",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["FFBE"],
     weight: 28,
     status: { HP: 842, MP: 346, atk: 341, def: 482, spd: 510, int: 550 },
     initialSkill: ["アルマゲスト", "しのルーレット", "タイダルウェイブ", "ほのお"],
@@ -6286,6 +6287,7 @@ const monsters = [
     id: "haruto",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["ダイの大冒険"],
     weight: 25,
     status: { HP: 742, MP: 278, atk: 569, def: 410, spd: 562, int: 337 },
     initialSkill: ["真・ハーケンディストール", "真・閃光さみだれ突き", "スパークふんしゃ", "いやしの光"],
@@ -6311,6 +6313,7 @@ const monsters = [
     id: "dai",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["ダイの大冒険"],
     weight: 30,
     status: { HP: 690, MP: 300, atk: 620, def: 527, spd: 563, int: 381 },
     initialSkill: ["アバンストラッシュ", "空裂斬", "海波斬", "テンペストブレス"],
@@ -6337,6 +6340,7 @@ const monsters = [
     id: "sdai",
     rank: 9,
     race: ["ドラゴン"],
+    subRace: ["ダイの大冒険"],
     weight: 21,
     status: { HP: 628, MP: 271, atk: 575, def: 492, spd: 518, int: 348 },
     initialSkill: ["大地斬", "海波斬", "空裂斬", "防刃の守り"],
@@ -6353,6 +6357,7 @@ const monsters = [
     id: "cursedskull",
     rank: 8,
     race: ["ドラゴン"],
+    subRace: ["ブレイク"],
     weight: 8,
     status: { HP: 649, MP: 182, atk: 463, def: 379, spd: 293, int: 189 },
     initialSkill: ["アンカーナックル", "みがわり", "精霊の守り・強", "防刃の守り"],
@@ -6376,6 +6381,7 @@ const monsters = [
     id: "world",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣王"],
     weight: 30,
     status: { HP: 810, MP: 334, atk: 661, def: 473, spd: 470, int: 325 },
     initialSkill: ["超魔滅光", "真・ゆうきの斬舞", "神獣の封印", "斬撃よそく"],
@@ -6403,6 +6409,7 @@ const monsters = [
     id: "nerugeru",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
@@ -6431,6 +6438,7 @@ const monsters = [
     id: "erugi",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 897, MP: 425, atk: 620, def: 619, spd: 564, int: 366 },
     initialSkill: ["失望の光舞", "パニッシュスパーク", "堕天使の理", "光速の連打"],
@@ -6460,6 +6468,7 @@ const monsters = [
     id: "ifshiba",
     rank: 10,
     race: ["???"],
+    subRace: ["FFBE"],
     weight: 25,
     status: { HP: 760, MP: 305, atk: 547, def: 392, spd: 467, int: 422 },
     initialSkill: ["ヘルバーナー", "氷魔のダイヤモンド", "炎獣の爪", "プリズムヴェール"],
@@ -6483,6 +6492,7 @@ const monsters = [
     id: "sosiden",
     rank: 10,
     race: ["超伝説"],
+    subRace: [],
     weight: 35,
     status: { HP: 877, MP: 315, atk: 609, def: 495, spd: 505, int: 389 },
     initialSkill: ["でんせつのギガデイン", "いてつくマヒャド", "閃光ジゴデイン", "ロトの剣技"],
@@ -6509,6 +6519,7 @@ const monsters = [
     id: "dream",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 909, MP: 317, atk: 742, def: 525, spd: 504, int: 408 },
     initialSkill: ["真・魔神の絶技", "すさまじいオーラ", "魔神の構え", "斬撃よそく"],
@@ -6520,7 +6531,6 @@ const monsters = [
         demonKingBarrier: { divineDispellable: true },
       },
       1: {
-        //魔神のいげん
         powerCharge: { strength: 1.1 },
         slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
         spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
@@ -6544,6 +6554,7 @@ const monsters = [
     id: "dark",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣王", "DQMAS"],
     weight: 30,
     status: { HP: 774, MP: 307, atk: 634, def: 480, spd: 483, int: 291 },
     initialSkill: ["魔手黒闇", "ダークミナデイン", "無情な連撃", "神獣の氷縛"],
@@ -6570,6 +6581,7 @@ const monsters = [
     id: "majesu",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣王", "DQMAS"],
     weight: 30,
     status: { HP: 813, MP: 312, atk: 644, def: 427, spd: 490, int: 277 },
     initialSkill: ["光芒の絶技", "轟雷滅殺剣", "天雷の舞い", "斬撃よそく"],
@@ -6609,6 +6621,7 @@ const monsters = [
     id: "newMajesu",
     rank: 10,
     race: ["悪魔"], // why？
+    subRace: ["神獣王", "DQMAS"],
     weight: 30,
     status: { HP: 813, MP: 312, atk: 644, def: 427, spd: 540, int: 277 }, // S+50
     initialSkill: ["究極の構え", "真・天雷の舞い", "真・轟雷滅殺剣", "光芒の絶技"],
@@ -6619,7 +6632,7 @@ const monsters = [
         thunderBreak: { keepOnDeath: true, strength: 2 },
         ioBreak: { keepOnDeath: true, strength: 2 },
         lightBreak: { keepOnDeath: true, strength: 2 },
-        mindBarrier: { keepOnDeath: true }, // 常に
+        mindBarrier: { keepOnDeath: true },
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
       },
       2: {
@@ -6649,6 +6662,7 @@ const monsters = [
     id: "shamu",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 831, MP: 329, atk: 622, def: 653, spd: 505, int: 203 },
     initialSkill: ["魔壊裂き", "闇竜の構え", "崩壊裂き", "闇の天地"],
@@ -6676,6 +6690,7 @@ const monsters = [
     id: "asahaka",
     rank: 10,
     race: ["???"],
+    subRace: ["深淵の魔王"],
     weight: 32,
     status: { HP: 839, MP: 400, atk: 634, def: 582, spd: 527, int: 245 },
     initialSkill: ["深淵の儀式", "暴風の儀式", "禁忌の左腕", "防壁反転"],
@@ -6700,6 +6715,7 @@ const monsters = [
     id: "goashin",
     rank: 10,
     race: ["???"],
+    subRace: ["深淵の魔王"],
     weight: 32,
     status: { HP: 852, MP: 349, atk: 676, def: 504, spd: 532, int: 194 },
     initialSkill: ["焦熱の儀式", "昏睡のカギ爪", "虚無の剛拳", "体技よそく"],
@@ -6729,6 +6745,7 @@ const monsters = [
     id: "kibunga",
     rank: 10,
     race: ["???"],
+    subRace: ["深淵の魔王"],
     weight: 32,
     status: { HP: 860, MP: 342, atk: 629, def: 570, spd: 505, int: 204 },
     initialSkill: ["氷華の儀式", "修羅の闘技", "ブリザーウォール", "リベンジアーツ"],
@@ -6754,6 +6771,7 @@ const monsters = [
     id: "arehu",
     rank: 10,
     race: ["超伝説"],
+    subRace: [],
     weight: 35,
     status: { HP: 880, MP: 391, atk: 615, def: 555, spd: 469, int: 279 },
     initialSkill: ["勇者の一撃", "竜王の息吹", "ベギラマの剣", "勇者のきらめき"],
@@ -6783,6 +6801,7 @@ const monsters = [
     id: "arina",
     rank: 10,
     race: ["超伝説"],
+    subRace: [],
     weight: 35,
     status: { HP: 871, MP: 375, atk: 624, def: 514, spd: 483, int: 321 },
     initialSkill: ["閃光裂衝拳", "ホワイトアウト", "マヒャドブロウ", "鉄拳の構え"],
@@ -6808,6 +6827,7 @@ const monsters = [
     id: "babara",
     rank: 10,
     race: ["超伝説"],
+    subRace: [],
     weight: 35,
     status: { HP: 887, MP: 507, atk: 279, def: 506, spd: 441, int: 568 },
     initialSkill: ["究極呪文マダンテ", "黄金の息吹", "メラゾスペル", "もえさかる業火"],
@@ -6835,6 +6855,7 @@ const monsters = [
     id: "zesika",
     rank: 10,
     race: ["超伝説"],
+    subRace: [],
     weight: 35,
     status: { HP: 908, MP: 472, atk: 252, def: 538, spd: 445, int: 571 },
     initialSkill: ["爆炎の流星", "呪いのつえ", "苦悶の魔弾", "ドルマズン"],
@@ -6864,6 +6885,7 @@ const monsters = [
     id: "aban",
     rank: 10,
     race: ["超伝説"],
+    subRace: ["ダイの大冒険"],
     weight: 35,
     status: { HP: 819, MP: 312, atk: 629, def: 450, spd: 453, int: 523 },
     initialSkill: ["破邪のベギラゴン", "クロスレジェンド", "ゴールドフェザー", "無刀陣"],
@@ -6891,6 +6913,7 @@ const monsters = [
     id: "tyoryu",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 935, MP: 361, atk: 558, def: 658, spd: 447, int: 521 },
     initialSkill: ["邪悪なともしび", "正体をあらわす", "蘇生封じの術", "覇者の怒り"],
@@ -6920,6 +6943,7 @@ const monsters = [
     id: "tyopi",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 886, MP: 401, atk: 651, def: 604, spd: 592, int: 360 },
     initialSkill: ["裂空の一撃", "葬送の剣技", "いてつく乱舞", "ソウルブレイカー"],
@@ -6949,6 +6973,7 @@ const monsters = [
     id: "vearn",
     rank: 10,
     race: ["超魔王"],
+    subRace: ["ダイの大冒険"],
     weight: 40,
     status: { HP: 924, MP: 507, atk: 433, def: 538, spd: 501, int: 596 },
     initialSkill: ["真・カラミティウォール", "イオラの嵐", "真・カイザーフェニックス", "第三の瞳"],
@@ -6979,6 +7004,7 @@ const monsters = [
     id: "munbaba",
     rank: 10,
     race: ["自然"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 848, MP: 344, atk: 602, def: 550, spd: 414, int: 226 },
     initialSkill: ["ホーリーナックル", "かばう", "いてつくゆきだま", "ムフォムフォダンス"],
@@ -7002,6 +7028,7 @@ const monsters = [
     id: "ketosu",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣王"],
     weight: 30,
     status: { HP: 964, MP: 340, atk: 258, def: 641, spd: 392, int: 379 },
     initialSkill: ["神獣王の防壁", "空中ふゆう", "みかわしのひやく", "体技よそく"],
@@ -7025,6 +7052,7 @@ const monsters = [
     id: "rubis",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣王"],
     weight: 30,
     status: { HP: 840, MP: 406, atk: 247, def: 484, spd: 448, int: 543 },
     initialSkill: ["創世の光陰", "ルビスビーム", "精霊の愛", "神獣王の防壁"],
@@ -7045,6 +7073,7 @@ const monsters = [
     id: "rezamu",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王", "DQMAS"],
     weight: 32,
     status: { HP: 831, MP: 418, atk: 353, def: 509, spd: 465, int: 539 },
     initialSkill: ["怨念ノ凶風", "しはいのさくせん", "傀儡ノ調ベ", "カオスストーム"],
@@ -7080,6 +7109,7 @@ const monsters = [
     id: "omega",
     rank: 10,
     race: ["???"],
+    subRace: ["FFBE"],
     weight: 25,
     status: { HP: 930, MP: 369, atk: 335, def: 610, spd: 441, int: 307 },
     initialSkill: ["超はどうほう", "アトミックレイ", "カウンター", "アレイズ"],
@@ -7107,6 +7137,7 @@ const monsters = [
     id: "ankoku",
     rank: 10,
     race: ["物質"],
+    subRace: ["討伐"],
     weight: 30,
     status: { HP: 969, MP: 279, atk: 427, def: 724, spd: 348, int: 287 },
     initialSkill: ["暗黒しょうへき", "おおいかくす", "ザオリク", "だいぼうぎょ"],
@@ -7129,6 +7160,7 @@ const monsters = [
     id: "natsukusha",
     rank: 10,
     race: ["???"],
+    subRace: ["サマー"],
     weight: 25,
     status: { HP: 775, MP: 422, atk: 409, def: 404, spd: 516, int: 408 },
     initialSkill: ["真夏の誘惑", "まどいの風", "マホターン", "ぎゃくふう"],
@@ -7153,6 +7185,7 @@ const monsters = [
     id: "snadoraga",
     rank: 9,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 23,
     status: { HP: 827, MP: 274, atk: 463, def: 574, spd: 416, int: 328 },
     initialSkill: ["虚空神の福音", "ザオリク", "スパークふんしゃ", "体技よそく"],
@@ -7174,6 +7207,7 @@ const monsters = [
     id: "snogu",
     rank: 9,
     race: ["???"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 603, MP: 272, atk: 474, def: 290, spd: 535, int: 268 },
     initialSkill: ["かがやく息", "スパークふんしゃ", "おぞましいおたけび", "おいかぜ"],
@@ -7194,6 +7228,7 @@ const monsters = [
     id: "kids",
     rank: 9,
     race: ["スライム"],
+    subRace: ["討伐", "DQMAS"],
     weight: 14,
     status: { HP: 743, MP: 196, atk: 434, def: 391, spd: 459, int: 277 },
     initialSkill: ["みがわり・マインドバリア", "竜の眼光", "ザオリク", "カオスストーム"],
@@ -7214,6 +7249,7 @@ const monsters = [
     id: "skull",
     rank: 8,
     race: ["ゾンビ"],
+    subRace: ["討伐"],
     weight: 8,
     status: { HP: 483, MP: 226, atk: 434, def: 304, spd: 387, int: 281 },
     initialSkill: ["ルカナン", "みがわり", "ザオリク", "防刃の守り"],
@@ -7232,6 +7268,7 @@ const monsters = [
     id: "terimire",
     rank: 9,
     race: ["???"],
+    subRace: ["討伐", "DQMAS"],
     weight: 6,
     status: { HP: 604, MP: 285, atk: 327, def: 351, spd: 456, int: 453 },
     initialSkill: ["しもふりおとし", "防刃の守り", "カオスストーム", "竜の眼光"],
@@ -7251,6 +7288,7 @@ const monsters = [
     id: "rubanka",
     rank: 7,
     race: ["物質"],
+    subRace: [],
     weight: 6,
     status: { HP: 486, MP: 335, atk: 175, def: 335, spd: 286, int: 240 },
     initialSkill: ["はげしい炎", "みがわり", "みがわり", "みがわり"],
@@ -7271,6 +7309,7 @@ const monsters = [
     id: "omudo",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 965, MP: 475, atk: 544, def: 684, spd: 272, int: 554 },
     initialSkill: ["タイムストーム", "零時の儀式", "エレメントエラー", "かくせいリバース"],
@@ -7298,6 +7337,7 @@ const monsters = [
     id: "rapu",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 1108, MP: 470, atk: 392, def: 529, spd: 418, int: 576 },
     initialSkill: ["呪いの儀式", "はめつの流星", "暗黒神の連撃", "真・闇の結界"],
@@ -7306,7 +7346,7 @@ const monsters = [
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
-        protection: { divineDispellable: true, strength: 0.5, duration: 3 }, // 50が先
+        protection: { divineDispellable: true, strength: 0.5, duration: 3 },
         mindBarrier: { keepOnDeath: true },
         ioBreak: { keepOnDeath: true, strength: 2 },
       },
@@ -7331,6 +7371,7 @@ const monsters = [
     id: "orugo",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 1040, MP: 424, atk: 660, def: 507, spd: 497, int: 354 },
     initialSkill: ["もえさかるほむら", "無比なる覇気", "破鏡の円舞", "魔空の一撃"],
@@ -7359,6 +7400,7 @@ const monsters = [
     id: "esta",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 862, MP: 305, atk: 653, def: 609, spd: 546, int: 439 },
     initialSkill: ["必殺の双撃", "帝王のかまえ", "体砕きの斬舞", "ザオリク"],
@@ -7388,6 +7430,7 @@ const monsters = [
     id: "nadoraga",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 906, MP: 304, atk: 500, def: 619, spd: 454, int: 355 },
     initialSkill: ["翠嵐の息吹", "竜の波濤", "冥闇の息吹", "虚空神の福音"],
@@ -7411,6 +7454,7 @@ const monsters = [
     id: "daguja",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 874, MP: 388, atk: 384, def: 644, spd: 298, int: 522 },
     initialSkill: ["クラックストーム", "属性断罪の刻印", "光のはどう", "ザオリク"],
@@ -7438,6 +7482,7 @@ const monsters = [
     id: "zoma",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 794, MP: 404, atk: 518, def: 632, spd: 502, int: 560 },
     initialSkill: ["サイコストーム", "絶対零度", "真・いてつくはどう", "ザオリク"],
@@ -7465,6 +7510,7 @@ const monsters = [
     id: "ryuou",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王"],
     weight: 32,
     status: { HP: 925, MP: 503, atk: 631, def: 445, spd: 425, int: 479 },
     initialSkill: ["くいちぎる", "咆哮", "スパークふんしゃ", "防刃の守り"],
@@ -7491,6 +7537,7 @@ const monsters = [
     id: "god",
     rank: 10,
     race: ["???"],
+    subRace: ["神獣"],
     weight: 27,
     status: { HP: 763, MP: 397, atk: 389, def: 522, spd: 389, int: 498 },
     initialSkill: ["天界の守り", "神のはどう", "ザオリーマ", "ザオリク"],
@@ -7516,6 +7563,7 @@ const monsters = [
     id: "oriharu",
     rank: 10,
     race: ["ドラゴン"],
+    subRace: ["神獣"],
     weight: 27,
     status: { HP: 820, MP: 324, atk: 558, def: 560, spd: 392, int: 307 },
     initialSkill: ["地殻変動", "アストロン", "テンペストブレス", "天の裁き"],
@@ -7540,6 +7588,7 @@ const monsters = [
     id: "paradhi",
     rank: 9,
     race: ["ドラゴン"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 704, MP: 260, atk: 499, def: 481, spd: 237, int: 226 },
     initialSkill: ["超魔神斬り", "聖騎士の守護", "スパークふんしゃ", "防刃の守り"],
@@ -7555,6 +7604,7 @@ const monsters = [
     id: "dogu",
     rank: 9,
     race: ["物質"],
+    subRace: [],
     weight: 16,
     status: { HP: 854, MP: 305, atk: 568, def: 588, spd: 215, int: 358 },
     initialSkill: ["アストロンゼロ", "衝撃波", "みがわり", "防刃の守り"],
@@ -7583,6 +7633,7 @@ const monsters = [
     id: "dorunisu",
     rank: 9,
     race: ["???"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "闇の紋章", "防刃の守り", "タップダンス"],
@@ -7606,6 +7657,7 @@ const monsters = [
     id: "hyadonisu",
     rank: 9,
     race: ["???"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 837, MP: 236, atk: 250, def: 485, spd: 303, int: 290 },
     initialSkill: ["おおいかくす", "氷の紋章", "防刃の守り", "ザオリク"],
@@ -7628,6 +7680,7 @@ const monsters = [
     id: "yoiyami",
     rank: 9,
     race: ["物質"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 864, MP: 264, atk: 367, def: 589, spd: 305, int: 170 },
     initialSkill: ["封印の光", "におうだち", "ザオリク", "防刃の守り"],
@@ -7645,6 +7698,7 @@ const monsters = [
     id: "tanisu",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 772, MP: 458, atk: 329, def: 495, spd: 462, int: 501 },
     initialSkill: ["邪悪なこだま", "絶氷の嵐", "禁忌のかくせい", "邪道のかくせい"],
@@ -7666,6 +7720,7 @@ const monsters = [
     id: "dhuran",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 845, MP: 315, atk: 689, def: 502, spd: 483, int: 255 },
     initialSkill: ["無双のつるぎ", "瞬撃", "昇天斬り", "光のはどう"],
@@ -7690,6 +7745,7 @@ const monsters = [
     id: "rogos",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["七幻神"],
     weight: 32,
     status: { HP: 823, MP: 314, atk: 504, def: 383, spd: 486, int: 535 },
     initialSkill: ["カタストロフ", "らいてい弾", "ラストストーム", "イオナルーン"],
@@ -7719,6 +7775,7 @@ const monsters = [
     id: "tseru",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["サマー"],
     weight: 25,
     status: { HP: 852, MP: 314, atk: 258, def: 422, spd: 519, int: 503 },
     initialSkill: ["蠱惑の舞い", "宵の暴風", "悪魔の息見切り", "スパークふんしゃ"],
@@ -7742,6 +7799,7 @@ const monsters = [
     id: "magesu",
     rank: 10,
     race: ["悪魔"],
+    subRace: [],
     weight: 25,
     status: { HP: 743, MP: 379, atk: 470, def: 421, spd: 506, int: 483 },
     initialSkill: ["秘術イオマータ", "狂気のいあつ", "マインドバリア", "あんこくのはばたき"],
@@ -7765,6 +7823,7 @@ const monsters = [
     id: "mudo",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 799, MP: 408, atk: 260, def: 589, spd: 435, int: 492 },
     initialSkill: ["催眠の邪弾", "夢の世界", "ギラマータ", "幻術のひとみ"],
@@ -7787,6 +7846,7 @@ const monsters = [
     id: "zuisho",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["討伐"],
     weight: 25,
     status: { HP: 844, MP: 328, atk: 502, def: 613, spd: 399, int: 158 },
     initialSkill: ["におうだち", "だいぼうぎょ", "昇天斬り", "精霊の守り・強"],
@@ -7810,6 +7870,7 @@ const monsters = [
     id: "jaha",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 810, MP: 403, atk: 256, def: 588, spd: 445, int: 483 },
     initialSkill: ["巨岩投げ", "苛烈な暴風", "魔の忠臣", "精霊の守り・強"],
@@ -7834,6 +7895,7 @@ const monsters = [
     id: "rizu",
     rank: 10,
     race: ["悪魔"],
+    subRace: [],
     weight: 25,
     status: { HP: 780, MP: 375, atk: 326, def: 398, spd: 492, int: 509 },
     initialSkill: ["フローズンスペル", "氷の王国", "雪だるま", "メゾラゴン"],
@@ -7855,6 +7917,7 @@ const monsters = [
     id: "iburu",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 449, int: 496 },
     initialSkill: ["イオナスペル", "神のはどう", "イブールの誘い", "メゾラゴン"],
@@ -7876,6 +7939,7 @@ const monsters = [
     id: "iburuNew",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 815, MP: 414, atk: 292, def: 511, spd: 499, int: 496 },
     initialSkill: ["光速イオナスペル", "教祖のはどう", "スパークふんしゃ", "タップダンス"],
@@ -7897,6 +7961,7 @@ const monsters = [
     id: "boogie",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 810, MP: 382, atk: 389, def: 499, spd: 438, int: 466 },
     initialSkill: ["ブギウギステップ", "ひれつなさくせん", "スパークふんしゃ", "ギガ・マホトラ"],
@@ -7920,6 +7985,7 @@ const monsters = [
     id: "sita",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["神獣"],
     weight: 27,
     status: { HP: 840, MP: 484, atk: 354, def: 364, spd: 395, int: 501 },
     initialSkill: ["メガントマータ", "ばくえんの秘術", "呪縛の氷撃", "サイコバースト"],
@@ -7945,6 +8011,7 @@ const monsters = [
     id: "raio",
     rank: 10,
     race: ["悪魔"],
+    subRace: ["ブレイク"],
     weight: 25,
     status: { HP: 740, MP: 375, atk: 397, def: 380, spd: 480, int: 498 },
     initialSkill: ["マガデイン", "メラゾロス", "イオナルーン", "キャンセルステップ"],
@@ -7972,6 +8039,7 @@ const monsters = [
     id: "bigface",
     rank: 8,
     race: ["悪魔"],
+    subRace: [],
     weight: 8,
     status: { HP: 550, MP: 211, atk: 464, def: 491, spd: 351, int: 234 },
     initialSkill: ["はやぶさ斬り", "みがわり", "精霊の守り・強", "マインドバリア"],
@@ -7987,6 +8055,7 @@ const monsters = [
     id: "azu",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 967, MP: 293, atk: 267, def: 531, spd: 534, int: 419 },
     initialSkill: ["ヘブンリーブレス", "裁きの極光", "昇天斬り", "光のはどう"],
@@ -8008,6 +8077,7 @@ const monsters = [
     id: "gorago",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 692, MP: 406, atk: 609, def: 455, spd: 577, int: 366 },
     initialSkill: ["獣王の猛撃", "波状裂き", "スパークふんしゃ", "キャンセルステップ"],
@@ -8030,6 +8100,7 @@ const monsters = [
     id: "tenkai",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 865, MP: 396, atk: 506, def: 428, spd: 513, int: 275 },
     initialSkill: ["ツイスター", "浄化の風", "天翔の舞い", "タップダンス"],
@@ -8051,6 +8122,7 @@ const monsters = [
     id: "reopa",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 791, MP: 333, atk: 590, def: 436, spd: 533, int: 295 },
     initialSkill: ["狂乱のやつざき", "火葬のツメ", "暗黒の誘い", "スパークふんしゃ"],
@@ -8072,6 +8144,7 @@ const monsters = [
     id: "kingreo",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 780, MP: 305, atk: 579, def: 530, spd: 487, int: 309 },
     initialSkill: ["ビーストアイ", "無慈悲なきりさき", "スパークふんしゃ", "防刃の守り"],
@@ -8096,6 +8169,7 @@ const monsters = [
     id: "nijiku",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["レジェンド", "DQMAS"],
     weight: 28,
     status: { HP: 862, MP: 289, atk: 316, def: 523, spd: 515, int: 473 },
     initialSkill: ["レインマダンテ", "かえんりゅう", "天雷の息吹", "防刃の守り"],
@@ -8117,6 +8191,7 @@ const monsters = [
     id: "doraji",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["サマー"],
     weight: 25,
     status: { HP: 745, MP: 291, atk: 593, def: 444, spd: 541, int: 256 },
     initialSkill: ["抜刀魔獣刃", "閃く短刀", "スパークふんしゃ", "防刃の守り"],
@@ -8140,6 +8215,7 @@ const monsters = [
     id: "aurutoNew",
     rank: 10,
     race: ["魔獣"],
+    subRace: [],
     weight: 25,
     status: { HP: 727, MP: 363, atk: 394, def: 491, spd: 541, int: 488 },
     initialSkill: ["マヒャドストーム", "あんこくのはばたき", "醜悪な暴風", "スパークふんしゃ"],
@@ -8160,14 +8236,15 @@ const monsters = [
     seed: { atk: 0, def: 25, spd: 95, int: 0 },
     ls: { int: 1.15 },
     lsTarget: "魔獣",
-    AINormalAttack: [2], //混乱バギ無効化
-    resistance: { fire: 0.5, ice: 0.5, thunder: 1.5, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 1.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 },
+    AINormalAttack: [2],
+    resistance: { fire: 0.5, ice: 0.5, thunder: 1.5, wind: 0, io: 1, light: 1, dark: 0.5, poisoned: 1, asleep: 1, confused: 0, paralyzed: 1.5, zaki: 0, dazzle: 1, spellSeal: 0, breathSeal: 1 }, // 混乱バギ無効化
   },
   {
     name: "獣王クロコダイン", //44 新生HP+50
     id: "skuroko",
     rank: 9,
     race: ["魔獣"],
+    subRace: ["ダイの大冒険", "討伐"],
     weight: 14,
     status: { HP: 802, MP: 252, atk: 454, def: 506, spd: 345, int: 222 },
     initialSkill: ["かばう", "ザオリク", "防刃の守り", "いやしの光"],
@@ -8189,6 +8266,7 @@ const monsters = [
     id: "antbear",
     rank: 8,
     race: ["魔獣"],
+    subRace: [],
     weight: 8,
     status: { HP: 550, MP: 151, atk: 522, def: 234, spd: 495, int: 108 },
     initialSkill: ["ラピッドショット", "しっぷうづき", "スパークふんしゃ", "防刃の守り"],
@@ -8205,6 +8283,7 @@ const monsters = [
     id: "goddess",
     rank: 10,
     race: ["スライム"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 208, MP: 490, atk: 601, def: 775, spd: 461, int: 492 },
     initialSkill: ["クアトロマダンテ", "アイアンスラッシュ", "ベホマラー", "ザオリク"],
@@ -8228,6 +8307,7 @@ const monsters = [
     id: "surahero",
     rank: 10,
     race: ["スライム"],
+    subRace: ["レジェンド", "DQMAS"],
     weight: 28,
     status: { HP: 721, MP: 281, atk: 421, def: 649, spd: 510, int: 381 },
     initialSkill: ["アイアンロンド", "ヒーロースパーク", "神のはどう", "息よそく"],
@@ -8250,6 +8330,7 @@ const monsters = [
     id: "suragirl",
     rank: 10,
     race: ["スライム"],
+    subRace: ["レジェンド", "DQMAS"],
     weight: 28,
     status: { HP: 758, MP: 287, atk: 538, def: 615, spd: 494, int: 275 },
     initialSkill: ["ばくれつドライブ", "スパークふんしゃ", "カオスストーム", "息よそく"],
@@ -8273,6 +8354,7 @@ const monsters = [
     id: "surabura",
     rank: 10,
     race: ["スライム"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 796, MP: 434, atk: 368, def: 608, spd: 468, int: 315 },
     initialSkill: ["S・ブラスター", "インパクトキャノン", "ザオリク", "アイアンゲイザー"],
@@ -8293,6 +8375,7 @@ const monsters = [
     id: "haguki",
     rank: 10,
     race: ["スライム"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 298, MP: 521, atk: 325, def: 889, spd: 502, int: 542 },
     initialSkill: ["キングストーム", "メタ・マダンテ", "ベホマラー", "ダメージバリア"],
@@ -8314,6 +8397,7 @@ const monsters = [
     id: "dorameta",
     rank: 9,
     race: ["スライム"],
+    subRace: [],
     weight: 16,
     status: { HP: 648, MP: 318, atk: 413, def: 619, spd: 466, int: 412 },
     initialSkill: ["チアフルダンス", "みがわり", "光のはどう", "ザオリク"],
@@ -8336,6 +8420,7 @@ const monsters = [
     id: "surakyan",
     rank: 9,
     race: ["スライム"],
+    subRace: ["討伐"],
     weight: 14,
     status: { HP: 674, MP: 207, atk: 350, def: 563, spd: 383, int: 275 },
     initialSkill: ["におうだち", "みがわり", "精霊の守り・強", "マインドバリア"],
@@ -8356,6 +8441,7 @@ const monsters = [
     id: "bogu",
     rank: 8,
     race: ["スライム"],
+    subRace: ["討伐"],
     weight: 8,
     status: { HP: 591, MP: 251, atk: 226, def: 477, spd: 353, int: 304 },
     initialSkill: ["やいばのまもり", "みがわり", "防刃の守り", "タップダンス"],
@@ -8376,6 +8462,7 @@ const monsters = [
     id: "matter",
     rank: 10,
     race: ["物質"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 913, MP: 307, atk: 394, def: 516, spd: 478, int: 406 },
     initialSkill: ["オーバーホール", "グレネードボム", "防衛指令", "リーサルウェポン"],
@@ -8397,6 +8484,7 @@ const monsters = [
     id: "weapon",
     rank: 10,
     race: ["物質"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 797, MP: 308, atk: 691, def: 431, spd: 492, int: 309 },
     initialSkill: ["羅刹斬", "デッドリースパーク", "破滅プロトコル", "スパークふんしゃ"],
@@ -8418,6 +8506,7 @@ const monsters = [
     id: "him",
     rank: 10,
     race: ["物質"],
+    subRace: ["ダイの大冒険"],
     weight: 25,
     status: { HP: 650, MP: 247, atk: 601, def: 573, spd: 504, int: 234 },
     initialSkill: ["真・闘気拳", "真・グランドクルス", "スパークふんしゃ", "息よそく"],
@@ -8429,7 +8518,7 @@ const monsters = [
         mindBarrier: { duration: 3 },
       },
       2: {
-        preemptiveAction: {}, //昇格の証
+        preemptiveAction: {},
       },
     },
     seed: { atk: 25, def: 0, spd: 95, int: 0 },
@@ -8443,6 +8532,7 @@ const monsters = [
     id: "hellclouder",
     rank: 10,
     race: ["物質"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 793, MP: 308, atk: 280, def: 610, spd: 508, int: 491 },
     initialSkill: ["真空の凶嵐", "きょうふのはもん", "フロストガスト", "奈落の風"],
@@ -8464,6 +8554,7 @@ const monsters = [
     id: "castle",
     rank: 10,
     race: ["物質"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 864, MP: 340, atk: 216, def: 620, spd: 462, int: 483 },
     initialSkill: ["ろうじょうのかまえ", "報復の大嵐", "スパークプレス", "苛烈な暴風"],
@@ -8492,6 +8583,7 @@ const monsters = [
     id: "golem",
     rank: 10,
     race: ["物質"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 1130, MP: 256, atk: 458, def: 677, spd: 393, int: 268 },
     initialSkill: ["マテリアルガード", "おおいかくす", "アースクラッシュ", "ザオリク"],
@@ -8514,6 +8606,7 @@ const monsters = [
     id: "kinmimi",
     rank: 10,
     race: ["物質"],
+    subRace: [],
     weight: 25,
     status: { HP: 744, MP: 280, atk: 568, def: 621, spd: 364, int: 327 },
     initialSkill: ["トラウマトラップ", "アンカーラッシュ", "ギガ・マホヘル", "体砕きの斬舞"],
@@ -8537,6 +8630,7 @@ const monsters = [
     id: "typeG",
     rank: 10,
     race: ["物質"],
+    subRace: ["討伐"],
     weight: 25,
     status: { HP: 730, MP: 362, atk: 435, def: 487, spd: 751, int: 311 },
     initialSkill: ["流星斬り", "パイロビーム", "ラピッドショット", "ピオリーマ"],
@@ -8563,6 +8657,7 @@ const monsters = [
     id: "dirtydoll",
     rank: 9,
     race: ["物質"],
+    subRace: [],
     weight: 16,
     status: { HP: 672, MP: 291, atk: 562, def: 536, spd: 526, int: 319 },
     initialSkill: ["オカルトソード", "ダーティーショット", "おぞましいおたけび", "スパークふんしゃ"],
@@ -8583,6 +8678,7 @@ const monsters = [
     id: "poseidon",
     rank: 10,
     race: ["自然"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 932, MP: 472, atk: 272, def: 625, spd: 306, int: 381 },
     initialSkill: ["太古の舞踏", "深海のソーマ", "ガイアシールド", "体技よそく"],
@@ -8604,6 +8700,7 @@ const monsters = [
     id: "kashal",
     rank: 10,
     race: ["自然"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 817, MP: 376, atk: 270, def: 554, spd: 464, int: 504 },
     initialSkill: ["サンゴの牢獄", "ためらいの水泡", "メゾラゴン", "ザオリク"],
@@ -8628,6 +8725,7 @@ const monsters = [
     id: "summergemma",
     rank: 10,
     race: ["自然"],
+    subRace: ["サマー", "魔童子"],
     weight: 20,
     status: { HP: 829, MP: 349, atk: 258, def: 423, spd: 470, int: 469 },
     initialSkill: ["グレイシャルサマー", "とこなつの守護", "とこなつのひやく", "斬撃よそく"],
@@ -8652,6 +8750,7 @@ const monsters = [
     id: "amakamu",
     rank: 10,
     race: ["自然"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 845, MP: 385, atk: 275, def: 618, spd: 383, int: 476 },
     initialSkill: ["雷鳴の舞踏", "天風の陣", "アイアンゲイザー", "ザオリク"],
@@ -8677,6 +8776,7 @@ const monsters = [
     id: "ramia",
     rank: 10,
     race: ["自然"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 788, MP: 467, atk: 308, def: 577, spd: 341, int: 502 },
     initialSkill: ["神秘のはごろも", "大空の守り", "ジゴデイン", "神鳥の蘇生"],
@@ -8704,6 +8804,7 @@ const monsters = [
     id: "oshabo",
     rank: 10,
     race: ["自然"],
+    subRace: [],
     weight: 25,
     status: { HP: 929, MP: 379, atk: 521, def: 449, spd: 418, int: 282 },
     initialSkill: ["におうだち", "だいぼうぎょ", "やすらぎの光", "ザオリク"],
@@ -8728,6 +8829,7 @@ const monsters = [
     id: "skullspider",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 927, MP: 280, atk: 385, def: 646, spd: 495, int: 283 },
     initialSkill: ["ヴェノムパニック", "ドレッドダンス", "劇毒のきり", "スパークふんしゃ"],
@@ -8748,6 +8850,7 @@ const monsters = [
     id: "razama",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["系統の王"],
     weight: 30,
     status: { HP: 1055, MP: 373, atk: 558, def: 517, spd: 412, int: 253 },
     initialSkill: ["黄金のカギ爪", "紫電の瘴気", "ホラーブレス", "防壁反転"],
@@ -8770,6 +8873,7 @@ const monsters = [
     id: "barazon",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 881, MP: 290, atk: 703, def: 311, spd: 393, int: 403 },
     initialSkill: ["ネクロゴンドの衝撃", "イオナフィスト", "ジェノサイドストーム", "漆黒の儀式"],
@@ -8791,6 +8895,7 @@ const monsters = [
     id: "maentyo",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 708, MP: 484, atk: 491, def: 386, spd: 433, int: 487 },
     initialSkill: ["れんごくの翼", "プロミネンス", "時ゆがめる暗霧", "ヴェレマータ"],
@@ -8813,6 +8918,7 @@ const monsters = [
     id: "kusamaju",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: [],
     weight: 25,
     status: { HP: 812, MP: 286, atk: 561, def: 283, spd: 531, int: 407 },
     initialSkill: ["ヒートヴェノム", "腐乱の波動", "仁王溶かしの息", "スパークふんしゃ"],
@@ -8832,6 +8938,7 @@ const monsters = [
     id: "desuso",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["七幻神"],
     weight: 27,
     status: { HP: 812, MP: 304, atk: 393, def: 625, spd: 325, int: 504 },
     initialSkill: ["メガントマータ", "防壁反転", "亡者の儀式", "鮮烈な稲妻"],
@@ -8853,6 +8960,7 @@ const monsters = [
     id: "gorugona",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["ロトの紋章"],
     weight: 25,
     status: { HP: 839, MP: 311, atk: 292, def: 643, spd: 384, int: 519 },
     initialSkill: ["冥府の邪法", "六芒魔法陣", "ザオリク", "斬撃よそく"],
@@ -8869,6 +8977,7 @@ const monsters = [
     id: "tyomazombie",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["レジェンド", "ダイの大冒険"],
     weight: 28,
     status: { HP: 869, MP: 265, atk: 638, def: 625, spd: 316, int: 270 },
     initialSkill: ["ボーンスキュル", "超魔改良", "ザオラル", "スパークふんしゃ"],
@@ -8890,6 +8999,7 @@ const monsters = [
     id: "pharaoh",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["討伐"],
     weight: 25,
     status: { HP: 747, MP: 253, atk: 565, def: 504, spd: 450, int: 225 },
     initialSkill: ["太陽神の鉄槌", "氷獄斬り", "ファラオの幻刃", "ファラオの召喚"],
@@ -8908,6 +9018,7 @@ const monsters = [
     id: "gema",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: ["レジェンド"],
     weight: 28,
     status: { HP: 784, MP: 333, atk: 528, def: 411, spd: 443, int: 528 },
     initialSkill: ["業火のロンド", "非道の儀式", "闇討ちの魔弾", "石化の呪い"],
@@ -8931,6 +9042,7 @@ const monsters = [
     id: "dokutama",
     rank: 9,
     race: ["ゾンビ"],
+    subRace: [],
     weight: 16,
     status: { HP: 627, MP: 381, atk: 367, def: 448, spd: 477, int: 503 },
     initialSkill: ["けがれの封印", "毒滅の稲妻", "みがわり", "ザラキーマ"],
@@ -8950,6 +9062,7 @@ const monsters = [
     id: "kagekisi",
     rank: 6, //C
     race: ["ゾンビ"],
+    subRace: [],
     weight: 3,
     status: { HP: 333, MP: 130, atk: 258, def: 224, spd: 370, int: 119 },
     initialSkill: ["ルカナン", "ルカナン", "ピオリム", "ヘルスピア"],
@@ -8965,6 +9078,7 @@ const monsters = [
     id: "hazama",
     rank: 10,
     race: ["超魔王", "スライム", "ドラゴン", "自然", "魔獣", "物質", "悪魔", "ゾンビ"],
+    subRace: ["討伐"],
     weight: 40,
     status: { HP: 744, MP: 523, atk: 619, def: 713, spd: 459, int: 440 },
     initialSkill: ["グランドアビス", "再召喚の儀", "修羅の闇", "殺りくのツメ"],
@@ -8994,6 +9108,7 @@ const monsters = [
     id: "garumazard",
     rank: 10,
     race: ["???"],
+    subRace: ["魔王", "ブレイク"],
     weight: 32,
     status: { HP: 884, MP: 356, atk: 648, def: 633, spd: 477, int: 362 },
     initialSkill: ["マ素侵食", "ハザードウェポン", "ダークハザード", "ギガ・マホトラ"],
@@ -9020,6 +9135,7 @@ const monsters = [
     id: "garumazzo",
     rank: 10,
     race: ["???"],
+    subRace: ["ブレイク", "魔王"],
     weight: 32,
     status: { HP: 884, MP: 356, atk: 548, def: 533, spd: 427, int: 362 },
     initialSkill: ["災禍のマ瘴", "レベル4ハザード", "ダークハザード", "マ素汚染"],
@@ -9048,6 +9164,7 @@ const monsters = [
     id: "buon",
     rank: 10,
     race: ["魔獣"],
+    subRace: ["ブレイク"],
     weight: 25,
     status: { HP: 937, MP: 294, atk: 561, def: 507, spd: 451, int: 135 },
     initialSkill: ["あらしの乱舞", "マ素のはどう", "こうせきおとし", "ピオリム"],
@@ -9076,6 +9193,7 @@ const monsters = [
     id: "cursedesta",
     rank: 10,
     race: ["???"],
+    subRace: ["ブレイク", "魔王"],
     weight: 32,
     status: { HP: 748, MP: 329, atk: 571, def: 561, spd: 499, int: 415 },
     initialSkill: ["凶帝王の双閃", "爆炎の絶技", "凶帝王のかまえ", "スパークふんしゃ"],
@@ -9105,6 +9223,7 @@ const monsters = [
     id: "ultrametakin",
     rank: 10,
     race: ["スライム"],
+    subRace: ["ブレイク"],
     weight: 25,
     status: { HP: 227, MP: 469, atk: 522, def: 906, spd: 476, int: 302 },
     initialSkill: ["プチマダンテ・凶", "マ瘴の爆発", "みがわり", "光のはどう"],
@@ -9128,6 +9247,7 @@ const monsters = [
     id: "smetakin",
     rank: 9,
     race: ["スライム"],
+    subRace: ["ブレイク"],
     weight: 18,
     status: { HP: 205, MP: 424, atk: 494, def: 856, spd: 439, int: 271 },
     initialSkill: ["みがわり", "バイオスタンプ", "防刃の守り", "ザオリク"],
@@ -9149,6 +9269,7 @@ const monsters = [
     id: "cursedgreatwalrus",
     rank: 9,
     race: ["魔獣"],
+    subRace: ["ブレイク"],
     weight: 16,
     status: { HP: 840, MP: 369, atk: 438, def: 540, spd: 242, int: 354 },
     initialSkill: ["におうだち", "結晶拳・終", "みがわり", "結晶拳・疾風"],
@@ -9172,6 +9293,7 @@ const monsters = [
     id: "cursedsealion",
     rank: 8,
     race: ["魔獣"],
+    subRace: ["ブレイク"],
     weight: 8,
     status: { HP: 656, MP: 320, atk: 380, def: 427, spd: 221, int: 327 },
     initialSkill: ["みがわり", "結晶拳・疾風", "防刃の守り", "タップダンス"],
@@ -9195,6 +9317,7 @@ const monsters = [
     id: "tyodream",
     rank: 10,
     race: ["超魔王"],
+    subRace: [],
     weight: 40,
     status: { HP: 858, MP: 361, atk: 715, def: 647, spd: 501, int: 312 },
     initialSkill: ["滅びの妙技", "魔神のはやわざ", "秘技グランドクロス", "殺りくの雷刃"],
@@ -9222,6 +9345,7 @@ const monsters = [
     id: "bossmaen",
     rank: 10,
     race: ["ゾンビ"],
+    subRace: [],
     weight: 25,
     status: { HP: 300000, MP: 999, atk: 600, def: 450, spd: 300, int: 600 },
     initialSkill: ["終の流星", "溶熱の儀式", "debugbreath", "神のはどう"],
@@ -16302,7 +16426,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 68,
-    ignoresubstitute: true,
+    ignoreSubstitute: true,
     followingSkill: "超はどうほう後半",
   },
   {
@@ -16314,7 +16438,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    ignoresubstitute: true,
+    ignoreSubstitute: true,
     appliedEffect: { HPabsorption: { fixedDamage: 230 } },
   },
   {
@@ -16337,7 +16461,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    ignoresubstitute: true,
+    ignoreSubstitute: true,
     appliedEffect: { dotDamage: { fixedDamage: 200 } },
   },
   {
@@ -22090,6 +22214,7 @@ const gear = [
     id: "hoge",
     weight: 5,
     noWeightMonsters: ["地獄の帝王エスターク"],
+    noWeightSubRace: "サマー",
     status: { HP: 0, MP: 0, atk: 60, def: 0, spd: 15, int: 0 },
     statusMultiplier: { atk: 0.08, spd: -0.1 }, // lsと加算
     initialBuffs: { isUnbreakable: { keepOnDeath: true } }, // 戦闘開始時 演出なし
@@ -22166,7 +22291,7 @@ const gear = [
     name: "源氏の小手", //+10
     id: "genjiNail",
     weight: 5,
-    noWeightMonsters: ["氷炎の化身", "降臨しんりゅう", "狂える賢者ベヒーモス", "幻獣バハムート", "幻獣オーディン", "降臨オメガ"],
+    noWeightSubRace: "FFBE",
     status: { HP: 0, MP: 0, atk: 0, def: 10, spd: 55, int: 0 },
   },
   {
@@ -22476,7 +22601,7 @@ const gear = [
     name: "あぶない水着", //+10
     id: "swimSuit",
     weight: 5,
-    noWeightMonsters: ["真夏の女神クシャラミ", "常夏少女ジェマ", "魔夏姫アンルシア", "涼風の魔女グレイツェル", "ドラ猫親分ドラジ"],
+    noWeightSubRace: "サマー",
     status: { HP: 0, MP: 0, atk: 0, def: 1, spd: 45, int: 0 },
   },
   {
@@ -22648,18 +22773,7 @@ const gear = [
     name: "ハザードネイル", //+15
     id: "hazardNail",
     weight: 5,
-    noWeightMonsters: [
-      "ガルマザード",
-      "ガルマッゾ",
-      "凶帝王エスターク",
-      "凶ライオネック",
-      "凶ブオーン",
-      "凶ウルトラメタキン",
-      "凶メタルキング",
-      "凶グレートオーラス",
-      "凶シーライオン",
-      "凶アンドレアル",
-    ],
+    noWeightSubRace: "ブレイク",
     status: { HP: 0, MP: 0, atk: 0, def: 15, spd: 50, int: 0 },
     // ブレイクモンスターなら素早さ +8%
     conditionalMultipliers: [{ checkBreak: true, stat: "spd", value: 0.08 }],
@@ -24840,8 +24954,9 @@ function calculateWeight() {
   let weightSum = 0;
   for (const monster of selectingParty.filter((element) => Object.keys(element).length !== 0)) {
     weightSum += monster.weight;
-    if (monster.gear && !monster.gear.noWeightMonsters?.includes(monster.name)) {
-      weightSum += monster.gear.weight;
+    const gearData = monster.gear;
+    if (gearData && !gearData.noWeightMonsters?.includes(monster.name) && !(gearData.noWeightSubRace && monster.subRace.includes(gearData.noWeightSubRace))) {
+      weightSum += gearData.weight;
     }
   }
   document.getElementById("weightSum").textContent = `w${weightSum}`;
@@ -24992,25 +25107,12 @@ function getRandomIntInclusive(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
 }
 
-function countBreakMonster(party) {
-  return party.filter(isBreakMonster).length;
+function isBreakMonster(monster) {
+  return Boolean(monster.subRace?.includes("ブレイク"));
 }
 
-function isBreakMonster(monster) {
-  const breakMonsterList = [
-    "ガルマザード",
-    "ガルマッゾ",
-    "凶帝王エスターク",
-    "凶ライオネック",
-    "凶ブオーン",
-    "凶ウルトラメタキン",
-    "凶メタルキング",
-    "凶スターキメラ",
-    "凶グレートオーラス",
-    "凶シーライオン",
-    "凶アンドレアル",
-  ];
-  return breakMonsterList.includes(monster.name);
+function countBreakMonster(party) {
+  return party.filter(isBreakMonster).length;
 }
 
 // 耐性表示を全てクリア preparebattleでも実行して初期化
@@ -26375,49 +26477,9 @@ async function releaseDreamTransformation() {
     // 全属性シールド残留時の即死処理 (死亡で解除されるため生存時限定)
     if (monster.buffs.elementalShield && monster.buffs.elementalShield.targetElement === "all") {
       delete monster.buffs.elementalShield;
-      const targetDemonKing = [
-        "邪竜神ナドラガ",
-        "真・魔王ザラーム",
-        "支配王レゾム・レザーム",
-        "邪神ニズゼルファ",
-        "闇竜シャムダ",
-        "魔界神マデュラーシャ",
-        "ヒヒュドラード",
-        "魔王ウルノーガ",
-        "冥竜王ヴェルザー",
-        "堕天使エルギオス",
-        "ダグジャガルマ",
-        "暗黒神ラプソーン",
-        "真・異魔神",
-        "真・災厄の王",
-        "ネオ・ドーク",
-        "真・大魔王バーン",
-        "超魔生物ハドラー",
-        "凶帝王エスターク",
-        "ガルマザード",
-        "魔王オルゴ・デミーラ",
-        "魔王オムド・レクス",
-        "創造神マデサゴーラ",
-        "魔壺インヘーラー",
-        "魔神ダークドレアム",
-        "冥獣王ネルゲル",
-        "地獄の帝王エスターク",
-        "大魔王デスタムーア",
-        "闇の大魔王ゾーマ",
-        "大魔王ミルドラース",
-        "魔剣士ピサロ",
-        "バラモスブロス",
-        "破壊神シドー",
-        "竜王",
-      ];
       await sleep(300);
       for (const zakiTarget of parties[monster.enemyTeamID]) {
-        if (
-          zakiTarget.name !== "殺りくの神ダークドレアム" &&
-          !zakiTarget.flags.isDead &&
-          !zakiTarget.flags.isZombie &&
-          (zakiTarget.race.includes("超魔王") || targetDemonKing.includes(zakiTarget.name))
-        ) {
+        if (zakiTarget.name !== "殺りくの神ダークドレアム" && !zakiTarget.flags.isDead && !zakiTarget.flags.isZombie && (zakiTarget.race.includes("超魔王") || zakiTarget.subRace.includes("魔王"))) {
           handleDeath(zakiTarget, false, true, null, true); // isCountDownをtrue
           displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
           await checkRecentlyKilledFlagForPoison(zakiTarget);
