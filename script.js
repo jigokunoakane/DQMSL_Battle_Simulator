@@ -3546,7 +3546,7 @@ async function executeSkill(
   while (
     currentSkill &&
     (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
-    (currentSkill.skipAbnormalityCheck || ignoreAbnormalityCheck || !hasAbnormality(skillUser)) &&
+    (ignoreAbnormalityCheck || !hasAbnormality(skillUser)) &&
     (currentSkill.skipSkillSealCheck || ignoreSkillSealCheck || !isSkillSealed(skillUser, currentSkill, true))
   ) {
     // 6. スキル実行処理
@@ -4082,8 +4082,8 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   if (reducedByElementalShield || damage > 0) {
     await processAppliedEffectWave(skillTarget, executingSkill, true);
   }
-  // それ以外の追加効果は  常に実行 または target生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
-  if (executingSkill.alwaysAct || (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0))) {
+  // それ以外の追加効果はtarget生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
+  if (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0)) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
@@ -4130,7 +4130,7 @@ function calculateDamage(
   let isCriticalHit = false;
   if (executingSkill.howToCalculate === "fix") {
     baseDamage = executingSkill.damage;
-    if (!executingSkill.fixedDamage) {
+    if (!executingSkill.isFixedDamage) {
       if (executingSkill.damageByLevel) {
         randomMultiplier = Math.floor(Math.random() * 21) * 0.01 + 0.9;
       } else {
@@ -4426,8 +4426,8 @@ function calculateDamage(
   }
 
   // 特技の種族特効 反射には乗らない
-  if (!isReflection && executingSkill.RaceBane && executingSkill.RaceBane.some((targetRace) => skillTarget.race.includes(targetRace))) {
-    damage *= executingSkill.RaceBaneValue;
+  if (!isReflection && executingSkill.raceBane && executingSkill.raceBane.some((targetRace) => skillTarget.race.includes(targetRace))) {
+    damage *= executingSkill.raceBaneRatio;
   }
   // みがわり特効
   if (executingSkill.substituteBreaker && skillTarget.flags.isSubstituting) {
@@ -4845,7 +4845,7 @@ function calculateDamage(
   }
 
   // MP依存ではなくかつ完全固定でもないとき、加減算・そしでんバリア・新たなる神・バーン魔獣化・退廃のかぜを反映
-  if (executingSkill.howToCalculate !== "MP" && !executingSkill.fixedDamage) {
+  if (executingSkill.howToCalculate !== "MP" && !executingSkill.isFixedDamage) {
     // 加減算を反映
     if (executingSkill.name === "混沌のキバ") {
       damageModifier *= 2;
@@ -12757,116 +12757,106 @@ function getMonsterAbilities(monsterId) {
   return monsterAbilities[monsterId] || {};
 }
 
+/**
+ * @typedef {Object} Skill
+ *
+ * --- 基本情報 ---
+ * @property {string} name - スキル識別名（必須）
+ * @property {string} [displayName] - 表示名（任意。ある場合はこちらが表示される）
+ * @property {"spell" | "slash" | "martial" | "breath" | "ritual" | "dance" | "notskill"} type - スキル種別
+ * @property {"atk" | "int" | "fix" | "def" | "spd" | "MP" | "none"} howToCalculate - ダメージ等の計算方式
+ * @property {"fire" | "ice" | "thunder" | "io" | "wind" | "light" | "dark" | "none" | "notskill"} element - 属性
+ * @property {"single" | "random" | "all" | "self" | "field" | "dead"} targetType - 対象範囲
+ * @property {"ally" | "enemy"} targetTeam - 対象陣営
+ * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
+ * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
+ * @property {number} [hitNum] - 連続ヒット回数
+ * @property {number} [ratio] - 攻撃倍率
+ * @property {number} [damage] - 固定ダメージ値
+ * @property {number} [MPDamageRatio] - MPダメージ倍率
+ *
+ * --- 発動順・行動順 ---
+ * @property {"preemptive" | "anchor"} [order] - 先制/アンカー指定
+ * @property {1 | 2 | 3 | 4 | 5 | 6 | 7 | 8} [preemptiveGroup] - 先制グループ (1:封印の霧等, 2:マイバリ等, 3:におう, 4:みがわり, 5:予測構え, 6:防御, 7:全体攻撃, 8:単体攻撃)
+ *
+ * --- 呪文・賢さ依存 ---
+ * @property {number} [minInt] - 最小ダメージ時の賢さ下限
+ * @property {number} [minIntDamage] - 最小ダメージ
+ * @property {number} [maxInt] - 最大ダメージ時の賢さ上限
+ * @property {number} [maxIntDamage] - 最大ダメージ
+ * @property {number} [skillPlus] - とくぎプラス倍率補正
+ *
+ * --- 特効・倍率補正 ---
+ * @property {string} [sameRaceDamageBonus] - 同系統ボーナス対象系統
+ * @property {string[]} [raceBane] - 系統特効の対象系統リスト (例: ["スライム", "ドラゴン"])
+ * @property {number} [raceBaneRatio] - 系統特効倍率
+ * @property {number} [anchorBonus] - アンカー発動時のボーナス倍率
+ * @property {number} [substituteBreaker] - みがわり特効倍率
+ * @property {Object.<string, number>} [abnormalityMultiplier] - 状態異常特効倍率 (例: { fear: 1.5 }) マソと競合
+ * @property {Object.<number|string, number>} [masoMultiplier] - マソ深度特効倍率 (例: { 1: 2.5 })
+ * @property {boolean} [weakness18] - 弱点倍率1.8倍フラグ
+ * @property {boolean} [damageByLevel] - レベル依存ダメージ
+ * @property {boolean} [damageByHpPercent] - HP割合依存ダメージ
+ * @property {boolean} [lowHpDamageMultiplier] - 瀕死時ダメージ増加
+ * @property {boolean} [isFixedDamage] - 完全固定ダメージフラグ
+ *
+ * --- 確率・命中 ---
+ * @property {number} [criticalHitProbability] - 会心率 (0で会心なし、1で確定会心)
+ * @property {number} [missProbability] - ミス確率
+ * @property {number} [zakiProbability] - 即死成功率
+ * @property {number} [deleteUnbreakableProbability] - くじけぬ心解除率
+ * @property {number} [tensionClearProbability] - テンション解除率
+ * @property {number} [absorptionRatio] - 吸収割合
+ *
+ * --- 無視・貫通フラグ ---
+ * @property {boolean} [ignoreProtection] - 軽減無視
+ * @property {boolean} [ignoreReflection] - 反射無視
+ * @property {boolean} [ignoreSubstitute] - みがわり無視
+ * @property {boolean} [ignoreGuard] - 防御無視
+ * @property {boolean} [ignoreEvasion] - みかわし無視
+ * @property {boolean} [ignoreTypeEvasion] - 種別無効無視
+ * @property {boolean} [ignoreDazzle] - マヌーサ無効
+ * @property {boolean} [ignoreBaiki] - バイキルト補正無視
+ * @property {boolean} [ignorePowerCharge] - 力ため補正無視
+ * @property {boolean} [ignoreManaBoost] - 魔力かくせい補正無視
+ * @property {boolean} [ignoreBarrier] - 斬撃防御等無視
+ * @property {boolean} [penetrateStoned] - 石化貫通
+ *
+ * --- 特殊条件・フラグ ---
+ * @property {boolean} [isOneTimeUse] - 戦闘中1回のみ使用可能
+ * @property {boolean} [isHealSkill] - 回復スキルフラグ
+ * @property {boolean} [skipDeathCheck] - 死亡状態でも常に実行（skipThisTurn(リザオ蘇生時等)でも発動）
+ * @property {boolean} [isCounterSkill] - カウンタースキルフラグ（skipThisTurn(リザオ蘇生時等)でも発動するが、死亡状態（flag.isDead）では実行しない）
+ * @property {boolean} [skipSkillSealCheck] - 体技封じ・息封じ等の封じ無視（教団の光 勇者の家庭教師）
+ * @property {"single" | "all"} [substituteScope] - みがわり範囲
+ * @property {string} [followingSkill] - 後続スキル名
+ * @property {string} [additionalVersion] - 追加バージョン名
+ * @property {string} [domainElement] - 領界変化
+ *
+ * --- 状態変化・追加効果 ---
+ * @property {string | Object.<string, any>} [appliedEffect] - 付与効果 (文字列 "divineWave" やオブジェクト)
+ * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
+ *
+ * --- コールバック・関数処理 ---
+ * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
+ * @property {(skillUserName: string, skillName?: string) => void} [specialMessage] - 特殊メッセージ表示関数
+ * @property {(skillUser: any, skillTarget: any) => Promise<void>|void} [act] - 主処理・追加効果
+ * @property {(skillUser: any) => Promise<void>|void} [onStart] - ヒット前処理
+ * @property {(skillUser: any, isMonsterAction?: boolean) => Promise<void>|void} [onComplete] - ヒット後処理（miss・死亡に関わらず行動skip判定前に実行）
+ * @property {(skillUser: any) => Promise<void>|void} [selfAppliedEffect] - ヒット後自身への効果付与（missにかかわらず実行 行動skip判定されうる）
+ * @property {(skillUser: any, skillTarget: any) => number} [damageModifier] - 特殊ダメージ増減算出
+ * @property {(skillUser: any, skillTarget: any, isReflection?: boolean) => number} [damageMultiplier] - 特殊ダメージ倍率算出
+ * @property {(skillUser: any) => boolean} [unavailableIf] - 使用不可条件
+ * @property {(skillUser: any) => string|undefined} [reviseIf] - 条件分岐によるスキル置換判定 (下位技への変化など)
+ *
+ * --- 説明文 ---
+ * @property {string} [description1] - 説明文1行目
+ * @property {string} [description2] - 説明文2行目
+ * @property {string} [description3] - 説明文3行目
+ */
+
+/** @type {Skill[]} */
 const skill = [
-  /*
-  {
-    name: "sample",
-    displayName: "hoge", //任意 ある場合はこちらがdisplayされる
-    id: "number?",
-    type: "", //spell slash martial breath ritual notskill
-    howToCalculate: "", //atk int fix def spd MP
-    fixedDamage: true, // 完全固定ダメージ ボンスキュ反撃 紅蓮剣 星皇 アルテマ誇り エクスカリパー 針10本 ミルスト ブラジョ 屍大狂乱 キャスリング
-    ratio: 1,
-    MPDamageRatio: 1.5,
-    damage: 142,
-    sameRaceDamageBonus: "ゾンビ",
-    minInt: 500,
-    minIntDamage: 222,
-    maxInt: 1000,
-    maxIntDamage: 310,
-    skillPlus: 1.15,
-    element: "", //fire ice thunder io wind light dark
-    targetType: "", //single random all self field dead
-    targetTeam: "enemy", //ally enemy
-    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
-    hitNum: 3,
-    MPcost: 0,
-    MPcostRatio: 1, // 現在MPに対するその割合(切り捨て)だけ消費 全消費は1
-    order: "", //preemptive anchor
-    preemptiveGroup: 3, //1封印の霧,邪神召喚,error 2マイバリ精霊タップ 3におう 4みがわり 5予測構え 6ぼうぎょ 7全体 8random単体
-    isOneTimeUse: true,
-    isHealSkill: true,
-    skipDeathCheck: true, // 死亡時 skipThisTurnでも発動 死亡状態isDeadでも常に実行
-    isCounterSkill: true, // 反撃 skipThisTurn(リザオ時等)でも発動 死亡状態isDeadでは実行しない (無刀陣 グレイトアックス 冥王の構え 反撃の雪玉)
-    skipAbnormalityCheck: true, // deleted 引数でも指定可能なため 状態異常check無効
-    skipSkillSealCheck: true, // 封じ無視 引数ではなくskillで直接指定するもの(教団の光 勇者の家庭教師)
-    weakness18: true,
-    criticalHitProbability: 1, //noSpellSurgeはリスト管理 def依存のマヌーサみかわし無視は確定で0
-    missProbability: 0.3,
-    RaceBane: ["スライム", "ドラゴン"],
-    RaceBaneValue: 3,
-    anchorBonus: 3,
-    damageByLevel: true,
-    substituteBreaker: 3,
-    ignoreProtection: true,
-    ignoreReflection: true,
-    ignoreSubstitute: true,
-    ignoreGuard: true,
-    ignoreEvasion: true,
-    ignoreTypeEvasion: true,
-    ignoreDazzle: true,
-    penetrateStoned: true,
-    ignoreBaiki: true,
-    ignoreManaBoost: true,
-    ignorePowerCharge: true,
-    ignoreBarrier: true,
-    damageByHpPercent: true,
-    lowHpDamageMultiplier: true,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}は闇に身をささげた！`);
-    },
-    followingSkill: "涼風一陣後半",
-    additionalVersion: "追加用咆哮",
-    domainElement: "fireDomain",
-    substituteScope === "single",
-    appliedEffect: { defUp: { strength: -1 } }, //radiantWave divineWave disruptiveWave
-    zakiProbability: 0.78,
-    absorptionRatio: 0.5,
-    deleteUnbreakableProbability: 1, // 処理としてはactと同じ、分離
-    tensionClearProbability: 1, // 処理としてはactと同じ、分離
-    act: function (skillUser, skillTarget) {
-      console.log("hoge");
-    },
-    alwaysAct: true,
-    onStart: async function (skillUser) {
-      console.log("hoge"); // ヒット処理前に実行
-    },
-    selfDamage: { damage: 480, isRandomDamage: true },
-    onComplete: async function (skillUser) {
-      console.log("hoge"); // ヒット処理後に実行 miss・死亡にかかわらず実行 行動skip判定前
-    },
-    selfAppliedEffect: async function (skillUser) {
-      console.log("hoge"); // ヒット処理後に実行 missにかかわらず実行 行動skip判定後のため、skipされうる
-    },
-    damageModifier: function (skillUser, skillTarget) {
-      return Math.pow(1.6, power) - 1;
-    },
-    damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      return 2; //初期値は1
-    },
-    abnormalityMultiplier: {
-      //初期値は1 状態異常特効系 マソと競合
-      poisoned: 2.5,
-      asleep: 2.5,
-      paralyzed: 2.5,
-    },
-    masoMultiplier: {
-      1: 2,
-      2: 3,
-      3: 4,
-      4: 5,
-    },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
-    reviseIf: function (skillUser) {
-      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
-        return "ツイスター下位";
-      }
-    },
-    description1: "hoge", //property部分
-    description2: "hoge",
-    description3: "hoge",
-  },
-  */
   {
     name: "通常攻撃",
     type: "notskill",
@@ -13380,8 +13370,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 30,
-    RaceBane: ["???", "自然"],
-    RaceBaneValue: 3,
+    raceBane: ["???", "自然"],
+    raceBaneRatio: 3,
     ignoreEvasion: true,
   },
   {
@@ -13697,7 +13687,7 @@ const skill = [
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
     unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
-    description1: "【先制】味方全体への　敵の行動を　かわりにうける",
+    description1: "【先制】味方1体への　敵の行動を　かわりにうける",
     description2: "自分を　行動停止無効状態にする",
   },
   {
@@ -13836,8 +13826,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 120,
-    RaceBane: ["物質"],
-    RaceBaneValue: 2, // みかわし マヌーサ有効
+    raceBane: ["物質"],
+    raceBaneRatio: 2, // みかわし マヌーサ有効
   },
   {
     name: "真・閃光さみだれ突き",
@@ -13868,8 +13858,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
-    RaceBane: ["???"],
-    RaceBaneValue: 3,
+    raceBane: ["???"],
+    raceBaneRatio: 3,
   },
   {
     name: "アバンストラッシュ反撃", // みがわり無視
@@ -13882,8 +13872,8 @@ const skill = [
     MPcost: 0,
     ignoreSubstitute: true,
     isCounterSkill: true,
-    RaceBane: ["???"],
-    RaceBaneValue: 3,
+    raceBane: ["???"],
+    raceBaneRatio: 3,
   },
   {
     name: "空裂斬",
@@ -13953,8 +13943,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 78,
-    RaceBane: ["???", "超魔王"],
-    RaceBaneValue: 4,
+    raceBane: ["???", "超魔王"],
+    raceBaneRatio: 4,
     damageByLevel: true,
     followingSkill: "超魔滅光後半",
     description1: "【みかわし不可】【マヌーサ無効】敵1体に　レベル依存で",
@@ -13970,8 +13960,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    RaceBane: ["???", "超魔王"],
-    RaceBaneValue: 4,
+    raceBane: ["???", "超魔王"],
+    raceBaneRatio: 4,
     damageByLevel: true,
   },
   {
@@ -14203,7 +14193,7 @@ const skill = [
     name: "冥王の構え反撃",
     type: "slash",
     howToCalculate: "fix",
-    fixedDamage: true,
+    isFixedDamage: true,
     damage: 50,
     element: "none",
     targetType: "single",
@@ -14340,8 +14330,8 @@ const skill = [
     MPcost: 30,
     order: "preemptive",
     preemptiveGroup: 8,
-    RaceBane: ["ドラゴン", "???"],
-    RaceBaneValue: 2,
+    raceBane: ["ドラゴン", "???"],
+    raceBaneRatio: 2,
   },
   {
     name: "アイスエイジ",
@@ -14481,8 +14471,8 @@ const skill = [
     MPcost: 59,
     ignoreReflection: true,
     ignoreProtection: true,
-    RaceBane: ["???", "超魔王", "超伝説"],
-    RaceBaneValue: 3,
+    raceBane: ["???", "超魔王", "超伝説"],
+    raceBaneRatio: 3,
   },
   {
     name: "閃光ジゴデイン",
@@ -14581,17 +14571,14 @@ const skill = [
     appliedEffect: "disruptiveWave",
     tensionClearProbability: 1,
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      if (isReflection) {
-        return 1; // 反射時は1倍とした
-      } else if (
-        skillTarget.buffs.slashReflection ||
-        skillTarget.buffs.spellReflection ||
-        skillTarget.buffs.breathReflection ||
-        skillTarget.buffs.danceReflection ||
-        skillTarget.buffs.ritualReflection
+      // 反射時は1倍とした
+      if (
+        !isReflection &&
+        (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.danceReflection || skillTarget.buffs.ritualReflection)
       ) {
         return 3;
       }
+      return 1;
     },
   },
   {
@@ -14624,8 +14611,8 @@ const skill = [
     criticalHitProbability: 0,
     ignoreSubstitute: true,
     ignoreReflection: true,
-    RaceBane: ["???"],
-    RaceBaneValue: 3,
+    raceBane: ["???"],
+    raceBaneRatio: 3,
     deleteUnbreakableProbability: 1,
   },
   {
@@ -14837,8 +14824,8 @@ const skill = [
     appliedEffect: { reviveBlock: { duration: 1 } },
     deleteUnbreakableProbability: 1,
     absorptionRatio: 0.5,
-    RaceBane: ["超伝説"],
-    RaceBaneValue: 2,
+    raceBane: ["超伝説"],
+    raceBaneRatio: 2,
   },
   {
     name: "真・轟雷滅殺剣",
@@ -14933,8 +14920,8 @@ const skill = [
     MPcost: 65,
     order: "preemptive",
     preemptiveGroup: 8,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
     criticalHitProbability: 0,
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
@@ -14953,8 +14940,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 60,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
     criticalHitProbability: 0,
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
@@ -15277,6 +15264,7 @@ const skill = [
     element: "none",
     targetType: "field",
     targetTeam: "ally",
+    MPcost: null,
     MPcostRatio: 1,
     isOneTimeUse: true,
     isHealSkill: true,
@@ -15311,8 +15299,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 98,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
     ignoreEvasion: true,
     followingSkill: "閃光裂衝拳後半",
   },
@@ -15384,6 +15372,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 1,
     ignoreReflection: true,
   },
@@ -15395,6 +15384,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 1,
     isOneTimeUse: true,
     ignoreReflection: true,
@@ -15508,8 +15498,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 67,
-    RaceBane: ["超伝説"],
-    RaceBaneValue: 5,
+    raceBane: ["超伝説"],
+    raceBaneRatio: 5,
     followingSkill: "クロスレジェンド後半",
   },
   {
@@ -15521,8 +15511,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    RaceBane: ["超伝説"],
-    RaceBaneValue: 5,
+    raceBane: ["超伝説"],
+    raceBaneRatio: 5,
     ignoreReflection: true,
     ignoreEvasion: true,
   },
@@ -15591,6 +15581,7 @@ const skill = [
     targetTeam: "ally",
     order: "preemptive",
     preemptiveGroup: 7, //仮に全体
+    MPcost: null,
     MPcostRatio: 1,
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
@@ -15619,6 +15610,7 @@ const skill = [
     element: "none",
     targetType: "field",
     targetTeam: "ally",
+    MPcost: null,
     MPcostRatio: 1,
     isOneTimeUse: true,
     act: async function (skillUser, skillTarget) {
@@ -16372,8 +16364,8 @@ const skill = [
     ignoreEvasion: true,
     ignoreDazzle: true, //推定
     criticalHitProbability: 0,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
   },
   {
     name: "創世の光陰", //todo: 仮に7回
@@ -16873,8 +16865,8 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 65,
-    RaceBane: ["???"],
-    RaceBaneValue: 0.333,
+    raceBane: ["???"],
+    raceBaneRatio: 0.333,
     ignoreReflection: true,
     damageByLevel: true,
     deleteUnbreakableProbability: 1,
@@ -16948,17 +16940,14 @@ const skill = [
     hitNum: 5,
     MPcost: 51,
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      if (isReflection) {
-        return 1; // 反射時は1倍とした
-      } else if (
-        skillTarget.buffs.slashReflection ||
-        skillTarget.buffs.spellReflection ||
-        skillTarget.buffs.breathReflection ||
-        skillTarget.buffs.martialReflection ||
-        skillTarget.buffs.ritualReflection
+      // 反射時は1倍とした
+      if (
+        !isReflection &&
+        (skillTarget.buffs.slashReflection || skillTarget.buffs.spellReflection || skillTarget.buffs.breathReflection || skillTarget.buffs.martialReflection || skillTarget.buffs.ritualReflection)
       ) {
         return 3;
       }
+      return 1;
     },
   },
   {
@@ -17095,11 +17084,11 @@ const skill = [
     MPcost: 41,
     criticalHitProbability: 0,
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      if (isReflection) {
-        return 1; // 反射時は1倍とした
-      } else if (skillTarget.buffs.martialReflection) {
+      // 反射時は1倍とした
+      if (!isReflection && skillTarget.buffs.martialReflection) {
         return 3;
       }
+      return 1;
     },
   },
   {
@@ -17683,15 +17672,15 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 58,
-    RaceBane: ["ドラゴン"],
-    RaceBaneValue: 2,
+    raceBane: ["ドラゴン"],
+    raceBaneRatio: 2,
     appliedEffect: { defUp: { strength: -1, probability: 0.3 } },
   },
   {
     name: "誇りのつるぎ",
     type: "slash",
     howToCalculate: "fix",
-    fixedDamage: true,
+    isFixedDamage: true,
     damage: 1000,
     element: "light",
     targetType: "single",
@@ -17704,7 +17693,7 @@ const skill = [
     name: "誇りのつるぎ後半",
     type: "slash",
     howToCalculate: "fix",
-    fixedDamage: true,
+    isFixedDamage: true,
     damage: 145,
     element: "light",
     targetType: "all",
@@ -17765,8 +17754,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 47,
-    RaceBane: ["???"],
-    RaceBaneValue: 3,
+    raceBane: ["???"],
+    raceBaneRatio: 3,
     deleteUnbreakableProbability: 1,
   },
   {
@@ -18106,8 +18095,8 @@ const skill = [
     MPcost: 61,
     order: "preemptive",
     preemptiveGroup: 8,
-    RaceBane: ["ドラゴン"],
-    RaceBaneValue: 2,
+    raceBane: ["ドラゴン"],
+    raceBaneRatio: 2,
     appliedEffect: { manaReduction: { strength: 0.5, duration: 2 } },
   },
   {
@@ -18938,8 +18927,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 57,
-    RaceBane: ["???", "超魔王"],
-    RaceBaneValue: 4,
+    raceBane: ["???", "超魔王"],
+    raceBaneRatio: 4,
     ignoreProtection: true,
     appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
     description1: "【軽減無視】敵1体に3回　バギ系の息攻撃　命中時",
@@ -19091,6 +19080,7 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 1,
     ignoreReflection: true,
     ignoreSubstitute: true,
@@ -19178,8 +19168,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 45,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
   },
   {
     name: "しっぷうづき",
@@ -19211,6 +19201,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 0.1,
     ignoreReflection: true,
     onComplete: async function (skillUser, isMonsterAction) {
@@ -19358,12 +19349,13 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 0.5,
     ignoreReflection: true,
     ignoreTypeEvasion: true,
-    damageMultiplier: function (skillUser, skillTarget) {
-      const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
       let reflectionCount = 0;
+      const reflectionMap = ["spellReflection", "slashReflection", "martialReflection", "breathReflection", "danceReflection", "ritualReflection"];
       for (const reflectionBuff of reflectionMap) {
         if (skillTarget.buffs[reflectionBuff]) {
           reflectionCount++;
@@ -19374,6 +19366,7 @@ const skill = [
       } else if (reflectionCount === 1) {
         return 2.5;
       }
+      return 1;
     },
   },
   {
@@ -19450,10 +19443,11 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 150,
     order: "anchor",
-    damageMultiplier: function (skillUser, skillTarget) {
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
       if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
         return 1.5; //todo: 反射時に1.5にならない
       }
+      return 1;
     },
     description1: "【アンカー】敵全体に　無属性の呪文攻撃",
     description2: "賢さによって　ダメージが変化しにくい",
@@ -19617,11 +19611,11 @@ const skill = [
     ignoreSubstitute: true,
     ignoreProtection: true,
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      if (isReflection) {
-        return 1; // 反射時はuserまたはtargetがみがわられ状態であっても1倍となる
-      } else if (skillTarget.flags.waveOfDreadTarget) {
+      // 反射時はuserまたはtargetがみがわられ状態であっても1倍となる
+      if (!isReflection && skillTarget.flags.waveOfDreadTarget) {
         return 3;
       }
+      return 1;
     },
     act: function (skillUser, skillTarget) {
       // 反射時、元の使用者（今回ダメージを受ける側）がみがわられ状態の場合、回復封じ付与対象となる
@@ -19721,10 +19715,11 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 114,
     ignoreReflection: true,
-    damageMultiplier: function (skillUser, skillTarget) {
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
       if (!skillUser.buffs.dodgeBuff || skillUser.buffs.dodgeBuff.strength !== 1) {
         return 3;
       }
+      return 1;
     },
   },
   {
@@ -20007,12 +20002,11 @@ const skill = [
     ignoreEvasion: true,
     ignoreDazzle: true,
     appliedEffect: { fear: { probability: 0.2 } },
-    damageMultiplier: function (skillUser, skillTarget) {
+    damageMultiplier: function (skillUser, skillTarget, isReflection) {
       if (skillUser.buffs.protection) {
         return skillUser.buffs.protection.strength * 2.5 + 1;
-      } else {
-        return 1;
       }
+      return 1;
     },
   },
   {
@@ -20125,8 +20119,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 50,
-    RaceBane: ["物質", "悪魔"],
-    RaceBaneValue: 3,
+    raceBane: ["物質", "悪魔"],
+    raceBaneRatio: 3,
   },
   {
     name: "天風の陣",
@@ -20161,6 +20155,7 @@ const skill = [
       if (!isReflection && skillTarget.buffs.poisoned) {
         return 0.2; // 反射時は毒であろうと5倍
       }
+      return 1;
     },
   },
   {
@@ -20612,6 +20607,7 @@ const skill = [
     targetTeam: "ally",
     order: "anchor",
     isOneTimeUse: true,
+    MPcost: null,
     MPcostRatio: 1,
     isHealSkill: true,
     act: async function (skillUser, skillTarget) {
@@ -20809,8 +20805,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 48,
-    RaceBane: ["???"],
-    RaceBaneValue: 5,
+    raceBane: ["???"],
+    raceBaneRatio: 5,
     damageByLevel: true,
     ignoreProtection: true,
   },
@@ -21378,6 +21374,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 0.3,
     ignoreReflection: true,
     appliedEffect: { maso: { strength: 3, maxDepth: 3 } },
@@ -21919,8 +21916,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 28,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
   },
   {
     name: "聖魔斬",
@@ -21931,8 +21928,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 28,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
   },
   {
     name: "閃光斬",
@@ -21943,8 +21940,8 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 28,
-    RaceBane: ["???"],
-    RaceBaneValue: 2,
+    raceBane: ["???"],
+    raceBaneRatio: 2,
   },
   {
     name: "ギガブレイク",
@@ -22117,6 +22114,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "enemy",
+    MPcost: null,
     MPcostRatio: 1,
     ignoreReflection: true,
   },
@@ -25678,8 +25676,8 @@ function createSDappliedEffect(skillInfo) {
       skillDescriptionText += "自分の残りHPが少ないほど　威力大　";
     }
     // 種族特効
-    if (skillInfo.RaceBane) {
-      skillDescriptionText += `${skillInfo.RaceBane.join("・")}系に　威力${skillInfo.RaceBaneValue}倍　`;
+    if (skillInfo.raceBane) {
+      skillDescriptionText += `${skillInfo.raceBane.join("・")}系に　威力${skillInfo.raceBaneRatio}倍　`;
     }
     // みがわり特効
     if (skillInfo.substituteBreaker) {
