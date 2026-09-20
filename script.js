@@ -956,24 +956,15 @@ async function startTurn() {
     count: 1,
     isValid: false,
   };
-  if (!fieldState.isPermanentReverse) {
-    delete fieldState.isReverse;
-  }
-  if (!fieldState.isPermanentDistorted) {
-    delete fieldState.isDistorted;
-  }
-  delete fieldState.psychoField;
-  if (fieldState.stonedBlock) {
-    fieldState.stonedBlock--;
-  }
-  if (fieldState.stonedBlock === 0) {
-    delete fieldState.stonedBlock;
-  }
-  if (fieldState.disableReverse) {
-    fieldState.disableReverse--;
-  }
-  if (fieldState.disableReverse === 0) {
-    delete fieldState.disableReverse;
+  // フィールド効果のターン経過カウントダウン
+  const fieldKeys = ["isReverse", "isDistorted", "psychoField", "disableReverse", "stonedBlock"];
+  for (const key of fieldKeys) {
+    if (fieldState[key]) {
+      fieldState[key]--;
+      if (fieldState[key] <= 0) {
+        delete fieldState[key];
+      }
+    }
   }
   adjustFieldStateDisplay();
   removeAllStickOut();
@@ -9566,16 +9557,7 @@ function getMonsterAbilities(monsterId) {
             name: "竜衆の溶鉄",
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
             act: async function (skillUser) {
-              displayMessage("アストロンを ふうじられた！");
-              if (!fieldState.psychoField) {
-                fieldState.stonedBlock = 3;
-                // 全体buff表示更新
-                for (const party of parties) {
-                  for (const monster of party) {
-                    await updateMonsterBuffsDisplay(monster);
-                  }
-                }
-              }
+              await changeField("stonedBlock", 3);
             },
           },
         ],
@@ -10307,16 +10289,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の特性`, "サイコ・ワールド が発動！");
             },
             act: async function (skillUser) {
-              displayMessage("フィールド効果が無効化された！");
-              delete fieldState.isPermanentReverse;
-              delete fieldState.isReverse;
-              delete fieldState.isPermanentDistorted;
-              delete fieldState.isDistorted;
-              delete fieldState.disableReverse;
-              delete fieldState.stonedBlock;
-              // リバース封じ解除
-              fieldState.psychoField = true;
-              adjustFieldStateDisplay();
+              await changeField("psychoField", 1);
             },
           },
         ],
@@ -10327,16 +10300,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の特性`, "サイコ・ワールド が発動！");
             },
             act: async function (skillUser) {
-              displayMessage("フィールド効果が無効化された！");
-              delete fieldState.isPermanentReverse;
-              delete fieldState.isReverse;
-              delete fieldState.isPermanentDistorted;
-              delete fieldState.isDistorted;
-              delete fieldState.disableReverse;
-              delete fieldState.stonedBlock;
-              // リバース封じ解除
-              fieldState.psychoField = true;
-              adjustFieldStateDisplay();
+              await changeField("psychoField", 1);
             },
           },
         ],
@@ -10453,12 +10417,8 @@ function getMonsterAbilities(monsterId) {
             message: function (skillUser) {
               displayMessage(`${skillUser.name}の特性により`, "リバースが 発動！");
             },
-            act: function (skillUser) {
-              displayMessage("全員の 行動順と素早さが", "逆転した！");
-              if (!fieldState.psychoField && !fieldState.disableReverse) {
-                fieldState.isReverse = true;
-                adjustFieldStateDisplay();
-              }
+            act: async function (skillUser) {
+              await changeField("isReverse", 1);
             },
           },
         ],
@@ -16768,11 +16728,7 @@ const skill = [
     preemptiveGroup: 1,
     MPcost: 39,
     act: async function (skillUser, skillTarget) {
-      if (!fieldState.psychoField) {
-        fieldState.isDistorted = true;
-        await deleteElementalBuffs();
-        adjustFieldStateDisplay();
-      }
+      await changeField("isDistorted", 1);
     },
   },
   {
@@ -16785,12 +16741,8 @@ const skill = [
     MPcost: 60,
     order: "anchor",
     isOneTimeUse: true,
-    act: function (skillUser, skillTarget) {
-      if (!fieldState.psychoField && !fieldState.disableReverse) {
-        fieldState.isReverse = true;
-        fieldState.isPermanentReverse = true;
-        adjustFieldStateDisplay();
-      }
+    act: async function (skillUser, skillTarget) {
+      await changeField("isReverse", 11);
       applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } });
     },
   },
@@ -24524,12 +24476,7 @@ async function transformTyoma(monster) {
   } else if (monster.name === "魔扉の災禍オムド・レクス") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "歪みの根源 が発動！");
-    if (!fieldState.psychoField) {
-      fieldState.isDistorted = true;
-      fieldState.isPermanentDistorted = true;
-      await deleteElementalBuffs();
-      adjustFieldStateDisplay();
-    }
+    await changeField("isDistorted", 11);
   } else if (monster.name === "新たなる神ラプソーン") {
     await sleep(400);
     displayMessage("無属性とくぎを防ぐ状態が", "解除された！");
@@ -24551,12 +24498,7 @@ async function transformTyoma(monster) {
     for (const target of parties[monster.enemyTeamID]) {
       applyBuff(target, { dazzle: { probability: 1 } });
     }
-    delete fieldState.isReverse;
-    delete fieldState.isPermanentReverse;
-    if (!fieldState.psychoField) {
-      fieldState.disableReverse = 6;
-    }
-    adjustFieldStateDisplay();
+    await changeField("disableReverse", 6);
   } else if (monster.name === "殺りくの神ダークドレアム") {
     // 悪夢の覚醒 全属性シールド付与
     const damageDealt = monster.flags.damageDealt - 3000;
@@ -24769,6 +24711,88 @@ function addHexagonShine(targetElementId, cracked = false) {
     hexagon.remove();
   }, timeOutDuration);
 }
+
+/**
+ * フィールド効果を展開・変更する
+ * @param {string} newFieldKey - 展開するフィールドのキー ("psychoField" | "isReverse" | "isDistorted" | "disableReverse" | "stonedBlock")
+ * @param {number|null} customDuration - 持続ターン数
+ * @returns {Promise<boolean>} - 展開に成功したかどうか
+ */
+async function changeField(newFieldKey, customDuration = 1) {
+  const fieldDefinitions = {
+    psychoField: {
+      canApply: () => true, // 常に上書き可能
+      message: "フィールド効果が無効化された！",
+      onApply: async () => {
+        const otherKeys = ["isReverse", "isDistorted", "disableReverse", "stonedBlock"];
+        for (const key of otherKeys) {
+          delete fieldState[key];
+        }
+      },
+    },
+    isReverse: {
+      canApply: (fs) => !fs.psychoField && !fs.disableReverse,
+      message: "全員の 行動順と素早さが\n逆転した！",
+      onApply: null,
+    },
+    isDistorted: {
+      canApply: (fs) => !fs.psychoField,
+      message: null,
+      onApply: async () => {
+        // 属性歪曲時は全モンスターの属性耐性バフ/デバフを解除
+        await deleteElementalBuffs();
+      },
+    },
+    disableReverse: {
+      canApply: (fs) => !fs.psychoField,
+      message: null,
+      onApply: async () => {
+        // リバース無効展開時、すでにリバース状態であれば解除
+        delete fieldState.isReverse;
+      },
+    },
+    stonedBlock: {
+      canApply: (fs) => !fs.psychoField,
+      message: "アストロンを ふうじられた！",
+      onApply: async () => {
+        // 全体の石化封じアイコン表示を更新
+        for (const party of parties) {
+          for (const monster of party) {
+            await updateMonsterBuffsDisplay(monster);
+          }
+        }
+      },
+    },
+  };
+
+  const fieldDef = fieldDefinitions[newFieldKey];
+  if (!fieldDef) {
+    console.error(`未定義のフィールド効果: ${newFieldKey}`);
+    return false;
+  }
+
+  // 1. 展開可能条件のチェック
+  if (!fieldDef.canApply(fieldState)) {
+    return false;
+  }
+
+  // 2. メッセージ表示
+  if (fieldDef.message) {
+    const lines = fieldDef.message.split("\n");
+    displayMessage(lines[0], lines[1] || "");
+    await sleep(200);
+  }
+
+  // 3. 展開・付随処理
+  fieldState[newFieldKey] = customDuration;
+  if (fieldDef.onApply) {
+    await fieldDef.onApply();
+  }
+
+  adjustFieldStateDisplay();
+  return true;
+}
+
 function adjustFieldStateDisplay() {
   const fieldStateDisplay1 = document.getElementById("fieldStateDisplay1");
   const fieldStateDisplay2 = document.getElementById("fieldStateDisplay2");
@@ -24776,20 +24800,20 @@ function adjustFieldStateDisplay() {
   let display2Content = "";
 
   if (fieldState.psychoField) {
-    display1Content = "フィールド効果無効 残り1ラウンド";
+    display1Content = `フィールド効果無効 残り${fieldState.psychoField}ラウンド`;
   } else {
     if (fieldState.isReverse) {
-      display1Content = fieldState.isPermanentReverse ? `リバース 残り11ラウンド` : `リバース 残り1ラウンド`;
+      display1Content = `リバース 残り${fieldState.isReverse}ラウンド`;
     } else if (fieldState.disableReverse) {
       display1Content = `リバース無効 残り${fieldState.disableReverse}ラウンド`;
     }
+
     if (fieldState.isDistorted) {
+      const text = `属性歪曲 残り${fieldState.isDistorted}ラウンド`;
       if (display1Content === "") {
-        // display1が空ならdistortedをdisplay1に割り当てる
-        display1Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
+        display1Content = text;
       } else {
-        // display1が埋まっているならdistortedをdisplay2に割り当てる
-        display2Content = fieldState.isPermanentDistorted ? `属性歪曲 残り11ラウンド` : `属性歪曲 残り1ラウンド`;
+        display2Content = text;
       }
     }
   }
@@ -24810,6 +24834,7 @@ function adjustFieldStateDisplay() {
     fieldStateDisplay2.textContent = display2Content;
   }
 }
+
 // 昇天
 function ascension(monster, ignoreUnAscensionable = false) {
   if (!monster.flags.isZombie) {
