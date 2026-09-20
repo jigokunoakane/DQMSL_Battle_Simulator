@@ -501,12 +501,7 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
     nameDiv.textContent = skillInfo.displayName || skillName;
     mpCostSpan.textContent = MPcost; // span要素の中身を更新
 
-    if (
-      skillUser.flags.unavailableSkills.includes(skillName) ||
-      isSkillSealed(skillUser, skillInfo) ||
-      !hasEnoughMpForSkill(skillUser, skillInfo) ||
-      (skillInfo.unavailableIf && skillInfo.unavailableIf(skillUser))
-    ) {
+    if (cannotUseSkill(skillUser, skillInfo)) {
       selectSkillBtn.disabled = true;
       selectSkillBtn.style.filter = "brightness(48%)";
       selectSkillBtn.style.backgroundColor = "#06718b";
@@ -615,7 +610,10 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわり系の場合、自分自身と覆う中・覆われ中の対象を暗転&無効化
-    if (selectedSkill.substituteScope === "single" && (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute || targetMonster.buffs.substituteSeal)) {
+    if (
+      selectedSkill.substituteParams?.scope === "single" &&
+      (currentMonsterIndex === i || targetMonster.flags.isSubstituting || targetMonster.flags.hasSubstitute || targetMonster.buffs.substituteSeal)
+    ) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
   }
@@ -3021,10 +3019,8 @@ function decideAICommandShowNoMercy(skillUser) {
     if (
       !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
       isSkillUnavailableForAI(skillName) ||
-      skillUser.flags.unavailableSkills.includes(skillName) ||
       skillUser.disabledSkillsByPlayer.includes(skillName) ||
-      isSkillSealed(skillUser, skillInfo) ||
-      !hasEnoughMpForSkill(skillUser, skillInfo) ||
+      cannotUseSkill(skillUser, skillInfo) ||
       skillInfo.howToCalculate === "none" ||
       skillInfo.targetTeam !== "enemy"
     ) {
@@ -3132,11 +3128,8 @@ function decideAICommandFocusOnHeal(skillUser) {
     if (
       !skillUser.availableSkillsOnAIthisTurn.includes(skillName) ||
       isSkillUnavailableForAI(skillName) ||
-      skillUser.flags.unavailableSkills.includes(skillName) ||
       skillUser.disabledSkillsByPlayer.includes(skillName) ||
-      // unavailableIfは様子見
-      isSkillSealed(skillUser, skillInfo) ||
-      !hasEnoughMpForSkill(skillUser, skillInfo)
+      cannotUseSkill(skillUser, skillInfo)
     ) {
       continue;
     }
@@ -3909,6 +3902,23 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     // バフが変更されたかを管理するフラグ
     let isBuffTargetChanged = false;
     let isSkillUserChanged = false;
+
+    // 身代わり・かばう処理
+    if (executingSkill.substituteParams) {
+      const effect = executingSkill.substituteParams;
+      if (!effect.condition || effect.condition(skillUser, buffTarget)) {
+        const isAll = effect.scope === "all";
+        const target = isAll ? null : buffTarget;
+        const isCover = effect.isCover ?? false;
+
+        applySubstitute(skillUser, target, isAll, isCover);
+
+        isSkillUserChanged = true;
+        if (!isAll && buffTarget) {
+          isBuffTargetChanged = true;
+        }
+      }
+    }
 
     // くじけぬ解除処理
     if (executingSkill.deleteUnbreakableProbability && buffTarget.buffs.isUnbreakable !== undefined && !buffTarget.flags.isDead && !buffTarget.flags.isZombie) {
@@ -12779,7 +12789,6 @@ function getMonsterAbilities(monsterId) {
  * @property {boolean} [skipDeathCheck] - 死亡状態でも常に実行（skipThisTurn(リザオ蘇生時等)でも発動）
  * @property {boolean} [isCounterSkill] - カウンタースキルフラグ（skipThisTurn(リザオ蘇生時等)でも発動するが、死亡状態（flag.isDead）では実行しない）
  * @property {boolean} [skipSkillSealCheck] - 体技封じ・息封じ等の封じ無視（教団の光 勇者の家庭教師）
- * @property {"single" | "all"} [substituteScope] - みがわり範囲
  * @property {string} [followingSkill] - 後続スキル名
  * @property {string} [additionalVersion] - 追加バージョン名
  * @property {string} [domainElement] - 領界変化
@@ -12788,6 +12797,7 @@ function getMonsterAbilities(monsterId) {
  * @property {"disruptiveWave" | "divineWave"} [waveEffect] - いては・上位はどう
  * @property {Object.<string, any>} [appliedEffect] - 付与バフ・デバフ
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
+ * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
  *
  * --- コールバック・関数処理 ---
  * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
@@ -12798,7 +12808,6 @@ function getMonsterAbilities(monsterId) {
  * @property {(skillUser: any) => Promise<void>|void} [selfAppliedEffect] - ヒット後自身への効果付与（missにかかわらず実行 行動skip判定されうる）
  * @property {(skillUser: any, skillTarget: any) => number} [damageModifier] - 特殊ダメージ増減算出
  * @property {(skillUser: any, skillTarget: any, isReflection?: boolean) => number} [damageMultiplier] - 特殊ダメージ倍率算出
- * @property {(skillUser: any) => boolean} [unavailableIf] - 使用不可条件
  * @property {(skillUser: any) => string|undefined} [reviseIf] - 条件分岐によるスキル置換判定 (下位技への変化など)
  *
  * --- 説明文 ---
@@ -13559,8 +13568,8 @@ const skill = [
     MPcost: 14,
     order: "preemptive",
     preemptiveGroup: 3,
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, null, true);
+    substituteParams: {
+      scope: "all",
     },
     selfAppliedEffect: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
@@ -13568,7 +13577,6 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方全体への　敵の行動を　かわりにうける",
   },
   {
@@ -13579,10 +13587,9 @@ const skill = [
     targetType: "field",
     targetTeam: "ally",
     MPcost: 0,
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, null, true);
+    substituteParams: {
+      scope: "all",
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "大樹の守り",
@@ -13607,9 +13614,8 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 4,
-    substituteScope: "single",
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget);
+    substituteParams: {
+      scope: "single",
     },
     selfAppliedEffect: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
@@ -13617,7 +13623,6 @@ const skill = [
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方1体への　敵の行動を　かわりにうける",
   },
   {
@@ -13630,15 +13635,13 @@ const skill = [
     MPcost: 11,
     order: "preemptive",
     preemptiveGroup: 4,
-    substituteScope: "single",
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget);
+    substituteParams: {
+      scope: "single",
     },
     selfAppliedEffect: async function (skillUser) {
       await sleep(100);
       applyBuff(skillUser, { mindBarrier: { duration: 4 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description1: "【先制】味方1体への　敵の行動を　かわりにうける",
     description2: "自分を　行動停止無効状態にする",
   },
@@ -16108,15 +16111,13 @@ const skill = [
     MPcost: 9,
     order: "preemptive",
     preemptiveGroup: 4,
-    substituteScope: "single",
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget);
+    substituteParams: {
+      scope: "single",
     },
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
       applyBuff(skillUser, { slashBarrier: { strength: 1 } });
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "いてつくゆきだま",
@@ -16233,15 +16234,14 @@ const skill = [
     MPcost: 49,
     order: "preemptive",
     preemptiveGroup: 3,
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, null, true);
+    substituteParams: {
+      scope: "all",
     },
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
         applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
       }
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "みかわしのひやく",
@@ -17285,11 +17285,10 @@ const skill = [
     MPcost: 16,
     order: "preemptive",
     preemptiveGroup: 4,
-    substituteScope: "single",
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, skillTarget, false, true);
+    substituteParams: {
+      scope: "single",
+      isCover: true,
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
   },
   {
     name: "闇の紋章",
@@ -18513,12 +18512,10 @@ const skill = [
     MPcost: 14,
     order: "preemptive",
     preemptiveGroup: 3,
-    act: function (skillUser, skillTarget) {
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
-        applySubstitute(skillUser, null, true);
-      }
+    substituteParams: {
+      scope: "all",
+      condition: (skillUser, skillTarget) => hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
     },
-    unavailableIf: (skillUser) => skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal,
     description2: "悪魔系の味方が　4体以上なら",
     description3: "味方全体への　敵の行動を　かわりにうける",
   },
@@ -19691,8 +19688,8 @@ const skill = [
     MPcost: 34,
     order: "preemptive",
     preemptiveGroup: 3,
-    act: function (skillUser, skillTarget) {
-      applySubstitute(skillUser, null, true);
+    substituteParams: {
+      scope: "all",
     },
     selfAppliedEffect: async function (skillUser) {
       if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
@@ -24004,6 +24001,15 @@ function isSkillSealed(skillUser, executingSkill, displaySealedMessage = false) 
     }
   }
   return false;
+}
+
+function cannotUseSkill(skillUser, skillInfo) {
+  return (
+    skillUser.flags.unavailableSkills.includes(skillInfo.name) ||
+    isSkillSealed(skillUser, skillInfo) ||
+    !hasEnoughMpForSkill(skillUser, skillInfo) ||
+    Boolean(skillInfo.substituteParams && (skillUser.flags.isSubstituting || skillUser.flags.hasSubstitute || skillUser.buffs.substituteSeal))
+  );
 }
 
 function displayBuffMessage(buffTarget, buffName, buffData) {
