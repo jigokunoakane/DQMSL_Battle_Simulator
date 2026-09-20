@@ -3861,8 +3861,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
         (skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion)) &&
       executingSkill.targetTeam === "enemy" &&
       !executingSkill.ignoreTypeEvasion &&
-      executingSkill.appliedEffect !== "divineWave" &&
-      executingSkill.appliedEffect !== "disruptiveWave"
+      !executingSkill.waveEffect
     ) {
       col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
       applyDamage(skillTarget, 0);
@@ -3878,7 +3877,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       skillTarget = assignedSkillUser;
     }
     // isDamageExistingはfalseで送る
-    await processAppliedEffectWave(skillTarget, executingSkill, false);
+    await processWaveEffect(skillTarget, executingSkill, false);
     await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
     // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
     checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection);
@@ -3892,21 +3891,19 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
-  // AppliedEffect指定のうち、規定値による波動処理を定義
-  async function processAppliedEffectWave(buffTarget, executingSkill, isDamageExisting = false) {
-    if (executingSkill.appliedEffect) {
-      if (executingSkill.appliedEffect === "radiantWave") {
-        await executeRadiantWave(buffTarget);
-      } else if (executingSkill.appliedEffect === "divineWave") {
-        await executeWave(buffTarget, true, isDamageExisting);
-      } else if (executingSkill.appliedEffect === "disruptiveWave") {
-        await executeWave(buffTarget, false, isDamageExisting);
-      }
-    }
+  // WaveEffectによる波動処理を定義
+  async function processWaveEffect(buffTarget, executingSkill, isDamageExisting = false) {
+    const isDivine = {
+      divineWave: true,
+      disruptiveWave: false,
+    }[executingSkill.waveEffect];
+    if (isDivine === undefined) return;
+    await executeWave(buffTarget, isDivine, isDamageExisting);
   }
+
   // AppliedEffect指定のうち、applyBuffおよびactを定義
   async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
-    if (executingSkill.appliedEffect && executingSkill.appliedEffect !== "radiantWave" && executingSkill.appliedEffect !== "divineWave" && executingSkill.appliedEffect !== "disruptiveWave") {
+    if (executingSkill.appliedEffect) {
       applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection, false, isDamageExisting);
     }
     // バフが変更されたかを管理するフラグ
@@ -4038,15 +4035,9 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  // applyDamage実行前に、appliedEffectのいては系によるリザオ解除を実行
-  if (
-    (reducedByElementalShield || damage > 0) &&
-    executingSkill.appliedEffect &&
-    (executingSkill.appliedEffect === "disruptiveWave" || executingSkill.appliedEffect === "divineWave") &&
-    skillTarget.buffs.autoRevive &&
-    !skillTarget.buffs.autoRevive.unDispellable
-  ) {
-    if (executingSkill.appliedEffect === "divineWave" || !skillTarget.buffs.autoRevive.divineDispellable) {
+  // applyDamage実行前に、いては系によるリザオ解除を実行
+  if ((reducedByElementalShield || damage > 0) && executingSkill.waveEffect && skillTarget.buffs.autoRevive && !skillTarget.buffs.autoRevive.unDispellable) {
+    if (executingSkill.waveEffect === "divineWave" || !skillTarget.buffs.autoRevive.divineDispellable) {
       delete skillTarget.buffs.autoRevive;
     }
   }
@@ -4055,13 +4046,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 殴りによる眠り・混乱解除処理
   if (isAvertableSkill(executingSkill)) {
-    if (skillTarget.buffs.asleep && Math.random() < 0.6 && (!executingSkill.appliedEffect || typeof executingSkill.appliedEffect === "string" || !executingSkill.appliedEffect.asleep)) {
+    if (skillTarget.buffs.asleep && Math.random() < 0.6 && !executingSkill.appliedEffect?.asleep) {
       delete skillTarget.buffs.asleep;
       updateMonsterBuffsDisplay(skillTarget);
       displayMessage(`${skillTarget.name}は`, `目をさました！`);
       col(`${skillTarget.name}は殴られて目をさました！`);
     }
-    if (skillTarget.buffs.confused && Math.random() < 0.6 && (!executingSkill.appliedEffect || typeof executingSkill.appliedEffect === "string" || !executingSkill.appliedEffect.confused)) {
+    if (skillTarget.buffs.confused && Math.random() < 0.6 && !executingSkill.appliedEffect?.confused) {
       delete skillTarget.buffs.confused;
       updateMonsterBuffsDisplay(skillTarget);
       displayMessage(`${skillTarget.name}は`, `われにかえった！`);
@@ -4071,7 +4062,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
   if (reducedByElementalShield || damage > 0) {
-    await processAppliedEffectWave(skillTarget, executingSkill, true);
+    await processWaveEffect(skillTarget, executingSkill, true);
   }
   // それ以外の追加効果はtarget生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
   if (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0)) {
@@ -12794,7 +12785,8 @@ function getMonsterAbilities(monsterId) {
  * @property {string} [domainElement] - 領界変化
  *
  * --- 状態変化・追加効果 ---
- * @property {string | Object.<string, any>} [appliedEffect] - 付与効果 (文字列 "divineWave" やオブジェクト)
+ * @property {"disruptiveWave" | "divineWave"} [waveEffect] - いては・上位はどう
+ * @property {Object.<string, any>} [appliedEffect] - 付与バフ・デバフ
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
  *
  * --- コールバック・関数処理 ---
@@ -13166,7 +13158,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     substituteBreaker: 3,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
         return "神楽の術下位";
@@ -13191,7 +13183,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     substituteBreaker: 3,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "昇天斬り",
@@ -13284,7 +13276,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 58,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     description2: "ランダムに5回　ギラ系の息攻撃",
     description3: "命中時　状態変化解除",
   },
@@ -13389,7 +13381,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 3,
     MPcost: 57,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "煉獄火炎",
@@ -13457,7 +13449,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 82,
     damageByLevel: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     tensionClearProbability: 1,
   },
   {
@@ -13714,7 +13706,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 98,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "ほのお",
@@ -13857,7 +13849,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 69,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "大地斬",
@@ -14040,7 +14032,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 4,
     MPcost: 54,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     selfAppliedEffect: async function (skillUser) {
       await sleep(150);
       applyBuff(skillUser, { martialEvasion: { duration: 2, divineDispellable: true } });
@@ -14197,7 +14189,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     deleteUnbreakableProbability: 1,
   },
   {
@@ -14210,7 +14202,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 6,
     MPcost: 75,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     deleteUnbreakableProbability: 1,
   },
   {
@@ -14222,7 +14214,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 92,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     act: function (skillUser, skillTarget) {
       applyBuff(skillTarget, { slashSeal: {} });
     },
@@ -14325,7 +14317,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 48,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     followingSkill: "真・氷魔の力後半",
   },
   {
@@ -14418,7 +14410,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "おうじゃのけん",
@@ -14475,7 +14467,7 @@ const skill = [
     preemptiveGroup: 7,
     isOneTimeUse: true,
     ignoreReflection: true, //不要
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     followingSkill: "ひかりのたま回復封じ",
     description1: "【戦闘中1回】【先制】敵全体の　状態変化を【反射無視】で",
     description2: "解除（上位効果）し　回復封じ状態にする　その後",
@@ -14528,7 +14520,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 82,
     damageByLevel: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     tensionClearProbability: 1,
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
       // 反射時は1倍とした
@@ -14839,7 +14831,7 @@ const skill = [
     hitNum: 5,
     MPcost: 99,
     ignoreEvasion: true,
-    appliedEffect: "divineWave", // プラスのもののみ削除
+    waveEffect: "divineWave", // プラスのもののみ削除
   },
   {
     name: "秘技グランドクロス",
@@ -14863,7 +14855,7 @@ const skill = [
     MPcost: 99,
     ignoreProtection: true,
     zakiProbability: 0.78,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     description1: "【軽減無視】敵全体に　攻撃力依存で",
     description2: "ギラ系の斬撃攻撃　命中時　状態変化解除　確率で　即死させる",
     description3: "敵が1体以上チカラつきたなら　もう一度繰り返す",
@@ -15000,7 +14992,7 @@ const skill = [
     MPcost: 72,
     order: "anchor",
     lowHpDamageMultiplier: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "ブリザーウォール",
@@ -15128,7 +15120,7 @@ const skill = [
     hitNum: 4,
     MPcost: 61,
     ignoreEvasion: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "灼熱の息吹",
@@ -15836,7 +15828,7 @@ const skill = [
     MPcost: 51,
     ignoreEvasion: true,
     ignoreSubstitute: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "ソウルブレイカー",
@@ -16077,7 +16069,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 60,
     damageByLevel: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "大魔王のメラ",
@@ -16136,7 +16128,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 7,
     MPcost: 54,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "はんげきのゆきだま1発目",
@@ -16149,7 +16141,7 @@ const skill = [
     MPcost: 0,
     isCounterSkill: true,
     ignoreSubstitute: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     followingSkill: "はんげきのゆきだま2発目",
   },
   {
@@ -16163,7 +16155,7 @@ const skill = [
     MPcost: 0,
     isCounterSkill: true,
     ignoreSubstitute: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "ムフォムフォダンス",
@@ -16426,7 +16418,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 63,
     damageByLevel: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "グランドショット",
@@ -16876,7 +16868,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 7,
     MPcost: 56,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     selfAppliedEffect: async function (skillUser) {
       applyBuff(skillUser, { damageLimit: { keepOnDeath: true, strength: 300 } }, null, false, true);
     },
@@ -16950,7 +16942,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "必殺の双撃",
@@ -17359,7 +17351,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 42,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "神のはどう",
@@ -17369,7 +17361,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 42,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "女神のはばたき",
@@ -17379,7 +17371,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 49,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "真・いてつくはどう",
@@ -17389,7 +17381,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 36,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "轟雷滅殺剣後半",
@@ -17399,7 +17391,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 0,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "プチ神のはどう",
@@ -17409,7 +17401,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 56,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "竜の眼光",
@@ -17419,7 +17411,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 50,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "光のはどう",
@@ -17466,7 +17458,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 58,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     followingSkill: "光のはどう",
   },
   {
@@ -17477,7 +17469,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 58,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     ignoreSubstitute: true,
     act: async function (skillUser, skillTarget) {
       if (skillTarget.buffs.damageLimit && !skillTarget.buffs.damageLimit.keepOnDeath) {
@@ -17612,7 +17604,7 @@ const skill = [
     MPcost: 68,
     ignoreReflection: true,
     ignoreEvasion: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "滅竜の絶技",
@@ -17666,7 +17658,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 92,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "らいてい弾",
@@ -18079,7 +18071,7 @@ const skill = [
     MPcost: 41,
     ignoreEvasion: true, // マヌーサ有効
     damageByLevel: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "ディバインフェザー",
@@ -18226,7 +18218,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 56,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     followingSkill: "あんこくのはばたき後半",
   },
   {
@@ -18814,7 +18806,7 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 67,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "波状裂き",
@@ -18847,7 +18839,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 72,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
     reviseIf: function (skillUser) {
       if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
         return "ツイスター下位";
@@ -18866,7 +18858,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 72,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "浄化の風",
@@ -19239,7 +19231,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 65,
     damageByLevel: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "インパクトキャノン",
@@ -19445,7 +19437,7 @@ const skill = [
     ignoreTypeEvasion: true,
     ignorePowerCharge: true,
     ignoreBarrier: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "羅刹斬",
@@ -19456,7 +19448,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 58,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "デッドリースパーク",
@@ -19510,7 +19502,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     ignoreSubstitute: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "真・グランドクルス",
@@ -19687,7 +19679,7 @@ const skill = [
     ignoreDazzle: true,
     ignoreReflection: true,
     criticalHitProbability: 0,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "マテリアルガード",
@@ -19973,7 +19965,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreDazzle: true,
     criticalHitProbability: 0,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "サンゴの牢獄",
@@ -20263,7 +20255,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 7,
     damageByLevel: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "ネクロゴンドの衝撃下位",
@@ -20276,7 +20268,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 86,
     damageByLevel: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "イオナフィスト",
@@ -20402,7 +20394,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     skipDeathCheck: true,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
   },
   {
     name: "ヒートヴェノム",
@@ -21026,7 +21018,7 @@ const skill = [
     MPcost: 62,
     ignoreProtection: true,
     ignoreGuard: true,
-    appliedEffect: "divineWave",
+    waveEffect: "divineWave",
   },
   {
     name: "災禍のマ瘴",
@@ -21213,7 +21205,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 46,
-    appliedEffect: "disruptiveWave",
+    waveEffect: "disruptiveWave",
     followingSkill: "マ素のはどう後半",
   },
   {
@@ -23264,7 +23256,6 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   } else if (skillInfo.targetTeam === "ally") {
     type = "support";
   } else if (skillInfo.appliedEffect || skillInfo.zakiProbability) {
-    // 波動系はspecial判定済み
     type = "abnormality";
   } else if (isDamageExistingSkill(skillInfo) && !skillInfo.act) {
     type = "attack";
@@ -23301,8 +23292,7 @@ function isDamageExistingSkill(skillInfo) {
 function hasWaveEffect(skillInfo) {
   let currentSkill = skillInfo;
   while (currentSkill) {
-    const waveEffects = ["disruptiveWave", "divineWave"];
-    if (waveEffects.includes(currentSkill.appliedEffect)) {
+    if (currentSkill.waveEffect) {
       return true;
     }
     // 次のスキルがあればループを継続
@@ -25556,7 +25546,7 @@ function createSDproperties(skillInfo) {
   if (skillInfo.ignoreGuard) {
     skillProperties.push("ぼうぎょ無視");
   }
-  if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string" && skillInfo.appliedEffect.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
+  if (skillInfo.appliedEffect?.maso && !skillInfo.appliedEffect.maso.hasOwnProperty("strength")) {
     const maxDepth = skillInfo.appliedEffect.maso.maxDepth;
     skillProperties.push(`深度${maxDepth}まで`);
   }
@@ -25650,13 +25640,13 @@ function createSDappliedEffect(skillInfo) {
   let isStackableBuffExisting;
 
   // 追加効果用textを用意
-  if (skillInfo.appliedEffect === "disruptiveWave") {
+  if (skillInfo.waveEffect === "disruptiveWave") {
     appliedEffectText = "状態変化を解除　";
     isStackableBuffExisting = true; // "の"にする
-  } else if (skillInfo.appliedEffect === "divineWave") {
+  } else if (skillInfo.waveEffect === "divineWave") {
     appliedEffectText = "状態変化を解除（上位効果）　";
     isStackableBuffExisting = true; // "の"にする
-  } else if (skillInfo.appliedEffect && typeof skillInfo.appliedEffect !== "string") {
+  } else if (skillInfo.appliedEffect) {
     const result = getBuffName(skillInfo.appliedEffect);
     appliedEffectText = result[0]; // 空白は既に含まれている
     isStackableBuffExisting = result[1];
@@ -25686,7 +25676,7 @@ function createSDappliedEffect(skillInfo) {
       if (skillInfo.deleteUnbreakableProbability < 1) {
         skillDescriptionText += "命中時　確率でくじけぬ心を解除する　";
       } else {
-        skillDescriptionText += "命中時　くじけぬ心を解除する　"; // ぶちのめす, 真カラミは同時にappliedEffectもあるが表示省略
+        skillDescriptionText += "命中時　くじけぬ心を解除する　";
       }
     } else if (skillInfo.zakiProbability) {
       skillDescriptionText += "確率で即死させる　";
@@ -25943,7 +25933,7 @@ function getBuffName(appliedEffect) {
     let text = `${stackableBuffsToApply.join("・")}を${stackableBuffsStrength}段階上げ　`;
     text = stackableProbabilityExists ? `確率で${text}` : text;
     // マソのみ重複がないのでここで完全に置換
-    if (stackableBuffsToApply[0] === "マソ深度" && appliedEffect.maso.strength) {
+    if (stackableBuffsToApply[0] === "マソ深度" && appliedEffect.maso?.strength) {
       isStackableBuffExisting = false;
       text = `マソ深度${appliedEffect.maso.strength}にす　`;
     }
@@ -25971,7 +25961,7 @@ function getBuffName(appliedEffect) {
 }
 
 function isNoDamageWaveSkill(skillInfo) {
-  return skillInfo.howToCalculate === "none" && (skillInfo.appliedEffect === "disruptiveWave" || skillInfo.appliedEffect === "divineWave");
+  return skillInfo.howToCalculate === "none" && (skillInfo.waveEffect === "disruptiveWave" || skillInfo.waveEffect === "divineWave");
 }
 
 function getAvailableSkillsForOthers() {
