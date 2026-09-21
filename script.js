@@ -2651,7 +2651,9 @@ async function processMonsterAction(skillUser) {
 function displaySkillExecutionMessage(skillUser, executingSkill) {
   const skillName = executingSkill.displayName || executingSkill.name;
   if (executingSkill.specialMessage) {
-    executingSkill.specialMessage(skillUser.name, skillName);
+    displayMessage(...executingSkill.specialMessage(skillUser.name));
+  } else if (executingSkill.isCounterSkill) {
+    displayMessage(`${skillUser.name}の 反撃！`);
   } else if (executingSkill.type === "spell") {
     displayMessage(`${skillUser.name}は`, `${skillName}を となえた！`);
   } else if (executingSkill.type === "slash") {
@@ -6426,6 +6428,7 @@ const monsters = [
     weight: 40,
     status: { HP: 921, MP: 379, atk: 666, def: 573, spd: 587, int: 372 },
     initialSkill: ["ソウルハーベスト", "黄泉の封印", "暗黒閃", "冥王の奪命鎌"],
+    anotherSkills: ["冥王の構え"],
     defaultGear: "hunkiNail",
     attribute: {
       initialBuffs: {
@@ -12822,7 +12825,7 @@ function getMonsterAbilities(monsterId) {
  *
  * --- コールバック・関数処理 ---
  * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
- * @property {(skillUserName: string, skillName?: string) => void} [specialMessage] - 特殊メッセージ表示関数
+ * @property {(skillUserName: string) => [string, string]} [specialMessage] - 特殊メッセージを生成する関数（[1行目, 2行目]）
  * @property {(skillUser: any, skillTarget: any) => Promise<void>|void} [act] - 主処理・追加効果
  * @property {(skillUser: any) => Promise<void>|void} [onStart] - ヒット前処理
  * @property {(skillUser: any, isMonsterAction?: boolean) => Promise<void>|void} [onComplete] - ヒット後処理（miss・死亡に関わらず行動skip判定前に実行）
@@ -13063,9 +13066,6 @@ const skill = [
   },
   {
     name: "アバン通常攻撃息",
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}の攻撃！`);
-    },
     type: "breath",
     howToCalculate: "fix",
     damage: 200,
@@ -13076,6 +13076,7 @@ const skill = [
     MPcost: 0,
     skipSkillSealCheck: true,
     ignoreReflection: true,
+    specialMessage: (skillUserName) => [`${skillUserName}の攻撃！`, ""],
   },
   {
     name: "悪夢の追撃",
@@ -14073,14 +14074,12 @@ const skill = [
     targetType: "field",
     targetTeam: "ally",
     MPcost: 0,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}は闇に身をささげた！`);
-    },
     act: function (skillUser, skillTarget) {
       // skipDeathAbility: trueでhandleDeath
       handleDeath(skillUser, true, true, null);
       skillUser.skill[3] = skillUser.defaultSkill[3];
     },
+    specialMessage: (skillUserName) => [`${skillUserName}は闇に身をささげた！`, ""],
     followingSkill: "供物をささげる死亡",
   },
   {
@@ -14146,9 +14145,6 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     MPcost: 22,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}は`, "攻撃に対して 反撃する状態になった！");
-    },
     appliedEffect: { counterAttack: { keepOnDeath: true, divineDispellable: true, decreaseTurnEnd: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities = [
@@ -14179,9 +14175,6 @@ const skill = [
     ignoreSubstitute: true,
     ignoreEvasion: true, // マヌーサ有効
     isCounterSkill: true,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}の 反撃！`);
-    },
     deleteUnbreakableProbability: 1,
   },
   {
@@ -14199,9 +14192,6 @@ const skill = [
     MPcost: 0,
     ignoreSubstitute: true,
     isCounterSkill: true,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}の 反撃！`);
-    },
   },
   {
     name: "失望の光舞",
@@ -15049,9 +15039,6 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     MPcost: 59,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}は`, "攻撃に対して 反撃する状態になった！");
-    },
     appliedEffect: { protection: { divineDispellable: true, strength: 0.5, duration: 3 }, counterAttack: { divineDispellable: true, removeAtTurnStart: true, duration: 1 } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities = [
@@ -15082,9 +15069,6 @@ const skill = [
     isCounterSkill: true,
     criticalHitProbability: 0, // 会心なし 無刀陣は不明
     lowHpDamageMultiplier: true,
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}の 反撃！`);
-    },
   },
   {
     name: "禁忌の左腕",
@@ -20373,9 +20357,7 @@ const skill = [
     MPcost: 120,
     ignoreSubstitute: true,
     appliedEffect: { dotDamage: { ratio: 0.2 } },
-    specialMessage: function (skillUserName, skillName) {
-      displayMessage(`${skillUserName}は`, "プロミネンスを呼び出した！");
-    },
+    specialMessage: (skillUserName) => [`${skillUserName}は`, "プロミネンスを呼び出した！"],
   },
   {
     name: "時ゆがめる暗霧",
