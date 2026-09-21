@@ -3828,7 +3828,13 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
 
   // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
   if (skillTarget.buffs.stoned && !executingSkill.appliedEffect?.stoned?.isGolden && !isNoDamageWaveSkill(executingSkill)) {
-    applyDamage(skillTarget, 0);
+    applyDamage(skillTarget, 0); // "ダメージを与えられない"メッセージを表示するため、displayMissではダメ
+    return;
+  }
+
+  // 特定系統のみを対象とするskill（弾かれた場合appliedEffectやactも実行しない）
+  if (executingSkill.targetRace && !skillTarget.race.includes(executingSkill.targetRace)) {
+    displayMiss(skillTarget);
     return;
   }
 
@@ -11981,7 +11987,7 @@ function getMonsterAbilities(monsterId) {
                     },
                     unavailableIf: (skillUser, executingSkill, executedSkills) => {
                       // ポセが死亡状態でも発動
-                      // 対象外：供物, 正体をあらわす, MP回復, 光のはどう, 防衛司令, ひかりのたま
+                      // 対象外：供物, 正体をあらわす, MP回復, 光のはどう, 防衛指令, ひかりのたま
                       if (!executingSkill) {
                         return true;
                       } else if (executingSkill.targetType === "dead" || executingSkill.isHealSkill) {
@@ -12809,6 +12815,7 @@ function getMonsterAbilities(monsterId) {
  * @property {"fire" | "ice" | "thunder" | "io" | "wind" | "light" | "dark" | "none" | "notskill"} element - 属性
  * @property {"single" | "random" | "all" | "self" | "field" | "dead"} targetType - 対象範囲
  * @property {"ally" | "enemy"} targetTeam - 対象陣営
+ * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} targetRace - 対象系統
  * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
  * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
  * @property {number} [hitNum] - 連続ヒット回数
@@ -17760,11 +17767,12 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    targetRace: "悪魔",
     MPcost: 74,
     order: "preemptive",
     preemptiveGroup: 1,
     act: function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("悪魔") && skillUser.monsterId !== skillTarget.monsterId) {
+      if (skillUser.monsterId !== skillTarget.monsterId) {
         applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, dotDamage: { ratio: 0.33, isTabooAwakening: true } });
       }
     },
@@ -18322,15 +18330,13 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    targetRace: "悪魔",
     MPcost: 69,
     order: "preemptive",
     preemptiveGroup: 5,
-    act: function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("悪魔")) {
-        applyBuff(skillTarget, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
-      } else {
-        displayMiss(skillTarget);
-      }
+    appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
       applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
     },
   },
@@ -18341,15 +18347,13 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    targetRace: "ドラゴン",
     MPcost: 69,
     order: "preemptive",
     preemptiveGroup: 5,
-    act: function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("ドラゴン")) {
-        applyBuff(skillTarget, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
-      } else {
-        displayMiss(skillTarget);
-      }
+    appliedEffect: { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
       applyBuff(skillUser, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
     },
   },
@@ -19558,6 +19562,7 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    targetRace: "物質",
     excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     MPcost: 32,
     appliedEffect: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
@@ -19565,7 +19570,7 @@ const skill = [
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
           await executeSkill(skillUser, findSkillByName("特性発動用におうだち"), null, false, true); // 状態異常check有効? 封じcheck無視
-        }, // todo:物質限定化(target指定後死亡してランダム選択になった場合にも)
+        },
       });
     },
   },
@@ -19665,16 +19670,12 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    targetRace: "物質",
     MPcost: 54,
     isOneTimeUse: true,
     order: "preemptive",
     preemptiveGroup: 1,
-    act: function (skillUser, skillTarget) {
-      // 自分にも付与
-      if (skillTarget.race.includes("物質")) {
-        applyBuff(skillTarget, { powerCharge: { strength: 1.5 }, isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" }, countDown: { count: 2, unDispellableByRadiantWave: true } });
-      }
-    },
+    appliedEffect: { powerCharge: { strength: 1.5 }, isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" }, countDown: { count: 2, unDispellableByRadiantWave: true } },
   },
   {
     name: "真・闘気拳",
@@ -19797,17 +19798,15 @@ const skill = [
     element: "none",
     targetType: "single",
     targetTeam: "ally",
+    targetRace: "物質",
     excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
     MPcost: 50,
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    act: function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("物質")) {
-        applyBuff(skillTarget, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
-      } else {
-        displayMiss(skillTarget);
-      }
+    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
       applyBuff(skillUser, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
     },
   },
@@ -19831,15 +19830,12 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    targetRace: "自然",
     MPcost: 84,
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("自然")) {
-        applyBuff(skillTarget, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
-      }
-    },
+    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
   },
   {
     name: "報復の大嵐",
@@ -19922,14 +19918,11 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    targetRace: "物質",
     MPcost: 114,
     order: "preemptive",
     preemptiveGroup: 2,
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("物質")) {
-        applyBuff(skillTarget, { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true }, criticalGuard: { duration: 2, removeAtTurnStart: true } });
-      }
-    },
+    appliedEffect: { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true }, criticalGuard: { duration: 2, removeAtTurnStart: true } },
   },
   {
     name: "アンカースパーク",
@@ -20269,15 +20262,14 @@ const skill = [
     element: "none",
     targetType: "all",
     targetTeam: "ally",
+    targetRace: "自然",
     MPcost: 46,
     isOneTimeUse: true,
     order: "preemptive",
     preemptiveGroup: 2,
+    appliedEffect: { martialBarrier: { strength: 2 } },
     act: async function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("自然")) {
-        applyBuff(skillTarget, { martialBarrier: { strength: 2 } });
-        await executeRadiantWave(skillTarget, false, true); // マソも解除
-      }
+      await executeRadiantWave(skillTarget, false, true); // マソも解除
     },
   },
   {
@@ -25552,6 +25544,9 @@ function createSDmain(skillInfo) {
       const MPcostText = skillInfo.MPcostRatio === 1 ? "全て" : `${skillInfo.MPcostRatio * 100}%`;
       skillDescriptionText += `MPを${MPcostText}消費し　`;
     }
+    if (skillInfo.targetRace) {
+      skillDescriptionText += `${skillInfo.targetRace}系の　`;
+    }
     if (skillInfo.targetTeam === "enemy") {
       skillDescriptionText += "敵";
     } else if (skillInfo.targetTeam === "ally") {
@@ -25703,6 +25698,9 @@ function createSDappliedEffect(skillInfo) {
       // 助詞を選択 stackable存在時またはactがいてはの場合、"の"
       const josi = isStackableBuffExisting ? "の　" : "を　";
       // 対象を追加
+      if (skillInfo.targetRace) {
+        skillDescriptionText += `${skillInfo.targetRace}系の`;
+      }
       if (skillInfo.targetTeam === "enemy") {
         skillDescriptionText += "敵";
       } else if (skillInfo.targetTeam === "ally") {
