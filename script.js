@@ -3962,6 +3962,47 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
+    // 蘇生処理
+    if (executingSkill.reviveParams) {
+      const params = executingSkill.reviveParams;
+      const isField = executingSkill.targetType === "field";
+      const targets = isField ? parties[skillUser.teamID] : [buffTarget];
+
+      for (const target of targets) {
+        if (!target) continue;
+
+        // 系統条件・成功率判定で弾く
+        if ((params.condition && !params.condition(target)) || (params.probability !== undefined && Math.random() >= params.probability)) {
+          displayMiss(target);
+          continue;
+        }
+
+        // 生存者への回復処理（healLivingがある場合）
+        if (params.healLiving && !target.flags.isDead) {
+          applyHeal(target, target.defaultStatus.HP, false, false);
+          continue;
+        }
+
+        // 蘇生実行（全体蘇生の場合はskipSleep: trueで送る）
+        const isSuccess = await reviveMonster(target, params.hpRate ?? 1, false, isField);
+        if (isSuccess) {
+          // healLiving持ちスキルなら蘇生成功時にも全回復表示
+          if (params.healLiving) {
+            displayDamage(target, target.defaultStatus.HP, -1);
+          }
+          if (params.appliedBuff) {
+            applyBuff(target, structuredClone(params.appliedBuff));
+          }
+          if (params.onSuccess) {
+            await params.onSuccess(target, skillUser);
+          }
+        }
+      }
+      if (isField) {
+        await sleep(params.healLiving ? 400 : 740);
+      }
+    }
+
     // act処理を行い、barなどを更新
     if (executingSkill.act) {
       await executingSkill.act(skillUser, buffTarget);
@@ -12832,6 +12873,7 @@ function getMonsterAbilities(monsterId) {
  * @property {Object.<string, any>} [appliedEffect] - 付与バフ・デバフ
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
  * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
+ * @property {{ hpRate?: number, probability?: number, appliedBuff?: Object.<string, any>, condition?: (skillTarget: any) => boolean, onSuccess?: (skillTarget: any) => Promise<void>|void, healLiving?: boolean }} [reviveParams] - 蘇生設定
  *
  * --- コールバック・関数処理 ---
  * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
@@ -15199,64 +15241,6 @@ const skill = [
     damageByLevel: true,
   },
   {
-    name: "王女の愛",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    MPcost: 150,
-    isOneTimeUse: true,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          // 間隔skip 蘇生成功時のみ全回復表示
-          if (await reviveMonster(monster, 1, false, true)) {
-            displayDamage(monster, monster.defaultStatus.HP, -1);
-          }
-        } else {
-          applyHeal(monster, monster.defaultStatus.HP, false, false);
-        }
-      }
-      await sleep(400);
-    },
-    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
-  },
-  {
-    name: "精霊の愛",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    MPcost: null,
-    MPcostRatio: 1,
-    isOneTimeUse: true,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          // 間隔skip 蘇生成功時のみ全回復表示
-          if (await reviveMonster(monster, 1, false, true)) {
-            displayDamage(monster, monster.defaultStatus.HP, -1);
-          }
-        } else {
-          applyHeal(monster, monster.defaultStatus.HP, false, false);
-        }
-        applyBuff(monster, { spdUp: { strength: 1 } });
-      }
-      await sleep(400);
-    },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { sealed: {} });
-    },
-    description1: "【戦闘中1回】味方全体を",
-    description2: "復活させ　HPを全回復し　素早さを1段階上げる",
-    description3: "自分は　封印状態になる",
-  },
-  {
     name: "閃光裂衝拳",
     type: "martial",
     howToCalculate: "atk",
@@ -16255,66 +16239,6 @@ const skill = [
     },
   },
   {
-    name: "みかわしのひやく",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 108,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget)) {
-        applyBuff(skillTarget, { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } });
-      }
-    },
-  },
-  {
-    name: "深海のソーマ",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 113,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget)) {
-        applyBuff(skillTarget, { defUp: { strength: 2 } });
-      }
-    },
-  },
-  {
-    name: "神鳥の蘇生",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 103,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget)) {
-        applyBuff(skillTarget, { defUp: { strength: 1 } });
-      }
-    },
-  },
-  {
-    name: "とこなつのひやく",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 108,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget)) {
-        applyBuff(skillTarget, { defUp: { strength: 1 }, martialBarrier: { strength: 1 }, breathBarrier: { strength: 1 } });
-      }
-    },
-  },
-  {
     name: "聖なる流星",
     type: "martial",
     howToCalculate: "def",
@@ -16609,8 +16533,8 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 103,
-    act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget);
+    reviveParams: {
+      hpRate: 1,
     },
     description1: "味方1体を　最大HPで復活させる",
   },
@@ -16622,8 +16546,8 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 103,
-    act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget);
+    reviveParams: {
+      hpRate: 1,
     },
     description1: "味方1体を　最大HPで復活させる",
   },
@@ -16635,8 +16559,8 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 54,
-    act: async function (skillUser, skillTarget) {
-      await reviveMonster(skillTarget, 0.5);
+    reviveParams: {
+      hpRate: 0.5,
     },
     description1: "味方1体を　最大HPの50%で復活させる",
   },
@@ -16648,14 +16572,302 @@ const skill = [
     targetType: "dead",
     targetTeam: "ally",
     MPcost: 34,
-    act: async function (skillUser, skillTarget) {
-      if (Math.random() < 0.7333) {
-        await reviveMonster(skillTarget, 0.5);
-      } else {
-        displayMiss(skillTarget);
-      }
+    reviveParams: {
+      hpRate: 0.5,
+      probability: 0.7333,
     },
     description1: "味方1体を　確率で最大HPの50%で復活させる",
+  },
+  {
+    name: "みかわしのひやく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 108,
+    reviveParams: {
+      appliedBuff: { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } },
+    },
+  },
+  {
+    name: "深海のソーマ",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 113,
+    reviveParams: {
+      appliedBuff: { defUp: { strength: 2 } },
+    },
+  },
+  {
+    name: "神鳥の蘇生",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 103,
+    reviveParams: {
+      appliedBuff: { defUp: { strength: 1 } },
+    },
+  },
+  {
+    name: "とこなつのひやく",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 108,
+    reviveParams: {
+      appliedBuff: {
+        defUp: { strength: 1 },
+        martialBarrier: { strength: 1 },
+        breathBarrier: { strength: 1 },
+      },
+    },
+  },
+  {
+    name: "黄泉がえりの舞い",
+    type: "dance",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 118,
+    reviveParams: {
+      appliedBuff: {
+        baiki: { strength: 1 },
+        defUp: { strength: 1 },
+        spdUp: { strength: 1 },
+        intUp: { strength: 1 },
+      },
+    },
+  },
+  {
+    name: "ファラオの召喚",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "dead",
+    targetTeam: "ally",
+    MPcost: 58,
+    reviveParams: {
+      hpRate: 0.5,
+      onSuccess: async (skillTarget) => {
+        skillTarget.buffs.pharaohPower = { keepOnDeath: true };
+        skillTarget.attribute.additionalEvenTurnBuffs = {
+          ...skillTarget.attribute.additionalEvenTurnBuffs,
+          baiki: { strength: 1 },
+          spdUp: { strength: 1 },
+          intUp: { strength: 1 },
+        };
+      },
+    },
+  },
+  {
+    name: "亡者の儀式",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 152,
+    isHealSkill: true,
+    isAscensionSkill: true,
+    followingSkill: "亡者の儀式後半",
+  },
+  {
+    name: "亡者の儀式後半",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 0,
+    reviveParams: {
+      hpRate: 1,
+      appliedBuff: { continuousMPHealing: { removeAtTurnStart: true, duration: 3 } },
+    },
+  },
+  {
+    name: "六芒魔法陣",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 152,
+    isHealSkill: true,
+    isAscensionSkill: true,
+    followingSkill: "六芒魔法陣後半",
+  },
+  {
+    name: "六芒魔法陣後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 0,
+    reviveParams: {
+      hpRate: 0.5,
+    },
+  },
+  {
+    name: "冥府の邪法",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "ally",
+    order: "anchor",
+    isOneTimeUse: true,
+    MPcost: null,
+    MPcostRatio: 1,
+    isHealSkill: true,
+    isAscensionSkill: true,
+    followingSkill: "冥府の邪法後半",
+  },
+  {
+    name: "冥府の邪法後半",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 0,
+    reviveParams: {
+      hpRate: 0.5,
+    },
+    followingSkill: "冥府の邪法ボミオス",
+  },
+  {
+    name: "冥府の邪法ボミオス",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "all",
+    targetTeam: "enemy",
+    MPcost: 0,
+    appliedEffect: { spdUp: { strength: -1, probability: 0.6 } },
+  },
+  {
+    name: "オーバーホール",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    order: "anchor",
+    MPcost: 80,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    reviveParams: {
+      hpRate: 0.6,
+      condition: (skillTarget) => skillTarget.race.includes("物質"),
+    },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        if (monster.race.includes("物質")) {
+          applyBuff(monster, { matterBuffAtk: { strength: 0.3 }, matterBuffSpd: { strength: 0.3 } });
+        }
+      }
+    },
+  },
+  {
+    name: "再召喚の儀",
+    type: "ritual",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 108,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    reviveParams: {
+      hpRate: 1,
+      condition: (skillTarget) => !["???", "超魔王", "超伝説"].some((targetRace) => skillTarget.race.includes(targetRace)),
+      appliedBuff: {
+        baiki: { strength: 2 },
+        defUp: { strength: 2 },
+        spdUp: { strength: 2 },
+        intUp: { strength: 2 },
+        countDown: { count: 2 },
+      },
+    },
+    selfAppliedEffect: async function (skillUser) {
+      await sleep(150);
+      applyBuff(skillUser, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
+    },
+    description1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
+    description2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
+    description3: "カウント2状態に　その後　自分を　自動復活状態にする",
+  },
+  {
+    name: "ザオリーマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 200,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    reviveParams: {
+      hpRate: 1,
+      healLiving: true,
+    },
+    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
+  },
+  {
+    name: "王女の愛",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: 150,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    reviveParams: {
+      hpRate: 1,
+      healLiving: true,
+    },
+    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
+  },
+  {
+    name: "精霊の愛",
+    type: "martial",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "field",
+    targetTeam: "ally",
+    MPcost: null,
+    MPcostRatio: 1,
+    isOneTimeUse: true,
+    isHealSkill: true,
+    reviveParams: {
+      hpRate: 1,
+      healLiving: true,
+    },
+    selfAppliedEffect: async function (skillUser) {
+      for (const monster of parties[skillUser.teamID]) {
+        applyBuff(monster, { spdUp: { strength: 1 } });
+      }
+      await sleep(150);
+      applyBuff(skillUser, { sealed: {} });
+    },
+    description1: "【戦闘中1回】味方全体を",
+    description2: "復活させ　HPを全回復し　素早さを1段階上げる",
+    description3: "自分は　封印状態になる",
   },
   {
     name: "零時の儀式",
@@ -19320,35 +19532,6 @@ const skill = [
     },
   },
   {
-    name: "オーバーホール",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    order: "anchor",
-    MPcost: 80,
-    isOneTimeUse: true,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.race.includes("物質")) {
-          await reviveMonster(monster, 0.6, false, true); // 間隔skip
-        } else {
-          displayMiss(monster);
-        }
-      }
-      await sleep(740);
-    },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.race.includes("物質")) {
-          applyBuff(monster, { matterBuffAtk: { strength: 0.3 }, matterBuffSpd: { strength: 0.3 } });
-        }
-      }
-    },
-  },
-  {
     name: "グレネードボム",
     type: "breath",
     howToCalculate: "fix",
@@ -20235,21 +20418,6 @@ const skill = [
     appliedEffect: { countDown: { count: 2, probability: 0.7 } },
   },
   {
-    name: "黄泉がえりの舞い",
-    type: "dance",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 118,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget)) {
-        applyBuff(skillTarget, { baiki: { strength: 1 }, defUp: { strength: 1 }, spdUp: { strength: 1 }, intUp: { strength: 1 } });
-      }
-    },
-  },
-  {
     name: "ネクロゴンドの衝撃",
     type: "martial",
     howToCalculate: "fix",
@@ -20472,137 +20640,6 @@ const skill = [
     zakiProbability: 0.41,
   },
   {
-    name: "亡者の儀式",
-    type: "ritual",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "ally",
-    order: "anchor",
-    MPcost: 152,
-    isHealSkill: true,
-    isAscensionSkill: true,
-    followingSkill: "亡者の儀式後半",
-  },
-  {
-    name: "亡者の儀式後半",
-    type: "ritual",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    order: "anchor",
-    MPcost: 0,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          await reviveMonster(monster, 1, false, true); // 間隔skip
-          applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 3 } });
-        }
-      }
-      await sleep(740);
-    },
-  },
-  {
-    name: "六芒魔法陣",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "ally",
-    order: "anchor",
-    MPcost: 152,
-    isHealSkill: true,
-    isAscensionSkill: true,
-    followingSkill: "六芒魔法陣後半",
-  },
-  {
-    name: "六芒魔法陣後半",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    order: "anchor",
-    MPcost: 0,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          await reviveMonster(monster, 0.5, false, true); // 間隔skip
-        }
-      }
-      await sleep(740);
-    },
-  },
-  {
-    name: "冥府の邪法",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "ally",
-    order: "anchor",
-    isOneTimeUse: true,
-    MPcost: null,
-    MPcostRatio: 1,
-    isHealSkill: true,
-    isAscensionSkill: true,
-    followingSkill: "冥府の邪法後半",
-  },
-  {
-    name: "冥府の邪法後半",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    MPcost: 0,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          await reviveMonster(monster, 0.5, false, true); // 間隔skip
-        }
-      }
-      await sleep(740);
-    },
-    followingSkill: "冥府の邪法ボミオス",
-  },
-  {
-    name: "冥府の邪法ボミオス",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "enemy",
-    MPcost: 0,
-    appliedEffect: { spdUp: { strength: -1, probability: 0.6 } },
-  },
-  {
-    name: "ザオリーマ",
-    type: "spell",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    MPcost: 200,
-    isOneTimeUse: true,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock) {
-          // 間隔skip 蘇生成功時に全回復表示
-          if (await reviveMonster(monster, 1, false, true)) {
-            displayDamage(monster, monster.defaultStatus.HP, -1);
-          }
-        } else {
-          applyHeal(monster, monster.defaultStatus.HP, false, false);
-        }
-      }
-      await sleep(400);
-    },
-    description1: "【戦闘中1回】味方全体を　復活させ　HPを全回復する",
-  },
-  {
     name: "鮮烈な稲妻",
     type: "spell",
     howToCalculate: "int",
@@ -20692,27 +20729,6 @@ const skill = [
       2: 1.6, // 推測
       3: 1.7,
       4: 1.8,
-    },
-  },
-  {
-    name: "ファラオの召喚",
-    type: "martial",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "dead",
-    targetTeam: "ally",
-    MPcost: 58,
-    act: async function (skillUser, skillTarget) {
-      // 蘇生成功時のみバフ付与
-      if (await reviveMonster(skillTarget, 0.5)) {
-        skillTarget.buffs.pharaohPower = { keepOnDeath: true }; //直接挿入
-        skillTarget.attribute.additionalEvenTurnBuffs = {
-          ...skillTarget.attribute.additionalEvenTurnBuffs,
-          baiki: { strength: 1 },
-          spdUp: { strength: 1 },
-          intUp: { strength: 1 },
-        };
-      }
     },
   },
   {
@@ -20916,33 +20932,6 @@ const skill = [
         return 0;
       }
     },
-  },
-  {
-    name: "再召喚の儀",
-    type: "ritual",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "field",
-    targetTeam: "ally",
-    MPcost: 108,
-    isOneTimeUse: true,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.flags.isDead && !monster.buffs.reviveBlock && !["???", "超魔王", "超伝説"].some((targetRace) => monster.race.includes(targetRace))) {
-          await reviveMonster(monster, 1, false, true); // 間隔skip
-          applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: 2 }, spdUp: { strength: 2 }, intUp: { strength: 2 }, countDown: { count: 2 } });
-        }
-      }
-      await sleep(740);
-    },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
-    },
-    description1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
-    description2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
-    description3: "カウント2状態に　その後　自分を　自動復活状態にする",
   },
   {
     name: "修羅の闇",
@@ -21568,6 +21557,32 @@ const skill = [
     appliedEffect: { breathBarrier: { strength: 1 } },
   },
   {
+    name: "ベホマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 42,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
+    },
+  },
+  {
+    name: "ベホイマ",
+    type: "spell",
+    howToCalculate: "none",
+    element: "none",
+    targetType: "single",
+    targetTeam: "ally",
+    MPcost: 42,
+    isHealSkill: true,
+    act: async function (skillUser, skillTarget) {
+      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
+    },
+  },
+  {
     name: "ベホマラー",
     type: "spell",
     howToCalculate: "none",
@@ -22081,32 +22096,6 @@ const skill = [
     MPcost: 41,
     ignoreDazzle: true, // みかわし有効
     appliedEffect: { confused: { probability: 0.404 } },
-  },
-  {
-    name: "ベホマ",
-    type: "spell",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "single",
-    targetTeam: "ally",
-    MPcost: 42,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
-    },
-  },
-  {
-    name: "ベホイマ",
-    type: "spell",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "single",
-    targetTeam: "ally",
-    MPcost: 42,
-    isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
-    },
   },
   {
     name: "debugbreath",
