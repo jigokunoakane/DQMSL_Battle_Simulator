@@ -63,6 +63,10 @@ function switchParty() {
   }
 }
 
+document.getElementById("switchParty").addEventListener("change", function (event) {
+  switchParty();
+});
+
 // selectingPartyのうちn番目のpartyIconを更新する関数
 function updatePartyIcon(number) {
   const monster = selectingParty[number];
@@ -85,7 +89,7 @@ function updatePartySelectOptions(selectElement, startValue, endValue, labelOffs
   selectElement.appendChild(fragment);
 }
 
-function decideParty() {
+document.getElementById("decideParty").addEventListener("click", function () {
   const switchPartyElement = document.getElementById("switchParty");
   const isPlayerA = currentPlayer === "A";
   const teamIndex = isPlayerA ? 0 : 1;
@@ -131,7 +135,7 @@ function decideParty() {
     preloadImages();
     prepareBattle();
   }
-}
+});
 
 // 装備によるステータス倍率増分を取得
 function getGearMultiplierBonus(monster, statKey) {
@@ -517,6 +521,12 @@ document.getElementById("commandSelectSkillBtn").addEventListener("click", funct
   document.getElementById("commandPopupWindowText").style.visibility = "visible";
   document.getElementById("commandPopupWindow").style.visibility = "visible";
   displayMessage("とくぎをえらんでください。");
+});
+
+document.querySelectorAll(".selectSkillBtn").forEach((button, index) => {
+  button.addEventListener("click", () => {
+    selectCommand(index);
+  });
 });
 
 function selectCommand(selectedSkillNum) {
@@ -5870,6 +5880,11 @@ function changeSeedSelect() {
   });
 }
 
+// それぞれにchangeイベントを設定
+document.querySelectorAll(".selectSeed").forEach((select) => {
+  select.addEventListener("change", changeSeedSelect);
+});
+
 // 種の増分を計算し、selectingParty[currentTab].seedIncrementに格納、表示を更新する
 function seedIncrementCalc() {
   function seedCalc(limit, targetArray) {
@@ -5970,6 +5985,12 @@ function addTabClass(targetTabNum) {
   targetTabButton.classList.add("selectedTab");
   targetTabButton.textContent = "表示中";
 }
+
+document.querySelectorAll(".eachTab").forEach((button, index) => {
+  button.addEventListener("click", () => {
+    switchTab(index);
+  });
+});
 
 //global: currentTabを使用
 function switchTab(tabNumber) {

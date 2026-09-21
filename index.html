@@ -15,7 +15,7 @@
       <div id="adjustPartyPage">
         <div id="playerNameAndWeightContainer">
           <span id="playerAorB"> player A</span>&nbsp;
-          <select id="switchParty" onchange="switchParty()">
+          <select id="switchParty">
             <option value="0">パーティ1</option>
             <option value="1">パーティ2</option>
             <option value="2">パーティ3</option>
@@ -23,7 +23,7 @@
             <option value="4">パーティ5</option>
           </select>
           <span id="weightSum">w0</span>&nbsp;&nbsp;
-          <button id="decideParty" class="normalButton" onclick="decideParty()">決定</button>
+          <button id="decideParty" class="normalButton">決定</button>
         </div>
         <div id="partyIconsContainer">
           <div class="partyIconWrapper">
@@ -60,11 +60,11 @@
           </div>
         </div>
         <div id="monsterTabContainer">
-          <div id="tab0" class="eachTab" onclick="switchTab(0)">詳細</div>
-          <div id="tab1" class="eachTab" onclick="switchTab(1)">詳細</div>
-          <div id="tab2" class="eachTab" onclick="switchTab(2)">詳細</div>
-          <div id="tab3" class="eachTab" onclick="switchTab(3)">詳細</div>
-          <div id="tab4" class="eachTab" onclick="switchTab(4)">詳細</div>
+          <div id="tab0" class="eachTab">詳細</div>
+          <div id="tab1" class="eachTab">詳細</div>
+          <div id="tab2" class="eachTab">詳細</div>
+          <div id="tab3" class="eachTab">詳細</div>
+          <div id="tab4" class="eachTab">詳細</div>
         </div>
 
         <!-- モンスター選択のpopup -->
@@ -417,7 +417,7 @@
               </div>
               <div id="statusInfoSeedSelectContainer">
                 <div>
-                  <select id="selectSeedatk" class="selectSeed" onchange="changeSeedSelect()">
+                  <select id="selectSeedatk" class="selectSeed">
                     <option value="0">0</option>
                     <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;攻撃+4</option>
                     <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -442,7 +442,7 @@
                   </select>
                 </div>
                 <div>
-                  <select id="selectSeeddef" class="selectSeed" onchange="changeSeedSelect()">
+                  <select id="selectSeeddef" class="selectSeed">
                     <option value="0">0</option>
                     <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;防御+8</option>
                     <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -467,7 +467,7 @@
                   </select>
                 </div>
                 <div>
-                  <select id="selectSeedspd" class="selectSeed" onchange="changeSeedSelect()">
+                  <select id="selectSeedspd" class="selectSeed">
                     <option value="0">0</option>
                     <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;素早さ+4</option>
                     <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HP+4</option>
@@ -492,7 +492,7 @@
                   </select>
                 </div>
                 <div>
-                  <select id="selectSeedint" class="selectSeed" onchange="changeSeedSelect()">
+                  <select id="selectSeedint" class="selectSeed">
                     <option value="0">0</option>
                     <option value="5">5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;賢さ+8</option>
                     <option value="10">10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MP+4</option>
@@ -854,19 +854,19 @@
               <div id="commandPopupWindowContents">
                 <div id="commandPopupWindowText"></div>
                 <div id="selectSkillBtnContainer">
-                  <button id="selectSkillBtn0" class="normalButton selectSkillBtn" onclick="selectCommand(0)">
+                  <button id="selectSkillBtn0" class="normalButton selectSkillBtn">
                     <div class="skill-mp">MP: <span class="mp-cost"></span></div>
                     <div class="skill-name">特技1</div>
                   </button>
-                  <button id="selectSkillBtn1" class="normalButton selectSkillBtn" onclick="selectCommand(1)">
+                  <button id="selectSkillBtn1" class="normalButton selectSkillBtn">
                     <div class="skill-mp">MP: <span class="mp-cost"></span></div>
                     <div class="skill-name">特技2</div>
                   </button>
-                  <button id="selectSkillBtn2" class="normalButton selectSkillBtn" onclick="selectCommand(2)">
+                  <button id="selectSkillBtn2" class="normalButton selectSkillBtn">
                     <div class="skill-mp">MP: <span class="mp-cost"></span></div>
                     <div class="skill-name">特技3</div>
                   </button>
-                  <button id="selectSkillBtn3" class="normalButton selectSkillBtn" onclick="selectCommand(3)">
+                  <button id="selectSkillBtn3" class="normalButton selectSkillBtn">
                     <div class="skill-mp">MP: <span class="mp-cost"></span></div>
                     <div class="skill-name">特技4</div>
                   </button>
