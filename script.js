@@ -3953,6 +3953,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
+    // 昇天処理
+    if (executingSkill.isAscensionSkill) {
+      if (executingSkill.targetType === "all" && executingSkill.targetTeam === "ally" && !isReflection && buffTarget === skillUser) {
+        displayMiss(buffTarget);
+      } else if (ascension(buffTarget)) {
+        isBuffTargetChanged = true;
+      }
+    }
+
     // act処理を行い、barなどを更新
     if (executingSkill.act) {
       await executingSkill.act(skillUser, buffTarget);
@@ -12810,6 +12819,7 @@ function getMonsterAbilities(monsterId) {
  * --- 特殊条件・フラグ ---
  * @property {boolean} [isOneTimeUse] - 戦闘中1回のみ使用可能
  * @property {boolean} [isHealSkill] - 回復スキルフラグ
+ * @property {boolean} [isAscensionSkill] - 昇天スキルフラグ
  * @property {boolean} [skipDeathCheck] - 死亡状態でも常に実行（skipThisTurn(リザオ蘇生時等)でも発動）
  * @property {boolean} [isCounterSkill] - カウンタースキルフラグ（skipThisTurn(リザオ蘇生時等)でも発動するが、死亡状態（flag.isDead）では実行しない）
  * @property {boolean} [skipSkillSealCheck] - 体技封じ・息封じ等の封じ無視（教団の光 勇者の家庭教師）
@@ -12883,9 +12893,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 0,
     ignoreReflection: true,
-    act: function (skillUser, skillTarget) {
-      ascension(skillTarget);
-    },
+    isAscensionSkill: true,
   },
   {
     name: "心砕き攻撃",
@@ -13225,9 +13233,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 35,
     appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
-    act: function (skillUser, skillTarget) {
-      ascension(skillTarget);
-    },
+    isAscensionSkill: true,
     followingSkill: "昇天斬り後半",
   },
   {
@@ -19003,9 +19009,7 @@ const skill = [
     targetTeam: "enemy",
     MPcost: 35,
     appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
-    act: function (skillUser, skillTarget) {
-      ascension(skillTarget);
-    },
+    isAscensionSkill: true,
     followingSkill: "昇天のこぶし後半",
   },
   {
@@ -20477,13 +20481,7 @@ const skill = [
     order: "anchor",
     MPcost: 152,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.name === "デスソシスト") {
-        displayMiss(skillTarget);
-      } else {
-        ascension(skillTarget);
-      }
-    },
+    isAscensionSkill: true,
     followingSkill: "亡者の儀式後半",
   },
   {
@@ -20515,13 +20513,7 @@ const skill = [
     order: "anchor",
     MPcost: 152,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.name === "真・冥王ゴルゴナ") {
-        displayMiss(skillTarget);
-      } else {
-        ascension(skillTarget);
-      }
-    },
+    isAscensionSkill: true,
     followingSkill: "六芒魔法陣後半",
   },
   {
@@ -20554,13 +20546,7 @@ const skill = [
     MPcost: null,
     MPcostRatio: 1,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.name === "真・冥王ゴルゴナ") {
-        displayMiss(skillTarget);
-      } else {
-        ascension(skillTarget);
-      }
-    },
+    isAscensionSkill: true,
     followingSkill: "冥府の邪法後半",
   },
   {
@@ -24837,11 +24823,11 @@ function adjustFieldStateDisplay() {
 // 昇天
 function ascension(monster, ignoreUnAscensionable = false) {
   if (!monster.flags.isZombie) {
-    return;
+    return false;
   }
   if (!ignoreUnAscensionable && monster.flags.isUnAscensionable) {
     displayMiss(monster);
-    return;
+    return false;
   }
   delete monster.flags.isZombie;
   // zombieBuffableのバフの一部を個別に削除  全削除：封印(黄泉・神獣・氷の王国)  個別削除：亡者の怨嗟鏡 死肉の怨嗟 憎悪の怨嗟 // 反撃ののろし 超魔改良 蘇生封じの術 グランドアビス 修羅の闇は残す
@@ -24862,6 +24848,7 @@ function ascension(monster, ignoreUnAscensionable = false) {
   updateMonsterBuffsDisplay(monster);
   document.getElementById(monster.iconElementId).parentNode.classList.remove("stickOut");
   document.getElementById(monster.iconElementId).parentNode.classList.remove("recede");
+  return true;
 }
 
 function showCooperationEffect(currentTeamID, cooperationAmount) {
