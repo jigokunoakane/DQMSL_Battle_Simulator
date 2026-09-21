@@ -616,7 +616,7 @@ function selectSkillTargetToggler(targetTeamNum, selectedSkillTargetType, select
     }
 
     // スキル指定の除外対象
-    if (selectedSkill.excludeTarget && selectedSkill.excludeTarget(targetMonster)) {
+    if (selectedSkill.requireTargetRace && selectedSkill.targetRace && !targetMonster.race.includes(selectedSkill.targetRace)) {
       toggleDarkenAndClick(targetMonsterElement, true);
     }
     //みがわり系の場合、自分自身と覆う中・覆われ中の対象を暗転&無効化
@@ -1556,6 +1556,10 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     // ミス表示をしないフラグがひとつでもある場合、バフ付与扱いに設定
     if (buffData.noMissDisplay) {
       hasAppliedBuff = true;
+    }
+    // 系統限定の指定
+    if (buffData.targetRace && !buffTarget.race.includes(buffData.targetRace)) {
+      continue;
     }
 
     // 1. バフ非上書き条件の処理
@@ -3600,15 +3604,33 @@ async function executeSkill(
       await currentSkill.onComplete(skillUser, isMonsterAction);
     }
 
-    // onComplete実行後に全滅判定 全滅時も実行する起爆装置等はfollowingがないのでこのままでOK
+    // onComplete実行後に全滅判定を行い、全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す afterEffects・followingSkillは実行しない
+    // 起爆装置等は全滅時も実行するskillであるが、followingSkillを持たないため現状の処理でOK
     if (isBattleOver()) {
-      break; // 全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す selfAppliedEffectやfollowingは実行しない
-    } else if (skipThisMonsterAction(skillUser)) {
-      // skip時はフラグを立て、selfAppliedEffectは実行せず、followingSkill存在時はようす表示だけしてbreak
-    } else {
-      // currentSkill実行後、生存している場合はselfAppliedEffect付与 戦闘継続時のみ実行
-      if (currentSkill.selfAppliedEffect && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
-        await currentSkill.selfAppliedEffect(skillUser);
+      break;
+    } else if (!skipThisMonsterAction(skillUser)) {
+      // skip時はフラグを立て、afterEffectsは実行せず、followingSkill存在時は様子を見ている表示だけしてbreak
+      // 全滅判定と行動スキップ判定をクリアした場合のみafterEffectsを付与
+      // followingSkillとは異なり、AI使用を妨げないほか、反射・みがわり・種別無効判定等をスルーして付与
+      const currentAfterEffects = currentSkill.afterEffects;
+      if (currentAfterEffects && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
+        if (currentAfterEffects.allies) {
+          await sleep(150);
+          for (const buffTarget of parties[skillUser.teamID]) {
+            applyBuff(buffTarget, structuredClone(currentAfterEffects.allies), skillUser);
+          }
+        }
+        if (currentAfterEffects.enemies) {
+          await sleep(150);
+          for (const buffTarget of parties[skillUser.enemyTeamID]) {
+            applyBuff(buffTarget, structuredClone(currentAfterEffects.enemies), skillUser);
+          }
+        }
+        // 全体→selfの順（精霊の愛用）
+        if (currentAfterEffects.self) {
+          await sleep(150);
+          applyBuff(skillUser, structuredClone(currentAfterEffects.self), skillUser);
+        }
       }
     }
 
@@ -12816,6 +12838,7 @@ function getMonsterAbilities(monsterId) {
  * @property {"single" | "random" | "all" | "self" | "field" | "dead"} targetType - 対象範囲
  * @property {"ally" | "enemy"} targetTeam - 対象陣営
  * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} targetRace - 対象系統
+ * @property {boolean} [requireTargetRace] - コマンド時にtargetRace以外をskillの対象として選択不可とするか否か
  * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
  * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
  * @property {number} [hitNum] - 連続ヒット回数
@@ -12884,18 +12907,17 @@ function getMonsterAbilities(monsterId) {
  * --- 状態変化・追加効果 ---
  * @property {"disruptiveWave" | "divineWave"} [waveEffect] - いては・上位はどう
  * @property {Object.<string, any>} [appliedEffect] - 付与バフ・デバフ
+ * @property {{ allies?: Record<string, any>, enemies?: Record<string, any>, self?: Record<string, any> }} [afterEffects] - スキル実行後の効果付与（missにかかわらず実行 行動skip判定されうる）
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
  * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
  * @property {{ hpRate?: number, probability?: number, appliedBuff?: Object.<string, any>, condition?: (skillTarget: any) => boolean, onSuccess?: (skillTarget: any) => Promise<void>|void, healLiving?: boolean }} [reviveParams] - 蘇生設定
  * @property {{ minInt: number, minIntHealAmount: number, maxInt: number, maxIntHealAmount: number, skillPlus?: number }} [healParams] - 回復量計算パラメータ
  *
  * --- コールバック・関数処理 ---
- * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
  * @property {(skillUserName: string) => [string, string]} [specialMessage] - 特殊メッセージを生成する関数（[1行目, 2行目]）
  * @property {(skillUser: any, skillTarget: any) => Promise<void>|void} [act] - 主処理・追加効果
  * @property {(skillUser: any) => Promise<void>|void} [onStart] - ヒット前処理
  * @property {(skillUser: any, isMonsterAction?: boolean) => Promise<void>|void} [onComplete] - ヒット後処理（miss・死亡に関わらず行動skip判定前に実行）
- * @property {(skillUser: any) => Promise<void>|void} [selfAppliedEffect] - ヒット後自身への効果付与（missにかかわらず実行 行動skip判定されうる）
  * @property {(skillUser: any, skillTarget: any) => number} [damageModifier] - 特殊ダメージ増減算出
  * @property {(skillUser: any, skillTarget: any, isReflection?: boolean) => number} [damageMultiplier] - 特殊ダメージ倍率算出
  * @property {(skillUser: any) => string|undefined} [reviseIf] - 条件分岐によるスキル置換判定 (下位技への変化など)
@@ -13655,7 +13677,7 @@ const skill = [
     substituteParams: {
       scope: "all",
     },
-    selfAppliedEffect: async function (skillUser) {
+    onComplete: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
         await sleep(100);
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
@@ -13701,7 +13723,7 @@ const skill = [
     substituteParams: {
       scope: "single",
     },
-    selfAppliedEffect: async function (skillUser) {
+    onComplete: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
         await sleep(100);
         applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
@@ -13722,9 +13744,8 @@ const skill = [
     substituteParams: {
       scope: "single",
     },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(100);
-      applyBuff(skillUser, { mindBarrier: { duration: 4 } });
+    afterEffects: {
+      self: { mindBarrier: { duration: 4 } },
     },
     description1: "【先制】味方1体への　敵の行動を　かわりにうける",
     description2: "自分を　行動停止無効状態にする",
@@ -14017,9 +14038,8 @@ const skill = [
     preemptiveGroup: 8,
     criticalHitProbability: 0,
     ignoreDazzle: true,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    afterEffects: {
+      self: { baiki: { strength: 1 }, spdUp: { strength: 1 } },
     },
     description2: "ランダムに6回　攻撃力依存で　デイン系の踊り攻撃",
     description3: "その後　自分の攻撃力・素早さを1段階上げる",
@@ -14120,9 +14140,8 @@ const skill = [
     hitNum: 4,
     MPcost: 54,
     waveEffect: "divineWave",
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { martialEvasion: { duration: 2, divineDispellable: true } });
+    afterEffects: {
+      self: { martialEvasion: { duration: 2, divineDispellable: true } },
     },
     description1: "【みかわし不可】【マヌーサ無効】ランダムに4回",
     description2: "ドルマ系の体技攻撃　命中時　状態変化解除（上位効果）",
@@ -14951,11 +14970,8 @@ const skill = [
     raceBane: ["???"],
     raceBaneRatio: 2,
     criticalHitProbability: 0,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.teamID]) {
-        applyBuff(monster, { makaiBoost: { strength: 0.2, duration: 3 } });
-      }
+    afterEffects: {
+      allies: { makaiBoost: { strength: 0.2, duration: 3 } },
     },
   },
   {
@@ -14971,9 +14987,8 @@ const skill = [
     raceBane: ["???"],
     raceBaneRatio: 2,
     criticalHitProbability: 0,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    afterEffects: {
+      self: { baiki: { strength: 1 }, spdUp: { strength: 1 } },
     },
   },
   {
@@ -15143,9 +15158,8 @@ const skill = [
     MPcost: 70,
     ignoreEvasion: true,
     ignoreTypeEvasion: true,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { baiki: { strength: 1 }, spdUp: { strength: 1 } });
+    afterEffects: {
+      self: { baiki: { strength: 1 }, spdUp: { strength: 1 } },
     },
   },
   {
@@ -15636,7 +15650,7 @@ const skill = [
     hitNum: 6,
     MPcost: 57,
     appliedEffect: { powerWeaken: { strength: 0.5, duration: 2 } },
-    selfAppliedEffect: async function (skillUser) {
+    onComplete: async function (skillUser) {
       if (skillUser.buffs.tyoryuLevel) {
         const newStrength = Math.min(3, skillUser.buffs.tyoryuLevel.strength + 1);
         skillUser.buffs.tyoryuLevel.strength = newStrength;
@@ -15753,11 +15767,8 @@ const skill = [
     hitNum: 6,
     MPcost: 79,
     ignoreReflection: true,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.enemyTeamID]) {
-        applyBuff(monster, { dotDamage: { ratio: 0.2 } });
-      }
+    afterEffects: {
+      enemies: { dotDamage: { ratio: 0.2 } },
     },
     description1: "【反射無視】ランダムに6回　メラ系の息攻撃",
     description2: "その後　敵全体を　継続ダメージ状態にする",
@@ -15773,11 +15784,8 @@ const skill = [
     hitNum: 7,
     MPcost: 79,
     ignoreReflection: true,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.enemyTeamID]) {
-        applyBuff(monster, { dotDamage: { ratio: 0.2 } });
-      }
+    afterEffects: {
+      enemies: { dotDamage: { ratio: 0.2 } },
     },
     description1: "【反射無視】ランダムに7回　メラ系の息攻撃",
     description2: "その後　敵全体を　継続ダメージ状態にする",
@@ -15794,11 +15802,8 @@ const skill = [
     MPcost: 79,
     ignoreReflection: true,
     ignoreProtection: true,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.enemyTeamID]) {
-        applyBuff(monster, { dotDamage: { ratio: 0.2 } });
-      }
+    afterEffects: {
+      enemies: { dotDamage: { ratio: 0.2 } },
     },
     description2: "ランダムに9回　メラ系の息攻撃",
     description3: "その後　敵全体を　継続ダメージ状態にする",
@@ -16123,9 +16128,8 @@ const skill = [
     substituteParams: {
       scope: "single",
     },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { slashBarrier: { strength: 1 } });
+    afterEffects: {
+      self: { slashBarrier: { strength: 1 } },
     },
   },
   {
@@ -16180,11 +16184,8 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     appliedEffect: { baiki: { strength: 2 }, defUp: { strength: -2 } },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.teamID]) {
-        applyBuff(monster, { baiki: { strength: 2 }, defUp: { strength: -2 } });
-      }
+    afterEffects: {
+      allies: { baiki: { strength: 2 }, defUp: { strength: -2 } },
     },
     description2: "敵味方全体の　攻撃力を2段階上げ　防御力を2段階下げる",
   },
@@ -16246,10 +16247,8 @@ const skill = [
     substituteParams: {
       scope: "all",
     },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
-      }
+    afterEffects: {
+      allies: { dodgeBuff: { strength: 0.5 } },
     },
   },
   {
@@ -16788,12 +16787,8 @@ const skill = [
       hpRate: 0.6,
       condition: (skillTarget) => skillTarget.race.includes("物質"),
     },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (monster.race.includes("物質")) {
-          applyBuff(monster, { matterBuffAtk: { strength: 0.3 }, matterBuffSpd: { strength: 0.3 } });
-        }
-      }
+    afterEffects: {
+      allies: { matterBuffAtk: { strength: 0.3, targetRace: "物質" }, matterBuffSpd: { strength: 0.3, targetRace: "物質" } },
     },
   },
   {
@@ -16817,9 +16812,8 @@ const skill = [
         countDown: { count: 2 },
       },
     },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 } });
+    afterEffects: {
+      self: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 } },
     },
     description1: "【戦闘中1回】???・超魔王・超伝説系以外の味方全体を",
     description2: "復活させ　攻撃力・防御力・素早さ・賢さを　2段階上げ",
@@ -16872,12 +16866,9 @@ const skill = [
       hpRate: 1,
       healLiving: true,
     },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        applyBuff(monster, { spdUp: { strength: 1 } });
-      }
-      await sleep(150);
-      applyBuff(skillUser, { sealed: {} });
+    afterEffects: {
+      allies: { spdUp: { strength: 1 } },
+      self: { sealed: {} },
     },
     description1: "【戦闘中1回】味方全体を",
     description2: "復活させ　HPを全回復し　素早さを1段階上げる",
@@ -16898,17 +16889,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 7,
     MPcost: 120,
-    followingSkill: "零時の儀式後半",
-  },
-  {
-    name: "零時の儀式後半",
-    type: "ritual",
-    howToCalculate: "none",
-    element: "none",
-    targetType: "all",
-    targetTeam: "ally",
-    MPcost: 0,
-    appliedEffect: { spellBarrier: { strength: 1 } },
+    afterEffects: {
+      allies: { spellBarrier: { strength: 1 } },
+    },
   },
   {
     name: "タイムストーム",
@@ -17106,8 +17089,8 @@ const skill = [
     preemptiveGroup: 7,
     MPcost: 56,
     waveEffect: "disruptiveWave",
-    selfAppliedEffect: async function (skillUser) {
-      applyBuff(skillUser, { damageLimit: { keepOnDeath: true, strength: 300 } }, null, false, true);
+    afterEffects: {
+      self: { damageLimit: { keepOnDeath: true, strength: 300 } },
     },
   },
   {
@@ -17538,10 +17521,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { darkResistance: { strength: 2 } },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.enemyTeamID]) {
-        applyBuff(monster, { darkResistance: { strength: 2 } });
-      }
+    afterEffects: {
+      enemies: { darkResistance: { strength: 2 } },
     },
     isOneTimeUse: true,
     description1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
@@ -17559,10 +17540,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { iceResistance: { strength: 2 } },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.enemyTeamID]) {
-        applyBuff(monster, { iceResistance: { strength: 2 } });
-      }
+    afterEffects: {
+      enemies: { iceResistance: { strength: 2 } },
     },
     isOneTimeUse: true,
     description1: "【戦闘中1回】【先制】【みがわり無視】【反射無視】",
@@ -18335,9 +18314,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+    afterEffects: {
+      self: { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
     },
   },
   {
@@ -18352,9 +18330,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     appliedEffect: { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+    afterEffects: {
+      self: { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
     },
   },
   {
@@ -18669,12 +18646,7 @@ const skill = [
     MPcost: 124,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true }, mindBarrier: { duration: 4 } },
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.race.includes("自然")) {
-        applyBuff(skillTarget, { lightResistance: { strength: 1 } });
-      }
-    },
+    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true }, mindBarrier: { duration: 4 }, lightResistance: { strength: 1, targetRace: "自然" } },
   },
   {
     name: "巨岩投げ",
@@ -18781,11 +18753,8 @@ const skill = [
     ignoreSubstitute: true,
     ignoreTypeEvasion: true,
     appliedEffect: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        // skillUserを渡して使い手反映
-        applyBuff(monster, { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } }, skillUser);
-      }
+    afterEffects: {
+      allies: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } }, // skillUserが自動で渡され使い手反映
     },
     isOneTimeUse: true,
   },
@@ -18965,11 +18934,8 @@ const skill = [
     targetTeam: "enemy",
     hitNum: 5,
     MPcost: 65,
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      for (const monster of parties[skillUser.teamID]) {
-        applyBuff(monster, { breathCharge: { strength: 1.5 } });
-      }
+    afterEffects: {
+      allies: { breathCharge: { strength: 1.5 } },
     },
   },
   {
@@ -19563,7 +19529,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     targetRace: "物質",
-    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
+    requireTargetRace: true,
     MPcost: 32,
     appliedEffect: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
     act: async function (skillUser, skillTarget) {
@@ -19799,15 +19765,14 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     targetRace: "物質",
-    excludeTarget: (targetMonster) => !targetMonster.race.includes("物質"),
+    requireTargetRace: true,
     MPcost: 50,
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
     appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } });
+    afterEffects: {
+      self: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
     },
   },
   {
@@ -19886,7 +19851,7 @@ const skill = [
     substituteParams: {
       scope: "all",
     },
-    selfAppliedEffect: async function (skillUser) {
+    onComplete: async function (skillUser) {
       if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
         await sleep(100);
         skillUser.flags.hasUsedMaterialGuard = true;
@@ -20772,9 +20737,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     appliedEffect: { manaReduction: { strength: 0.5, duration: 2 } },
-    selfAppliedEffect: async function (skillUser) {
-      await sleep(150);
-      applyBuff(skillUser, { dodgeBuff: { strength: 0.5 } });
+    afterEffects: {
+      self: { dodgeBuff: { strength: 0.5 } },
     },
   },
   {
@@ -21609,13 +21573,8 @@ const skill = [
     MPcost: 50,
     isHealSkill: true,
     healParams: { minInt: 200, minIntHealAmount: 110, maxInt: 500, maxIntHealAmount: 272, skillPlus: 1.15 },
-    selfAppliedEffect: async function (skillUser) {
-      for (const monster of parties[skillUser.teamID]) {
-        if (Math.random() < 0.8) {
-          applyBuff(monster, { defUp: { strength: 1 } });
-          await sleep(100);
-        }
-      }
+    afterEffects: {
+      allies: { defUp: { strength: 1, probability: 0.8 } },
     },
   },
   {
@@ -23199,12 +23158,13 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   const skillName = skillInfo.name;
   let type;
   // 直接指定から
-  if (["ダークミナデイン", "ビーストアイ"].includes(skillName)) {
+  if (["ダークミナデイン", "ビーストアイ", "氷の王国"].includes(skillName)) {
     type = "abnormality";
   } else if (
-    ["零時の儀式", "エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "暗黒の誘い", "イブールの誘い", "腐乱の波動", "ザラキーマ"].includes(skillName)
+    (skillInfo.afterEffects && skillInfo.targetTeam === "enemy" && (skillInfo.afterEffects.self || skillInfo.afterEffects.allies)) ||
+    Object.values(skillInfo.appliedEffect ?? {}).some((effect) => "sameRaceSuccessBonus" in effect) ||
+    ["エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "ザラキーマ"].includes(skillName)
   ) {
-    // sameRaceSuccessBonusを含むもの等
     type = "special";
   } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
     // その他光の波動系統も本来ここ
@@ -25940,7 +25900,7 @@ function isNoDamageWaveSkill(skillInfo) {
 
 function getAvailableSkillsForOthers() {
   // MP0ではないがランダム付与の対象としない特殊skill additionalVersionも注意
-  const unavailableSKillsForOthers = [
+  const unavailableSkillsForOthers = [
     "神楽の術下位",
     "ツイスター下位",
     "キングストーム下位",
@@ -25957,7 +25917,7 @@ function getAvailableSkillsForOthers() {
   // MP0でも付与して良いもの
   const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
 
-  const availableSkills = skill.filter((skill) => !unavailableSKillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
+  const availableSkills = skill.filter((skill) => !unavailableSkillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
   return availableSkills;
 }
 
