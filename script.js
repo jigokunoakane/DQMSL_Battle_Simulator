@@ -4003,6 +4003,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
+    // 回復処理
+    if (executingSkill.healParams) {
+      const { minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus = 1.15 } = executingSkill.healParams;
+      executeHealSkill(skillUser, buffTarget, minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus);
+    }
+
     // act処理を行い、barなどを更新
     if (executingSkill.act) {
       await executingSkill.act(skillUser, buffTarget);
@@ -12874,6 +12880,7 @@ function getMonsterAbilities(monsterId) {
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
  * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
  * @property {{ hpRate?: number, probability?: number, appliedBuff?: Object.<string, any>, condition?: (skillTarget: any) => boolean, onSuccess?: (skillTarget: any) => Promise<void>|void, healLiving?: boolean }} [reviveParams] - 蘇生設定
+ * @property {{ minInt: number, minIntHealAmount: number, maxInt: number, maxIntHealAmount: number, skillPlus?: number }} [healParams] - 回復量計算パラメータ
  *
  * --- コールバック・関数処理 ---
  * @property {(targetMonster: any) => boolean} [excludeTarget] - 対象除外判定関数
@@ -21565,9 +21572,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 42,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 330, maxInt: 500, maxIntHealAmount: 975, skillPlus: 1.15 },
   },
   {
     name: "ベホイマ",
@@ -21578,9 +21583,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 42,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 330, maxInt: 500, maxIntHealAmount: 975, skillPlus: 1.15 },
   },
   {
     name: "ベホマラー",
@@ -21591,9 +21594,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 65,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 110, maxInt: 500, maxIntHealAmount: 272, skillPlus: 1.15 },
   },
   {
     name: "ベホマズン",
@@ -21604,9 +21605,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 200,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 330, 500, 975, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 330, maxInt: 500, maxIntHealAmount: 975, skillPlus: 1.15 },
   },
   {
     name: "チアフルダンス",
@@ -21617,9 +21616,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 50,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 110, 500, 272, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 110, maxInt: 500, maxIntHealAmount: 272, skillPlus: 1.15 },
     selfAppliedEffect: async function (skillUser) {
       for (const monster of parties[skillUser.teamID]) {
         if (Math.random() < 0.8) {
@@ -21638,9 +21635,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 64,
     isHealSkill: true,
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 95, maxInt: 500, maxIntHealAmount: 230, skillPlus: 1.15 },
     followingSkill: "光のはどう",
   },
   {
@@ -21652,8 +21647,8 @@ const skill = [
     targetTeam: "ally",
     MPcost: 64,
     isHealSkill: true,
+    healParams: { minInt: 200, minIntHealAmount: 95, maxInt: 500, maxIntHealAmount: 230, skillPlus: 1.15 },
     act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 95, 500, 230, 1.15);
       await executeRadiantWave(skillTarget, false, true); // マソも解除
     },
   },
@@ -21667,9 +21662,7 @@ const skill = [
     MPcost: 70,
     isHealSkill: true,
     appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // いやしの雨と同値、+0で275、+3で318
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 200, 96, 500, 240, 1.15);
-    },
+    healParams: { minInt: 200, minIntHealAmount: 96, maxInt: 500, maxIntHealAmount: 240, skillPlus: 1.15 },
   },
   {
     name: "いやしの雨",
@@ -21681,9 +21674,7 @@ const skill = [
     MPcost: 150,
     isHealSkill: true,
     appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // +0で275、+3で318
-    act: async function (skillUser, skillTarget) {
-      executeHealSkill(skillUser, skillTarget, 1, 280, 10000000, 280, 1.15);
-    },
+    healParams: { minInt: 1, minIntHealAmount: 280, maxInt: 10000000, maxIntHealAmount: 280, skillPlus: 1.15 },
   },
   {
     name: "天の裁き",
