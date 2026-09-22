@@ -3950,7 +3950,12 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     let isBuffTargetChanged = false;
     let isSkillUserChanged = false;
 
-    // 身代わり・かばう処理
+    // フィールド変化
+    if (executingSkill.fieldEffect) {
+      await changeField(executingSkill.fieldEffect.type, executingSkill.fieldEffect.turns);
+    }
+
+    // みがわり実行
     if (executingSkill.substituteParams) {
       const effect = executingSkill.substituteParams;
       if (!effect.condition || effect.condition(skillUser, buffTarget)) {
@@ -3967,14 +3972,14 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
-    // くじけぬ解除処理
+    // くじけぬ解除実行
     if (executingSkill.deleteUnbreakableProbability && buffTarget.buffs.isUnbreakable !== undefined && !buffTarget.flags.isDead && !buffTarget.flags.isZombie) {
       if (Math.random() < executingSkill.deleteUnbreakableProbability) {
         delete buffTarget.buffs.isUnbreakable;
         isBuffTargetChanged = true;
       }
     }
-    // ため解除処理（亡者も適用対象とした）
+    // ため解除実行（亡者も適用対象とした）
     if (executingSkill.tensionClearProbability && !buffTarget.flags.isDead) {
       if (Math.random() < executingSkill.tensionClearProbability) {
         const targetBuffs = ["powerCharge", "manaBoost", "breathCharge"];
@@ -3988,7 +3993,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
-    // 昇天処理
+    // 昇天実行
     if (executingSkill.isAscensionSkill) {
       if (executingSkill.targetType === "all" && executingSkill.targetTeam === "ally" && !isReflection && buffTarget === skillUser) {
         displayMiss(buffTarget);
@@ -3997,7 +4002,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
-    // 蘇生処理
+    // 蘇生実行
     if (executingSkill.reviveParams) {
       const params = executingSkill.reviveParams;
       const isField = executingSkill.targetType === "field";
@@ -4038,10 +4043,25 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
       }
     }
 
-    // 回復処理
+    // 回復実行
     if (executingSkill.healParams) {
       const { minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus = 1.15 } = executingSkill.healParams;
       executeHealSkill(skillUser, buffTarget, minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus);
+    }
+
+    // 光のはどう実行（回復実行→光のはどう実行とすることで、回復封じ付与時は回復しないようにする）
+    if (executingSkill.hasRadiantWave) {
+      await executeRadiantWave(buffTarget, false, true, false); // 特技での実行時はマソ確定解除 ミス表示あり
+    }
+    // ミス表示なし（神秘のはごろも等）
+    if (executingSkill.clearSealed && buffTarget.buffs.sealed) {
+      delete buffTarget.buffs.sealed;
+      isBuffTargetChanged = true;
+    }
+    // ミス表示なし（防壁系・ハザードウェポン等）
+    if (executingSkill.clearMaso && buffTarget.buffs.maso && buffTarget.buffs.maso.strength < 5) {
+      delete buffTarget.buffs.maso;
+      isBuffTargetChanged = true;
     }
 
     // act処理を行い、barなどを更新
@@ -12920,6 +12940,9 @@ function getMonsterAbilities(monsterId) {
  * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
  * @property {{ hpRate?: number, probability?: number, appliedBuff?: Object.<string, any>, condition?: (skillTarget: any) => boolean, onSuccess?: (skillTarget: any) => Promise<void>|void, healLiving?: boolean }} [reviveParams] - 蘇生設定
  * @property {{ minInt: number, minIntHealAmount: number, maxInt: number, maxIntHealAmount: number, skillPlus?: number }} [healParams] - 回復量計算パラメータ
+ * @property {boolean} [hasRadiantWave] - 光のはどう
+ * @property {boolean} [clearSealed] - 封印解除
+ * @property {boolean} [clearMaso] - マソ解除（Lv4まで）
  *
  * --- コールバック・関数処理 ---
  * @property {(skillUserName: string) => [string, string]} [specialMessage] - 特殊メッセージを生成する関数（[1行目, 2行目]）
@@ -16208,9 +16231,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true } },
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, true, true); // マソも解除
-    },
+    clearMaso: true, // それ以外の状態異常はsacredBarrier付与時にapplyBuff内でclearするためhasRadiantWaveは不要
   },
   {
     name: "神獣王の防壁",
@@ -16223,9 +16244,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { sacredBarrier: {}, slashBarrier: { strength: 1 }, spellBarrier: { strength: 1 } }, // ターン無制限
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, true, true); // マソも解除
-    },
+    clearMaso: true, // それ以外の状態異常はsacredBarrier付与時にapplyBuff内でclearするためhasRadiantWaveは不要
   },
   {
     name: "神秘のはごろも",
@@ -16238,9 +16257,8 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true }, sealBarrier: { duration: 1, removeAtTurnStart: true }, reviveBlockBarrier: { duration: 1, removeAtTurnStart: true } },
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, true, true, true); // マソ・封印解除
-    },
+    clearMaso: true, // それ以外の状態異常はsacredBarrier付与時にapplyBuff内でclearするためhasRadiantWaveは不要
+    clearSealed: true,
   },
   {
     name: "空中ふゆう",
@@ -16941,8 +16959,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 1,
     MPcost: 39,
-    act: async function (skillUser, skillTarget) {
-      await changeField("isDistorted", 1);
+    fieldEffect: {
+      type: "isDistorted",
+      turns: 1,
     },
   },
   {
@@ -16955,9 +16974,12 @@ const skill = [
     MPcost: 60,
     order: "anchor",
     isOneTimeUse: true,
-    act: async function (skillUser, skillTarget) {
-      await changeField("isReverse", 11);
-      applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } });
+    fieldEffect: {
+      type: "isReverse",
+      turns: 11,
+    },
+    afterEffects: {
+      self: { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 } },
     },
   },
   {
@@ -17638,9 +17660,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 50,
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, false, true); // マソも解除
-    },
+    hasRadiantWave: true,
   },
   {
     name: "光のはどう体技封じ無視",
@@ -17651,9 +17671,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 0,
     skipSkillSealCheck: true,
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, false, true); // マソも解除
-    },
+    hasRadiantWave: true,
   },
   {
     name: "エスナガ",
@@ -17663,9 +17681,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 50,
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, false, true); // マソも解除
-    },
+    hasRadiantWave: true,
   },
   {
     name: "極彩鳥のはどう",
@@ -20235,9 +20251,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     appliedEffect: { martialBarrier: { strength: 2 } },
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, false, true); // マソも解除
-    },
+    hasRadiantWave: true,
   },
   {
     name: "ヴェノムパニック",
@@ -21006,7 +21020,7 @@ const skill = [
     ignoreTypeEvasion: true,
     appliedEffect: { maso: { maxDepth: 3 }, powerWeaken: { strength: 0.5, duration: 3 }, manaReduction: { strength: 0.5, duration: 3 } },
     act: async function (skillUser, skillTarget) {
-      applyBuff(skillTarget, { maso: { probability: 0.3, maxDepth: 3 } });
+      applyBuff(skillTarget, { maso: { probability: 0.3, maxDepth: 3, noMissDisplay: true } });
     },
   },
   {
@@ -21052,11 +21066,7 @@ const skill = [
       3: 8,
       4: 9.5,
     },
-    act: async function (skillUser, skillTarget) {
-      if (skillTarget.buffs.maso && skillTarget.buffs.maso.strength < 5) {
-        delete skillTarget.buffs.maso;
-      }
-    },
+    clearMaso: true,
   },
   {
     name: "ダークハザード",
@@ -21601,9 +21611,7 @@ const skill = [
     MPcost: 64,
     isHealSkill: true,
     healParams: { minInt: 200, minIntHealAmount: 95, maxInt: 500, maxIntHealAmount: 230, skillPlus: 1.15 },
-    act: async function (skillUser, skillTarget) {
-      await executeRadiantWave(skillTarget, false, true); // マソも解除
-    },
+    hasRadiantWave: true,
   },
   {
     name: "やすらぎのひざし",
@@ -23163,9 +23171,10 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
   if (["ダークミナデイン", "ビーストアイ", "氷の王国"].includes(skillName)) {
     type = "abnormality";
   } else if (
+    skillInfo.fieldEffect ||
     (skillInfo.afterEffects && skillInfo.targetTeam === "enemy" && (skillInfo.afterEffects.self || skillInfo.afterEffects.allies)) ||
     Object.values(skillInfo.appliedEffect ?? {}).some((effect) => "sameRaceSuccessBonus" in effect) ||
-    ["エレメントエラー", "かくせいリバース", "供物をささげる", "正体をあらわす", "しのルーレット", "ザラキーマ"].includes(skillName)
+    ["供物をささげる", "正体をあらわす", "しのルーレット", "ザラキーマ"].includes(skillName)
   ) {
     type = "special";
   } else if (skillInfo.targetType === "dead" || skillInfo.isHealSkill) {
@@ -25903,7 +25912,7 @@ function getBuffName(appliedEffect) {
 }
 
 function isNoDamageWaveSkill(skillInfo) {
-  return skillInfo.howToCalculate === "none" && (skillInfo.waveEffect === "disruptiveWave" || skillInfo.waveEffect === "divineWave");
+  return skillInfo.howToCalculate === "none" && skillInfo.waveEffect;
 }
 
 function getAvailableSkillsForOthers() {
