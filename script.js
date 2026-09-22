@@ -229,6 +229,30 @@ async function prepareBattle() {
       monster.teamID = i;
       monster.enemyTeamID = i === 0 ? 1 : 0;
 
+      // ゲッターで敵味方を取得可能とする
+      Object.defineProperties(monster, {
+        allies: {
+          get() {
+            return parties[this.teamID];
+          },
+        },
+        enemies: {
+          get() {
+            return parties[this.enemyTeamID];
+          },
+        },
+        aliveAllies: {
+          get() {
+            return parties[this.teamID].filter((m) => !m.flags?.isDead);
+          },
+        },
+        aliveEnemies: {
+          get() {
+            return parties[this.enemyTeamID].filter((m) => !m.flags?.isDead);
+          },
+        },
+      });
+
       // 各要素のIDを作成
       monster.index = j;
       monster.monsterId = `parties[${i}][${j}]`;
@@ -318,7 +342,7 @@ function updateBattleIcons(monster, reverseDisplay = false) {
   const targetElement = document.getElementById(targetElementId);
   targetElement.src = monster.iconSrc;
   // 対面monsterが存在しないとき、対面のアイコンを非表示に
-  if (!parties[monster.enemyTeamID][monster.index]) {
+  if (!monster.enemies[monster.index]) {
     const enemyTargetElementId = reverseDisplay ? monster.iconElementId : monster.reversedIconElementId;
     deleteIconAndBuffDisplay(enemyTargetElementId);
   }
@@ -1129,15 +1153,15 @@ async function startTurn() {
       const buffData = buffs[buffName];
       // バフ対象の取得
       const targetType = buffData.targetType || BuffTargetType.Self; // デフォルトは自分自身
-      const aliveAllys = parties[monster.teamID].filter((monster) => !monster.flags.isDead);
-      const aliveEnemies = parties[monster.enemyTeamID].filter((monster) => !monster.flags.isDead);
+      const aliveAllies = monster.aliveAllies;
+      const aliveEnemies = monster.aliveEnemies;
       // バフ対象に応じた処理
       switch (targetType) {
         case BuffTargetType.Self:
           applyBuff(monster, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
           break;
         case BuffTargetType.Ally:
-          for (const ally of aliveAllys) {
+          for (const ally of aliveAllies) {
             // 自分除外時はally !== monster
             applyBuff(ally, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
             if (!skipSleep) await sleep(150); // skipSleep が false の場合のみ150ms待機
@@ -1150,13 +1174,13 @@ async function startTurn() {
           }
           break;
         case BuffTargetType.All:
-          for (const target of [...aliveAllys, ...aliveEnemies]) {
+          for (const target of [...aliveAllies, ...aliveEnemies]) {
             applyBuff(target, { [buffName]: structuredClone(buffData) }, null, false, skipMessage);
             if (!skipSleep) await sleep(150);
           }
           break;
         case BuffTargetType.Random:
-          const aliveMonsters = buffData.targetTeam ? (buffData.targetTeam === "ally" ? aliveAllys : aliveEnemies) : aliveAllys;
+          const aliveMonsters = buffData.targetTeam ? (buffData.targetTeam === "ally" ? aliveAllies : aliveEnemies) : aliveAllies;
           //未指定時はランダムな味方を対象
           const targetNum = buffData.targetNum || 1; // targetNumが指定されていない場合は1回
 
@@ -2630,7 +2654,7 @@ async function processMonsterAction(skillUser) {
   if (executingSkill.name !== "ぼうぎょ") {
     await sleep(200); // スキル実行前に待機時間を設ける
   }
-  const skillTargetTeam = executingSkill.targetTeam === "enemy" ? parties[skillUser.enemyTeamID] : parties[skillUser.teamID];
+  const skillTargetTeam = executingSkill.targetTeam === "enemy" ? skillUser.enemies : skillUser.allies;
   let executedSkills = [];
   const commandTarget = skillUser.commandTargetInput === null ? null : skillTargetTeam[skillUser.commandTargetInput];
   executedSkills = await executeSkill(skillUser, executingSkill, commandTarget, false, false, damagedMonsters, MPused, true, false);
@@ -2787,7 +2811,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
     // 直接指定する追加特技: 同上 王のつるぎ
     if (
       skillUser.buffs.pharaohPower &&
-      parties[skillUser.teamID].some((monster) => monster.name === "ファラオ・カーメン") &&
+      skillUser.allies.some((monster) => monster.name === "ファラオ・カーメン") &&
       executingSkill.type !== "notskill" && // notskill以外であることを直接指定
       executedSkills.some((skill) => isDamageExistingSkill(skill) && skill.targetTeam === "enemy")
     ) {
@@ -2973,7 +2997,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   }
 
   // 7-14. 被ダメージ時発動skill処理 反撃はリザオ等で蘇生しても発動するし、反射や死亡時で死んでも他に飛んでいくので制限はなし 敵限定で左から順に発動
-  for (const monster of parties[skillUser.enemyTeamID]) {
+  for (const monster of skillUser.enemies) {
     if (!isBattleOver() && damagedMonsters[monster.monsterId]) {
       await executeCounterAbilities(monster, damagedMonsters[monster.monsterId]);
     }
@@ -3019,7 +3043,7 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
 
 function decideAICommandShowNoMercy(skillUser) {
   const availableSkills = [];
-  const validTargets = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+  const validTargets = skillUser.aliveEnemies;
   if (validTargets.length === 0) {
     return [null, null];
   } else {
@@ -3160,7 +3184,7 @@ function decideAICommandFocusOnHeal(skillUser) {
   }
   // 蘇生技所持時 かつ 蘇生target存在時に蘇生を指定
   if (availableReviveSkills.length > 0) {
-    const validTargets = parties[skillUser.teamID].filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
+    const validTargets = skillUser.allies.filter((monster) => monster.flags.isDead && !monster.flags.isZombie && !monster.buffs.reviveBlock);
     let fastestTarget = null;
     // validTargetsが存在するとき、targetを決定してそこに蘇生技を打ってreturn
     if (validTargets.length > 0) {
@@ -3179,7 +3203,7 @@ function decideAICommandFocusOnHeal(skillUser) {
     }
   }
   // 蘇生技未所持 または 有効なtargetがいなかった場合
-  const validHealTargets = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.currentStatus.HP !== monster.defaultStatus.HP);
+  const validHealTargets = skillUser.allies.filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.currentStatus.HP !== monster.defaultStatus.HP);
   // 回復可能な味方がいる場合は回復技を撃つ
   if (validHealTargets.length > 0) {
     // 全体回復技所持時はそれを選んでreturn
@@ -3426,7 +3450,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     ++fieldState.completeDeathCount[target.teamID];
     // 支配持ちが蘇生予定なしで完全死亡した場合、rapu変身フラグを立てる
     if (target.buffs.controlOfRapu) {
-      const enemyRapus = parties[target.enemyTeamID].filter((member) => member.name === "新たなる神ラプソーン");
+      const enemyRapus = target.enemies.filter((member) => member.name === "新たなる神ラプソーン");
       for (const eachRapu of enemyRapus) {
         eachRapu.flags.rapuTransformTurn = fieldState.turnNum + 1;
       }
@@ -3623,13 +3647,13 @@ async function executeSkill(
       if (currentAfterEffects && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
         if (currentAfterEffects.allies) {
           await sleep(150);
-          for (const buffTarget of parties[skillUser.teamID]) {
+          for (const buffTarget of skillUser.allies) {
             applyBuff(buffTarget, structuredClone(currentAfterEffects.allies), skillUser);
           }
         }
         if (currentAfterEffects.enemies) {
           await sleep(150);
-          for (const buffTarget of parties[skillUser.enemyTeamID]) {
+          for (const buffTarget of skillUser.enemies) {
             applyBuff(buffTarget, structuredClone(currentAfterEffects.enemies), skillUser);
           }
         }
@@ -3694,9 +3718,7 @@ async function processHitSequence(
     case "all":
       // 全体攻撃
       // 生きているモンスターかつexcludedTargets対象外をtargetとする
-      const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter(
-        (monster) => !monster.flags.isDead && !excludedTargets.has(monster),
-      );
+      const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.aliveAllies : skillUser.aliveEnemies).filter((monster) => !excludedTargets.has(monster));
       if (aliveMonsters.length === 0) {
         return;
       }
@@ -3819,7 +3841,7 @@ async function processHitSequence(
 
 // 単体攻撃のターゲットを決定する関数
 function determineSingleTarget(target, skillUser, executingSkill, excludedTargets) {
-  const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+  const aliveMonsters = executingSkill.targetTeam === "ally" ? skillUser.aliveAllies : skillUser.aliveEnemies;
   if (target && !excludedTargets.has(target) && aliveMonsters.includes(target)) {
     // 指定されたターゲットが生きていて、excludedTargetsに含まれていない場合は、そのターゲットを返す
     return target;
@@ -3838,7 +3860,7 @@ function determineRandomTarget(target, skillUser, executingSkill, excludedTarget
   if (currentHit === 0) {
     return determineSingleTarget(target, skillUser, executingSkill, excludedTargets);
   } else {
-    const aliveMonsters = (executingSkill.targetTeam === "ally" ? parties[skillUser.teamID] : parties[skillUser.enemyTeamID]).filter((monster) => !monster.flags.isDead);
+    const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.allies : skillUser.enemies).filter((monster) => !monster.flags.isDead);
     const validTargets = aliveMonsters.filter((monster) => !excludedTargets.has(monster));
     if (validTargets.length > 0) {
       return validTargets[Math.floor(Math.random() * validTargets.length)];
@@ -4006,7 +4028,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     if (executingSkill.reviveParams) {
       const params = executingSkill.reviveParams;
       const isField = executingSkill.targetType === "field";
-      const targets = isField ? parties[skillUser.teamID] : [buffTarget];
+      const targets = isField ? skillUser.allies : [buffTarget];
 
       for (const target of targets) {
         if (!target) continue;
@@ -4780,11 +4802,11 @@ function calculateDamage(
   }
 
   // デュラン
-  if (skillUser.id === "dhuran" && (skillTarget.race.includes("超魔王") || skillTarget.race.includes("超伝説")) && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
+  if (skillUser.id === "dhuran" && (skillTarget.race.includes("超魔王") || skillTarget.race.includes("超伝説")) && hasEnoughMonstersOfType(skillUser.allies, "悪魔", 5)) {
     damageModifier += 0.5;
   }
   // 禁忌の封印
-  if (skillUser.race.includes("悪魔") && parties[skillUser.teamID].some((monster) => monster.id === "tanisu")) {
+  if (skillUser.race.includes("悪魔") && skillUser.allies.some((monster) => monster.id === "tanisu")) {
     damageModifier += 0.5;
   }
   if (skillUser.buffs.tabooSeal) {
@@ -4822,7 +4844,7 @@ function calculateDamage(
   }
 
   // skillUserのLSによる補正
-  const allyLeaderName = parties[skillUser.teamID][0].name;
+  const allyLeaderName = skillUser.allies[0].name;
   const { type, element, targetType } = executingSkill;
   const isZombie = skillUser.race.includes("ゾンビ");
 
@@ -4884,7 +4906,7 @@ function calculateDamage(
   }
 
   // skillTargetのLSによる軽減
-  const enemyLeaderName = parties[skillTarget.teamID][0].name;
+  const enemyLeaderName = skillTarget.allies[0].name;
   // 属性30軽減など
   if (ALL_ELEMENTS.includes(executingSkill.element)) {
     if (enemyLeaderName === "メタルゴッデス" && skillTarget.race.includes("スライム")) {
@@ -4946,7 +4968,7 @@ function calculateDamage(
   }
   // 特殊系
   // 天使のしるしデフォルト
-  if (parties[skillTarget.enemyTeamID].some((monster) => monster.name === "憎悪のエルギオス") && executingSkill.element === "light") {
+  if (skillTarget.enemies.some((monster) => monster.name === "憎悪のエルギオス") && executingSkill.element === "light") {
     damageModifier += 0.3;
   }
   // 天使のしるし
@@ -5292,7 +5314,7 @@ function checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, exclude
       }
       // エルギ判定 自分以外の味方のエルギのカウントを増やす
       // 通常ダメージ 供物(ダメージなしact) ザキ 反射でカウント増加 カウント刻印毒継続は対象外
-      const targetMonsters = parties[skillTarget.teamID].filter(
+      const targetMonsters = skillTarget.allies.filter(
         (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillTarget.monsterId,
       );
       for (const targetErugi of targetMonsters) {
@@ -5313,13 +5335,13 @@ async function processDeathAction(skillUser, excludedTargets) {
     }
   }
   // 敵逆順処理
-  for (const monster of [...parties[skillUser.enemyTeamID]].reverse()) {
+  for (const monster of [...skillUser.enemies].reverse()) {
     if (excludedTargets.has(monster)) {
       enqueueDeathAction(monster);
     }
   }
   // 味方逆順処理
-  for (const monster of [...parties[skillUser.teamID]].reverse()) {
+  for (const monster of [...skillUser.allies].reverse()) {
     if (excludedTargets.has(monster)) {
       enqueueDeathAction(monster);
     }
@@ -5486,7 +5508,7 @@ async function zombifyMonster(monster) {
 
 //AI追撃targetを返す
 function decideNormalAttackTarget(skillUser) {
-  const enemyParty = parties[skillUser.enemyTeamID];
+  const enemyParty = skillUser.enemies;
 
   // 生きている敵のみに絞り込む
   const aliveEnemies = enemyParty.filter((monster) => !monster.flags.isDead);
@@ -9507,7 +9529,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "全能の加護",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("ドラゴン")) {
                 applyBuff(monster, { allElementalBoost: { strength: 0.2, duration: 4 } });
               }
@@ -9519,13 +9541,13 @@ function getMonsterAbilities(monsterId) {
           disableMessage: true,
           unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "天の竜気上昇"),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("ドラゴン")) {
                 monster.abilities.additionalAfterActionAbilities.push({
                   name: "天の竜気上昇",
                   disableMessage: true,
                   unavailableIf: (skillUser, executingSkill, executedSkills) => {
-                    const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
+                    const aliveMasudora = skillUser.aliveAllies.filter((member) => member.id === "masudora");
                     // 生存しているマスドラがいない または skillが実行されてない時はunavailable
                     if (aliveMasudora.length < 1 || !executingSkill) {
                       return true;
@@ -9555,7 +9577,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族の息吹",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("ドラゴン")) {
                   applyBuff(monster, { allElementalBreak: { strength: 1, duration: 4, divineDispellable: true } });
                   await sleep(150);
@@ -9573,7 +9595,7 @@ function getMonsterAbilities(monsterId) {
             isOneTimeUse: true,
             unavailableIf: (skillUser) => !skillUser.buffs.dragonPreemptiveAction || skillUser.buffs.dragonPreemptiveAction.strength < 3,
             act: async function (skillUser) {
-              const aliveDragons = parties[skillUser.teamID].filter((member) => member.race.includes("ドラゴン") && !member.flags.isDead);
+              const aliveDragons = skillUser.aliveAllies.filter((member) => member.race.includes("ドラゴン"));
               for (const member of aliveDragons) {
                 displayMessage("天の竜気の", "効果が発動！");
                 applyBuff(member, { preemptiveAction: {} });
@@ -9590,12 +9612,12 @@ function getMonsterAbilities(monsterId) {
           {
             name: "サンセットビーチ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { fireGuard: { strength: 0.5, duration: 4 } });
                 await sleep(150);
               }
-              if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
-                for (const monster of parties[skillUser.enemyTeamID]) {
+              if (!hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 5)) {
+                for (const monster of skillUser.enemies) {
                   applyBuff(monster, { fireGuard: { strength: 0.5, duration: 4 } });
                   await sleep(150);
                 }
@@ -9611,7 +9633,7 @@ function getMonsterAbilities(monsterId) {
           name: "祭の名残",
           unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "祭の名残付与"),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("ドラゴン")) {
                 monster.abilities.additionalAfterActionAbilities.push({
                   name: "祭の名残付与",
@@ -9629,9 +9651,9 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "竜衆の鎮魂",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 5),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.enemyTeamID]) {
+              for (const monster of skillUser.enemies) {
                 applyBuff(monster, { reviveBlock: { name: "竜衆の鎮魂", duration: 1 } });
               }
             },
@@ -9653,7 +9675,7 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "竜衆の先鋒",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 3),
             act: function (skillUser) {
               applyBuff(skillUser, { preemptiveAction: {} });
             },
@@ -9665,7 +9687,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "紅蓮の炎熱",
             act: function (skillUser) {
-              for (const monster of parties[skillUser.enemyTeamID]) {
+              for (const monster of skillUser.enemies) {
                 applyBuff(monster, { fireResistance: { strength: -1 } });
               }
             },
@@ -9679,8 +9701,8 @@ function getMonsterAbilities(monsterId) {
           {
             name: "竜衆の防魔",
             act: async function (skillUser) {
-              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
-                for (const monster of parties[skillUser.teamID]) {
+              if (hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 5)) {
+                for (const monster of skillUser.allies) {
                   applyBuff(monster, { spellBarrier: { strength: 1 } });
                   await sleep(150);
                 }
@@ -9691,7 +9713,7 @@ function getMonsterAbilities(monsterId) {
           },
           {
             name: "竜衆の溶鉄",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 3),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 3),
             act: async function (skillUser) {
               await changeField("stonedBlock", 3);
             },
@@ -9703,7 +9725,7 @@ function getMonsterAbilities(monsterId) {
           name: "最後に祝福",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
             }
           },
@@ -9743,7 +9765,7 @@ function getMonsterAbilities(monsterId) {
           name: "反撃ののろし",
           unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "反撃ののろしダメージバフ"),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { deathAbility: { keepOnDeath: true } });
               monster.abilities.additionalDeathAbilities.push({
                 name: "反撃ののろしダメージバフ", // 毒供物カウントリザオカンダタ1回目は発動せず 2回目は発動 死者に付与せず亡者は自己含め付与 発動回数制限なし
@@ -9751,7 +9773,7 @@ function getMonsterAbilities(monsterId) {
                   displayMessage(`${skillUser.name} がチカラつき`, "反撃ののろし の効果が発動！");
                 },
                 act: async function (skillUser) {
-                  for (const monster of parties[skillUser.teamID]) {
+                  for (const monster of skillUser.allies) {
                     if (!monster.flags.isDead) {
                       applyBuff(monster, { worldBuff: { keepOnDeath: true, strength: 0.05, zombieBuffable: true } });
                       await sleep(100);
@@ -9771,7 +9793,7 @@ function getMonsterAbilities(monsterId) {
             displayMessage(`${skillUser.name}が チカラつき`, "反撃ののろしがあがった！");
           },
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
             }
           },
@@ -9782,7 +9804,7 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           act: function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.name !== "死を統べる者ネルゲル" && monster.skill[3] !== "プチ神のはどう" && monster.rank > 7) {
                 monster.skill[3] = "供物をささげる";
               }
@@ -9822,7 +9844,7 @@ function getMonsterAbilities(monsterId) {
             displayMessage(`${skillUser.name}の特性`, "天使のしるし が発動！");
           },
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { angelMark: { keepOnDeath: true } });
             }
           },
@@ -10185,7 +10207,7 @@ function getMonsterAbilities(monsterId) {
             name: "瞳化",
             unavailableIf: (skillUser) => !skillUser.flags.hasTransformed || skillUser.buffs.vearnBarrier,
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.enemyTeamID]) {
+              for (const monster of skillUser.enemies) {
                 if (monster.buffs.kiganLevel && monster.buffs.kiganLevel.strength === 3) {
                   delete monster.buffs.kiganLevel;
                   applyBuff(monster, { sealed: {} });
@@ -10395,11 +10417,11 @@ function getMonsterAbilities(monsterId) {
             displayMessage(`${skillUser.name}の特性により`, "冥界の霧 が発動！");
           },
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { healBlock: {} });
               await sleep(150);
             }
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { healBlock: {} });
               await sleep(150);
             }
@@ -10412,7 +10434,7 @@ function getMonsterAbilities(monsterId) {
             name: "魔族の痕跡風の使い手付与",
             disableMessage: true,
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { windBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "windBreakBoost" } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "風の使い手状態になった！");
                 await sleep(150);
@@ -10449,7 +10471,7 @@ function getMonsterAbilities(monsterId) {
             name: "竜王の痕跡炎の使い手付与",
             disableMessage: true,
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { fireBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "fireBreakBoost" } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "炎の使い手状態になった！");
                 await sleep(150);
@@ -10475,7 +10497,7 @@ function getMonsterAbilities(monsterId) {
             name: "大魔王の痕跡氷の使い手付与",
             disableMessage: true,
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { iceBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1 } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "氷の使い手状態になった！");
                 await sleep(150);
@@ -10622,7 +10644,7 @@ function getMonsterAbilities(monsterId) {
                 }
               }
               // デバフ付与: 自動解除  flag付与: 判定される次ターンを格納
-              const aliveEnemies = parties[skillUser.enemyTeamID].filter((member) => !member.flags.isDead);
+              const aliveEnemies = skillUser.enemies.filter((member) => !member.flags.isDead);
               const newTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
               if (newTarget) {
                 applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
@@ -10709,7 +10731,7 @@ function getMonsterAbilities(monsterId) {
             await sleep(200);
             const buffToApply = {};
             buffToApply[executingSkill.domainElement] = { keepOnDeath: true };
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               delete monster.buffs.iceDomain;
               delete monster.buffs.thunderDomain;
               delete monster.buffs.darkDomain;
@@ -10762,7 +10784,7 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           name: "聖騎士のよろい",
-          unavailableIf: (skillUser) => hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 2),
+          unavailableIf: (skillUser) => hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 2),
           act: async function (skillUser) {
             applyBuff(skillUser, { defUp: { strength: 1 } });
           },
@@ -10797,7 +10819,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の特性により`, "マインドバリア が発動！");
             },
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { mindBarrier: { duration: 4 } });
               }
             },
@@ -10823,7 +10845,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "強者のいげん",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { martialBarrier: { strength: 1 }, slashBarrier: { strength: 1 } });
                 } else {
@@ -10842,7 +10864,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のいかり",
             unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "一族のいかり"),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
@@ -10852,7 +10874,7 @@ function getMonsterAbilities(monsterId) {
                     },
                     ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                     act: async function (skillUser) {
-                      for (const monster of parties[skillUser.teamID]) {
+                      for (const monster of skillUser.allies) {
                         if (!monster.flags.isDead && monster.race.includes("悪魔")) {
                           applyBuff(monster, { baiki: { strength: 1 } });
                           await sleep(150);
@@ -10882,7 +10904,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage("特性により", "禁忌の封印 が発動！");
             },
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   // damageには自動的に、spdMultiplierには+0.5  tabooSeal所持時は0.5を引いて無効化
                   applyBuff(monster, { tabooSeal: { keepOnDeath: true }, internalSpdUp: { keepOnDeath: true, strength: 0.5 } });
@@ -10900,7 +10922,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "martial",
           act: async function (skillUser, executingSkill, executedSkills) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔")) {
                 applyBuff(monster, { autoRevive: { keepOnDeath: true, strength: 0.5 } });
               } else {
@@ -10925,7 +10947,7 @@ function getMonsterAbilities(monsterId) {
           name: "偽神の威光付与",
           unavailableIf: (skillUser) => skillUser.abilities.supportAbilities.additionalPermanentAbilities.some((ability) => ability.name === "偽神の威光実行"),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔")) {
                 applyBuff(monster, { autoRadiantWave: { removeAtTurnStart: true, duration: 3 } });
                 monster.abilities.supportAbilities.additionalPermanentAbilities.push({
@@ -10964,21 +10986,21 @@ function getMonsterAbilities(monsterId) {
           {
             name: "道化の舞踏",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { lightResistance: { strength: 1 } });
                 } else {
                   displayMiss(monster);
                 }
               }
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { dodgeBuff: { strength: 0.5 } });
                 } else {
                   displayMiss(monster);
                 }
               }
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { intUp: { strength: 1 } });
                 } else {
@@ -10990,7 +11012,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "デビルバーハ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { breathBarrier: { strength: 2 } });
                 } else {
@@ -11006,7 +11028,7 @@ function getMonsterAbilities(monsterId) {
           name: "道化のさいご",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { spellBarrier: { strength: -1, probability: 0.55 } });
             }
           },
@@ -11019,7 +11041,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "魔女のベール",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("悪魔")) {
                   applyBuff(monster, { slashBarrier: { strength: 1 }, paralyzeBarrier: { duration: 3 } });
                 } else {
@@ -11032,7 +11054,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "悪魔衆の踊り",
-        availableIf: (skillUser, executingSkill) => isDamageExistingSkill(executingSkill) && executingSkill.type === "dance" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
+        availableIf: (skillUser, executingSkill) => isDamageExistingSkill(executingSkill) && executingSkill.type === "dance" && hasEnoughMonstersOfType(skillUser.allies, "悪魔", 4),
         getFollowingSkillName: (executingSkill) => {
           return "ディバインフェザー";
         },
@@ -11064,7 +11086,7 @@ function getMonsterAbilities(monsterId) {
           name: "悪夢の再生",
           disableMessage: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
                 applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
@@ -11084,7 +11106,7 @@ function getMonsterAbilities(monsterId) {
           name: "悪夢の再生",
           disableMessage: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔") && !monster.abilities.reviveAct) {
                 applyBuff(monster, { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "悪夢の再生" } });
                 monster.abilities.reviveAct = async function (monster, buffName) {
@@ -11100,7 +11122,7 @@ function getMonsterAbilities(monsterId) {
           name: "いきなり悪魔系にマインドバリア",
           disableMessage: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔")) {
                 applyBuff(monster, { mindBarrier: { duration: 3 } });
               }
@@ -11110,7 +11132,7 @@ function getMonsterAbilities(monsterId) {
       ],
       followingAbilities: {
         name: "悪魔衆の誘い",
-        availableIf: (skillUser, executingSkill) => !executingSkill.order && executingSkill.type === "martial" && hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5),
+        availableIf: (skillUser, executingSkill) => !executingSkill.order && executingSkill.type === "martial" && hasEnoughMonstersOfType(skillUser.allies, "悪魔", 5),
         getFollowingSkillName: (executingSkill) => {
           return "イブールの誘い";
         },
@@ -11125,7 +11147,7 @@ function getMonsterAbilities(monsterId) {
           },
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+            for (const tempTarget of skillUser.enemies) {
               let skillTarget = tempTarget;
               if (skillTarget.flags.hasSubstitute) {
                 skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
@@ -11146,7 +11168,7 @@ function getMonsterAbilities(monsterId) {
           },
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+            for (const tempTarget of skillUser.enemies) {
               let skillTarget = tempTarget;
               if (skillTarget.flags.hasSubstitute) {
                 skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
@@ -11203,20 +11225,20 @@ function getMonsterAbilities(monsterId) {
         {
           name: "光の痕跡",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { lightBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "lightBreakBoost" } }); //本来は2R行動後に解除
             }
           },
         },
         {
           name: "せいなるまもり",
-          unavailableIf: (skillUser) => countRubisTarget(parties[skillUser.teamID]) < 3,
+          unavailableIf: (skillUser) => countRubisTarget(skillUser.allies) < 3,
           act: async function (skillUser) {
             const buff =
-              countRubisTarget(parties[skillUser.teamID]) > 4
+              countRubisTarget(skillUser.allies) > 4
                 ? { protection: { strength: 0.3, duration: 100000, noCrimsonMist: true }, isUnbreakable: { keepOnDeath: true, name: "くじけぬ心" } }
                 : { protection: { strength: 0.3, duration: 100000, noCrimsonMist: true } };
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (isRubisTarget(monster)) {
                 applyBuff(monster, buff);
               }
@@ -11229,11 +11251,11 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ルビスの加護",
             act: async function (skillUser) {
-              const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
-              if (aliveAllys.length > 0) {
-                const times = countRubisTarget(parties[skillUser.teamID]) > 4 ? 3 : 1;
+              const aliveAllies = skillUser.aliveAllies;
+              if (aliveAllies.length > 0) {
+                const times = countRubisTarget(skillUser.allies) > 4 ? 3 : 1;
                 for (let i = 0; i < times; i++) {
-                  const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
+                  const randomTarget = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                   applyBuff(randomTarget, { powerCharge: { strength: 1.3 }, manaBoost: { strength: 1.3 } });
                   await sleep(100);
                 }
@@ -11295,7 +11317,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "防魔の鼓動",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { spellBarrier: { strength: 1 } });
                 await sleep(100);
               }
@@ -11331,7 +11353,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "悪魔衆の氷雪",
           act: async function (skillUser) {
-            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4)) {
+            if (hasEnoughMonstersOfType(skillUser.allies, "悪魔", 4)) {
               applyBuff(skillUser, { iceBreak: { keepOnDeath: true, strength: 1 }, rizuIceBuff: { duration: 3 } });
             }
           },
@@ -11360,9 +11382,9 @@ function getMonsterAbilities(monsterId) {
       initialAbilities: [
         {
           name: "獣衆の進撃",
-          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "魔獣", 5),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("魔獣") && !monster.buffs.aiExtraAttacks) {
                 applyBuff(monster, { aiExtraAttacks: { keepOnDeath: true, strength: 1 } });
               }
@@ -11375,7 +11397,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族の爪牙",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { speedBasedAttack: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
                   await sleep(150);
@@ -11393,7 +11415,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "一族のほこり",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("魔獣")) {
                 applyBuff(monster, { goragoAtk: { strength: 0.15 } });
                 applyBuff(monster, { goragoSpd: { strength: 0.15 } });
@@ -11407,7 +11429,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "孤高の獣",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.monsterId === skillUser.monsterId) {
                   continue;
                 } else if (monster.race.includes("魔獣") && !monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "孤高の獣発動")) {
@@ -11419,9 +11441,9 @@ function getMonsterAbilities(monsterId) {
                     message: function (skillUser) {
                       displayMessage(`${skillUser.name} がチカラつき`, "孤高の獣 の効果が発動！");
                     },
-                    unavailableIf: (skillUser) => parties[skillUser.teamID].find((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie) === undefined,
+                    unavailableIf: (skillUser) => skillUser.allies.find((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie) === undefined,
                     act: async function (skillUser) {
-                      const targetMonsters = parties[skillUser.teamID].filter((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie);
+                      const targetMonsters = skillUser.allies.filter((monster) => monster.name === "ヘルゴラゴ" && !monster.flags.isDead && !monster.flags.isZombie);
                       for (const helgorago of targetMonsters) {
                         if (!helgorago.buffs.powerCharge) {
                           applyBuff(helgorago, { powerCharge: { strength: 1.5 } });
@@ -11456,7 +11478,7 @@ function getMonsterAbilities(monsterId) {
           name: "獣衆の保護踊り",
           disableMessage: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("魔獣")) {
                 monster.attribute.additionalPermanentBuffs.danceEvasion = { unDispellable: true, duration: 0 };
               }
@@ -11468,9 +11490,9 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "獣衆の速攻・天",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "魔獣", 5),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { spdUp: { keepOnDeath: true, strength: 1 } });
                   await sleep(150);
@@ -11495,7 +11517,7 @@ function getMonsterAbilities(monsterId) {
         evenTurnAbilities: [
           {
             name: "群れのチカラ",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 4),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "魔獣", 4),
             act: function (skillUser) {
               applyBuff(skillUser, { alwaysCrit: { unDispellable: true, removeAtTurnStart: true, duration: 1 } });
             },
@@ -11517,9 +11539,9 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "獣衆の速攻",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "魔獣", 5),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("魔獣")) {
                   applyBuff(monster, { spdUp: { strength: 1 } });
                 }
@@ -11530,7 +11552,7 @@ function getMonsterAbilities(monsterId) {
             name: "虹のベール",
             act: async function (skillUser) {
               applyBuff(skillUser, { spdUp: { strength: 1 } });
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { confusionBarrier: { duration: 3 } });
                 await sleep(150);
               }
@@ -11561,7 +11583,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "スラ・ライトメタルガード",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("スライム")) {
                 applyBuff(monster, { goddessLightMetal: { keepOnDeath: true, strength: 0.75 }, mpCostMultiplier: { strength: 1.2, keepOnDeath: true } });
               }
@@ -11582,7 +11604,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のきずな",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("スライム")) {
                   applyBuff(monster, { goddessDefUp: { strength: 0.4 } });
                   await sleep(150);
@@ -11600,15 +11622,15 @@ function getMonsterAbilities(monsterId) {
           {
             name: "スライムの守り手",
             act: async function (skillUser) {
-              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
-                for (const monster of parties[skillUser.teamID]) {
+              if (hasEnoughMonstersOfType(skillUser.allies, "スライム", 5)) {
+                for (const monster of skillUser.allies) {
                   applyBuff(monster, { defUp: { strength: 1 } });
                   await sleep(150);
                   applyBuff(monster, { martialBarrier: { strength: 1 } });
                   await sleep(150);
                 }
               } else {
-                for (const monster of parties[skillUser.teamID]) {
+                for (const monster of skillUser.allies) {
                   applyBuff(monster, { defUp: { strength: 1 } });
                   await sleep(150);
                 }
@@ -11617,7 +11639,7 @@ function getMonsterAbilities(monsterId) {
           },
           {
             name: "孤高の使命",
-            unavailableIf: (skillUser) => hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3),
+            unavailableIf: (skillUser) => hasEnoughMonstersOfType(skillUser.allies, "スライム", 3),
             act: async function (skillUser) {
               applyBuff(skillUser, { goddessDefUp: { strength: 0.2, iconSrc: "heroDefUp" } });
             },
@@ -11630,7 +11652,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "スライダーヒール",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("スライム")) {
                 applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
               }
@@ -11655,7 +11677,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "空の要塞",
           act: async function (skillUser) {
-            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3)) {
+            if (hasEnoughMonstersOfType(skillUser.allies, "スライム", 3)) {
               applyBuff(skillUser, { spellReflection: { strength: 1, duration: 3, unDispellable: true, removeAtTurnStart: true } });
             }
           },
@@ -11665,17 +11687,17 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "スライムのとばり",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 3),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "スライム", 3),
             act: async function (skillUser) {
-              if (hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
-                for (const monster of parties[skillUser.teamID]) {
+              if (hasEnoughMonstersOfType(skillUser.allies, "スライム", 5)) {
+                for (const monster of skillUser.allies) {
                   if (monster.race.includes("スライム")) {
                     applyBuff(monster, { spellBarrier: { strength: 2 } });
                     await sleep(150);
                   }
                 }
               } else {
-                for (const monster of parties[skillUser.teamID]) {
+                for (const monster of skillUser.allies) {
                   if (monster.race.includes("スライム")) {
                     applyBuff(monster, { spellBarrier: { strength: 1 } });
                     await sleep(150);
@@ -11707,7 +11729,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のいしん",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("スライム")) {
                   applyBuff(monster, { powerCharge: { strength: 1.2 } });
                   await sleep(150);
@@ -11727,9 +11749,9 @@ function getMonsterAbilities(monsterId) {
         permanentAbilities: [
           {
             name: "ロイヤルのかがやき",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "スライム", 5),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 applyBuff(monster, { confusionBarrier: { duration: 4 } });
                 await sleep(150);
                 applyBuff(monster, { mindBarrier: { duration: 4 } });
@@ -11742,7 +11764,7 @@ function getMonsterAbilities(monsterId) {
       afterActionAbilities: [
         {
           name: "王のつとめ",
-          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "spell" || !hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5),
+          unavailableIf: (skillUser, executingSkill, executedSkills) => !executingSkill || executingSkill.type !== "spell" || !hasEnoughMonstersOfType(skillUser.allies, "スライム", 5),
           act: async function (skillUser, executingSkill, executedSkills) {
             applySubstitute(skillUser, null, true);
           },
@@ -11765,7 +11787,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のまもり",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true } });
                   await sleep(100);
@@ -11781,7 +11803,7 @@ function getMonsterAbilities(monsterId) {
             name: "起爆装置",
             unavailableIf: (skillUser) => skillUser.abilities.additionalDeathAbilities.some((ability) => ability.name === "起爆装置爆発"),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { deathAbility: { keepOnDeath: true } });
                   monster.abilities.additionalDeathAbilities.push({
@@ -11813,7 +11835,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "せん滅指令",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
@@ -11832,7 +11854,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "せん滅指令",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
@@ -11845,7 +11867,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "せん滅指令",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { powerCharge: { strength: 2 } });
                   await sleep(150);
@@ -11870,7 +11892,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ブーストアップ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { spdUp: { strength: 1 } });
                   await sleep(150);
@@ -11882,7 +11904,7 @@ function getMonsterAbilities(monsterId) {
             name: "一族のつるぎ",
             act: async function (skillUser) {
               const buffStrength = fieldState.turnNum > 2 ? 0.4 : 0.2;
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { weaponBuff: { strength: buffStrength, unDispellable: true, removeAtTurnStart: true, duration: 1 } });
                 }
@@ -11897,9 +11919,9 @@ function getMonsterAbilities(monsterId) {
         {
           name: "退廃のかぜ",
           disableMessage: true,
-          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5),
+          unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "物質", 5),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { hellclouderDebuff: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } }); // タッグ・リザオ等でも解除不可 亡者にも有効
               await sleep(150);
             }
@@ -11911,7 +11933,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ウェザーアーマー",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { spellBarrier: { strength: 1 } });
                   await sleep(100);
@@ -11929,9 +11951,9 @@ function getMonsterAbilities(monsterId) {
         permanentAbilities: [
           {
             name: "物質衆のよろい",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 3),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "物質", 3),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
                   applyBuff(monster, { castleDefUp: { strength: 0.3 } });
                   await sleep(100);
@@ -11948,7 +11970,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "物質衆のまもり",
           act: async function (skillUser) {
-            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 4)) {
+            if (hasEnoughMonstersOfType(skillUser.allies, "物質", 4)) {
               applyBuff(skillUser, { martialBarrier: { strength: 2 } });
             } else {
               applyBuff(skillUser, { martialBarrier: { strength: 1 } });
@@ -11969,11 +11991,11 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
-          unavailableIf: (skillUser) => isPartyWipedOut(parties[skillUser.teamID]),
+          unavailableIf: (skillUser) => isPartyWipedOut(skillUser.allies),
           finalAbility: true,
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (Math.random() < 0.23) {
                 await reviveMonster(monster, 0.25, false, true); // 間隔skip
               } else {
@@ -11989,11 +12011,11 @@ function getMonsterAbilities(monsterId) {
       deathAbilities: [
         {
           name: "ふくしゅうの呪い",
-          unavailableIf: (skillUser) => isPartyWipedOut(parties[skillUser.teamID]),
+          unavailableIf: (skillUser) => isPartyWipedOut(skillUser.allies),
           finalAbility: true,
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (Math.random() < 0.23) {
                 await reviveMonster(monster, 0.25, false, true); // 間隔skip
               } else {
@@ -12011,7 +12033,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "あまつゆのカーテン",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, { slashBarrier: { strength: 1 } });
                   await sleep(150);
@@ -12027,7 +12049,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             unavailableIf: (skillUser) => skillUser.abilities.additionalAfterActionAbilities.some((ability) => ability.name === "原始の活力"),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   monster.abilities.additionalAfterActionAbilities.push({
                     name: "原始の活力発動",
@@ -12046,7 +12068,7 @@ function getMonsterAbilities(monsterId) {
                       }
                     },
                     act: async function (skillUser, executingSkill) {
-                      for (const monster of parties[skillUser.teamID]) {
+                      for (const monster of skillUser.allies) {
                         applyBuff(monster, { defUp: { strength: 1 } });
                       }
                     },
@@ -12058,7 +12080,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "わだつみの庇護",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.1, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } }); // keepOnDeath
                 }
@@ -12070,7 +12092,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "わだつみの庇護",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.2, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } }); // keepOnDeath
                 }
@@ -12082,7 +12104,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のめぐみ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   const buffStrength =
                     {
@@ -12101,7 +12123,7 @@ function getMonsterAbilities(monsterId) {
         abilitiesFromTurn4: [
           {
             name: "原始の嵐",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "自然", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "自然", 5),
             act: async function (skillUser) {
               await executeSkill(skillUser, findSkillByName("原始の嵐"), null, true, true); // 状態異常check無視 封じcheck無視
             },
@@ -12114,7 +12136,7 @@ function getMonsterAbilities(monsterId) {
         1: [
           {
             name: "自然衆の神速",
-            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(parties[skillUser.teamID], "自然", 5),
+            unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "自然", 5),
             act: function (skillUser) {
               applyBuff(skillUser, { preemptiveAction: { duration: 2 } });
             },
@@ -12125,16 +12147,16 @@ function getMonsterAbilities(monsterId) {
         {
           name: "やすらぎの潮付与", //発動タイミング不明、棺桶アイコンなし
           disableMessage: true,
-          unavailableIf: (skillUser) => parties[skillUser.enemyTeamID].some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "やすらぎの潮")),
+          unavailableIf: (skillUser) => skillUser.enemies.some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "やすらぎの潮")),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               monster.abilities.additionalDeathAbilities.push({
                 name: "やすらぎの潮", //タッグ変化・リザオは不発動、毒 反射 供物も不明であり不発動とした
                 message: function (skillUser) {
                   displayMessage(`${skillUser.name} がチカラつき`, "やすらぎの潮 の効果が発動！");
                 },
                 act: async function (skillUser) {
-                  for (const monster of parties[skillUser.enemyTeamID]) {
+                  for (const monster of skillUser.enemies) {
                     if (monster.race.includes("自然") && !monster.flags.isDead) {
                       await executeRadiantWave(monster, true); // ミス表示なし
                       applyBuff(monster, { zakiResistance: { strength: 1, probability: 0.598 } });
@@ -12163,7 +12185,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "自然系のみんなにベホイミ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   executeHealSkill(skillUser, monster, 1, 90, 400, 248, 1); //ベホイミ+0相当 星4・回復20錬金で281 285 287 291 297 299 311から逆算
                 }
@@ -12179,7 +12201,7 @@ function getMonsterAbilities(monsterId) {
           name: "天風のたづな", // 本来反撃特技よりも優先されるが、現状反撃特技を使うとadditionalAbilityが上書きされてしまう
           disableMessage: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               if (monster.race.includes("自然")) {
                 monster.abilities.additionalCounterAbilities = [
                   {
@@ -12218,9 +12240,9 @@ function getMonsterAbilities(monsterId) {
           {
             name: "慈愛の声",
             act: async function (skillUser) {
-              const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead);
-              if (aliveAllys.length > 0) {
-                const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
+              const aliveAllies = skillUser.aliveAllies;
+              if (aliveAllies.length > 0) {
+                const randomTarget = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                 applyBuff(randomTarget, { autoRevive: { keepOnDeath: true, strength: 0.5 } });
                 await sleep(100);
               }
@@ -12235,7 +12257,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "不滅のたましい",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, {
                     sacredBarrier: { duration: 1, removeAtTurnStart: true },
@@ -12256,7 +12278,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage("特性により", "目覚めの聖印 が発動！");
             },
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, { ramiaElementalGuard: { keepOnDeath: true, strength: 0.34, isValid: false } });
                 } else {
@@ -12291,7 +12313,7 @@ function getMonsterAbilities(monsterId) {
             displayMessage(`${skillUser.name}の特性`, "汚毒の巣 が発動！");
           },
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { poisoned: { isLight: true }, poisonDepth: { keepOnDeath: true, strength: 3 } }, skillUser);
             }
           },
@@ -12309,7 +12331,7 @@ function getMonsterAbilities(monsterId) {
           name: "屍衆の怨霊",
           disableMessage: true,
           act: async function (skillUser) {
-            if (hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5)) {
+            if (hasEnoughMonstersOfType(skillUser.allies, "ゾンビ", 5)) {
               skillUser.flags.zombieProbability = 1;
               skillUser.flags.isUnAscensionable = true;
             }
@@ -12319,7 +12341,7 @@ function getMonsterAbilities(monsterId) {
           name: "ネクロゴンド変更",
           disableMessage: true,
           act: async function (skillUser) {
-            if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5)) {
+            if (!hasEnoughMonstersOfType(skillUser.allies, "ゾンビ", 5)) {
               skillUser.skill = skillUser.skill.map((name) => {
                 if (name === "ネクロゴンドの衝撃") {
                   return "ネクロゴンドの衝撃下位";
@@ -12357,7 +12379,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のうらみ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
                   applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
                 }
@@ -12366,9 +12388,9 @@ function getMonsterAbilities(monsterId) {
           },
           {
             name: "死者の解放",
-            unavailableIf: (skillUser) => parties[skillUser.teamID].some((monster) => monster.abilities?.additionalDeathAbilities?.some((ability) => ability.name === "死者の解放")),
+            unavailableIf: (skillUser) => skillUser.allies.some((monster) => monster.abilities?.additionalDeathAbilities?.some((ability) => ability.name === "死者の解放")),
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス") {
                   monster.abilities.additionalDeathAbilities.push({
                     name: "死者の解放",
@@ -12376,7 +12398,7 @@ function getMonsterAbilities(monsterId) {
                       displayMessage(`${skillUser.name} がチカラつき`, "死者の解放 の効果が発動！");
                     },
                     act: async function (skillUser) {
-                      for (const monster of parties[skillUser.teamID]) {
+                      for (const monster of skillUser.allies) {
                         // ラザマ以外に付与 死亡以外(生存or亡者)ならば封じ解除
                         if (monster.race.includes("ゾンビ") && !monster.flags.isDead) {
                           const newBuffs = {};
@@ -12413,7 +12435,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "一族のうらみ",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
                   applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
                 }
@@ -12456,9 +12478,9 @@ function getMonsterAbilities(monsterId) {
       initialAttackAbilities: [
         {
           name: "毒素拡散",
-          unavailableIf: (skillUser) => parties[skillUser.enemyTeamID].some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "毒素拡散")),
+          unavailableIf: (skillUser) => skillUser.enemies.some((monster) => monster.abilities.additionalDeathAbilities.some((ability) => ability.name === "毒素拡散")),
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { deathAbility: { keepOnDeath: true } });
               monster.abilities.additionalDeathAbilities.push({
                 name: "毒素拡散",
@@ -12467,7 +12489,7 @@ function getMonsterAbilities(monsterId) {
                 },
                 ignoreSkipDeathAbilityFlag: true, //毒 反射 供物でも実行
                 act: async function (skillUser) {
-                  for (const monster of parties[skillUser.teamID]) {
+                  for (const monster of skillUser.allies) {
                     if (!monster.flags.isDead) {
                       applyBuff(monster, { poisoned: { probability: 1 } });
                       await sleep(150);
@@ -12498,7 +12520,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "死者のまねき",
             act: function (skillUser) {
-              for (const monster of parties[skillUser.enemyTeamID]) {
+              for (const monster of skillUser.enemies) {
                 applyBuff(monster, { zakiResistance: { strength: -1 } });
               }
             },
@@ -12521,7 +12543,7 @@ function getMonsterAbilities(monsterId) {
           name: "大蜘蛛のあがき",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { poisoned: { probability: 0.9 }, spellSeal: { probability: 0.8 } });
             }
           },
@@ -12597,7 +12619,7 @@ function getMonsterAbilities(monsterId) {
       },
       followingAbilities: {
         name: "教団の光",
-        availableIf: (skillUser, executingSkill) => executingSkill.type === "ritual" && hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 2),
+        availableIf: (skillUser, executingSkill) => executingSkill.type === "ritual" && hasEnoughMonstersOfType(skillUser.allies, "ゾンビ", 2),
         getFollowingSkillName: (executingSkill) => {
           return "光のはどう体技封じ無視";
         },
@@ -12608,7 +12630,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "どくどくボディ",
           act: async function (skillUser, counterTarget) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { poisoned: {} }, skillUser);
             }
           },
@@ -12619,12 +12641,12 @@ function getMonsterAbilities(monsterId) {
           name: "ラストポイズン強",
           isOneTimeUse: true,
           act: async function (skillUser) {
-            for (const tempTarget of parties[skillUser.enemyTeamID]) {
+            for (const tempTarget of skillUser.enemies) {
               let skillTarget = tempTarget;
               if (skillTarget.flags.hasSubstitute) {
                 skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
               }
-              const poisonBuff = hasEnoughMonstersOfType(parties[skillUser.teamID], "ゾンビ", 5) ? { poisoned: { unDispellableByRadiantWave: true } } : { poisoned: {} };
+              const poisonBuff = hasEnoughMonstersOfType(skillUser.allies, "ゾンビ", 5) ? { poisoned: { unDispellableByRadiantWave: true } } : { poisoned: {} };
               applyBuff(skillTarget, poisonBuff, skillUser);
             }
           },
@@ -12700,7 +12722,7 @@ function getMonsterAbilities(monsterId) {
         {
           name: "バイオドレイン付与",
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               monster.abilities.additionalDeathAbilities.push({
                 name: "バイオドレイン", // リザオや変身、反射死で発動しない ただしムンの2回目以降は無限回発動
                 message: function (skillUser) {
@@ -12708,7 +12730,7 @@ function getMonsterAbilities(monsterId) {
                 },
                 finalAbility: true,
                 act: async function (skillUser) {
-                  for (const monster of parties[skillUser.enemyTeamID]) {
+                  for (const monster of skillUser.enemies) {
                     if (isBreakMonster(monster)) {
                       const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
                       applyHeal(monster, 105 * randomMultiplier, false, false); //錬金無視
@@ -12725,7 +12747,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "魔界の門",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.enemyTeamID]) {
+              for (const monster of skillUser.enemies) {
                 if (monster.buffs.maso) {
                   if (monster.buffs.maso.strength === 4) {
                     applyBuff(monster, { maso: { strength: 5, maxDepth: 5 }, sealed: {} });
@@ -12744,9 +12766,9 @@ function getMonsterAbilities(monsterId) {
         {
           name: "新たなる神眠り無効",
           disableMessage: true,
-          unavailableIf: (skillUser) => countBreakMonster(parties[skillUser.teamID]) < 5,
+          unavailableIf: (skillUser) => countBreakMonster(skillUser.allies) < 5,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.teamID]) {
+            for (const monster of skillUser.allies) {
               applyBuff(monster, { garumaBarrier: { keepOnDeath: true }, sleepBarrier: { duration: 3 } });
             }
           },
@@ -12758,9 +12780,9 @@ function getMonsterAbilities(monsterId) {
           message: function (skillUser) {
             displayMessage(`${skillUser.name}の特性`, "新たなる神 の効果が敵に発動！");
           },
-          unavailableIf: (skillUser) => countBreakMonster(parties[skillUser.teamID]) < 5,
+          unavailableIf: (skillUser) => countBreakMonster(skillUser.allies) < 5,
           act: async function (skillUser) {
-            for (const monster of parties[skillUser.enemyTeamID]) {
+            for (const monster of skillUser.enemies) {
               applyBuff(monster, { baiki: { strength: -1 }, intUp: { strength: -1 }, spellBarrier: { strength: -1 } });
             }
           },
@@ -12774,7 +12796,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の特性により`, "MP継続回復効果 が発動！");
             },
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (isBreakMonster(monster)) {
                   applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 5 } }); //回復量50
                 }
@@ -12800,7 +12822,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "ブレイクアーマー",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (isBreakMonster(monster)) {
                   applyBuff(monster, { slashBarrier: { strength: 1 } });
                   await sleep(100);
@@ -12819,7 +12841,7 @@ function getMonsterAbilities(monsterId) {
           {
             name: "マ素供給",
             act: async function (skillUser) {
-              for (const monster of parties[skillUser.teamID]) {
+              for (const monster of skillUser.allies) {
                 if (isBreakMonster(monster)) {
                   const randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
                   applyHeal(monster, 110 * randomMultiplier, false, false); //錬金無視
@@ -12864,7 +12886,7 @@ function getMonsterAbilities(monsterId) {
  * @property {"fire" | "ice" | "thunder" | "io" | "wind" | "light" | "dark" | "none" | "notskill"} element - 属性
  * @property {"single" | "random" | "all" | "self" | "field" | "dead"} targetType - 対象範囲
  * @property {"ally" | "enemy"} targetTeam - 対象陣営
- * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} targetRace - 対象系統
+ * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} [targetRace] - 対象系統
  * @property {boolean} [requireTargetRace] - コマンド時にtargetRace以外をskillの対象として選択不可とするか否か
  * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
  * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
@@ -12943,6 +12965,7 @@ function getMonsterAbilities(monsterId) {
  * @property {boolean} [hasRadiantWave] - 光のはどう
  * @property {boolean} [clearSealed] - 封印解除
  * @property {boolean} [clearMaso] - マソ解除（Lv4まで）
+ * @property {{ type: string, turns: number }} [fieldEffect] - フィールド効果設定
  *
  * --- コールバック・関数処理 ---
  * @property {(skillUserName: string) => [string, string]} [specialMessage] - 特殊メッセージを生成する関数（[1行目, 2行目]）
@@ -13308,7 +13331,7 @@ const skill = [
     substituteMultiplier: 3,
     waveEffect: "divineWave",
     reviseIf: function (skillUser) {
-      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "ドラゴン", 5)) {
+      if (!hasEnoughMonstersOfType(skillUser.allies, "ドラゴン", 5)) {
         return "神楽の術下位";
       }
     },
@@ -13819,7 +13842,7 @@ const skill = [
         },
         unavailableIf: (skillUser) => skillUser.buffs.martialSeal || !skillUser.buffs.deathRoulette,
         act: async function (skillUser) {
-          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+          const aliveEnemies = skillUser.enemies.filter((monster) => !monster.flags.isDead);
           if (aliveEnemies.length > 0) {
             const zakiTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
             if (!zakiTarget.flags.isZombie) {
@@ -14204,7 +14227,7 @@ const skill = [
     MPcost: 0,
     skipDeathCheck: true,
     act: async function (skillUser, skillTarget) {
-      const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
+      const nerugeru = skillUser.allies.find((member) => member.id === "nerugeru");
       if (!nerugeru.flags.isDead && !nerugeru.flags.hasTransformed) {
         // 生存かつ未変身の場合、リザオ有無にかわらずネルを一度落とす
         delete nerugeru.buffs.reviveBlock;
@@ -14234,10 +14257,10 @@ const skill = [
     MPcost: 0,
     skipDeathCheck: true,
     act: async function (skillUser, skillTarget) {
-      const nerugeru = parties[skillUser.teamID].find((member) => member.id === "nerugeru");
+      const nerugeru = skillUser.allies.find((member) => member.id === "nerugeru");
       if (nerugeru.flags.willTransformNerugeru) {
         delete nerugeru.flags.willTransformNerugeru;
-        for (const monster of parties[skillUser.teamID]) {
+        for (const monster of skillUser.allies) {
           monster.skill[3] = monster.defaultSkill[3];
         }
         await sleep(200);
@@ -17786,8 +17809,8 @@ const skill = [
     preemptiveGroup: 1,
     isOneTimeUse: true,
     act: function (skillUser, skillTarget) {
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 5)) {
-        for (const monster of parties[skillUser.teamID]) {
+      if (hasEnoughMonstersOfType(skillUser.allies, "悪魔", 5)) {
+        for (const monster of skillUser.allies) {
           if (monster.race.includes("悪魔")) {
             monster.abilities.supportAbilities.nextTurnAbilities.push({
               act: function (skillUser) {
@@ -18738,7 +18761,7 @@ const skill = [
     preemptiveGroup: 3,
     substituteParams: {
       scope: "all",
-      condition: (skillUser, skillTarget) => hasEnoughMonstersOfType(parties[skillUser.teamID], "悪魔", 4),
+      condition: (skillUser, skillTarget) => hasEnoughMonstersOfType(skillUser.allies, "悪魔", 4),
     },
     description2: "悪魔系の味方が　4体以上なら",
     description3: "味方全体への　敵の行動を　かわりにうける",
@@ -18907,7 +18930,7 @@ const skill = [
         unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
         act: async function (skillUser) {
           delete skillUser.buffs.boogieCurse;
-          const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+          const aliveEnemies = skillUser.enemies.filter((monster) => !monster.flags.isDead);
           // 状態異常でない場合のみみがわり実行
           if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
             const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
@@ -19056,7 +19079,7 @@ const skill = [
     MPcost: 72,
     waveEffect: "divineWave",
     reviseIf: function (skillUser) {
-      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 3)) {
+      if (!hasEnoughMonstersOfType(skillUser.allies, "魔獣", 3)) {
         return "ツイスター下位";
       }
     },
@@ -19168,8 +19191,8 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true, // fieldなので反射みがわり無視は機能せずあくまで表記のみ
     act: async function (skillUser, skillTarget) {
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "魔獣", 5)) {
-        for (const monster of parties[skillUser.enemyTeamID]) {
+      if (hasEnoughMonstersOfType(skillUser.allies, "魔獣", 5)) {
+        for (const monster of skillUser.enemies) {
           //全部削除
           delete monster.flags.isSubstituting;
           delete monster.flags.hasSubstitute;
@@ -19473,7 +19496,7 @@ const skill = [
     MPcost: 45,
     appliedEffect: { windResistance: { strength: -1, probability: 0.57 }, reviveBlock: { duration: 1 } },
     reviseIf: function (skillUser) {
-      if (!hasEnoughMonstersOfType(parties[skillUser.teamID], "スライム", 5)) {
+      if (!hasEnoughMonstersOfType(skillUser.allies, "スライム", 5)) {
         return "キングストーム下位";
       }
     },
@@ -19573,7 +19596,7 @@ const skill = [
     MPcost: 150,
     order: "anchor",
     damageMultiplier: function (skillUser, skillTarget, isReflection) {
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+      if (hasEnoughMonstersOfType(skillUser.allies, "物質", 5)) {
         return 1.5; //todo: 反射時に1.5にならない
       }
       return 1;
@@ -19751,8 +19774,8 @@ const skill = [
     onStart: async function (skillUser) {
       // skill発動時点でのhasSubstituteを基準にダメージ増幅判定
       // におうだちmonsterが全体攻撃途中で死亡してhasSubstituteが抜けても、ダメージ増幅対象とするよう、flagsに状態を保存
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
-        for (const party of parties) {
+      if (hasEnoughMonstersOfType(skillUser.allies, "物質", 5)) {
+        for (const party of [skillUser.allies, skillUser.enemies]) {
           for (const monster of party) {
             if (monster.flags.hasSubstitute) {
               monster.flags.waveOfDreadTarget = true;
@@ -19763,8 +19786,8 @@ const skill = [
     },
     onComplete: async function (skillUser) {
       // ヒット処理後に全体のフラグ削除
-      if (hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
-        for (const party of parties) {
+      if (hasEnoughMonstersOfType(skillUser.allies, "物質", 5)) {
+        for (const party of [skillUser.allies, skillUser.enemies]) {
           for (const monster of party) {
             delete monster.flags.waveOfDreadTarget;
           }
@@ -19870,7 +19893,7 @@ const skill = [
       scope: "all",
     },
     onComplete: async function (skillUser) {
-      if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(parties[skillUser.teamID], "物質", 5)) {
+      if (!skillUser.flags.hasUsedMaterialGuard && hasEnoughMonstersOfType(skillUser.allies, "物質", 5)) {
         await sleep(100);
         skillUser.flags.hasUsedMaterialGuard = true;
         applyBuff(skillUser, { damageLimit: { unDispellable: true, strength: 200, duration: 3 } });
@@ -22065,14 +22088,7 @@ const skill = [
   },
 ];
 
-const skillMap = new Map();
-function initSkillMap() {
-  skillMap.clear();
-  for (const s of skill) {
-    skillMap.set(s.name, s);
-  }
-}
-initSkillMap();
+const skillMap = new Map(skill.map(s => [s.name, s]));
 function findSkillByName(skillName) {
   return skillMap.get(skillName);
 }
@@ -23649,7 +23665,7 @@ function applySubstitute(skillUser, skillTarget, isAll = false, isCover = false,
     return;
   }
   if (isAll) {
-    for (const target of parties[skillUser.teamID]) {
+    for (const target of skillUser.allies) {
       processSubstitute(skillUser, target, isAll, isCover, isBoogie);
     }
   } else {
@@ -24396,7 +24412,7 @@ async function transformTyoma(monster) {
   // 回復後発動する変身時特性など
   if (monster.name === "憎悪のエルギオス") {
     await sleep(400);
-    for (const target of parties[monster.enemyTeamID]) {
+    for (const target of monster.enemies) {
       if (!target.buffs.angelMark) {
         applyBuff(target, { healBlock: {} });
       }
@@ -24423,7 +24439,7 @@ async function transformTyoma(monster) {
   } else if (monster.name === "闇の覇者りゅうおう") {
     await sleep(400);
     displayMessage(`${monster.name}の特性`, "闇の世界 が発動！");
-    for (const target of parties[monster.enemyTeamID]) {
+    for (const target of monster.enemies) {
       applyBuff(target, { dazzle: { probability: 1 } });
     }
     await changeField("disableReverse", 6);
@@ -24498,7 +24514,7 @@ function getNormalAttackName(skillUser) {
     NormalAttackName = "会心通常攻撃";
   } else if (skillUser.buffs.speedBasedAttack) {
     NormalAttackName = "魔獣の追撃";
-  } else if (skillUser.race.includes("ゾンビ") && parties[skillUser.teamID].some((monster) => monster.name === "スカルスパイダー")) {
+  } else if (skillUser.race.includes("ゾンビ") && skillUser.allies.some((monster) => monster.name === "スカルスパイダー")) {
     NormalAttackName = "一族のけがれ攻撃";
   } else if (skillUser.flags.orugoDeleteUnbreakableAttack) {
     NormalAttackName = "通常攻撃時くじけぬ心を解除";
@@ -24535,12 +24551,12 @@ function hasEnoughMonstersOfType(party, targetRace, requiredCount) {
 // 自分を含め味方内の対象系統数をカウント
 function countSameRaceMonsters(skillUser, targetRaceArg = null) {
   const targetRace = targetRaceArg || skillUser.race[0];
-  return parties[skillUser.teamID].filter((m) => m?.race?.includes(targetRace)).length;
+  return skillUser.allies.filter((m) => m?.race?.includes(targetRace)).length;
 }
 
 // 竜気 行動後に上げる
 async function applyDragonPreemptiveAction(skillUser, executingSkill) {
-  const aliveMasudora = parties[skillUser.teamID].filter((member) => member.id === "masudora" && !member.flags.isDead);
+  const aliveMasudora = skillUser.allies.filter((member) => member.id === "masudora" && !member.flags.isDead);
   const firstMasudora = aliveMasudora?.[0];
   const newStrength = Math.min((firstMasudora?.buffs?.dragonPreemptiveAction?.strength ?? 0) + 1, 9);
   for (const member of aliveMasudora) {
@@ -24877,17 +24893,13 @@ function isBattleOver() {
 
 // 敵全滅判定
 function isAllEnemyDead(monster) {
-  return parties[monster.enemyTeamID].every((monster) => monster.flags.isDead);
+  return monster.enemies.every((monster) => monster.flags.isDead);
 }
 
 // skip判断
 function skipThisMonsterAction(skillUser) {
   // 敵全員が死亡または亡者で、かつ1体でも次ターン蘇生がいる場合
-  if (
-    !fieldState.isBattleOver &&
-    parties[skillUser.enemyTeamID].every((monster) => monster.flags.isDead || monster.flags.isZombie) &&
-    parties[skillUser.enemyTeamID].some((monster) => monster.flags.reviveNextTurn)
-  ) {
+  if (!fieldState.isBattleOver && skillUser.enemies.every((monster) => monster.flags.isDead || monster.flags.isZombie) && skillUser.enemies.some((monster) => monster.flags.reviveNextTurn)) {
     return true;
   } else {
     return false;
@@ -24916,7 +24928,7 @@ function calculateWeight() {
 
 // isDeadもZombieも持たないランダムな味方を返す
 function getRandomLivingPartyMember(skillUser) {
-  const livingMembers = parties[skillUser.teamID].filter((member) => !member.flags.isDead && !member.flags.isZombie);
+  const livingMembers = skillUser.allies.filter((member) => !member.flags.isDead && !member.flags.isZombie);
 
   if (livingMembers.length === 0) {
     return null; // 生きているメンバーがいない場合はnullを返す
@@ -25107,22 +25119,22 @@ function displaySkillResistances(skillUser, originalSkillInfo) {
   // 耐性計算対象となる属性を取得 例外は以下
   const targetElement = ["氷の王国", "神獣の氷縛"].includes(skillInfo.name) ? "ice" : skillInfo.element;
 
-  for (const target of parties[skillUser.enemyTeamID]) {
+  for (const monster of skillUser.enemies) {
     // 死亡時は削除のみ
-    if (target.flags.isDead) {
+    if (monster.flags.isDead) {
       continue;
     }
-    let wrapper = document.getElementById(target.iconElementId).parentNode;
+    let wrapper = document.getElementById(monster.iconElementId).parentNode;
     if (currentTeamIndex === 1) {
-      wrapper = document.getElementById(target.reversedIconElementId).parentNode;
+      wrapper = document.getElementById(monster.reversedIconElementId).parentNode;
     }
 
-    const resistanceValue = calculateResistance(skillUser, targetElement, target, fieldState.isDistorted, skillInfo);
+    const resistanceValue = calculateResistance(skillUser, targetElement, monster, fieldState.isDistorted, skillInfo);
     let resistanceText;
     let textColor;
     let iconType = null;
 
-    if (resistanceValue !== -1 && isSomeFollowingSkillReflected(skillInfo, target)) {
+    if (resistanceValue !== -1 && isSomeFollowingSkillReflected(skillInfo, monster)) {
       resistanceText = "反射";
       textColor = "#c9caca"; //fbfafc
       iconType = "reflect";
@@ -25958,7 +25970,7 @@ function applyShihai(skillTarget, originalTarget = null) {
     unavailableIf: (skillUser) => !skillUser.buffs.boogieCurse,
     act: async function (skillUser) {
       delete skillUser.buffs.boogieCurse;
-      const aliveEnemies = parties[skillUser.enemyTeamID].filter((monster) => !monster.flags.isDead);
+      const aliveEnemies = skillUser.enemies.filter((monster) => !monster.flags.isDead);
       // 状態異常でない場合のみみがわり実行
       if (!hasAbnormality(skillUser) && aliveEnemies.length > 0) {
         const randomTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
@@ -25981,9 +25993,9 @@ function applyShihai(skillTarget, originalTarget = null) {
       },
       unavailableIf: (skillUser) => !skillUser.flags.buffKeysOnDeath.includes("boogieCurseSubstituting"), // みがわり実行ターン attackによるバフ付与後、死亡時にまだ保持していた場合のみ転移
       act: async function (skillUser) {
-        const aliveAllys = parties[skillUser.teamID].filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillUser.monsterId);
-        if (aliveAllys.length > 0) {
-          const randomTarget = aliveAllys[Math.floor(Math.random() * aliveAllys.length)];
+        const aliveAllies = skillUser.allies.filter((monster) => !monster.flags.isDead && !monster.flags.isZombie && monster.monsterId !== skillUser.monsterId);
+        if (aliveAllies.length > 0) {
+          const randomTarget = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
           await sleep(130);
           applyShihai(randomTarget, skillUser);
         }
@@ -26442,7 +26454,7 @@ async function releaseDreamTransformation() {
     if (monster.buffs.elementalShield && monster.buffs.elementalShield.targetElement === "all") {
       delete monster.buffs.elementalShield;
       await sleep(300);
-      for (const zakiTarget of parties[monster.enemyTeamID]) {
+      for (const zakiTarget of monster.enemies) {
         if (zakiTarget.name !== "殺りくの神ダークドレアム" && !zakiTarget.flags.isDead && !zakiTarget.flags.isZombie && (zakiTarget.race.includes("超魔王") || zakiTarget.subRace.includes("魔王"))) {
           handleDeath(zakiTarget, false, true, null, true); // isCountDownをtrue
           displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
