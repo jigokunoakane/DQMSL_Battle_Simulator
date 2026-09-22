@@ -3603,6 +3603,13 @@ async function executeSkill(
     if (currentSkill.onComplete) {
       await currentSkill.onComplete(skillUser, isMonsterAction);
     }
+    if (currentSkill.transformTo) {
+      for (let i = 0; i < skillUser.skill.length; i++) {
+        if (skillUser.skill[i] === currentSkill.name) {
+          skillUser.skill[i] = currentSkill.transformTo;
+        }
+      }
+    }
 
     // onComplete実行後に全滅判定を行い、全滅時は即時にwhile文ごとbreakしてexecutedSkillsを返す afterEffects・followingSkillは実行しない
     // 起爆装置等は全滅時も実行するskillであるが、followingSkillを持たないため現状の処理でOK
@@ -12903,6 +12910,7 @@ function getMonsterAbilities(monsterId) {
  * @property {string} [followingSkill] - 後続スキル名
  * @property {string} [additionalVersion] - 追加バージョン名
  * @property {string} [domainElement] - 領界変化
+ * @property {string} [transformTo] - 使用後の変化先
  *
  * --- 状態変化・追加効果 ---
  * @property {"disruptiveWave" | "divineWave"} [waveEffect] - いては・上位はどう
@@ -14811,13 +14819,13 @@ const skill = [
       damageLimit: { unDispellable: true, strength: 250, duration: 1 },
     },
     act: function (skillUser, skillTarget) {
-      skillUser.skill[0] = "究極の絶技";
       skillUser.abilities.supportAbilities.nextTurnAbilities.push({
         act: function (skillUser) {
           applyBuff(skillUser, { powerCharge: { strength: 1.5 }, manaBoost: { strength: 1.5 }, breathCharge: { strength: 1.5 } });
         },
       });
     },
+    transformTo: "究極の絶技",
     description1: "【戦闘中1回】【先制】自分の能力が上がり　次のラウンドの行動まで",
     description2: "自分を無属性・体技・踊りを無効にする状態にし　被ダメージ上限値250状態になる",
     description3: "次のラウンド開始時　攻撃・呪文・息ダメージを1.5倍にする",
@@ -16381,13 +16389,7 @@ const skill = [
     ignoreEvasion: true,
     ignoreDazzle: true,
     ignoreProtection: true,
-    onComplete: async function (skillUser) {
-      for (let i = 0; i < skillUser.skill.length; i++) {
-        if (skillUser.skill[i] === "グランドショット") {
-          skillUser.skill[i] = "暗黒しょうへき";
-        }
-      }
-    },
+    transformTo: "暗黒しょうへき",
   },
   {
     name: "真夏の誘惑",
@@ -25690,6 +25692,12 @@ function createSDappliedEffect(skillInfo) {
   }
   if (skillInfo.selfDamage) {
     skillDescriptionText += "その後　自分もダメージを受ける　";
+  }
+  if (skillInfo.transformTo) {
+    const nextSkill = findSkillByName(skillInfo.transformTo);
+    if (nextSkill) {
+      skillDescriptionText += `このとくぎは使用後に　「${nextSkill.name}」に変化する　`;
+    }
   }
   return skillDescriptionText;
 }
