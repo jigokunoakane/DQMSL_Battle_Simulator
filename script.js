@@ -1538,7 +1538,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     "dazzle",
     "reviveBlock",
     "dotDamage",
-    "dotMPdamage",
+    "dotMPDamage",
     "HPabsorption",
     "MPabsorption",
     "healBlock",
@@ -2951,8 +2951,8 @@ async function postActionProcess(skillUser, executingSkill = null, executedSkill
   }
   // 7-12. 継続MPダメージ処理
   if (isBattleOver()) return; // 処理全体の実行前に戦闘終了check 毒や継続を実行せず即時return
-  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotMPdamage) {
-    const dotMP = skillUser.buffs.dotMPdamage;
+  if (skillUser.commandInput !== "skipThisTurn" && skillUser.buffs.dotMPDamage) {
+    const dotMP = skillUser.buffs.dotMPDamage;
     const dotDamageValue = dotMP.strength;
     await sleep(400);
     displayMessage(`${skillUser.name}は`, "MPダメージを受けている！");
@@ -3878,7 +3878,7 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   let reflectionType = "yosoku";
 
   // 対象が石化かつ、石化付与でもダメージなしいてはでもなければ無効化
-  if (skillTarget.buffs.stoned && !executingSkill.appliedEffect?.stoned?.isGolden && !isNoDamageWaveSkill(executingSkill)) {
+  if (skillTarget.buffs.stoned && !executingSkill.ignorePetrification && !executingSkill.appliedEffect?.stoned?.isGolden && !isNoDamageWaveSkill(executingSkill)) {
     applyDamage(skillTarget, 0); // "ダメージを与えられない"メッセージを表示するため、displayMissではダメ
     return;
   }
@@ -4234,9 +4234,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   }
 
   // 与ダメージ依存HP吸収
-  if (executingSkill.absorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
-    const absorptionAmount = Math.floor(damage * executingSkill.absorptionRatio); // 切り捨て
+  if (executingSkill.HPabsorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
+    const absorptionAmount = Math.floor(damage * executingSkill.HPabsorptionRatio); // 切り捨て
     applyDamage(skillUser, absorptionAmount, -1);
+  }
+  // 与ダメージ依存MP吸収 todo: 亡者に撃つと吸収するのか
+  if (executingSkill.MPabsorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
+    const absorptionAmount = Math.floor(damage * executingSkill.MPabsorptionRatio); // 切り捨て
+    applyDamage(skillTarget, absorptionAmount, 1, true);
+    applyDamage(skillUser, absorptionAmount, -1, true);
   }
 
   // 未覚醒時の累計与ダメージ記録
@@ -4353,6 +4359,10 @@ function calculateDamage(
     const intDiff = skillUser.currentStatus.int - skillTarget.currentStatus.int;
     const intBonus = intDiff >= 150 ? 1.25 : intDiff > 0 ? 1.09 + Math.floor(intDiff / 10) * 0.01 : 1;
     baseDamage *= executingSkill.skillPlus * intBonus;
+    // 乗算ではなく加算となる特技プラスの場合
+    if (executingSkill.skillPlusFlat) {
+      baseDamage += executingSkill.skillPlusFlat;
+    }
     randomMultiplier = Math.floor(Math.random() * 11) * 0.01 + 0.95;
     // int依存で呪文会心がないもの
     const noSpellSurgeList = [
@@ -5759,8 +5769,10 @@ function addSkillOptions() {
     "サイコキャノン",
     "パンプキンタイフーン",
     "しゃくねつ",
+    "ボイドブレス",
     "パニッシュメント",
     "ジゴスパーク",
+    "スパークショット",
     "聖魔拳",
     "聖魔斬",
     "閃光斬",
@@ -5782,7 +5794,7 @@ function addSkillOptions() {
       targetCollabSkills = hosigoronSkills;
     }
     if (monster.subRace.includes("ダイの大冒険")) {
-      const daikoraSkills = ["息よそく", "ミナカトール", "いやしの光", "黒くかがやく闇", "一刀両断", "ギラマータ", "イオマータ", "バギマータ", "極大消滅呪文"];
+      const daikoraSkills = ["息よそく", "ミナカトール", "いやしの光", "黒くかがやく闇", "一刀両断", "ギラマータ", "イオマータ", "バギマータ", "極大消滅呪文", "ボイドブレス"];
       targetCollabSkills = daikoraSkills;
     }
     if (monster.subRace.includes("FFBE")) {
@@ -13868,6 +13880,9 @@ document.getElementById("resetBtn").addEventListener("click", async function () 
   // 戦闘終了フラグを立て、既存のsleep処理を中断、skip状態化、skip解除表示
   setSkipMode(true);
   await originalSleep(250);
+  // partyを再編成
+  parties[0] = structuredClone(allParties[playerASelectedPartyNumber]).filter((element) => Object.keys(element).length !== 0);
+  parties[1] = structuredClone(allParties[playerBSelectedPartyNumber]).filter((element) => Object.keys(element).length !== 0);
   await prepareBattle();
   // skip状態の解除と表示戻し: コマンド画面になったら
   setSkipMode(false);
@@ -13982,7 +13997,7 @@ function getSkillTypeIcons(skillInfo, returnColor = false) {
     type = "special";
   } else if (skillInfo.targetTeam === "ally") {
     type = "support";
-  } else if (skillInfo.appliedEffect || skillInfo.zakiRate) {
+  } else if (skillInfo.appliedEffect || skillInfo.zakiRate || skillInfo.MPabsorptionRatio) {
     type = "abnormality";
   } else if (isDamageExistingSkill(skillInfo) && !skillInfo.act) {
     type = "attack";
@@ -14353,7 +14368,7 @@ function adjustBuffSize(buffSrc) {
     "images/buffIcons/aiPursuitCommand.png",
     "images/buffIcons/abanPreemptive.png",
     "images/buffIcons/prismVeilstr1.png",
-    "images/buffIcons/dotMPdamage.png",
+    "images/buffIcons/dotMPDamage.png",
     "images/buffIcons/MPabsorption.png",
     "images/buffIcons/slashBarrierstr-1.png",
     "images/buffIcons/slashBarrierstr-2.png",
@@ -16438,6 +16453,13 @@ function createSDappliedEffect(skillInfo) {
     if (skillInfo.anchorBonus) {
       skillDescriptionText += `最後の行動なら　威力${skillInfo.anchorBonus}倍　`;
     }
+    // 吸収
+    if (skillInfo.HPabsorptionRatio) {
+      skillDescriptionText += `ダメージの${skillInfo.HPabsorptionRatio * 100}%の　HPを吸収する　`;
+    }
+    if (skillInfo.MPabsorptionRatio) {
+      skillDescriptionText += `ダメージの${skillInfo.MPabsorptionRatio * 100}%の　MPを吸収する　`;
+    }
     // 状態異常特効・マ素特効
     // 1. データの集約
     const multiplierGroups = {};
@@ -16538,7 +16560,7 @@ const abnormalityBuffNameList = {
   dazzle: "マヌーサ",
   poisoned: "毒",
   dotDamage: "継続ダメージ",
-  dotMPdamage: "継続MPダメージ",
+  dotMPDamage: "継続MPダメージ",
   HPabsorption: "HP吸収",
   MPabsorption: "MP吸収",
   healBlock: "回復封じ",
@@ -16726,7 +16748,20 @@ function getAvailableSkillsForOthers() {
     "魂喰らい",
   ];
   // MP0でも付与して良いもの
-  const availableMP0skills = ["ひかりのたま", "苦悶の魔弾", "メラゾブレス", "暴れまわる", "うちくだく", "鬼眼砲", "正体をあらわす"];
+  const availableMP0skills = [
+    "ひかりのたま",
+    "苦悶の魔弾",
+    "メラゾブレス",
+    "暴れまわる",
+    "うちくだく",
+    "鬼眼砲",
+    "正体をあらわす",
+    "紅蓮剣",
+    "呪いの爆炎",
+    "虚脱のいかずち",
+    "葬送の吐息",
+    "夢幻のさばき",
+  ];
 
   const availableSkills = skill.filter((skill) => !unavailableSkillsForOthers.includes(skill.name) && (skill.MPcost !== 0 || availableMP0skills.includes(skill.name)));
   return availableSkills;
