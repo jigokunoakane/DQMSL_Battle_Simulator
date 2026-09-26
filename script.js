@@ -15524,8 +15524,10 @@ async function changeField(newFieldKey, customDuration = 1) {
     await sleep(200);
   }
 
-  // 3. 展開・付随処理
-  fieldState[newFieldKey] = customDuration;
+  // 3. 展開・付随処理（既に展開されている場合は長い方を採用）
+  const currentDuration = fieldState[newFieldKey];
+  fieldState[newFieldKey] = currentDuration != null ? Math.max(currentDuration, customDuration) : customDuration;
+
   if (fieldDef.onApply) {
     await fieldDef.onApply();
   }
