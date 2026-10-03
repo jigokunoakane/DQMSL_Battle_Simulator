@@ -1480,6 +1480,9 @@ function insertAll(newBuff) {
 }
 
 // バフ追加用関数
+/**
+ * @param {AppliedEffect} newBuff
+ */
 function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, skipMessage = false, isDamageExisting = false) {
   if (buffTarget.flags.isDead) {
     return;
@@ -6294,6 +6297,119 @@ async function selectAllPartyMembers(monsters) {
   switchTab(0);
 }
 
+/**
+ * 系統の型定義
+ * @typedef {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} Race
+ */
+
+/**
+ * サブ系統の型定義
+ * @typedef {"系統の王" | "サマー" | "レジェンド" | "FFBE" | "ダイの大冒険" | "ブレイク" | "神獣王" | "魔王" | "DQMAS" | "深淵の魔王" | "討伐" | "神獣" | "七幻神" | "魔童子" | "ロトの紋章" | (string & {})} SubRace
+ */
+
+/**
+ * モンスターの基本ステータス
+ * @typedef {Object} MonsterStatus
+ * @property {number} HP
+ * @property {number} MP
+ * @property {number} atk
+ * @property {number} def
+ * @property {number} spd
+ * @property {number} int
+ */
+
+/**
+ * スキルのたね振り設定
+ * @typedef {Object} MonsterSeed
+ * @property {number} atk
+ * @property {number} def
+ * @property {number} spd
+ * @property {number} int
+ */
+
+/**
+ * リーダー特性の補正倍率
+ * @typedef {Object} MonsterLeaderSkill
+ * @property {number} [HP]
+ * @property {number} [MP]
+ * @property {number} [atk]
+ * @property {number} [def]
+ * @property {number} [spd]
+ * @property {number} [int]
+ */
+
+/**
+ * リーダー特性の適用対象
+ * @typedef {Race | "all" | "break" | (string & {})} LeaderSkillTarget
+ */
+
+/**
+ * 属性・状態異常耐性値
+ * (-1: 弱点, 0: 等倍, 0.5: 軽減, 1: 無効, 1.5: 吸収等)
+ * @typedef {Object} MonsterResistance
+ * @property {number} fire - メラ耐性
+ * @property {number} ice - ヒャド耐性
+ * @property {number} thunder - ギラ耐性
+ * @property {number} wind - バギ耐性
+ * @property {number} io - イオ耐性
+ * @property {number} light - デイン耐性
+ * @property {number} dark - ドルマ耐性
+ * @property {number} poisoned - 毒耐性
+ * @property {number} asleep - 眠り耐性
+ * @property {number} confused - 混乱耐性
+ * @property {number} paralyzed - マヒ耐性
+ * @property {number} zaki - ザキ耐性
+ * @property {number} dazzle - マヌーサ耐性
+ * @property {number} spellSeal - 呪文封じ耐性
+ * @property {number} breathSeal - 息封じ耐性
+ */
+
+/**
+ * モンスターの自動発動特性・バフ設定
+ * @typedef {Object} MonsterAttribute
+ * @property {AppliedEffect} [initialBuffs] - 戦闘開始時発動バフ
+ * @property {AppliedEffect} [permanentBuffs] - 永続・常時発動バフ
+ * @property {AppliedEffect} [evenTurnBuffs] - 偶数ターン開始時バフ
+ * @property {AppliedEffect} [oddTurnBuffs] - 奇数ターン開始時バフ
+ * @property {AppliedEffect} [buffsFromTurn2] - 2ターン目以降発動バフ
+ * @property {AppliedEffect} [1] - 1ターン目発動バフ
+ * @property {AppliedEffect} [2] - 2ターン目発動バフ
+ * @property {AppliedEffect} [3] - 3ターン目発動バフ
+ * @property {AppliedEffect} [4] - 4ターン目発動バフ
+ * @property {AppliedEffect} [5] - 5ターン目発動バフ
+ * @property {AppliedEffect} [6] - 6ターン目発動バフ
+ * @property {AppliedEffect} [7] - 7ターン目発動バフ
+ * @property {AppliedEffect} [8] - 8ターン目発動バフ
+ * @property {AppliedEffect} [9] - 9ターン目発動バフ
+ * @property {AppliedEffect} [10] - 10ターン目発動バフ
+ */
+
+/**
+ * モンスターデータ定義
+ * @typedef {Object} Monsters
+ * @property {string} name - モンスター名
+ * @property {string} id - モンスター識別ID
+ * @property {number} rank - ランク (SS: 10, S: 9, A: 8, B: 7, C: 6...)
+ * @property {Race[]} race - 系統
+ * @property {SubRace[]} subRace - サブ系統
+ * @property {number} weight - ウェイト
+ * @property {MonsterStatus} status - ステータス
+ * @property {string[]} initialSkill - デフォルト所持とくぎ
+ * @property {string[]} [initialAIDisabledSkills] - AI使用をデフォルトで無効化するとくぎ
+ * @property {string[]} [anotherSkills] - カスタム・転生・選択候補とくぎ
+ * @property {string} [defaultGear] - デフォルト装備ID
+ * @property {MonsterAttribute} attribute - 特性・自動付与バフ設定
+ * @property {MonsterSeed} seed - デフォルトのタネ振り設定
+ * @property {number} [seedLimit] - スキルのたねの上限数（省略時120、一部モンスターのみ150等）
+ * @property {MonsterLeaderSkill} ls - リーダー特性
+ * @property {LeaderSkillTarget} lsTarget - リーダー特性の対象
+ * @property {Race | (string & {})} [excludeLsTarget] - リーダー特性の除外対象系統
+ * @property {number[]} [AINormalAttack] - AI通常攻撃回数の候補（例: [2, 3]）
+ * @property {MonsterResistance} resistance - 属性・状態異常耐性
+ * @property {string} [defaultAiType] - デフォルトの作戦設定（例: "いのちだいじに"）
+ */
+
+/** @type {Monsters[]} */
 const monsters = [
   {
     name: "マスタードラゴン", //44

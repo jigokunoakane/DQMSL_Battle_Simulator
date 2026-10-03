@@ -1,4 +1,204 @@
 // @ts-check
+
+/**
+ * すべてのバフ付与で共通して使用され得る基本オプション
+ * @typedef {Object} BaseBuffEffect
+ * @property {number} [probability] - 付与確率 (0〜1)
+ * @property {number} [duration] - 持続ターン数
+ * @property {boolean} [removeAtTurnStart] - ターン開始時に解除されるか
+ * @property {boolean} [decreaseTurnEnd] - ターン終了時に持続時間を減らすか
+ * @property {boolean} [decreaseBeforeAction] - 行動後に持続時間を減らすか
+ * @property {boolean} [keepOnDeath] - 死亡時も維持されるか
+ * @property {boolean} [unDispellable] - 解除不可
+ * @property {boolean} [divineDispellable] - 神のはどう等のみで解除可能
+ * @property {boolean} [dispellableByRadiantWave] - 光のはどうで解除可能か
+ * @property {boolean} [unDispellableByRadiantWave] - 光のはどうで解除不可
+ * @property {boolean} [zombieBuffable] - 執念状態でも付与可能
+ * @property {Race} [targetRace] - 系統限定で付与
+ * @property {string} [sameRaceSuccessBonus] - 同系統数に応じた確率変動の対象となる系統名
+ * @property {string} [iconSrc] - アイコンパス
+ * @property {boolean} [noMissDisplay] - ミス表示を行わないフラグ
+ * @property {"ally" | "enemy" | "self"} [targetType] - 対象陣営・範囲
+ */
+
+/**
+ * strength指定を必須とするバフ
+ * @typedef {BaseBuffEffect & {
+ *   strength: number,
+ *   randomStrengths?: Array<{ value: number, probability: number }>,
+ * }} StatBuffEffect
+ */
+
+/**
+ * 各バフ個別の専用プロパティ定義
+ * @typedef {Object} AppliedEffectMap
+ *
+ * --- strength指定を必須とするバフ ---
+ * @property {StatBuffEffect} [baiki]
+ * @property {StatBuffEffect} [defUp]
+ * @property {StatBuffEffect} [spdUp]
+ * @property {StatBuffEffect} [intUp]
+ * @property {StatBuffEffect} [slashBarrier]
+ * @property {StatBuffEffect} [spellBarrier]
+ * @property {StatBuffEffect} [breathBarrier]
+ * @property {StatBuffEffect} [martialBarrier]
+ * @property {StatBuffEffect & {noCrimsonMist?: boolean, crimsonMistTarget?: boolean}} [protection]
+ * @property {StatBuffEffect} [iceResistance]
+ * @property {StatBuffEffect} [fireResistance]
+ * @property {StatBuffEffect} [lightResistance]
+ * @property {StatBuffEffect} [darkResistance]
+ * @property {StatBuffEffect} [thunderResistance]
+ * @property {StatBuffEffect} [windResistance]
+ * @property {StatBuffEffect} [dodgeBuff]
+ * @property {StatBuffEffect} [prismVeil]
+ * @property {StatBuffEffect} [crimsonMist]
+ * @property {StatBuffEffect} [manaReduction]
+ * @property {StatBuffEffect} [powerWeaken]
+ * @property {StatBuffEffect & {immuneToTensionClear?: boolean, name?: string}} [powerCharge]
+ * @property {StatBuffEffect & {immuneToTensionClear?: boolean, name?: string}} [manaBoost]
+ * @property {StatBuffEffect & {immuneToTensionClear?: boolean, name?: string}} [breathCharge]
+ * @property {StatBuffEffect} [makaiBoost]
+ * @property {StatBuffEffect} [heavenlyBreath]
+ * @property {StatBuffEffect} [matterBuffAtk]
+ * @property {StatBuffEffect} [matterBuffSpd]
+ * @property {StatBuffEffect} [allElementalBarrier]
+ * @property {StatBuffEffect} [asleepBreakBoost]
+ * @property {StatBuffEffect} [MPabsorption]
+ * @property {StatBuffEffect & {maxStrength?: number}} [kiganLevel]
+ * @property {StatBuffEffect} [aiExtraAttacks]
+ * @property {StatBuffEffect} [shamuAtk]
+ * @property {StatBuffEffect} [shamuDef]
+ * @property {StatBuffEffect} [shamuSpd]
+ * @property {StatBuffEffect} [shamuInt]
+ * @property {StatBuffEffect & {isMetalKillerTarget?: boolean}} [metal]
+ * @property {StatBuffEffect} [mpCostMultiplier]
+ * @property {StatBuffEffect} [allElementalBoost]
+ * @property {StatBuffEffect} [allElementalBreak]
+ * @property {StatBuffEffect} [darkBuff]
+ * @property {StatBuffEffect} [fireBreak]
+ * @property {StatBuffEffect} [iceBreak]
+ * @property {StatBuffEffect} [thunderBreak]
+ * @property {StatBuffEffect} [ioBreak]
+ * @property {StatBuffEffect} [windBreak]
+ * @property {StatBuffEffect} [lightBreak]
+ * @property {StatBuffEffect} [darkBreak]
+ * @property {StatBuffEffect & {maxStrength?: number}} [fireBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [iceBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [thunderBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [ioBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [windBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [lightBreakBoost]
+ * @property {StatBuffEffect & {maxStrength?: number}} [darkBreakBoost]
+ * @property {StatBuffEffect} [confusedBreak]
+ * @property {StatBuffEffect} [asleepBreak]
+ * @property {StatBuffEffect} [paralyzedBreak]
+ * @property {StatBuffEffect} [poisonedBreak]
+ * @property {StatBuffEffect} [fireGuard]
+ * @property {StatBuffEffect} [tyoryuLevel]
+ * @property {StatBuffEffect} [worldBuff]
+ * @property {StatBuffEffect} [vearnBarrier]
+ * @property {StatBuffEffect} [internalAtkUp]
+ * @property {StatBuffEffect} [internalDefUp]
+ * @property {StatBuffEffect} [internalSpdUp]
+ * @property {StatBuffEffect} [internalIntUp]
+ *
+ * --- 単純な状態異常・フラグ ---
+ * @property {BaseBuffEffect & { element?: string }} [sealed]
+ * @property {BaseBuffEffect & { element?: string }} [fear]
+ * @property {BaseBuffEffect} [confused]
+ * @property {BaseBuffEffect & { isLight?: boolean }} [poisoned]
+ * @property {BaseBuffEffect} [paralyzed]
+ * @property {BaseBuffEffect} [asleep]
+ * @property {BaseBuffEffect} [dazzle]
+ * @property {BaseBuffEffect & { zombieBuffable?: boolean, name?: string }} [reviveBlock]
+ * @property {BaseBuffEffect} [slashSeal]
+ * @property {BaseBuffEffect} [martialSeal]
+ * @property {BaseBuffEffect} [statusLock]
+ * @property {BaseBuffEffect} [healBlock]
+ * @property {BaseBuffEffect} [specialHealBlock]
+ * @property {BaseBuffEffect} [elementalRetributionMark]
+ * @property {BaseBuffEffect} [substituteSeal]
+ * @property {BaseBuffEffect} [zombifyBlock]
+ *
+ * --- 特殊バフ・特性効果 ---
+ * @property {BaseBuffEffect & { maxDepth: number, strength?: number }} [maso]
+ * @property {BaseBuffEffect & { strength: number }} [poisonDepth]
+ * @property {BaseBuffEffect & { count: number, wait1Turn?: boolean }} [countDown]
+ * @property {BaseBuffEffect & { isGolden?: boolean, element?: string }} [stoned]
+ * @property {BaseBuffEffect} [tempted]
+ * @property {BaseBuffEffect & { ratio?: number, fixedDamage?: number, isTabooAwakening?: boolean }} [dotDamage]
+ * @property {BaseBuffEffect & { strength?: number, fixedDamage?: number }} [HPabsorption]
+ * @property {BaseBuffEffect & { strength: number }} [dotMPDamage]
+ * @property {BaseBuffEffect & { strength?: number, keepOnDeath?: boolean, act?: string }} [autoRevive]
+ * @property {BaseBuffEffect & { left?: number, isToukon?: boolean, isBroken?: boolean, name?: string }} [isUnbreakable]
+ * @property {BaseBuffEffect & { targetElement: string, remain: number }} [elementalShield]
+ * @property {BaseBuffEffect & { strength: number }} [damageLimit]
+ * @property {BaseBuffEffect} [traumaTrap]
+ * @property {BaseBuffEffect & { strength: number }} [continuousHealing]
+ * @property {BaseBuffEffect} [continuousMPHealing]
+ * @property {BaseBuffEffect} [sacredBarrier]
+ * @property {BaseBuffEffect} [mindBarrier]
+ * @property {BaseBuffEffect} [mindAndSealBarrier]
+ * @property {BaseBuffEffect} [confusionBarrier]
+ * @property {BaseBuffEffect} [sealBarrier]
+ * @property {BaseBuffEffect} [reviveBlockBarrier]
+ * @property {BaseBuffEffect} [criticalGuard]
+ * @property {BaseBuffEffect} [alwaysCrit]
+ * @property {BaseBuffEffect} [counterAttack]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean, name?: string }} [slashReflection]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean }} [spellReflection]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [breathReflection]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, dispellableBySpecificAbnormality?: boolean }} [martialReflection]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [danceReflection]
+ * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [ritualReflection]
+ * @property {BaseBuffEffect} [slashEvasion]
+ * @property {BaseBuffEffect} [spellEvasion]
+ * @property {BaseBuffEffect} [martialEvasion]
+ * @property {BaseBuffEffect} [breathEvasion]
+ * @property {BaseBuffEffect} [danceEvasion]
+ * @property {BaseBuffEffect & { strength?: number }} [skillEvasion]
+ * @property {BaseBuffEffect} [boogieCurse]
+ * @property {BaseBuffEffect} [boogieCurseSubstituting]
+ * @property {BaseBuffEffect} [murakumo]
+ * @property {BaseBuffEffect} [willSubstitute]
+ * @property {BaseBuffEffect} [nonElementalResistance]
+ * @property {BaseBuffEffect} [deathRoulette]
+ * @property {BaseBuffEffect} [preemptiveAction]
+ * @property {BaseBuffEffect} [anchorAction]
+ * @property {BaseBuffEffect} [aiPursuitCommand]
+ * @property {BaseBuffEffect} [abanPreemptive]
+ * @property {BaseBuffEffect} [angelMark]
+ * @property {BaseBuffEffect} [controlOfRapu]
+ * @property {BaseBuffEffect} [deathAbility]
+ * @property {BaseBuffEffect} [demonKingBarrier]
+ * @property {BaseBuffEffect} [sosidenBarrier]
+ * @property {BaseBuffEffect} [sinriReduction]
+ * @property {BaseBuffEffect} [breathEnhancement]
+ * @property {BaseBuffEffect} [healEnhancement]
+ * @property {BaseBuffEffect} [pharaohPower]
+ * @property {BaseBuffEffect} [dreamBuff]
+ * @property {BaseBuffEffect & { act?: string }} [tagTransformation]
+ * @property {BaseBuffEffect} [fireUltraBreak]
+ * @property {BaseBuffEffect} [iceUltraBreak]
+ * @property {BaseBuffEffect} [thunderUltraBreak]
+ * @property {BaseBuffEffect} [ioUltraBreak]
+ * @property {BaseBuffEffect} [windUltraBreak]
+ * @property {BaseBuffEffect} [lightUltraBreak]
+ * @property {BaseBuffEffect} [darkUltraBreak]
+ * @property {BaseBuffEffect} [fireSuperBreak]
+ * @property {BaseBuffEffect} [iceSuperBreak]
+ * @property {BaseBuffEffect} [thunderSuperBreak]
+ * @property {BaseBuffEffect} [ioSuperBreak]
+ * @property {BaseBuffEffect} [windSuperBreak]
+ * @property {BaseBuffEffect} [lightSuperBreak]
+ * @property {BaseBuffEffect} [darkSuperBreak]
+ * @property {BaseBuffEffect} [tabooSeal]
+ */
+
+/**
+ * @typedef {AppliedEffectMap} AppliedEffect
+ */
+
 /**
  * @typedef {Object} Skill
  *
@@ -10,7 +210,7 @@
  * @property {"fire" | "ice" | "thunder" | "io" | "wind" | "light" | "dark" | "none" | "notskill"} element - 属性
  * @property {"single" | "random" | "all" | "self" | "field" | "dead"} targetType - 対象範囲
  * @property {"ally" | "enemy"} targetTeam - 対象陣営
- * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} [targetRace] - 対象系統
+ * @property {Race} [targetRace] - 対象系統
  * @property {boolean} [requireTargetRace] - コマンド時にtargetRace以外をskillの対象として選択不可とするか否か
  * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
  * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
@@ -32,13 +232,13 @@
  * @property {number} [skillPlusFlat] - とくぎプラス加算補正
  *
  * --- 特効・倍率補正 ---
- * @property {"ドラゴン" | "悪魔" | "魔獣" | "スライム" | "物質" | "自然" | "ゾンビ" | "???" | "超魔王" | "超伝説"} [sameRaceDamageBonus] - 同系統ボーナス対象系統
+ * @property {Race} [sameRaceDamageBonus] - 同系統ボーナス対象系統
  * @property {string[]} [raceBane] - 系統特効の対象系統リスト (例: ["スライム", "ドラゴン"])
  * @property {number} [raceBaneMultiplier] - 系統特効倍率
  * @property {number} [anchorBonus] - アンカー発動時のボーナス倍率
  * @property {number} [substituteMultiplier] - みがわり特効倍率
  * @property {Object.<string, number>} [abnormalityMultiplier] - 状態異常特効倍率 (例: { fear: 1.5 }) マソと競合
- * @property {Object.<number|string, number>} [masoMultiplier] - マソ深度特効倍率 (例: { 1: 2.5 })
+ * @property {{ 1: number, 2: number, 3: number, 4: number }} [masoMultiplier] - マソ深度特効倍率 (1〜4すべて必須)
  * @property {boolean} [hasEnhancedWeakness] - 弱点倍率1.8倍フラグ
  * @property {boolean} [damageByLevel] - レベル依存ダメージ
  * @property {boolean} [damageByHpPercent] - HP割合依存ダメージ
@@ -82,8 +282,8 @@
  *
  * --- 状態変化・追加効果 ---
  * @property {"disruptiveWave" | "divineWave"} [waveEffect] - いては・上位はどう
- * @property {Object.<string, any>} [appliedEffect] - 付与バフ・デバフ
- * @property {{ allies?: Record<string, any>, enemies?: Record<string, any>, self?: Record<string, any> }} [afterEffects] - スキル実行後の効果付与（missにかかわらず実行 行動skip判定されうる）
+ * @property {AppliedEffect} [appliedEffect] - 付与バフ・デバフ
+ * @property {{ allies?: AppliedEffect, enemies?: AppliedEffect, self?: AppliedEffect }} [afterEffects] - スキル実行後の効果付与（missにかかわらず実行 行動skip判定されうる）
  * @property {{ damage: number, isRandomDamage?: boolean }} [selfDamage] - 反動ダメージ
  * @property {{ scope: "single" | "all", isCover?: boolean, condition?: (skillUser: any, skillTarget?: any) => boolean }} [substituteParams] - みがわり効果設定
  * @property {{ hpRate?: number, probability?: number, appliedBuff?: Object.<string, any>, condition?: (skillTarget: any) => boolean, onSuccess?: (skillTarget: any) => Promise<void>|void, healLiving?: boolean }} [reviveParams] - 蘇生設定
@@ -5349,7 +5549,7 @@ const skill = [
     targetTeam: "enemy",
     hitCount: 5,
     MPcost: 65,
-    appliedEffect: { spellBarrier: { probability: 0.22 } },
+    appliedEffect: { spellBarrier: { strength: -1, probability: 0.22 } },
   },
   {
     name: "醜悪な暴風",
