@@ -3303,6 +3303,11 @@ function applyHeal(target, healAmount, isMPheal = false, ignoreHealBoost = false
 
 // ダメージを適用する関数
 function applyDamage(target, damage, resistance = 1, isMPdamage = false, reducedByElementalShield = false, isCriticalHit = false, skipDeathAbility = false, perpetrator = null) {
+  // 石化はミス表示して終了
+  if (target.buffs.stoned) {
+    displayMiss(target);
+    return;
+  }
   if (resistance === -1) {
     // 死者は終了
     if (target.flags.isDead) {
