@@ -1507,7 +1507,7 @@ const elementResistanceBuffs = Object.fromEntries(
       isStackable: true,
       min: -3,
       max: 3,
-      decreaseTurnEnd: true,
+      durationPolicy: "turnBased",
     },
   ]),
 );
@@ -1563,7 +1563,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 16: 3, 48: 4, 78: 5, 100: 6 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   defUp: {
     name: "防御力",
@@ -1571,7 +1571,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 63: 3, 88: 4, 98: 5, 100: 6 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   spdUp: {
     name: "素早さ",
@@ -1579,7 +1579,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 63: 3, 88: 4, 98: 5, 100: 6 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   intUp: {
     name: "賢さ",
@@ -1587,7 +1587,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 63: 3, 88: 4, 98: 5, 100: 6 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   spellBarrier: {
     name: "呪文に対する防御力",
@@ -1595,7 +1595,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 69: 4, 94: 5, 99: 6, 100: 7 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   slashBarrier: {
     name: "斬撃に対する防御力",
@@ -1603,7 +1603,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 69: 4, 94: 5, 99: 6, 100: 7 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   martialBarrier: {
     name: "体技に対する防御力",
@@ -1611,7 +1611,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 69: 4, 94: 5, 99: 6, 100: 7 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   breathBarrier: {
     name: "息に対する防御力",
@@ -1619,7 +1619,7 @@ const BUFF_MASTER = {
     min: -2,
     max: 2,
     durationTable: { 63: 4, 93: 5, 99: 6, 100: 7 },
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
   ...elementResistanceBuffs,
   zakiResistance: {
@@ -1628,7 +1628,7 @@ const BUFF_MASTER = {
     isStackable: true,
     min: -3,
     max: 1,
-    decreaseTurnEnd: true,
+    durationPolicy: "turnBased",
   },
 
   // ==========================================
@@ -1641,7 +1641,7 @@ const BUFF_MASTER = {
     strength: 0.15,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "攻撃力が あがった！",
@@ -1654,7 +1654,7 @@ const BUFF_MASTER = {
     strength: 0.15,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "素早さが あがった！",
@@ -1666,7 +1666,7 @@ const BUFF_MASTER = {
     strength: -0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "防御力が さがった！",
@@ -1679,7 +1679,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "攻撃力が あがった！",
@@ -1692,7 +1692,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "防御力が あがった！",
@@ -1705,7 +1705,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "素早さが あがった！",
@@ -1718,7 +1718,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "賢さが あがった！",
@@ -1731,7 +1731,7 @@ const BUFF_MASTER = {
     strength: 0.4,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "防御力が あがった！",
@@ -1744,7 +1744,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "防御力が あがった！",
@@ -1757,7 +1757,7 @@ const BUFF_MASTER = {
     strength: 0.3,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "防御力が あがった！",
@@ -1770,7 +1770,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "攻撃力が あがった！",
@@ -1783,7 +1783,7 @@ const BUFF_MASTER = {
     strength: 0.2,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "素早さが あがった！",
@@ -1796,7 +1796,7 @@ const BUFF_MASTER = {
     strength: 0.1,
     duration: 4,
     divineDispellable: true,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "素早さが あがった！",
@@ -1843,7 +1843,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier"],
     durationTable: { 41: 4, 78: 5, 97: 6, 100: 7 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1854,7 +1854,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier"],
     durationTable: { 41: 4, 78: 5, 97: 6, 100: 7 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1865,7 +1865,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier"],
     durationTable: { 41: 4, 78: 5, 97: 6, 100: 7 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1876,7 +1876,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier"],
     durationTable: { 41: 4, 78: 5, 97: 6, 100: 7 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1888,7 +1888,7 @@ const BUFF_MASTER = {
     removesSubstitute: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier", "mindBarrier", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep"],
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1902,7 +1902,7 @@ const BUFF_MASTER = {
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "mindAndSealBarrier", "mindBarrier", "fear", "tempted", "sealed", "confused", "paralyzed", "asleep"],
     removesBuffs: ["defUp", "heavenlyBreath", "goddessDefUp", "poseidonDefUp", "castleDefUp", "shamuDef"],
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}の`,
@@ -1915,7 +1915,7 @@ const BUFF_MASTER = {
     blockedByBuffs: ["sealBarrier", "tempted", "sealed", "confused", "paralyzed", "asleep"],
     removesBuffs: ["fear", "ramiaElementalGuardSuppression"],
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     unDispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1929,7 +1929,7 @@ const BUFF_MASTER = {
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "confusionBarrier", "asleep", "paralyzed"],
     removesBuffs: ["fear", "tempted", "sealed"],
     durationTable: { 55: 2, 87: 3, 99: 4, 100: 5 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}の`,
@@ -1942,7 +1942,7 @@ const BUFF_MASTER = {
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "paralyzeBarrier", "asleep", "confused"],
     removesBuffs: ["fear", "tempted", "sealed"],
     durationTable: { 55: 2, 87: 3, 99: 4, 100: 5 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1956,7 +1956,7 @@ const BUFF_MASTER = {
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier", "sleepBarrier", "paralyzed", "confused"],
     removesBuffs: ["fear", "tempted", "sealed"],
     durationTable: { 68: 2, 88: 3, 97: 4, 100: 5 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1968,8 +1968,7 @@ const BUFF_MASTER = {
     removesGuard: true,
     blockedByBuffs: ["stoneBarrier"],
     removesBuffs: ["powerCharge", "manaBoost", "counterAttack", "sealed", "poisoned"],
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     unDispellableByRadiantWave: true,
     getMessage: (target, data) => {
       if (target.commandInput === "アストロンゼロ") {
@@ -1985,7 +1984,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier"],
     durationTable: { 41: 4, 78: 5, 97: 6, 100: 7 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -1996,7 +1995,7 @@ const BUFF_MASTER = {
     isAbnormality: true,
     blockedByBuffs: ["demonKingBarrier", "sacredBarrier"],
     durationTable: { 16: 3, 49: 4, 83: 5, 100: 6 },
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -2006,8 +2005,7 @@ const BUFF_MASTER = {
   reviveBlock: {
     blockedByBuffs: ["reviveBlockBarrier"],
     keepOnDeath: true,
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     dispellableByRadiantWave: true,
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -2044,7 +2042,7 @@ const BUFF_MASTER = {
       message: "与えるダメージが 上がった！",
     }),
   },
-    maso: {
+  maso: {
     keepOnDeath: true,
     maxDepth: 5,
     getMessage: (target) => ({
@@ -2098,7 +2096,11 @@ const BUFF_MASTER = {
     blockedByBuffs: ["powerCharge"],
   },
   murakumo: { dispellableByRadiantWave: true },
-  zombifyBlock: { dispellableByRadiantWave: true },
+  zombifyBlock: {
+    dispellableByRadiantWave: true,
+    durationPolicy: "roundLimited",
+    duration: 1,
+  },
   crimsonMist: {
     dispellableByRadiantWave: true,
     removesBuffs: ["protection"],
@@ -2124,7 +2126,7 @@ const BUFF_MASTER = {
   // ==========================================
   powerCharge: {
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     removesBuffs: ["powerWeaken"],
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -2133,7 +2135,7 @@ const BUFF_MASTER = {
   },
   manaBoost: {
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     removesBuffs: ["manaReduction"],
     getMessage: (target) => ({
       start: `${target.name}は`,
@@ -2142,7 +2144,7 @@ const BUFF_MASTER = {
   },
   breathCharge: {
     duration: 2,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target, data) => ({
       start: `${target.name}は`,
       message: `息ダメージが${data.strength}倍になった！`,
@@ -2150,8 +2152,7 @@ const BUFF_MASTER = {
   },
   preemptiveAction: {
     duration: 1,
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "こうどうが はやくなった！",
@@ -2159,8 +2160,7 @@ const BUFF_MASTER = {
   },
   anchorAction: {
     duration: 1,
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     getMessage: (target) => ({
       start: `${target.name}の`,
       message: "こうどうが おそくなった！",
@@ -2168,8 +2168,7 @@ const BUFF_MASTER = {
   },
   dodgeBuff: {
     duration: 1,
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     getMessage: (target, data) => ({
       start: `${target.name}の`,
       message: data.strength === 1 ? "回避率が最大になった！" : "回避率が あがった！",
@@ -2177,7 +2176,7 @@ const BUFF_MASTER = {
   },
   nonElementalResistance: {
     duration: 3,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}は`,
       message: "無属性攻撃を受けなくなった！",
@@ -2185,7 +2184,7 @@ const BUFF_MASTER = {
   },
   demonKingBarrier: {
     duration: 3,
-    decreaseBeforeAction: true,
+    durationPolicy: "actionBased",
     getMessage: (target) => ({
       start: `${target.name}は`,
       message: "あらゆる状態異常が効かなくなった！",
@@ -2195,8 +2194,7 @@ const BUFF_MASTER = {
     removesBuffs: ["spellSeal", "breathSeal", "slashSeal", "martialSeal", "fear", "tempted"],
   },
   damageLimit: {
-    removeAtTurnStart: true,
-    decreaseTurnEnd: true,
+    durationPolicy: "roundLimited",
     getMessage: (target, data) => ({
       start: `${target.name}は`,
       message: `被ダメージ上限値${data.strength}の状態になった！`,
@@ -2272,6 +2270,8 @@ const BUFF_MASTER = {
     }),
   },
   continuousHealing: {
+    durationPolicy: "roundLimited",
+    duration: 3,
     getMessage: (target) => ({
       start: `${target.name}は`,
       message: "HPが 回復する状態になった！",
@@ -2350,6 +2350,8 @@ const BUFF_MASTER = {
     }),
   },
   counterAttack: {
+    durationPolicy: "roundLimited",
+    duration: 1,
     getMessage: (target) => ({
       start: `${target.name}は`,
       message: "攻撃に対して 反撃する状態になった！",
@@ -2446,9 +2448,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (newBuff[buffName].keepOnDeath && !newBuff[buffName].hasOwnProperty("duration")) {
       delete buffData.duration;
       delete buffData.durationTable;
-      delete buffData.decreaseTurnEnd;
-      delete buffData.decreaseBeforeAction;
-      delete buffData.removeAtTurnStart;
+      delete buffData.durationPolicy;
     }
 
     // ミス表示をしないフラグがひとつでもある場合、バフ付与扱いに設定
@@ -2745,15 +2745,9 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     }
     delete buffTarget.buffs[buffName].durationTable;
 
-    // 継続時間が指定されている場合、デクリメントタイプを決定
-    if (buffTarget.buffs[buffName].hasOwnProperty("duration")) {
-      if (buffTarget.buffs[buffName].decreaseTurnEnd || buffTarget.buffs[buffName].removeAtTurnStart || buffData.isStackable) {
-        buffTarget.buffs[buffName].decreaseTurnEnd = true;
-        delete buffTarget.buffs[buffName].decreaseBeforeAction;
-      } else {
-        buffTarget.buffs[buffName].decreaseBeforeAction = true;
-        delete buffTarget.buffs[buffName].decreaseTurnEnd;
-      }
+    // デクリメントタイプを決定
+    if (buffTarget.buffs[buffName].hasOwnProperty("duration") && buffTarget.buffs[buffName].durationPolicy !== "turnBased" && buffTarget.buffs[buffName].durationPolicy !== "roundLimited") {
+      buffTarget.buffs[buffName].durationPolicy = "actionBased";
     }
 
     // 反射エフェクト
@@ -2775,17 +2769,24 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
 }
 
 async function cleanupMonsterBuffs(monster, isTurnStart = false) {
+  // roundLimited: ラウンド開始時削除 ラウンド経過デクリメント e.g. 蘇生封じ、行動早い、石化、天界/大樹、予測系
+  // turnBased: 行動前削除 ラウンド経過デクリメント e.g. isStackable、スキルターン系
+  // actionBased: 行動前削除 行動前デクリメント e.g. 無属性無効、状態異常、力ため、50%バリア、全属性ブレイク、world体技反射
+  // ラウンド経過デクリメントは、行動前/後いずれで付与されても同一ターンに切れる
   let isRemoved = false;
   for (const [buffName, buff] of Object.entries(monster.buffs)) {
-    // 1. タイミングに応じた持続時間の減少 (デクリメント)
-    const shouldDecrease = isTurnStart ? buff.decreaseTurnEnd : buff.decreaseBeforeAction;
+    // 1. 持続時間のデクリメント
+    // isTurnStartがtrueなら "turnBased" と "roundLimited"、falseなら "actionBased"
+    const shouldDecrease = isTurnStart ? buff.durationPolicy === "turnBased" || buff.durationPolicy === "roundLimited" : buff.durationPolicy === "actionBased";
+
     if (buff.duration !== undefined && shouldDecrease) {
       buff.duration--;
     }
 
     // 2. 期限切れバフの削除判定
+    // isTurnStartがtrueなら "roundLimited"、falseなら "turnBased" と "actionBased"
     const isExpired = typeof buff.duration === "number" && buff.duration <= 0;
-    const matchTiming = Boolean(buff.removeAtTurnStart) === isTurnStart;
+    const matchTiming = isTurnStart ? buff.durationPolicy === "roundLimited" : buff.durationPolicy === "turnBased" || buff.durationPolicy === "actionBased";
 
     if (isExpired && matchTiming) {
       const logMessage = isTurnStart ? `${fieldState.turnNum}R開始時:${monster.name}の${buffName}の効果が切れた!` : `${fieldState.turnNum}R:${monster.name}の${buffName}の効果が行動前に切れた!`;
@@ -3953,8 +3954,7 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
     } else {
       // nameは残し、亡者化予定の場合に鎮魂を解除する
       delete target.buffs.reviveBlock.duration;
-      delete target.buffs.reviveBlock.decreaseTurnEnd;
-      delete target.buffs.reviveBlock.removeAtTurnStart;
+      delete target.buffs.reviveBlock.durationPolicy;
     }
   }
 
@@ -6872,7 +6872,7 @@ function getMonsterAbilities(monsterId) {
                   name: "祭の名残付与",
                   disableMessage: true,
                   act: async function (skillUser, executingSkill) {
-                    applyBuff(skillUser, { sinriReduction: { duration: 1, removeAtTurnStart: true, unDispellable: true } });
+                    applyBuff(skillUser, { sinriReduction: { duration: 1, durationPolicy: "roundLimited", unDispellable: true } });
                   },
                 });
               }
@@ -6959,7 +6959,7 @@ function getMonsterAbilities(monsterId) {
           isOneTimeUse: true,
           act: async function (skillUser) {
             for (const monster of skillUser.allies) {
-              applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
+              applyBuff(monster, { continuousHealing: { strength: 275 } });
             }
           },
         },
@@ -7027,7 +7027,7 @@ function getMonsterAbilities(monsterId) {
           },
           act: async function (skillUser) {
             for (const monster of skillUser.allies) {
-              applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
+              applyBuff(monster, { continuousHealing: { strength: 275 } });
             }
           },
         },
@@ -7102,9 +7102,9 @@ function getMonsterAbilities(monsterId) {
       tagTransformationAct: async function (monster, buffName) {
         if (buffName === "幻獣のタッグ") {
           if (Math.random() < 0.5) {
-            applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, skipReflectionEffect: true } });
+            applyBuff(monster, { slashReflection: { strength: 1, durationPolicy: "roundLimited", duration: 1, skipReflectionEffect: true } });
           } else {
-            applyBuff(monster, { spellReflection: { strength: 1, removeAtTurnStart: true, duration: 1, skipReflectionEffect: true } });
+            applyBuff(monster, { spellReflection: { strength: 1, durationPolicy: "roundLimited", duration: 1, skipReflectionEffect: true } });
           }
         }
       },
@@ -7133,15 +7133,15 @@ function getMonsterAbilities(monsterId) {
             martialReflection: {
               strength: 1.5,
               duration: 2,
-              removeAtTurnStart: true,
+              durationPolicy: "roundLimited",
               unDispellable: true,
               skipReflectionEffect: true,
               dispellableByAbnormality: true,
               dispellableBySpecificAbnormality: true,
             },
           });
-          applyBuff(monster, { sosidenBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true } });
-          applyBuff(monster, { demonKingBarrier: { duration: 2, removeAtTurnStart: true, divineDispellable: true, iconSrc: "none" } });
+          applyBuff(monster, { sosidenBarrier: { duration: 2, durationPolicy: "roundLimited", divineDispellable: true } });
+          applyBuff(monster, { demonKingBarrier: { duration: 2, durationPolicy: "roundLimited", divineDispellable: true, iconSrc: "none" } });
         }
       },
     },
@@ -7363,7 +7363,7 @@ function getMonsterAbilities(monsterId) {
             }
             // 反射処理
             applyBuff(skillUser, {
-              slashReflection: { unDispellable: true, dispellableByAbnormality: true, strength: 1, removeAtTurnStart: true, duration: 1, isKanta: true, skipReflectionEffect: true },
+              slashReflection: { unDispellable: true, dispellableByAbnormality: true, strength: 1, durationPolicy: "roundLimited", duration: 1, isKanta: true, skipReflectionEffect: true },
             });
             displayMessage(`${skillUser.name}は`, "みがまえた！");
           },
@@ -7510,9 +7510,9 @@ function getMonsterAbilities(monsterId) {
               act: async function (skillUser) {
                 applyBuff(skillUser, {
                   powerCharge: { strength: 1.1 },
-                  slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
-                  spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
-                  breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+                  slashEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
+                  spellEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
+                  breathEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
                 });
               },
             });
@@ -7569,15 +7569,15 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser, receivedSkill) => !receivedSkill.some((skillInfo) => ["slash", "spell", "breath"].includes(skillInfo.type)),
           act: async function (skillUser, counterTarget, receivedSkill) {
             if (receivedSkill.some((skillInfo) => skillInfo.type === "slash")) {
-              applyBuff(skillUser, { slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              applyBuff(skillUser, { slashEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } });
               await sleep(100);
             }
             if (receivedSkill.some((skillInfo) => skillInfo.type === "spell")) {
-              applyBuff(skillUser, { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              applyBuff(skillUser, { spellEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } });
               await sleep(100);
             }
             if (receivedSkill.some((skillInfo) => skillInfo.type === "breath")) {
-              applyBuff(skillUser, { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } });
+              applyBuff(skillUser, { breathEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } });
               await sleep(100);
             }
           },
@@ -7668,7 +7668,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
-                applyBuff(monster, { windBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "windBreakBoost" } }); //本来は2R行動後に解除
+                applyBuff(monster, { windBreak: { divineDispellable: true, durationPolicy: "roundLimited", duration: 2, strength: 1, iconSrc: "windBreakBoost" } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "風の使い手状態になった！");
                 await sleep(150);
               }
@@ -7705,7 +7705,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
-                applyBuff(monster, { fireBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "fireBreakBoost" } }); //本来は2R行動後に解除
+                applyBuff(monster, { fireBreak: { divineDispellable: true, durationPolicy: "roundLimited", duration: 2, strength: 1, iconSrc: "fireBreakBoost" } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "炎の使い手状態になった！");
                 await sleep(150);
               }
@@ -7731,7 +7731,7 @@ function getMonsterAbilities(monsterId) {
             disableMessage: true,
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
-                applyBuff(monster, { iceBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1 } }); //本来は2R行動後に解除
+                applyBuff(monster, { iceBreak: { divineDispellable: true, durationPolicy: "roundLimited", duration: 2, strength: 1 } }); //本来は2R行動後に解除
                 displayMessage(`${monster.name}は`, "氷の使い手状態になった！");
                 await sleep(150);
               }
@@ -7880,7 +7880,7 @@ function getMonsterAbilities(monsterId) {
               const aliveEnemies = skillUser.enemies.filter((member) => !member.flags.isDead);
               const newTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
               if (newTarget) {
-                applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+                applyBuff(newTarget, { controlOfRapu: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1 } });
                 newTarget.flags.rapuFlag = fieldState.turnNum + 1;
               }
             },
@@ -8182,7 +8182,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of skillUser.allies) {
               if (monster.race.includes("悪魔")) {
-                applyBuff(monster, { autoRadiantWave: { removeAtTurnStart: true, duration: 3 } });
+                applyBuff(monster, { autoRadiantWave: { durationPolicy: "roundLimited", duration: 3 } });
                 monster.abilities.supportAbilities.additionalPermanentAbilities.push({
                   name: "偽神の威光実行",
                   message: function (skillUser) {
@@ -8206,7 +8206,7 @@ function getMonsterAbilities(monsterId) {
               if (hasAbnormality(skillUser)) {
                 displayMiss(skillUser);
               } else {
-                applyBuff(skillUser, { protection: { divineDispellable: true, strength: 0.5, removeAtTurnStart: true, duration: 1 } });
+                applyBuff(skillUser, { protection: { divineDispellable: true, strength: 0.5, durationPolicy: "roundLimited", duration: 1 } });
               }
             },
           },
@@ -8459,7 +8459,7 @@ function getMonsterAbilities(monsterId) {
           name: "光の痕跡",
           act: async function (skillUser) {
             for (const monster of skillUser.allies) {
-              applyBuff(monster, { lightBreak: { divineDispellable: true, removeAtTurnStart: true, duration: 2, strength: 1, iconSrc: "lightBreakBoost" } }); //本来は2R行動後に解除
+              applyBuff(monster, { lightBreak: { divineDispellable: true, durationPolicy: "roundLimited", duration: 2, strength: 1, iconSrc: "lightBreakBoost" } }); //本来は2R行動後に解除
             }
           },
         },
@@ -8632,7 +8632,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("魔獣")) {
-                  applyBuff(monster, { speedBasedAttack: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+                  applyBuff(monster, { speedBasedAttack: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1 } });
                   await sleep(150);
                 } else {
                   displayMiss(monster);
@@ -8752,7 +8752,7 @@ function getMonsterAbilities(monsterId) {
             name: "群れのチカラ",
             unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "魔獣", 4),
             act: function (skillUser) {
-              applyBuff(skillUser, { alwaysCrit: { unDispellable: true, removeAtTurnStart: true, duration: 1 } });
+              applyBuff(skillUser, { alwaysCrit: { unDispellable: true, durationPolicy: "roundLimited", duration: 1 } });
             },
           },
         ],
@@ -8841,7 +8841,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race.includes("スライム")) {
                   applyBuff(monster, { goddessDefUp: { strength: 0.4 } });
                   await sleep(150);
-                  applyBuff(monster, { continuousMPHealing: { strength: 0.2, removeAtTurnStart: true, duration: 3 } });
+                  applyBuff(monster, { continuousMPHealing: { strength: 0.2, durationPolicy: "roundLimited", duration: 3 } });
                 }
               }
             },
@@ -8887,7 +8887,7 @@ function getMonsterAbilities(monsterId) {
           act: async function (skillUser) {
             for (const monster of skillUser.allies) {
               if (monster.race.includes("スライム")) {
-                applyBuff(monster, { continuousHealing: { strength: 275, removeAtTurnStart: true, duration: 3 } });
+                applyBuff(monster, { continuousHealing: { strength: 275 } });
               }
             }
           },
@@ -8911,7 +8911,7 @@ function getMonsterAbilities(monsterId) {
           name: "空の要塞",
           act: async function (skillUser) {
             if (hasEnoughMonstersOfType(skillUser.allies, "スライム", 3)) {
-              applyBuff(skillUser, { spellReflection: { strength: 1, duration: 3, unDispellable: true, removeAtTurnStart: true } });
+              applyBuff(skillUser, { spellReflection: { strength: 1, duration: 3, unDispellable: true, durationPolicy: "roundLimited" } });
             }
           },
         },
@@ -9022,9 +9022,9 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
-                  applyBuff(monster, { sacredBarrier: { duration: 1, removeAtTurnStart: true } });
+                  applyBuff(monster, { sacredBarrier: { duration: 1, durationPolicy: "roundLimited" } });
                   await sleep(100);
-                  applyBuff(monster, { protection: { strength: 0.2, removeAtTurnStart: true, duration: 1, noCrimsonMist: true } });
+                  applyBuff(monster, { protection: { strength: 0.2, durationPolicy: "roundLimited", duration: 1, noCrimsonMist: true } });
                   await sleep(100);
                 }
               }
@@ -9060,7 +9060,7 @@ function getMonsterAbilities(monsterId) {
               displayMessage(`${skillUser.name}の`, "斬撃よそく！");
             },
             act: async function (skillUser) {
-              applyBuff(skillUser, { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } });
+              applyBuff(skillUser, { slashReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } });
             },
           },
         ],
@@ -9139,7 +9139,7 @@ function getMonsterAbilities(monsterId) {
               const buffStrength = fieldState.turnNum > 2 ? 0.4 : 0.2;
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("物質")) {
-                  applyBuff(monster, { weaponBuff: { strength: buffStrength, unDispellable: true, removeAtTurnStart: true, duration: 1 } });
+                  applyBuff(monster, { weaponBuff: { strength: buffStrength, unDispellable: true, durationPolicy: "roundLimited", duration: 1 } });
                 }
               }
             },
@@ -9155,7 +9155,7 @@ function getMonsterAbilities(monsterId) {
           unavailableIf: (skillUser) => !hasEnoughMonstersOfType(skillUser.allies, "物質", 5),
           act: async function (skillUser) {
             for (const monster of skillUser.enemies) {
-              applyBuff(monster, { hellclouderDebuff: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } }); // タッグ・リザオ等でも解除不可 亡者にも有効
+              applyBuff(monster, { hellclouderDebuff: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1 } }); // タッグ・リザオ等でも解除不可 亡者にも有効
               await sleep(150);
             }
           },
@@ -9270,7 +9270,7 @@ function getMonsterAbilities(monsterId) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, { slashBarrier: { strength: 1 } });
                   await sleep(150);
-                  applyBuff(monster, { continuousMPHealing: { strength: 0.15, removeAtTurnStart: true, duration: 1 } }); //Lv100: 67,69/490 61,64/432（実はLv依存・Lv20:4%前後）
+                  applyBuff(monster, { continuousMPHealing: { strength: 0.15, durationPolicy: "roundLimited", duration: 1 } }); //Lv100: 67,69/490 61,64/432（実はLv依存・Lv20:4%前後）
                 }
               }
             },
@@ -9315,7 +9315,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
-                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.1, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } }); // keepOnDeath
+                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.1, durationPolicy: "roundLimited", duration: 1, iconSrc: "protectiondivineDispellablestr0.1" } }); // keepOnDeath
                 }
               }
             },
@@ -9327,7 +9327,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
-                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.2, removeAtTurnStart: true, duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } }); // keepOnDeath
+                  applyBuff(monster, { poseidonProtection: { keepOnDeath: true, strength: 0.2, durationPolicy: "roundLimited", duration: 1, iconSrc: "protectiondivineDispellablestr0.2" } }); // keepOnDeath
                 }
               }
             },
@@ -9493,9 +9493,9 @@ function getMonsterAbilities(monsterId) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("自然")) {
                   applyBuff(monster, {
-                    sacredBarrier: { duration: 1, removeAtTurnStart: true },
-                    sealBarrier: { duration: 1, removeAtTurnStart: true },
-                    reviveBlockBarrier: { duration: 1, removeAtTurnStart: true },
+                    sacredBarrier: { duration: 1, durationPolicy: "roundLimited" },
+                    sealBarrier: { duration: 1, durationPolicy: "roundLimited" },
+                    reviveBlockBarrier: { duration: 1, durationPolicy: "roundLimited" },
                   });
                 }
               }
@@ -9524,7 +9524,7 @@ function getMonsterAbilities(monsterId) {
       },
       reviveAct: async function (monster, buffName) {
         if (buffName === "不滅のたましい") {
-          applyBuff(monster, { protection: { strength: 1, removeAtTurnStart: true, duration: 1 } });
+          applyBuff(monster, { protection: { strength: 1, durationPolicy: "roundLimited", duration: 1 } });
         }
       },
     },
@@ -9554,7 +9554,7 @@ function getMonsterAbilities(monsterId) {
       ],
       zombifyAct: async function (monster, zombifyActName) {
         if (zombifyActName === "亡者の怨嗟・鏡") {
-          applyBuff(monster, { slashReflection: { strength: 1, removeAtTurnStart: true, duration: 1, isKanta: true, skipReflectionEffect: true, zombieBuffable: true } });
+          applyBuff(monster, { slashReflection: { strength: 1, durationPolicy: "roundLimited", duration: 1, isKanta: true, skipReflectionEffect: true, zombieBuffable: true } });
         }
       },
     },
@@ -9614,7 +9614,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
-                  applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
+                  applyBuff(monster, { zombification: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1, iconSrc: "deathAbility" } });
                 }
               }
             },
@@ -9670,7 +9670,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (monster.race.includes("ゾンビ") && monster.name !== "ラザマナス" && !monster.flags.isUnAscensionable) {
-                  applyBuff(monster, { zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility" } });
+                  applyBuff(monster, { zombification: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1, iconSrc: "deathAbility" } });
                 }
               }
             },
@@ -10031,7 +10031,7 @@ function getMonsterAbilities(monsterId) {
             act: async function (skillUser) {
               for (const monster of skillUser.allies) {
                 if (isBreakMonster(monster)) {
-                  applyBuff(monster, { continuousMPHealing: { removeAtTurnStart: true, duration: 5 } }); //回復量50
+                  applyBuff(monster, { continuousMPHealing: { durationPolicy: "roundLimited", duration: 5 } }); //回復量50
                 }
               }
             },
@@ -10251,7 +10251,7 @@ const gear = [
     id: "daikengou",
     weight: 20,
     status: { HP: 0, MP: 0, atk: 90, def: 30, spd: 0, int: 0 },
-    initialBuffs: { slashReflection: { unDispellable: true, strength: 1, removeAtTurnStart: true, duration: 3, isKanta: true } },
+    initialBuffs: { slashReflection: { unDispellable: true, strength: 1, durationPolicy: "roundLimited", duration: 3, isKanta: true } },
     //"hoge.nameは かまえをといた！"
   },
   {
@@ -10292,7 +10292,7 @@ const gear = [
     weight: 5,
     status: { HP: 0, MP: 0, atk: 45, def: 0, spd: 20, int: 0 },
     statusMultiplier: { atk: 0.08 },
-    initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, removeAtTurnStart: true, duration: 3, iconSrc: "lightBreakBoost" } },
+    initialBuffs: { lightBreak: { keepOnDeath: true, strength: 1, durationPolicy: "roundLimited", duration: 3, iconSrc: "lightBreakBoost" } },
   },
   {
     name: "キラーピアス", //+10
@@ -10495,7 +10495,7 @@ const gear = [
     id: "heavenlyClothes",
     weight: 5,
     status: { HP: 0, MP: 0, atk: 0, def: 105, spd: 0, int: 0 },
-    turn1buffs: { danceEvasion: { unDispellable: true, duration: 1, removeAtTurnStart: true } },
+    turn1buffs: { danceEvasion: { unDispellable: true, duration: 1, durationPolicy: "roundLimited" } },
   },
   {
     name: "あぶない水着", //+10
@@ -13687,7 +13687,7 @@ document.getElementById("spdSetting").addEventListener("change", function (event
 
 function applyShihai(skillTarget, originalTarget = null) {
   // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
-  applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
+  applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, durationPolicy: "roundLimited", iconSrc: "willSubstitute" } });
   // 支配を既に予約している場合は重複付与しない
   if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "しはいのさくせんみがわり実行")) return;
   // ひれつを既に予約している場合は削除
@@ -13712,7 +13712,7 @@ function applyShihai(skillTarget, originalTarget = null) {
         displayMiss(skillUser);
       }
       // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
-      applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
+      applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, durationPolicy: "roundLimited" } });
     },
   });
   // 死亡時転移を付与
@@ -13845,21 +13845,21 @@ const gameRuleData = [
     name: "いきなりちからため",
     turn: 1,
     act: function () {
-      insertAll({ powerCharge: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+      insertAll({ powerCharge: { strength: 2, duration: 2, durationPolicy: "actionBased" } });
     },
   },
   {
     name: "いきなり魔力覚醒",
     turn: 1,
     act: function () {
-      insertAll({ manaBoost: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+      insertAll({ manaBoost: { strength: 2, duration: 2, durationPolicy: "actionBased" } });
     },
   },
   {
     name: "いきなり息をすいこむ",
     turn: 1,
     act: function () {
-      insertAll({ breathCharge: { strength: 2, duration: 2, decreaseBeforeAction: true } });
+      insertAll({ breathCharge: { strength: 2, duration: 2, durationPolicy: "actionBased" } });
     },
   },
   {
@@ -13873,28 +13873,28 @@ const gameRuleData = [
     name: "いきなり1ターン無属性無効",
     turn: 1,
     act: function () {
-      insertAll({ nonElementalResistance: { duration: 1, removeAtTurnStart: true, decreaseTurnEnd: true } });
+      insertAll({ nonElementalResistance: { duration: 1, durationPolicy: "roundLimited" } });
     },
   },
   {
     name: "いきなり3ターン無属性50%軽減",
     turn: 1,
     act: function () {
-      insertAll({ nonElementalReduction: { unDispellable: true, strength: 0.5, duration: 3, removeAtTurnStart: true, decreaseTurnEnd: true } });
+      insertAll({ nonElementalReduction: { unDispellable: true, strength: 0.5, duration: 3, durationPolicy: "roundLimited" } });
     },
   },
   {
     name: "いきなり1ターンさくせん行動",
     turn: 1,
     act: function () {
-      insertAll({ aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 1, decreaseTurnEnd: true } });
+      insertAll({ aiPursuitCommand: { unDispellable: true, durationPolicy: "roundLimited", duration: 1 } });
     },
   },
   {
     name: "いきなり1ターン一族のうらみ(バグ可能性あり)",
     turn: 1,
     act: function () {
-      insertAll({ zombification: { keepOnDeath: true, removeAtTurnStart: true, duration: 1, iconSrc: "deathAbility", decreaseTurnEnd: true } });
+      insertAll({ zombification: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1, iconSrc: "deathAbility" } });
     },
   },
 ];

@@ -280,7 +280,7 @@ const monsters = [
       initialBuffs: {
         baiki: { strength: 2 },
         spdUp: { strength: 2 },
-        spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, // 混乱でも保持
+        spellReflection: { strength: 1, duration: 4, durationPolicy: "turnBased" }, // 混乱でも保持
         mindBarrier: { duration: 2 },
         autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 0.5, act: "竜の血に選ばれし者" },
       },
@@ -516,9 +516,9 @@ const monsters = [
       },
       1: {
         powerCharge: { strength: 1.1 },
-        slashEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
-        spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
-        breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+        slashEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
+        spellEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
+        breathEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -620,7 +620,7 @@ const monsters = [
         isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
       },
       2: {
-        demonKingBarrier: { duration: 1, removeAtTurnStart: true, divineDispellable: true },
+        demonKingBarrier: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true },
         slashEvasion: { unDispellable: true, duration: 4 },
         spellEvasion: { unDispellable: true, duration: 4 },
         breathEvasion: { unDispellable: true, duration: 4 },
@@ -707,8 +707,8 @@ const monsters = [
     defaultGear: "kudaki",
     attribute: {
       initialBuffs: {
-        breathReflection: { strength: 1, duration: 4, decreaseTurnEnd: true }, //いては解除可能
-        danceReflection: { strength: 1, duration: 3, decreaseTurnEnd: true }, //いては解除可能
+        breathReflection: { strength: 1, duration: 4, durationPolicy: "turnBased" }, //いては解除可能
+        danceReflection: { strength: 1, duration: 3, durationPolicy: "turnBased" }, //いては解除可能
         autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1, act: "破壊衝動" },
         fireBreak: { keepOnDeath: true, strength: 2, iconSrc: "fireBreakBoost" },
         mindBarrier: { duration: 3 },
@@ -852,10 +852,10 @@ const monsters = [
         ioSuperBreak: { keepOnDeath: true },
         darkSuperBreak: { keepOnDeath: true },
         mindAndSealBarrier: { keepOnDeath: true },
-        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true },
+        martialReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true },
       },
       buffsFromTurn2: {
-        martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true, probability: 0.2, noMissDisplay: true },
+        martialReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true, probability: 0.2, noMissDisplay: true },
       },
     },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
@@ -968,7 +968,7 @@ const monsters = [
         fireBreak: { keepOnDeath: true, strength: 3 },
         protection: { divineDispellable: true, strength: 0.5, duration: 3 },
         mindBarrier: { keepOnDeath: true },
-        slashReflection: { strength: 1, duration: 2, divineDispellable: true, removeAtTurnStart: true, isKanta: true, name: "光魔の杖" }, // 混乱でも解除不可
+        slashReflection: { strength: 1, duration: 2, divineDispellable: true, durationPolicy: "roundLimited", isKanta: true, name: "光魔の杖" }, // 混乱でも解除不可
       },
       evenTurnBuffs: {
         baiki: { strength: 1 },
@@ -1954,7 +1954,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         mindBarrier: { keepOnDeath: true },
-        spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true },
+        spellReflection: { strength: 1, duration: 4, durationPolicy: "turnBased" },
         spdUp: { strength: 2 },
       },
     },
@@ -2006,7 +2006,7 @@ const monsters = [
         windBreak: { keepOnDeath: true, strength: 2 },
         manaBoost: { strength: 1.2 },
         dodgeBuff: { strength: 1 },
-        crimsonMist: { strength: 0.1, removeAtTurnStart: true, duration: 1 },
+        crimsonMist: { strength: 0.1, durationPolicy: "roundLimited", duration: 1 },
       },
       1: {
         preemptiveAction: {},
@@ -2211,7 +2211,7 @@ const monsters = [
         spellReflection: { divineDispellable: true, strength: 1.5, duration: 3 },
       },
       permanentBuffs: {
-        confusedBreak: { divineDispellable: true, strength: 1, removeAtTurnStart: true, duration: 2, probability: 0.25, noMissDisplay: true },
+        confusedBreak: { divineDispellable: true, strength: 1, durationPolicy: "roundLimited", duration: 2, probability: 0.25, noMissDisplay: true },
       },
       evenTurnBuffs: {
         spellBarrier: { strength: 1, targetType: "ally" },
@@ -2433,7 +2433,7 @@ const monsters = [
     defaultAiType: "いのちだいじに",
     attribute: {
       1: {
-        slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true },
+        slashReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited" },
       },
     },
     seed: { atk: 50, def: 60, spd: 10, int: 0 },
@@ -2524,7 +2524,7 @@ const monsters = [
     attribute: {
       initialBuffs: {
         windBreak: { keepOnDeath: true, strength: 2 },
-        dodgeBuff: { strength: 0.7, duration: 2, removeAtTurnStart: true },
+        dodgeBuff: { strength: 0.7, duration: 2, durationPolicy: "roundLimited" },
       },
     },
     seed: { atk: 0, def: 0, spd: 95, int: 25 },
@@ -2696,7 +2696,7 @@ const monsters = [
         iceBreak: { keepOnDeath: true, strength: 1 },
         paralyzedBreak: { keepOnDeath: true, strength: 1 },
         protection: { strength: 0.5, duration: 3, noCrimsonMist: true },
-        sacredBarrier: { duration: 1, removeAtTurnStart: true },
+        sacredBarrier: { duration: 1, durationPolicy: "roundLimited" },
       },
     },
     seed: { atk: 0, def: 25, spd: 30, int: 65 },

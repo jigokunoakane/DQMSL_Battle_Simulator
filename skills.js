@@ -5,9 +5,7 @@
  * @typedef {Object} BaseBuffEffect
  * @property {number} [probability] - 付与確率 (0〜1)
  * @property {number} [duration] - 持続ターン数
- * @property {boolean} [removeAtTurnStart] - ターン開始時に解除されるか
- * @property {boolean} [decreaseTurnEnd] - ターン終了時に持続時間を減らすか
- * @property {boolean} [decreaseBeforeAction] - 行動後に持続時間を減らすか
+ * @property {"turnBased" | "actionBased" | "roundLimited"} [durationPolicy] - 持続時間の処理方法
  * @property {boolean} [keepOnDeath] - 死亡時も維持されるか
  * @property {boolean} [unDispellable] - 解除不可
  * @property {boolean} [divineDispellable] - 神のはどう等のみで解除可能
@@ -147,12 +145,12 @@
  * @property {BaseBuffEffect} [criticalGuard]
  * @property {BaseBuffEffect} [alwaysCrit]
  * @property {BaseBuffEffect} [counterAttack]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean, name?: string }} [slashReflection]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean }} [spellReflection]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [breathReflection]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, dispellableBySpecificAbnormality?: boolean }} [martialReflection]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [danceReflection]
- * @property {BaseBuffEffect & { decreaseTurnEnd?: boolean, strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [ritualReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean, name?: string }} [slashReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, isKanta?: boolean }} [spellReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [breathReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean, dispellableBySpecificAbnormality?: boolean }} [martialReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [danceReflection]
+ * @property {BaseBuffEffect & { strength?: number, dispellableByAbnormality?: boolean, skipReflectionEffect?: boolean }} [ritualReflection]
  * @property {BaseBuffEffect} [slashEvasion]
  * @property {BaseBuffEffect} [spellEvasion]
  * @property {BaseBuffEffect} [martialEvasion]
@@ -692,7 +690,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
-    appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { zombifyBlock: {} },
     isAscensionSkill: true,
     followingSkill: "昇天斬り後半",
   },
@@ -970,7 +968,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.2, duration: 2, durationPolicy: "roundLimited" } },
     description1: "【先制】味方全体の　斬撃防御を1段階上げ",
     description2: "2ターンの間　ダメージ20%軽減状態にする",
   },
@@ -984,7 +982,7 @@ const skill = [
     MPcost: 37,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.2, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.2, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "聖騎士の守護",
@@ -996,7 +994,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { mindBarrier: { duration: 3 }, protection: { strength: 0.2, duration: 2, removeAtTurnStart: true, probability: 0.567 } },
+    appliedEffect: { mindBarrier: { duration: 3 }, protection: { strength: 0.2, duration: 2, durationPolicy: "roundLimited", probability: 0.567 } },
   },
   {
     name: "五連竜牙弾",
@@ -1062,7 +1060,7 @@ const skill = [
     onComplete: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
         await sleep(100);
-        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, durationPolicy: "roundLimited" } });
       }
     },
     description1: "【先制】味方全体への　敵の行動を　かわりにうける",
@@ -1090,7 +1088,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.5, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.5, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "みがわり",
@@ -1108,7 +1106,7 @@ const skill = [
     onComplete: async function (skillUser) {
       if (skillUser.gear?.name === "天空の衣") {
         await sleep(100);
-        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, removeAtTurnStart: true } });
+        applyBuff(skillUser, { protection: { strength: 0.2, duration: 1, durationPolicy: "roundLimited" } });
       }
     },
     description1: "【先制】味方1体への　敵の行動を　かわりにうける",
@@ -1162,7 +1160,7 @@ const skill = [
     ignoreReflection: true,
     ignoreTypeEvasion: true,
     act: function (skillUser, skillTarget) {
-      applyBuff(skillUser, { deathRoulette: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
+      applyBuff(skillUser, { deathRoulette: { unDispellable: true, durationPolicy: "roundLimited", duration: 2 } });
       skillUser.abilities.attackAbilities.nextTurnAbilities.push({
         name: "しのルーレット",
         message: function (skillUser) {
@@ -1608,7 +1606,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     MPcost: 22,
-    appliedEffect: { counterAttack: { keepOnDeath: true, divineDispellable: true, decreaseTurnEnd: true, duration: 1 } },
+    appliedEffect: { counterAttack: { keepOnDeath: true, divineDispellable: true } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities = [
         {
@@ -2187,7 +2185,7 @@ const skill = [
       shamuDef: { strength: 0.2 },
       shamuSpd: { strength: 0.5 },
       shamuInt: { strength: 0.5 },
-      nonElementalResistance: { decreaseBeforeAction: true, duration: 1 },
+      nonElementalResistance: { durationPolicy: "actionBased", duration: 1 },
       martialEvasion: { unDispellable: true, duration: 1 },
       danceEvasion: { unDispellable: true, duration: 1 },
       damageLimit: { unDispellable: true, strength: 250, duration: 1 },
@@ -2384,9 +2382,9 @@ const skill = [
     preemptiveGroup: 5,
     MPcost: 32,
     appliedEffect: {
-      slashReflection: { strength: 2.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
-      martialReflection: { strength: 2.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
-      protection: { strength: 0.5, duration: 1, removeAtTurnStart: true },
+      slashReflection: { strength: 2.5, duration: 1, unDispellable: true, durationPolicy: "roundLimited", dispellableByAbnormality: true },
+      martialReflection: { strength: 2.5, duration: 1, unDispellable: true, durationPolicy: "roundLimited", dispellableByAbnormality: true },
+      protection: { strength: 0.5, duration: 1, durationPolicy: "roundLimited" },
     },
   },
   {
@@ -2498,7 +2496,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     MPcost: 59,
-    appliedEffect: { protection: { divineDispellable: true, strength: 0.5, duration: 3 }, counterAttack: { divineDispellable: true, removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { protection: { divineDispellable: true, strength: 0.5, duration: 3 }, counterAttack: { divineDispellable: true } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities = [
         {
@@ -2722,7 +2720,7 @@ const skill = [
     preemptiveGroup: 5,
     isOneTimeUse: true,
     MPcost: 46,
-    appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, removeAtTurnStart: true, duration: 2 } },
+    appliedEffect: { powerCharge: { strength: 2, duration: 2, keepOnDeath: true }, alwaysCrit: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 2 } },
   },
   {
     name: "究極呪文マダンテ",
@@ -2913,7 +2911,7 @@ const skill = [
     isOneTimeUse: true,
     appliedEffect: {
       isUnbreakable: { keepOnDeath: true, left: 1, name: "不屈の闘志" },
-      counterAttack: { divineDispellable: true, removeAtTurnStart: true, duration: 1 }, //死亡時解除
+      counterAttack: { divineDispellable: true }, //死亡時解除
       aiExtraAttacks: { keepOnDeath: true, strength: 1 },
     },
     act: function (skillUser, skillTarget) {
@@ -3409,7 +3407,7 @@ const skill = [
     preemptiveGroup: 5,
     isOneTimeUse: true,
     MPcost: 82,
-    appliedEffect: { damageLimit: { unDispellable: true, strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true, removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { damageLimit: { unDispellable: true, strength: 75, duration: 1 }, counterAttack: { keepOnDeath: true, unDispellable: true } },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.additionalCounterAbilities = [
         {
@@ -3581,7 +3579,7 @@ const skill = [
     MPcost: 54,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { sacredBarrier: { duration: 1, durationPolicy: "roundLimited" } },
     clearMaso: true, // それ以外の状態異常はsacredBarrier付与時にapplyBuff内でclearするためhasRadiantWaveは不要
   },
   {
@@ -3607,7 +3605,11 @@ const skill = [
     MPcost: 66,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { sacredBarrier: { duration: 1, removeAtTurnStart: true }, sealBarrier: { duration: 1, removeAtTurnStart: true }, reviveBlockBarrier: { duration: 1, removeAtTurnStart: true } },
+    appliedEffect: {
+      sacredBarrier: { duration: 1, durationPolicy: "roundLimited" },
+      sealBarrier: { duration: 1, durationPolicy: "roundLimited" },
+      reviveBlockBarrier: { duration: 1, durationPolicy: "roundLimited" },
+    },
     clearMaso: true, // それ以外の状態異常はsacredBarrier付与時にapplyBuff内でclearするためhasRadiantWaveは不要
     clearSealed: true,
   },
@@ -3792,7 +3794,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 22,
-    appliedEffect: { spellReflection: { strength: 1, duration: 4, decreaseTurnEnd: true } },
+    appliedEffect: { spellReflection: { strength: 1, duration: 4, durationPolicy: "turnBased" } },
   },
   {
     name: "おいかぜ",
@@ -3802,7 +3804,7 @@ const skill = [
     targetType: "single",
     targetTeam: "ally",
     MPcost: 22,
-    appliedEffect: { breathReflection: { strength: 1, duration: 4, decreaseTurnEnd: true } },
+    appliedEffect: { breathReflection: { strength: 1, duration: 4, durationPolicy: "turnBased" } },
   },
   {
     name: "マホターン",
@@ -3812,7 +3814,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 42,
-    appliedEffect: { spellReflection: { strength: 1, duration: 1, decreaseTurnEnd: true } },
+    appliedEffect: { spellReflection: { strength: 1, duration: 1, durationPolicy: "turnBased" } },
   },
   {
     name: "ぎゃくふう",
@@ -3822,7 +3824,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 42,
-    appliedEffect: { breathReflection: { strength: 1, duration: 1, decreaseTurnEnd: true } },
+    appliedEffect: { breathReflection: { strength: 1, duration: 1, durationPolicy: "turnBased" } },
   },
   {
     name: "スキルターン",
@@ -3832,7 +3834,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 42,
-    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
+    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, durationPolicy: "turnBased" } },
   },
   {
     name: "ブレードターン",
@@ -3842,7 +3844,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 42,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, decreaseTurnEnd: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, durationPolicy: "turnBased" } },
   },
   {
     name: "ミラーステップ",
@@ -3852,7 +3854,7 @@ const skill = [
     targetType: "all",
     targetTeam: "ally",
     MPcost: 30,
-    appliedEffect: { danceReflection: { strength: 1.5, duration: 2, decreaseTurnEnd: true } },
+    appliedEffect: { danceReflection: { strength: 1.5, duration: 2, durationPolicy: "turnBased" } },
   },
   {
     name: "かがやく息",
@@ -3971,7 +3973,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 108,
     reviveParams: {
-      appliedBuff: { dodgeBuff: { decreaseBeforeAction: true, duration: 1, strength: 0.5 } },
+      appliedBuff: { dodgeBuff: { durationPolicy: "actionBased", duration: 1, strength: 0.5 } },
     },
   },
   {
@@ -4437,8 +4439,8 @@ const skill = [
     preemptiveGroup: 5,
     MPcost: 38,
     appliedEffect: {
-      slashReflection: { strength: 1, duration: 1, unDispellable: true, removeAtTurnStart: true, isKanta: true, dispellableByAbnormality: true },
-      martialReflection: { strength: 1, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
+      slashReflection: { strength: 1, duration: 1, unDispellable: true, durationPolicy: "roundLimited", isKanta: true, dispellableByAbnormality: true },
+      martialReflection: { strength: 1, duration: 1, unDispellable: true, durationPolicy: "roundLimited", dispellableByAbnormality: true },
     },
   },
   {
@@ -4580,8 +4582,8 @@ const skill = [
     MPcost: 37,
     appliedEffect: {
       powerCharge: { strength: 2, duration: 3, immuneToTensionClear: true },
-      slashReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true, isKanta: true },
-      spellReflection: { strength: 1, duration: 2, unDispellable: true, removeAtTurnStart: true },
+      slashReflection: { strength: 1, duration: 2, unDispellable: true, durationPolicy: "roundLimited", isKanta: true },
+      spellReflection: { strength: 1, duration: 2, unDispellable: true, durationPolicy: "roundLimited" },
       damageLimit: { unDispellable: true, strength: 200, duration: 2 },
     },
   },
@@ -4597,8 +4599,8 @@ const skill = [
     MPcost: 45,
     isOneTimeUse: true,
     appliedEffect: {
-      slashReflection: { strength: 2, duration: 4, unDispellable: true, removeAtTurnStart: true },
-      spellReflection: { strength: 2, duration: 4, unDispellable: true, removeAtTurnStart: true }, // 呪文予測、封印で解除不可
+      slashReflection: { strength: 2, duration: 4, unDispellable: true, durationPolicy: "roundLimited" },
+      spellReflection: { strength: 2, duration: 4, unDispellable: true, durationPolicy: "roundLimited" }, // 呪文予測、封印で解除不可
     },
     act: function (skillUser, skillTarget) {
       skillUser.abilities.supportAbilities.nextTurnAbilities.push({
@@ -5710,9 +5712,9 @@ const skill = [
     MPcost: 69,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+    appliedEffect: { breathEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } },
     afterEffects: {
-      self: { breathEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+      self: { breathEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } },
     },
   },
   {
@@ -5726,9 +5728,9 @@ const skill = [
     MPcost: 69,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+    appliedEffect: { spellEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } },
     afterEffects: {
-      self: { spellEvasion: { duration: 1, removeAtTurnStart: true, divineDispellable: true } },
+      self: { spellEvasion: { duration: 1, durationPolicy: "roundLimited", divineDispellable: true } },
     },
   },
   {
@@ -5865,7 +5867,11 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.9, duration: 2, removeAtTurnStart: true }, manaBoost: { strength: 2 }, asleepBreakBoost: { strength: 1, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: {
+      protection: { strength: 0.9, duration: 2, durationPolicy: "roundLimited" },
+      manaBoost: { strength: 2 },
+      asleepBreakBoost: { strength: 1, duration: 2, durationPolicy: "roundLimited" },
+    },
     //本来は2R行動後にブレイクは消失
   },
   {
@@ -5879,7 +5885,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.7, duration: 2, removeAtTurnStart: true }, breathCharge: { strength: 2, immuneToTensionClear: true } },
+    appliedEffect: { protection: { strength: 0.7, duration: 2, durationPolicy: "roundLimited" }, breathCharge: { strength: 2, immuneToTensionClear: true } },
   },
   {
     name: "ギラマータ",
@@ -5995,7 +6001,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.9, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.9, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "精霊の守り・強",
@@ -6007,7 +6013,7 @@ const skill = [
     MPcost: 84,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.34, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "ミナカトール",
@@ -6019,7 +6025,7 @@ const skill = [
     MPcost: 84,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { divineDispellable: true, strength: 0.34, duration: 1, removeAtTurnStart: true, iconSrc: "protectiondivineDispellablestr0.34" } },
+    appliedEffect: { protection: { divineDispellable: true, strength: 0.34, duration: 1, durationPolicy: "roundLimited", iconSrc: "protectiondivineDispellablestr0.34" } },
   },
   {
     name: "とこなつの守護",
@@ -6031,7 +6037,7 @@ const skill = [
     MPcost: 104,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.4, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "大空の守り",
@@ -6043,7 +6049,7 @@ const skill = [
     MPcost: 124,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.4, duration: 2, removeAtTurnStart: true }, mindBarrier: { duration: 4 }, lightResistance: { strength: 1, targetRace: "自然" } },
+    appliedEffect: { protection: { strength: 0.4, duration: 2, durationPolicy: "roundLimited" }, mindBarrier: { duration: 4 }, lightResistance: { strength: 1, targetRace: "自然" } },
   },
   {
     name: "巨岩投げ",
@@ -6149,9 +6155,9 @@ const skill = [
     ignoreReflection: true,
     ignoreSubstitute: true,
     ignoreTypeEvasion: true,
-    appliedEffect: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } },
+    appliedEffect: { sealed: { durationPolicy: "roundLimited", duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } },
     afterEffects: {
-      allies: { sealed: { removeAtTurnStart: true, duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } }, // skillUserが自動で渡され使い手反映
+      allies: { sealed: { durationPolicy: "roundLimited", duration: 1, element: "ice", probability: 0.7533, zombieBuffable: true } }, // skillUserが自動で渡され使い手反映
     },
     isOneTimeUse: true,
   },
@@ -6273,9 +6279,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
-      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
+      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, durationPolicy: "roundLimited", duration: 2 } });
       // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
-      applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, removeAtTurnStart: true, iconSrc: "willSubstitute" } });
+      applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, durationPolicy: "roundLimited", iconSrc: "willSubstitute" } });
       await sleep(130);
       // ひれつ・支配を既に予約している場合は重複付与しない
       if (skillTarget.abilities.attackAbilities.nextTurnAbilities.some((ability) => ability.name === "ひれつなさくせんみがわり実行" || ability.name === "しはいのさくせんみがわり実行")) return;
@@ -6297,7 +6303,7 @@ const skill = [
             displayMiss(skillUser);
           }
           // みがわり実行の成否やみがわり先被りによる失敗にかかわらず行動停止を付与 hasAbnormalityに引っかからないようにみがわり判定後に付与
-          applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, removeAtTurnStart: true } });
+          applyBuff(skillUser, { boogieCurseSubstituting: { dispellableByRadiantWave: true, duration: 1, durationPolicy: "roundLimited" } });
         },
       });
     },
@@ -6316,7 +6322,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
-      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, removeAtTurnStart: true, duration: 2 } });
+      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, durationPolicy: "roundLimited", duration: 2 } });
       await sleep(130);
       applyShihai(skillTarget);
     },
@@ -6468,7 +6474,7 @@ const skill = [
     raceBane: ["???", "超魔王"],
     raceBaneMultiplier: 4,
     ignoreProtection: true,
-    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: {} },
     description1: "【軽減無視】敵1体に3回　バギ系の息攻撃　命中時",
     description2: "蘇生・執念封じ状態にする　魔獣系の味方が多いほど威力大",
     description3: "最大6倍　さらに　???・超魔王系の的に　威力4倍",
@@ -6552,7 +6558,7 @@ const skill = [
           //全部削除
           delete monster.flags.isSubstituting;
           delete monster.flags.hasSubstitute;
-          applyBuff(monster, { substituteSeal: { keepOnDeath: true, removeAtTurnStart: true, duration: 1 } });
+          applyBuff(monster, { substituteSeal: { keepOnDeath: true, durationPolicy: "roundLimited", duration: 1 } });
           await updateMonsterBuffsDisplay(monster);
           displayMessage(`${monster.name}は`, "みがわりを ふうじられた！");
           await sleep(50);
@@ -6594,7 +6600,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 35,
-    appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { zombifyBlock: {} },
     isAscensionSkill: true,
     followingSkill: "昇天のこぶし後半",
   },
@@ -6928,7 +6934,7 @@ const skill = [
     targetRace: "物質",
     requireTargetRace: true,
     MPcost: 32,
-    appliedEffect: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { autoRevive: { keepOnDeath: true, divineDispellable: true, strength: 1 }, willSubstitute: { keepOnDeath: true, duration: 2, durationPolicy: "roundLimited" } },
     act: async function (skillUser, skillTarget) {
       skillTarget.abilities.supportAbilities.nextTurnAbilities.push({
         act: async function (skillUser) {
@@ -7167,9 +7173,9 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.9, duration: 1, durationPolicy: "roundLimited" } },
     afterEffects: {
-      self: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+      self: { protection: { strength: 0.9, duration: 1, durationPolicy: "roundLimited" } },
     },
   },
   {
@@ -7183,7 +7189,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.9, duration: 1, durationPolicy: "roundLimited" } },
   },
   {
     name: "ガイアシールド",
@@ -7197,7 +7203,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { protection: { strength: 0.9, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.9, duration: 1, durationPolicy: "roundLimited" } },
   },
   {
     name: "報復の大嵐",
@@ -7284,7 +7290,7 @@ const skill = [
     MPcost: 114,
     order: "preemptive",
     preemptiveGroup: 2,
-    appliedEffect: { protection: { strength: 0.34, duration: 2, removeAtTurnStart: true }, criticalGuard: { duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { protection: { strength: 0.34, duration: 2, durationPolicy: "roundLimited" }, criticalGuard: { duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "アンカースパーク",
@@ -7309,7 +7315,7 @@ const skill = [
     preemptiveGroup: 5,
     MPcost: 18,
     isOneTimeUse: true,
-    appliedEffect: { traumaTrap: { keepOnDeath: true, duration: 1, removeAtTurnStart: true, iconSrc: "deathAbility" } },
+    appliedEffect: { traumaTrap: { keepOnDeath: true, duration: 1, durationPolicy: "roundLimited", iconSrc: "deathAbility" } },
     act: async function (skillUser, skillTarget) {
       displayMessage(`${skillUser.name}は`, "みがまえた！");
       skillUser.abilities.additionalDeathAbilities.push({
@@ -8312,7 +8318,7 @@ const skill = [
     targetType: "single",
     targetTeam: "enemy",
     MPcost: 57,
-    appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true }, healBlock: {}, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1, zombieBuffable: true }, healBlock: {}, zombifyBlock: {} },
     followingSkill: "修羅の闇後半",
   },
   {
@@ -8765,8 +8771,8 @@ const skill = [
     appliedEffect: {
       powerCharge: { strength: 2 },
       manaBoost: { strength: 2 },
-      slashReflection: { strength: 1.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
-      martialReflection: { strength: 1.5, duration: 1, unDispellable: true, removeAtTurnStart: true, dispellableByAbnormality: true },
+      slashReflection: { strength: 1.5, duration: 1, unDispellable: true, durationPolicy: "roundLimited", dispellableByAbnormality: true },
+      martialReflection: { strength: 1.5, duration: 1, unDispellable: true, durationPolicy: "roundLimited", dispellableByAbnormality: true },
     },
   },
   {
@@ -9014,7 +9020,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 70,
     isHealSkill: true,
-    appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // いやしの雨と同値、+0で275、+3で318
+    appliedEffect: { continuousHealing: { strength: 318 } }, // いやしの雨と同値、+0で275、+3で318
     healParams: { minInt: 200, minIntHealAmount: 96, maxInt: 500, maxIntHealAmount: 240, skillPlus: 1.15 },
   },
   {
@@ -9026,7 +9032,7 @@ const skill = [
     targetTeam: "ally",
     MPcost: 150,
     isHealSkill: true,
-    appliedEffect: { continuousHealing: { strength: 318, removeAtTurnStart: true, duration: 3 } }, // +0で275、+3で318
+    appliedEffect: { continuousHealing: { strength: 318 } }, // +0で275、+3で318
     healParams: { minInt: 1, minIntHealAmount: 280, maxInt: 10000000, maxIntHealAmount: 280, skillPlus: 1.15 },
   },
   {
@@ -9096,7 +9102,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "カウンター",
@@ -9108,7 +9114,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "やいばのまもり",
@@ -9120,7 +9126,7 @@ const skill = [
     MPcost: 32,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true } },
+    appliedEffect: { slashReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited" } },
   },
   {
     name: "体技よそく",
@@ -9132,7 +9138,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { martialReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "踊りよそく",
@@ -9144,7 +9150,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { danceReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { danceReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "息よそく",
@@ -9156,7 +9162,7 @@ const skill = [
     MPcost: 5,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { breathReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { breathReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "超息よそく",
@@ -9168,7 +9174,7 @@ const skill = [
     MPcost: 15,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { breathReflection: { strength: 3, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { breathReflection: { strength: 3, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "儀式反転",
@@ -9180,7 +9186,7 @@ const skill = [
     MPcost: 32,
     order: "preemptive",
     preemptiveGroup: 5,
-    appliedEffect: { ritualReflection: { strength: 1.5, duration: 1, removeAtTurnStart: true, unDispellable: true, dispellableByAbnormality: true } },
+    appliedEffect: { ritualReflection: { strength: 1.5, duration: 1, durationPolicy: "roundLimited", unDispellable: true, dispellableByAbnormality: true } },
   },
   {
     name: "リザオラル",
@@ -9480,7 +9486,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 5,
     isOneTimeUse: true,
-    appliedEffect: { nonElementalResistance: { decreaseBeforeAction: true, duration: 3 }, powerCharge: { strength: 2 } },
+    appliedEffect: { nonElementalResistance: {}, powerCharge: { strength: 2 } },
   },
   {
     name: "猛火の剣技",
@@ -9542,7 +9548,7 @@ const skill = [
     targetType: "all",
     targetTeam: "enemy",
     MPcost: 120,
-    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { reviveBlock: { duration: 1 }, zombifyBlock: {} },
   },
   {
     name: "女神の罰",
@@ -9568,7 +9574,7 @@ const skill = [
     targetTeam: "enemy",
     hitCount: 6,
     MPcost: 48,
-    appliedEffect: { zombifyBlock: { removeAtTurnStart: true, duration: 1 } },
+    appliedEffect: { zombifyBlock: {} },
   },
   {
     name: "竜神掌",
@@ -9663,7 +9669,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 2,
     isOneTimeUse: true,
-    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.4, duration: 2, removeAtTurnStart: true } },
+    appliedEffect: { slashBarrier: { strength: 1 }, protection: { strength: 0.4, duration: 2, durationPolicy: "roundLimited" } },
   },
   {
     name: "コメット",
