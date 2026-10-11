@@ -97,6 +97,8 @@
  * @property {StatBuffEffect} [tyoryuLevel]
  * @property {StatBuffEffect} [worldBuff]
  * @property {StatBuffEffect} [vearnBarrier]
+ * @property {StatBuffEffect} [ramiaElementalGuard]
+ * @property {StatBuffEffect} [ramiaElementalGuardSuppression]
  * @property {StatBuffEffect} [internalAtkUp]
  * @property {StatBuffEffect} [internalDefUp]
  * @property {StatBuffEffect} [internalSpdUp]
