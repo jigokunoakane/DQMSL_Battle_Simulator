@@ -6017,7 +6017,7 @@ const skill = [
   },
   {
     name: "ミナカトール",
-    type: "martial",
+    type: "spell",
     scalingStat: "none",
     element: "none",
     targetType: "all",
@@ -6279,7 +6279,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
-      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, durationPolicy: "roundLimited", duration: 2 } });
+      applyBuff(skillUser, { aiPursuitCommand: {} });
       // 次ターン最初のattackAbility時点まで所持していれば みがわり・行動停止を実行 石化 死亡 亡者化で解除 現状重ねがけによる毎ターン強制みがわりが可能
       applyBuff(skillTarget, { boogieCurse: { dispellableByRadiantWave: true, duration: 2, durationPolicy: "roundLimited", iconSrc: "willSubstitute" } });
       await sleep(130);
@@ -6322,7 +6322,7 @@ const skill = [
     order: "preemptive",
     preemptiveGroup: 8,
     act: async function (skillUser, skillTarget) {
-      applyBuff(skillUser, { aiPursuitCommand: { unDispellable: true, durationPolicy: "roundLimited", duration: 2 } });
+      applyBuff(skillUser, { aiPursuitCommand: {} });
       await sleep(130);
       applyShihai(skillTarget);
     },

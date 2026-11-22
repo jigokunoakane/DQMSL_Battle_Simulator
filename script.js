@@ -2175,6 +2175,7 @@ const BUFF_MASTER = {
     }),
   },
   nonElementalResistance: {
+    unDispellable: true,
     duration: 3,
     durationPolicy: "actionBased",
     getMessage: (target) => ({
@@ -2344,6 +2345,9 @@ const BUFF_MASTER = {
     }),
   },
   aiPursuitCommand: {
+    unDispellable: true,
+    durationPolicy: "roundLimited",
+    duration: 2,
     getMessage: (target) => ({
       start: `${target.name}は 次の`,
       message: "AI行動で とくぎを使うようになった！",
@@ -2680,7 +2684,7 @@ function applyBuff(buffTarget, newBuff, skillUser = null, isReflection = false, 
     if (buffName === "stoned") {
       const buffNames = Object.keys(buffTarget.buffs);
       // いてはとは異なり、禁忌および天使のしるしは保持 会心ガードは保持
-      const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance", "criticalGuard"];
+      const keepKeys = ["tabooSeal", "angelMark", "statusLock", "preemptiveAction", "anchorAction", "criticalGuard"];
       for (const existingBuffName of buffNames) {
         const existingBuff = buffTarget.buffs[existingBuffName];
         const exMaster = BUFF_MASTER[existingBuffName] || {};
@@ -11648,7 +11652,7 @@ async function executeRadiantWave(monster, skipMissDisplay = false, removeMaso =
 
 //keepOnDeath・状態異常フラグ2種・かみは解除不可・(かみは限定解除)は解除しない  別途指定: 非keepOnDeathバフ 力ため 行動早い 無属性無効 会心完全ガード //これは石化でのkeep処理と共通
 async function executeWave(monster, isDivine = false, isDamageExisting = false) {
-  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "statusLock", "preemptiveAction", "anchorAction", "nonElementalResistance"];
+  const keepKeys = ["powerCharge", "manaBoost", "breathCharge", "statusLock", "preemptiveAction", "anchorAction"];
   const newBuffs = {};
   let buffRemoved = false; // バフが削除されたかどうかを追跡するフラグ
   for (const key in monster.buffs) {
@@ -13873,7 +13877,7 @@ const gameRuleData = [
     name: "いきなり1ターン無属性無効",
     turn: 1,
     act: function () {
-      insertAll({ nonElementalResistance: { duration: 1, durationPolicy: "roundLimited" } });
+      insertAll({ nonElementalResistance: { unDispellable: true, duration: 1, durationPolicy: "roundLimited" } });
     },
   },
   {
