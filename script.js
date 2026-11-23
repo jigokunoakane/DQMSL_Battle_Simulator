@@ -4224,7 +4224,10 @@ async function processHitSequence(
   isAIattack = false,
   MPused,
 ) {
-  const hitCount = executingSkill.hitCount ?? 1;
+  const minHitCount = executingSkill.hitCount ?? 1;
+  const maxHitCount = executingSkill.maxHitCount;
+  const hitCount = maxHitCount != null && maxHitCount > minHitCount ? Math.floor(Math.random() * (maxHitCount - minHitCount + 1)) + minHitCount : minHitCount;
+
   let activeSingleTarget = singleSkillTarget;
 
   for (let hit = currentHit; hit < hitCount; hit++) {
@@ -13287,8 +13290,14 @@ function createSDmain(skillInfo) {
     } else if (skillInfo.targetType === "random") {
       skillDescriptionText = "ランダムに"; //上書き
     }
-    if (skillInfo.hitCount) {
-      skillDescriptionText += `${skillInfo.hitCount}回　`;
+
+    if (skillInfo.hitCount || skillInfo.maxHitCount) {
+      const minHit = skillInfo.hitCount ?? 1;
+      if (skillInfo.maxHitCount != null && skillInfo.maxHitCount > minHit) {
+        skillDescriptionText += `${minHit}〜${skillInfo.maxHitCount}回　`;
+      } else {
+        skillDescriptionText += `${minHit}回　`;
+      }
     } else {
       skillDescriptionText += "　";
     }

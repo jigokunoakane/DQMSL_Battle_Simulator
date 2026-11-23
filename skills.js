@@ -41,12 +41,13 @@
  * @property {StatBuffEffect} [breathBarrier]
  * @property {StatBuffEffect} [martialBarrier]
  * @property {StatBuffEffect & {noCrimsonMist?: boolean, crimsonMistTarget?: boolean}} [protection]
- * @property {StatBuffEffect} [iceResistance]
  * @property {StatBuffEffect} [fireResistance]
+ * @property {StatBuffEffect} [iceResistance]
+ * @property {StatBuffEffect} [thunderResistance]
+ * @property {StatBuffEffect} [ioResistance]
+ * @property {StatBuffEffect} [windResistance]
  * @property {StatBuffEffect} [lightResistance]
  * @property {StatBuffEffect} [darkResistance]
- * @property {StatBuffEffect} [thunderResistance]
- * @property {StatBuffEffect} [windResistance]
  * @property {StatBuffEffect} [dodgeBuff]
  * @property {StatBuffEffect} [prismVeil]
  * @property {StatBuffEffect} [crimsonMist]
@@ -214,7 +215,8 @@
  * @property {boolean} [requireTargetRace] - コマンド時にtargetRace以外をskillの対象として選択不可とするか否か
  * @property {number | null} MPcost - 消費MP（MPcostRatioがある場合はnull）
  * @property {number} [MPcostRatio] - 現在MPに対する割合消費（1で全消費）
- * @property {number} [hitCount] - 連続ヒット回数
+ * @property {number} [hitCount] - 連続ヒット回数（最小値）
+ * @property {number} [maxHitCount] - 連続ヒット回数（最大値）
  * @property {number} [ratio] - 攻撃倍率
  * @property {number} [damage] - 固定ダメージ値
  * @property {number} [MPDamageRatio] - MPダメージ倍率
@@ -738,14 +740,15 @@ const skill = [
     element: "ice",
     targetType: "single",
     targetTeam: "enemy",
-    hitCount: 7, //todo: 回数
+    hitCount: 6,
+    maxHitCount: 8,
     MPcost: 70,
     order: "anchor",
     ignoreProtection: true,
     ignoreReflection: true,
     description1: "【アンカー】【みかわし不可】【マヌーサ無効】",
     description2: "【反射無視】【軽減無視】",
-    description3: "敵1体に7回　ヒャド系の体技攻撃",
+    description3: "敵1体に6〜8回　ヒャド系の体技攻撃",
   },
   {
     name: "おぞましいおたけび",
@@ -2104,7 +2107,8 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 15,
+    hitCount: 14,
+    maxHitCount: 16,
     MPcost: 62,
     appliedEffect: { paralyzed: { probability: 0.08 }, fear: { probability: 0.1 } },
   },
@@ -2692,7 +2696,8 @@ const skill = [
     element: "ice",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 6,
+    hitCount: 5,
+    maxHitCount: 7,
     MPcost: 45,
   },
   {
@@ -3520,7 +3525,8 @@ const skill = [
     element: "ice",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 7,
+    hitCount: 6,
+    maxHitCount: 8,
     MPcost: 54,
     waveEffect: "disruptiveWave",
   },
@@ -6112,6 +6118,23 @@ const skill = [
     appliedEffect: { lightResistance: { strength: -1, probability: 0.57 } },
   },
   {
+    name: "高速爆裂呪文",
+    type: "spell",
+    scalingStat: "int",
+    minInt: 100,
+    minIntDamage: 50,
+    maxInt: 600,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitCount: 5,
+    maxHitCount: 7,
+    MPcost: 45,
+    appliedEffect: { ioResistance: { strength: -1, probability: 0.57 } },
+  },
+  {
     name: "魔の忠臣",
     type: "martial",
     scalingStat: "none",
@@ -6487,7 +6510,8 @@ const skill = [
     element: "none",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 11,
+    hitCount: 10,
+    maxHitCount: 12,
     MPcost: 65,
   },
   {
@@ -7574,7 +7598,8 @@ const skill = [
     element: "ice",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 4, //todo: 3-4
+    hitCount: 3,
+    maxHitCount: 4,
     MPcost: 38,
     appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
   },
@@ -7590,8 +7615,26 @@ const skill = [
     element: "light",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 4, //todo: 3-4
+    hitCount: 3,
+    maxHitCount: 4,
     MPcost: 38,
+    appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
+  },
+  {
+    name: "ショコラブラスト",
+    type: "spell",
+    scalingStat: "int",
+    minInt: 300,
+    minIntDamage: 132,
+    maxInt: 1000,
+    maxIntDamage: 160,
+    skillPlus: 1.15,
+    element: "io",
+    targetType: "random",
+    targetTeam: "enemy",
+    hitCount: 3,
+    maxHitCount: 4,
+    MPcost: 44,
     appliedEffect: { spellBarrier: { strength: -1 }, baiki: { strength: -1, probability: 0.45 }, intUp: { strength: -1, probability: 0.45 } }, // 確率は適当
   },
   {
@@ -10522,7 +10565,8 @@ const skill = [
     element: "io",
     targetType: "random",
     targetTeam: "enemy",
-    hitCount: 6, // todo: 5-7
+    hitCount: 5,
+    maxHitCount: 7,
     MPcost: 52,
     appliedEffect: { fear: { probability: 0.2 } }, // 仮置き
   },
