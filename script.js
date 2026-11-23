@@ -4008,6 +4008,72 @@ function handleDeath(target, hideDeathMessage = false, applySkipDeathAbility = f
   }
 }
 
+const DEATH_DAMAGE_SKILLS = ["起爆装置", "トラウマトラップ爆発"];
+
+/**
+ * 行動不能・死亡・反撃フラグを踏まえてスキル実行可能か判定する
+ */
+function canActByTurnState(skillUser, skill) {
+  return skillUser.commandInput !== "skipThisTurn" || skill.skipDeathCheck || (skill.isCounterSkill && !skillUser.flags.isDead);
+}
+
+/**
+ * 戦闘終了や敵全滅によりスキル処理を中断すべきか判定する
+ */
+function shouldAbortSkillExecution(skillUser, skill) {
+  return isAllEnemyDead(skillUser) || (isBattleOver() && !DEATH_DAMAGE_SKILLS.includes(skill.name));
+}
+
+/**
+ * みがわり対象を解決する（味方補助・みがわり無視でない場合のみ）
+ */
+function resolveSubstituteTarget(target, executingSkill) {
+  const isAllySupport = executingSkill.scalingStat === "none" && executingSkill.targetTeam === "ally";
+  if (target.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !isAllySupport) {
+    return parties.flat().find((monster) => monster.monsterId === target.flags.hasSubstitute.targetMonsterId);
+  }
+  return target;
+}
+
+/**
+ * 候補リストから除外対象を除いてランダムに1体選出する
+ */
+function pickRandomValidTarget(monsters, excludedTargets) {
+  const validTargets = monsters.filter((monster) => !excludedTargets.has(monster));
+  if (validTargets.length === 0) {
+    return null;
+  }
+  return validTargets[Math.floor(Math.random() * validTargets.length)];
+}
+
+/**
+ * スキル完了後のafterEffectsを付与する
+ */
+async function applyAfterEffects(skillUser, currentSkill) {
+  const afterEffects = currentSkill.afterEffects;
+  if (!afterEffects || !canActByTurnState(skillUser, currentSkill)) {
+    return;
+  }
+
+  if (afterEffects.allies) {
+    await sleep(150);
+    for (const buffTarget of skillUser.allies) {
+      applyBuff(buffTarget, structuredClone(afterEffects.allies), skillUser);
+    }
+  }
+  if (afterEffects.enemies) {
+    await sleep(150);
+    for (const buffTarget of skillUser.enemies) {
+      applyBuff(buffTarget, structuredClone(afterEffects.enemies), skillUser);
+    }
+  }
+  // 全体→selfの順（精霊の愛用）
+  if (afterEffects.self) {
+    await sleep(150);
+    applyBuff(skillUser, structuredClone(afterEffects.self), skillUser);
+  }
+}
+
 async function executeSkill(
   skillUser,
   executingSkill,
@@ -4015,29 +4081,26 @@ async function executeSkill(
   ignoreAbnormalityCheck = false,
   ignoreSkillSealCheck = false,
   damagedMonsters = null,
-  MPusedParameter = null,
-  isProcessMonsterAction = false,
+  MPused = null,
+  isMonsterAction = false,
   isAIattack = false,
 ) {
   let currentSkill = executingSkill;
-  let isMonsterAction = isProcessMonsterAction;
-  // 実行済skillを格納
-  let executedSkills = [];
+  const executedSkills = [];
   let isFollowingSkill = false;
-  let executedSingleSkillTarget = [];
-  let MPused = MPusedParameter;
+  const executedSingleSkillTarget = [];
+
   // このターンに死んでない場合常に実行 死亡時能力は常に実行 反撃で死んでない このいずれかを満たす場合に実行
   // 状態異常check無視: 特技自体への指定は廃止し引数指定 AI後追加skill 自動発動skill(真いては アスゼロ 堕天使 ブレイクシステム 原始の嵐) バフあり反撃以外の反撃skill(反撃の雪玉 グレイトアックス) 一応死亡時(起爆装置 トラウマ 邪悪な残り火)
   while (
     currentSkill &&
-    (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead)) &&
+    canActByTurnState(skillUser, currentSkill) &&
     (ignoreAbnormalityCheck || !hasAbnormality(skillUser)) &&
     (currentSkill.skipSkillSealCheck || ignoreSkillSealCheck || !isSkillSealed(skillUser, currentSkill, true))
   ) {
     // 6. スキル実行処理
     // 戦闘終了またはskip時は特に表示せず即時return ただしisBattleOverでも、敵が生存していて起爆装置等ならば実行する
-    const deathDamageSkills = ["起爆装置", "トラウマトラップ爆発"];
-    if (isAllEnemyDead(skillUser) || skipThisMonsterAction(skillUser) || (isBattleOver() && !deathDamageSkills.includes(currentSkill.name))) {
+    if (shouldAbortSkillExecution(skillUser, currentSkill) || skipThisMonsterAction(skillUser)) {
       break;
     }
     // executedSingleSkillTargetの中身=親skillの最終的なskillTargetがisDeadで、かつsingleのfollowingSkillならばreturn
@@ -4046,26 +4109,19 @@ async function executeSkill(
     }
 
     // skill変更条件を確認
-    if (currentSkill.reviseIf && currentSkill.reviseIf(skillUser)) {
-      currentSkill = findSkillByName(currentSkill.reviseIf(skillUser));
+    if (currentSkill.reviseIf) {
+      const revisedSkillName = currentSkill.reviseIf(skillUser);
+      if (revisedSkillName) {
+        currentSkill = findSkillByName(revisedSkillName);
+      }
     }
 
-    // 実行済みスキルを配列末尾に追加
     executedSkills.push(currentSkill);
 
     // スキル実行中に死亡したモンスターを追跡 (skill開始時に既に死亡しているものは含めず、純粋に倒した敵を記録)
     const killedByThisSkill = new Set();
     // スキル実行中に死亡したモンスターを追跡 (skill開始時に既に死亡しているものも含め、skillTargetから外す)
-    const excludedTargets = new Set();
-    for (const party of parties) {
-      for (const monster of party) {
-        if (monster.flags.isDead) {
-          excludedTargets.add(monster);
-        }
-      }
-    }
-
-    let skillTarget = assignedTarget;
+    const excludedTargets = new Set(parties.flat().filter((monster) => monster.flags.isDead));
 
     // ヒット処理前に一括で実行する処理
     if (currentSkill.onStart) {
@@ -4074,9 +4130,9 @@ async function executeSkill(
 
     // ヒット処理の実行
     console.log(`${skillUser.name}が${currentSkill.name}を実行`);
-    await processHitSequence(skillUser, currentSkill, skillTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack, MPused);
+    await processHitSequence(skillUser, currentSkill, assignedTarget, excludedTargets, killedByThisSkill, 0, null, executedSingleSkillTarget, isMonsterAction, damagedMonsters, isAIattack, MPused);
 
-    // 自傷処理 敵を全滅させた後でも自傷・蘇生は実行される
+    // 自傷処理（親スキルを参照） 敵を全滅させた後でも自傷・蘇生は実行される
     if (executingSkill.selfDamage) {
       await sleep(200);
       const randomMultiplier = executingSkill.selfDamage.isRandomDamage ? Math.floor(Math.random() * 11) * 0.01 + 0.95 : 1;
@@ -4100,30 +4156,12 @@ async function executeSkill(
     // 起爆装置等は全滅時も実行するskillであるが、followingSkillを持たないため現状の処理でOK
     if (isBattleOver()) {
       break;
-    } else if (!skipThisMonsterAction(skillUser)) {
-      // skip時はフラグを立て、afterEffectsは実行せず、followingSkill存在時は様子を見ている表示だけしてbreak
+    }
+
+    if (!skipThisMonsterAction(skillUser)) {
       // 全滅判定と行動スキップ判定をクリアした場合のみafterEffectsを付与
       // followingSkillとは異なり、AI使用を妨げないほか、反射・みがわり・種別無効判定等をスルーして付与
-      const currentAfterEffects = currentSkill.afterEffects;
-      if (currentAfterEffects && (skillUser.commandInput !== "skipThisTurn" || currentSkill.skipDeathCheck || (currentSkill.isCounterSkill && !skillUser.flags.isDead))) {
-        if (currentAfterEffects.allies) {
-          await sleep(150);
-          for (const buffTarget of skillUser.allies) {
-            applyBuff(buffTarget, structuredClone(currentAfterEffects.allies), skillUser);
-          }
-        }
-        if (currentAfterEffects.enemies) {
-          await sleep(150);
-          for (const buffTarget of skillUser.enemies) {
-            applyBuff(buffTarget, structuredClone(currentAfterEffects.enemies), skillUser);
-          }
-        }
-        // 全体→selfの順（精霊の愛用）
-        if (currentAfterEffects.self) {
-          await sleep(150);
-          applyBuff(skillUser, structuredClone(currentAfterEffects.self), skillUser);
-        }
-      }
+      await applyAfterEffects(skillUser, currentSkill);
     }
 
     // followingSkillが存在する場合、次のスキルを代入してループ
@@ -4142,6 +4180,35 @@ async function executeSkill(
   return executedSkills;
 }
 
+/**
+ * ヒット間の変身・蘇生封じ解除判定を実行する
+ */
+async function processMidHitFieldChecks() {
+  // 死亡時発動前なので、リザオ処理やゾンビ処理がまだ行われていないタイミング
+  // エルギ変身判定
+  for (const party of parties) {
+    const targetMonsters = party.filter(
+      (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2,
+    );
+    for (const targetErugi of targetMonsters) {
+      await transformTyoma(targetErugi);
+    }
+  }
+
+  // シンリ解除
+  for (let i = 0; i < 2; i++) {
+    if (fieldState.completeDeathCount[i] > 0) {
+      for (const monster of parties[i]) {
+        // 生存しているあるいは亡者化予定のtargetから蘇生封じを削除
+        if ((!monster.flags.isDead || monster.flags.willZombify) && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
+          delete monster.buffs.reviveBlock;
+          await updateMonsterBuffsDisplay(monster);
+        }
+      }
+    }
+  }
+}
+
 // ヒットシーケンスを処理する関数
 async function processHitSequence(
   skillUser,
@@ -4157,146 +4224,93 @@ async function processHitSequence(
   isAIattack = false,
   MPused,
 ) {
-  if (currentHit >= (executingSkill.hitCount ?? 1)) {
-    return; // ヒット数が上限に達したら終了
-  }
-  const deathDamageSkills = ["起爆装置", "トラウマトラップ爆発"];
-  // 戦闘終了時のみ即時return skip判定はしない
-  if (isAllEnemyDead(skillUser) || (isBattleOver() && !deathDamageSkills.includes(executingSkill.name))) {
-    return;
-  }
-  //毎回deathActionはしているので、停止時はreturnかけてOK
-  //停止条件: all: aliveが空、random: determineの返り値がnull、single: 敵が一度でも死亡
-  //hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
-  if (!(skillUser.commandInput !== "skipThisTurn" || executingSkill.skipDeathCheck || (executingSkill.isCounterSkill && !skillUser.flags.isDead))) {
-    return;
-  }
+  const hitCount = executingSkill.hitCount ?? 1;
+  let activeSingleTarget = singleSkillTarget;
 
-  let skillTarget;
+  for (let hit = currentHit; hit < hitCount; hit++) {
+    // 戦闘終了時のみ即時return skip判定はしない
+    if (shouldAbortSkillExecution(skillUser, executingSkill)) {
+      return;
+    }
+    // hitSequenceごとに、途中で死亡時発動によってskillUserが死亡していたらreturnする
+    if (!canActByTurnState(skillUser, executingSkill)) {
+      return;
+    }
 
-  // ターゲットタイプに応じたターゲット決定処理
-  switch (executingSkill.targetType) {
-    case "all":
-      // 全体攻撃
-      // 生きているモンスターかつexcludedTargets対象外をtargetとする
-      const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.aliveAllies : skillUser.aliveEnemies).filter((monster) => !excludedTargets.has(monster));
-      if (aliveMonsters.length === 0) {
-        return;
-      }
-      for (const target of aliveMonsters) {
-        let eachTarget = target;
-        // みがわり処理 味方補助でないかつみがわり無視でないときに変更
-        if (eachTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.scalingStat === "none" && executingSkill.targetTeam === "ally")) {
-          eachTarget = parties.flat().find((monster) => monster.monsterId === eachTarget.flags.hasSubstitute.targetMonsterId);
-        }
-        await processHit(skillUser, executingSkill, eachTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      }
-      break;
-    case "single":
-      // 単体攻撃
-      if (currentHit === 0) {
-        // 双撃などのfollowingの場合
-        if (executedSingleSkillTarget.length > 0) {
-          skillTarget = executedSingleSkillTarget[0];
-          // ターゲットが存在しない場合は処理を中断
-          if (!skillTarget) {
-            return;
-          }
-        } else {
-          // 最初のヒット時のみターゲットを決定
-          skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, excludedTargets);
-          // ターゲットが存在しない場合は処理を中断
-          if (!skillTarget) {
-            return;
-          }
-          // みがわり処理 味方補助でないかつみがわり無視でないときに変更
-          if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.scalingStat === "none" && executingSkill.targetTeam === "ally")) {
-            skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
-          }
-          // 初回hitのみ実行 singleのみ、最終的なみがわり処理後のskillTargetをexecutedSingleSkillTargetに格納
-          executedSingleSkillTarget.push(skillTarget);
-        }
-      } else {
-        // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
-        skillTarget = singleSkillTarget;
-        // ターゲットが死亡しているかリザオ等した場合に処理を中断
-        if (skillTarget.flags.isDead || excludedTargets.has(skillTarget)) {
+    let skillTarget;
+
+    // ターゲットタイプに応じたターゲット決定処理
+    switch (executingSkill.targetType) {
+      case "all": {
+        const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.aliveAllies : skillUser.aliveEnemies).filter((monster) => !excludedTargets.has(monster));
+        if (aliveMonsters.length === 0) {
           return;
         }
-      }
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      break;
-    case "random":
-      // ランダム攻撃
-      skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, excludedTargets, currentHit);
-      // ターゲットが存在しない場合は処理を中断
-      if (!skillTarget) {
-        return;
-      }
-      // みがわり処理 味方補助でないかつみがわり無視でないときに変更
-      if (skillTarget.flags.hasSubstitute && !executingSkill.ignoreSubstitute && !(executingSkill.scalingStat === "none" && executingSkill.targetTeam === "ally")) {
-        skillTarget = parties.flat().find((monster) => monster.monsterId === skillTarget.flags.hasSubstitute.targetMonsterId);
-      }
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      break;
-    case "self":
-      // 自分自身をターゲット
-      skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      break;
-    case "field":
-      // meと同様
-      skillTarget = skillUser;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      break;
-    case "dead":
-      // 蘇生特技
-      skillTarget = assignedTarget;
-      await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
-      break;
-    default:
-      console.error("無効なターゲットタイプ:", executingSkill.targetType);
-  }
-
-  // 死亡時発動前なので、リザオ処理やゾンビ処理がまだ行われていないタイミング
-  // エルギ変身判定
-  for (const party of parties) {
-    const targetMonsters = party.filter(
-      (monster) => monster.name === "憎悪のエルギオス" && !monster.flags.hasTransformed && !monster.flags.isDead && !monster.flags.isZombie && monster.flags.transformationCount === 2,
-    );
-    for (const targetErugi of targetMonsters) {
-      await transformTyoma(targetErugi);
-    }
-  }
-  // シンリ解除
-  // 全体特技ではskillTargetを毎hit変更していない(eachTarget)上に、反射なども反映されない なので、skillUserやskillTargetで判定するよりかは両方について判定
-  // 現状、何度も実行されている 超伝説死亡時にまわりは解除されない
-  for (let i = 0; i < 2; i++) {
-    if (fieldState.completeDeathCount[i] > 0) {
-      for (const monster of parties[i]) {
-        // 生存しているあるいは亡者化予定のtargetから蘇生封じを削除
-        if ((!monster.flags.isDead || monster.flags.willZombify) && monster.buffs.reviveBlock && monster.buffs.reviveBlock.name === "竜衆の鎮魂") {
-          delete monster.buffs.reviveBlock;
-          await updateMonsterBuffsDisplay(monster);
+        for (const target of aliveMonsters) {
+          const eachTarget = resolveSubstituteTarget(target, executingSkill);
+          await processHit(skillUser, executingSkill, eachTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
         }
+        break;
       }
+      case "single":
+        if (hit === 0) {
+          // 双撃などのfollowingの場合
+          if (executedSingleSkillTarget && executedSingleSkillTarget.length > 0) {
+            skillTarget = executedSingleSkillTarget[0];
+            if (!skillTarget) return;
+          } else {
+            // 最初のヒット時のみターゲットを決定
+            skillTarget = determineSingleTarget(assignedTarget, skillUser, executingSkill, excludedTargets);
+            if (!skillTarget) return;
+            skillTarget = resolveSubstituteTarget(skillTarget, executingSkill);
+            // 初回hitのみ実行 singleのみ、最終的なみがわり処理後のskillTargetをexecutedSingleSkillTargetに格納
+            if (executedSingleSkillTarget) {
+              executedSingleSkillTarget.push(skillTarget);
+            }
+          }
+          activeSingleTarget = skillTarget;
+        } else {
+          // 2回目以降のヒットの場合、最初のヒットで決定したターゲットを引き継ぐ
+          skillTarget = activeSingleTarget;
+          // ターゲットが死亡しているかリザオ等した場合に処理を中断
+          if (skillTarget.flags.isDead || excludedTargets.has(skillTarget)) {
+            return;
+          }
+        }
+        await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
+        break;
+      case "random":
+        skillTarget = determineRandomTarget(assignedTarget, skillUser, executingSkill, excludedTargets, hit);
+        if (!skillTarget) return;
+        skillTarget = resolveSubstituteTarget(skillTarget, executingSkill);
+        await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
+        break;
+      case "self":
+      case "field":
+        skillTarget = skillUser;
+        await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
+        break;
+      case "dead":
+        skillTarget = assignedTarget;
+        await processHit(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
+        break;
+      default:
+        console.error("無効なターゲットタイプ:", executingSkill.targetType);
     }
-  }
 
-  // 死亡時発動能力の処理
-  await processDeathAction(skillUser, excludedTargets);
+    await processMidHitFieldChecks();
 
-  // もしexcludedTargetsにskillUserが含まれていたら、反射死と判定して次のヒットを実行せず終了
-  // skillTargetの死亡等は逐次判定してDeathActionも行わずにreturn
-  if (excludedTargets.has(skillUser)) {
-    return;
-  } else {
-    // 次のヒット処理
-    currentHit++;
+    // 死亡時発動能力の処理
+    await processDeathAction(skillUser, excludedTargets);
+
+    // もしexcludedTargetsにskillUserが含まれていたら、反射死と判定して次のヒットを実行せず終了
+    if (excludedTargets.has(skillUser)) {
+      return;
+    }
+
     if (!(executingSkill.targetType === "all" && executingSkill.targetTeam === "enemy" && executingSkill.hitCount)) {
       await sleep(70);
     }
-    await processHitSequence(skillUser, executingSkill, assignedTarget, excludedTargets, killedByThisSkill, currentHit, skillTarget, null, isProcessMonsterAction, damagedMonsters, isAIattack, MPused);
   }
 }
 
@@ -4304,30 +4318,304 @@ async function processHitSequence(
 function determineSingleTarget(target, skillUser, executingSkill, excludedTargets) {
   const aliveMonsters = executingSkill.targetTeam === "ally" ? skillUser.aliveAllies : skillUser.aliveEnemies;
   if (target && !excludedTargets.has(target) && aliveMonsters.includes(target)) {
-    // 指定されたターゲットが生きていて、excludedTargetsに含まれていない場合は、そのターゲットを返す
     return target;
-  } else {
-    const validTargets = aliveMonsters.filter((monster) => !excludedTargets.has(monster));
-    // validTargets が空の場合の処理を追加
-    if (validTargets.length > 0) {
-      return validTargets[Math.floor(Math.random() * validTargets.length)];
-    } else {
-      return null; // ターゲットが存在しない場合は null を返す
-    }
   }
+  return pickRandomValidTarget(aliveMonsters, excludedTargets);
 }
 
 function determineRandomTarget(target, skillUser, executingSkill, excludedTargets, currentHit) {
   if (currentHit === 0) {
     return determineSingleTarget(target, skillUser, executingSkill, excludedTargets);
-  } else {
-    const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.allies : skillUser.enemies).filter((monster) => !monster.flags.isDead);
-    const validTargets = aliveMonsters.filter((monster) => !excludedTargets.has(monster));
-    if (validTargets.length > 0) {
-      return validTargets[Math.floor(Math.random() * validTargets.length)];
-    } else {
-      return null;
+  }
+  const aliveMonsters = (executingSkill.targetTeam === "ally" ? skillUser.allies : skillUser.enemies).filter((monster) => !monster.flags.isDead);
+  return pickRandomValidTarget(aliveMonsters, excludedTargets);
+}
+
+/**
+ * 種別無効（回避）判定を行い、回避時はダメージ0表示を実行する
+ */
+function checkSkillTypeEvasion(skillUser, skillTarget, executingSkill, ignoreIfWave = false) {
+  if (executingSkill.targetTeam !== "enemy" || executingSkill.ignoreTypeEvasion) {
+    return false;
+  }
+  if (ignoreIfWave && executingSkill.waveEffect) {
+    return false;
+  }
+
+  const isSkillEvaded = skillTarget.buffs.skillEvasion && executingSkill.type !== "notskill" && Math.random() < skillTarget.buffs.skillEvasion.strength;
+  const isSpecificTypeEvaded = skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion;
+
+  if (isSkillEvaded || isSpecificTypeEvaded) {
+    col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
+    applyDamage(skillTarget, 0);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * WaveEffectによる波動処理
+ */
+async function processWaveEffect(buffTarget, executingSkill, isDamageExisting = false) {
+  const isDivine = {
+    divineWave: true,
+    disruptiveWave: false,
+  }[executingSkill.waveEffect];
+  if (isDivine === undefined) return;
+  await executeWave(buffTarget, isDivine, isDamageExisting);
+}
+
+/**
+ * 蘇生スキルの実行処理
+ */
+async function executeReviveSkill(skillUser, buffTarget, executingSkill) {
+  const params = executingSkill.reviveParams;
+  const isField = executingSkill.targetType === "field";
+  const targets = isField ? skillUser.allies : [buffTarget];
+
+  for (const target of targets) {
+    if (!target) continue;
+
+    // 系統条件・成功率判定で弾く
+    if ((params.condition && !params.condition(target)) || (params.probability !== undefined && Math.random() >= params.probability)) {
+      displayMiss(target);
+      continue;
     }
+
+    // 生存者への回復処理（healLivingがある場合）
+    if (params.healLiving && !target.flags.isDead) {
+      applyHeal(target, target.defaultStatus.HP, false, false);
+      continue;
+    }
+
+    // 蘇生実行（全体蘇生の場合はskipSleep: trueで送る）
+    const isSuccess = await reviveMonster(target, params.hpRate ?? 1, false, isField);
+    if (isSuccess) {
+      if (params.healLiving) {
+        displayDamage(target, target.defaultStatus.HP, -1);
+      }
+      if (params.appliedBuff) {
+        applyBuff(target, structuredClone(params.appliedBuff));
+      }
+      if (params.onSuccess) {
+        await params.onSuccess(target, skillUser);
+      }
+    }
+  }
+  if (isField) {
+    await sleep(params.healLiving ? 400 : 740);
+  }
+}
+
+/**
+ * AppliedEffect（バフ付与・特殊効果・act）処理
+ */
+async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
+  if (executingSkill.appliedEffect) {
+    applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection, false, isDamageExisting);
+  }
+
+  let isBuffTargetChanged = false;
+  let isSkillUserChanged = false;
+
+  // フィールド変化
+  if (executingSkill.fieldEffect) {
+    await changeField(executingSkill.fieldEffect.type, executingSkill.fieldEffect.turns);
+  }
+
+  // みがわり実行
+  if (executingSkill.substituteParams) {
+    const effect = executingSkill.substituteParams;
+    if (!effect.condition || effect.condition(skillUser, buffTarget)) {
+      const isAll = effect.scope === "all";
+      const target = isAll ? null : buffTarget;
+      applySubstitute(skillUser, target, isAll, effect.isCover ?? false);
+
+      isSkillUserChanged = true;
+      if (!isAll && buffTarget) {
+        isBuffTargetChanged = true;
+      }
+    }
+  }
+
+  // くじけぬ解除実行
+  if (executingSkill.removeUnbreakableRate && buffTarget.buffs.isUnbreakable !== undefined && !buffTarget.flags.isDead && !buffTarget.flags.isZombie) {
+    if (Math.random() < executingSkill.removeUnbreakableRate) {
+      delete buffTarget.buffs.isUnbreakable;
+      isBuffTargetChanged = true;
+    }
+  }
+
+  // ため解除実行（亡者も適用対象とした）
+  if (executingSkill.tensionClearProbability && !buffTarget.flags.isDead) {
+    if (Math.random() < executingSkill.tensionClearProbability) {
+      for (const buffName of ["powerCharge", "manaBoost", "breathCharge"]) {
+        const buff = buffTarget.buffs[buffName];
+        if (buff && !buff.immuneToTensionClear) {
+          delete buffTarget.buffs[buffName];
+          isBuffTargetChanged = true;
+        }
+      }
+    }
+  }
+
+  // 昇天実行
+  if (executingSkill.isAscensionSkill) {
+    if (executingSkill.targetType === "all" && executingSkill.targetTeam === "ally" && !isReflection && buffTarget === skillUser) {
+      displayMiss(buffTarget);
+    } else if (ascension(buffTarget)) {
+      isBuffTargetChanged = true;
+    }
+  }
+
+  // 蘇生実行
+  if (executingSkill.reviveParams) {
+    await executeReviveSkill(skillUser, buffTarget, executingSkill);
+  }
+
+  // 回復実行
+  if (executingSkill.healParams) {
+    const { minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus = 1.15 } = executingSkill.healParams;
+    executeHealSkill(skillUser, buffTarget, minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus);
+  }
+
+  // 光のはどう実行（回復実行→光のはどう実行とすることで、回復封じ付与時は回復しないようにする）
+  if (executingSkill.hasRadiantWave) {
+    await executeRadiantWave(buffTarget, false, true, false); // 特技での実行時はマソ確定解除 ミス表示あり
+  }
+  // ミス表示なし（神秘のはごろも等）
+  if (executingSkill.clearSealed && buffTarget.buffs.sealed) {
+    delete buffTarget.buffs.sealed;
+    isBuffTargetChanged = true;
+  }
+  // ミス表示なし（防壁系・ハザードウェポン等）
+  if (executingSkill.clearMaso && buffTarget.buffs.maso && buffTarget.buffs.maso.strength < 5) {
+    delete buffTarget.buffs.maso;
+    isBuffTargetChanged = true;
+  }
+
+  // act処理を行い、barなどを更新
+  if (executingSkill.act) {
+    await executingSkill.act(skillUser, buffTarget);
+    updateCurrentStatus(skillUser);
+    updateCurrentStatus(buffTarget);
+    isSkillUserChanged = true;
+    isBuffTargetChanged = true;
+  }
+
+  // バフが変更された場合のみバフ表示を更新
+  if (isSkillUserChanged) {
+    await updateMonsterBuffsDisplay(skillUser);
+  }
+  if (isBuffTargetChanged) {
+    await updateMonsterBuffsDisplay(buffTarget);
+  }
+}
+
+/**
+ * ザキ判定処理（即死成功してヒット処理を終了する場合は true を返す）
+ */
+function tryExecuteZaki(assignedSkillUser, assignedSkillTarget, skillUser, skillTarget, executingSkill, excludedTargets, killedByThisSkill) {
+  if (!Object.prototype.hasOwnProperty.call(executingSkill, "zakiRate")) {
+    return false;
+  }
+
+  const zakiResistance = calculateResistance(assignedSkillUser, "zaki", assignedSkillTarget);
+  let zakiTarget = assignedSkillTarget;
+  let isZakiReflection = false;
+
+  if (isSkillReflected(executingSkill, skillTarget)) {
+    zakiTarget = assignedSkillUser;
+    isZakiReflection = true;
+  }
+
+  if (!zakiTarget.flags.isDead) {
+    if (Math.random() < zakiResistance * executingSkill.zakiRate) {
+      if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
+      handleDeath(zakiTarget, false, isZakiReflection, null);
+      if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
+      checkRecentlyKilledFlag(skillUser, executingSkill, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
+      return true;
+    } else if (executingSkill.scalingStat === "none") {
+      displayMiss(zakiTarget);
+    }
+  }
+  return false;
+}
+
+/**
+ * ダメージなし特技のヒット処理
+ */
+async function processNoDamageSkill(assignedSkillUser, skillUser, skillTarget, executingSkill, excludedTargets, killedByThisSkill) {
+  if (checkSkillTypeEvasion(skillUser, skillTarget, executingSkill, true)) {
+    return;
+  }
+
+  let isReflection = false;
+  if (isSkillReflected(executingSkill, skillTarget)) {
+    isReflection = true;
+    addMirrorEffect(skillTarget.iconElementId);
+    // 全ての場合でカンタと同様に、skillUserとskillTargetを入れ替え (applyBuff内での耐性処理のため)
+    skillUser = skillTarget;
+    skillTarget = assignedSkillUser;
+  }
+
+  await processWaveEffect(skillTarget, executingSkill, false);
+  await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
+
+  // damageなしactで死亡時も死亡時発動等を実行するため、recentlyを持っている敵を回収
+  checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection);
+  // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
+  for (const party of parties) {
+    for (const monster of party) {
+      checkRecentlyKilledFlag(null, executingSkill, monster, excludedTargets, killedByThisSkill, isReflection);
+    }
+  }
+}
+
+/**
+ * 障壁によるダメージ軽減処理
+ */
+async function applyElementalShield(skillTarget, executingSkill, damage, isReflection) {
+  const shield = skillTarget.buffs.elementalShield;
+  const isTargetElement = shield && (shield.targetElement === executingSkill.element || (shield.targetElement === "all" && ALL_ELEMENTS.includes(executingSkill.element)));
+
+  if (isReflection || damage <= 0 || !isTargetElement) {
+    return { damage, reducedByElementalShield: false };
+  }
+
+  if (shield.remain <= damage) {
+    // 障壁が割れる場合
+    damage -= shield.remain;
+    delete skillTarget.buffs.elementalShield;
+    await updateMonsterBuffsDisplay(skillTarget);
+    addHexagonShine(skillTarget.iconElementId, true);
+  } else {
+    shield.remain -= damage;
+    damage = 0;
+    addHexagonShine(skillTarget.iconElementId, false);
+  }
+
+  return { damage, reducedByElementalShield: true };
+}
+
+/**
+ * 殴りによる眠り・混乱解除処理
+ */
+function removeSleepAndConfusionOnHit(skillTarget, executingSkill) {
+  if (!isAvertableSkill(executingSkill)) return;
+
+  if (skillTarget.buffs.asleep && Math.random() < 0.6 && !executingSkill.appliedEffect?.asleep) {
+    delete skillTarget.buffs.asleep;
+    updateMonsterBuffsDisplay(skillTarget);
+    displayMessage(`${skillTarget.name}は`, `目をさました！`);
+    col(`${skillTarget.name}は殴られて目をさました！`);
+  }
+  if (skillTarget.buffs.confused && Math.random() < 0.6 && !executingSkill.appliedEffect?.confused) {
+    delete skillTarget.buffs.confused;
+    updateMonsterBuffsDisplay(skillTarget);
+    displayMessage(`${skillTarget.name}は`, `われにかえった！`);
+    col(`${skillTarget.name}はわれにかえった！`);
   }
 }
 
@@ -4350,220 +4638,15 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     return;
   }
 
-  //ザキ処理
-  if (executingSkill.hasOwnProperty("zakiRate")) {
-    const zakiResistance = calculateResistance(assignedSkillUser, "zaki", assignedSkillTarget);
-    let zakiTarget = assignedSkillTarget;
-    let isZakiReflection = false;
-    // 反射判定 反射時は耐性も変更
-    if (isSkillReflected(executingSkill, skillTarget)) {
-      zakiTarget = assignedSkillUser;
-      isZakiReflection = true;
-    }
-    //ザキ成功時、死亡処理とフラグ格納をして終了 失敗時は普通に継続 ただし、全体特技で一発目で死亡している場合はザキ判定をskip
-    //反射は成功時かつ反射時にエフェクト表示のみ実行、失敗時には何事もなかったように再度通常の処理で反射化
-    if (!zakiTarget.flags.isDead) {
-      if (Math.random() < zakiResistance * executingSkill.zakiRate) {
-        if (isZakiReflection) addMirrorEffect(assignedSkillTarget.iconElementId);
-        handleDeath(zakiTarget, false, isZakiReflection, null);
-        if (!isZakiReflection) displayMessage(`${zakiTarget.name}の`, "いきのねをとめた!!");
-        checkRecentlyKilledFlag(skillUser, executingSkill, zakiTarget, excludedTargets, killedByThisSkill, isZakiReflection);
-        return;
-      } else if (executingSkill.scalingStat === "none") {
-        // ザキ失敗かつダメージなし特技の場合はmiss表示
-        displayMiss(zakiTarget);
-      }
-    }
+  // ザキ処理
+  if (tryExecuteZaki(assignedSkillUser, assignedSkillTarget, skillUser, skillTarget, executingSkill, excludedTargets, killedByThisSkill)) {
+    return;
   }
 
   // ダメージなし特技は、みがわり処理後に種別無効処理・反射処理を行ってprocessAppliedEffectに送る
   if (executingSkill.scalingStat === "none") {
-    // 種別回避はミス表示後にreturn 無効化条件: 種別無効バフ保持 かつ敵対象であり無効貫通特技でない かつ波動系でない
-    if (
-      ((skillTarget.buffs.skillEvasion && executingSkill.type !== "notskill" && Math.random() < skillTarget.buffs.skillEvasion.strength) ||
-        (skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion)) &&
-      executingSkill.targetTeam === "enemy" &&
-      !executingSkill.ignoreTypeEvasion &&
-      !executingSkill.waveEffect
-    ) {
-      col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
-      applyDamage(skillTarget, 0);
-      return;
-    }
-    // 反射判定 反射時は耐性も変更
-    if (isSkillReflected(executingSkill, skillTarget)) {
-      isReflection = true;
-      //反射演出
-      addMirrorEffect(skillTarget.iconElementId);
-      //全ての場合でカンタと同様に、skillUserとskillTargetを入れ替え (applyBuff内での耐性処理のため)
-      skillUser = skillTarget;
-      skillTarget = assignedSkillUser;
-    }
-    // isDamageExistingはfalseで送る
-    await processWaveEffect(skillTarget, executingSkill, false);
-    await processAppliedEffect(skillTarget, executingSkill, skillUser, false, isReflection);
-    // damageなしactで死亡時も死亡時発動等を実行するため、追加効果付与直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
-    checkRecentlyKilledFlag(skillUser, executingSkill, skillTarget, excludedTargets, killedByThisSkill, isReflection);
-    // 供物対応: actでネルを死亡させた場合、skillTarget以外なのでrecentlyが回収できないのを防止
-    // todo: excludedTargetsを利用するわけではないので、供物内で直接入れれば良い？
-    for (const party of parties) {
-      for (const monster of party) {
-        checkRecentlyKilledFlag(null, executingSkill, monster, excludedTargets, killedByThisSkill, isReflection);
-      }
-    }
+    await processNoDamageSkill(assignedSkillUser, skillUser, skillTarget, executingSkill, excludedTargets, killedByThisSkill);
     return;
-  }
-
-  // WaveEffectによる波動処理を定義
-  async function processWaveEffect(buffTarget, executingSkill, isDamageExisting = false) {
-    const isDivine = {
-      divineWave: true,
-      disruptiveWave: false,
-    }[executingSkill.waveEffect];
-    if (isDivine === undefined) return;
-    await executeWave(buffTarget, isDivine, isDamageExisting);
-  }
-
-  // AppliedEffect指定のうち、applyBuffおよびactを定義
-  async function processAppliedEffect(buffTarget, executingSkill, skillUser, isDamageExisting, isReflection) {
-    if (executingSkill.appliedEffect) {
-      applyBuff(buffTarget, structuredClone(executingSkill.appliedEffect), skillUser, isReflection, false, isDamageExisting);
-    }
-    // バフが変更されたかを管理するフラグ
-    let isBuffTargetChanged = false;
-    let isSkillUserChanged = false;
-
-    // フィールド変化
-    if (executingSkill.fieldEffect) {
-      await changeField(executingSkill.fieldEffect.type, executingSkill.fieldEffect.turns);
-    }
-
-    // みがわり実行
-    if (executingSkill.substituteParams) {
-      const effect = executingSkill.substituteParams;
-      if (!effect.condition || effect.condition(skillUser, buffTarget)) {
-        const isAll = effect.scope === "all";
-        const target = isAll ? null : buffTarget;
-        const isCover = effect.isCover ?? false;
-
-        applySubstitute(skillUser, target, isAll, isCover);
-
-        isSkillUserChanged = true;
-        if (!isAll && buffTarget) {
-          isBuffTargetChanged = true;
-        }
-      }
-    }
-
-    // くじけぬ解除実行
-    if (executingSkill.removeUnbreakableRate && buffTarget.buffs.isUnbreakable !== undefined && !buffTarget.flags.isDead && !buffTarget.flags.isZombie) {
-      if (Math.random() < executingSkill.removeUnbreakableRate) {
-        delete buffTarget.buffs.isUnbreakable;
-        isBuffTargetChanged = true;
-      }
-    }
-    // ため解除実行（亡者も適用対象とした）
-    if (executingSkill.tensionClearProbability && !buffTarget.flags.isDead) {
-      if (Math.random() < executingSkill.tensionClearProbability) {
-        const targetBuffs = ["powerCharge", "manaBoost", "breathCharge"];
-        for (const buffName of targetBuffs) {
-          const buff = buffTarget.buffs[buffName];
-          if (buff && !buff.immuneToTensionClear) {
-            delete buffTarget.buffs[buffName];
-            isBuffTargetChanged = true;
-          }
-        }
-      }
-    }
-
-    // 昇天実行
-    if (executingSkill.isAscensionSkill) {
-      if (executingSkill.targetType === "all" && executingSkill.targetTeam === "ally" && !isReflection && buffTarget === skillUser) {
-        displayMiss(buffTarget);
-      } else if (ascension(buffTarget)) {
-        isBuffTargetChanged = true;
-      }
-    }
-
-    // 蘇生実行
-    if (executingSkill.reviveParams) {
-      const params = executingSkill.reviveParams;
-      const isField = executingSkill.targetType === "field";
-      const targets = isField ? skillUser.allies : [buffTarget];
-
-      for (const target of targets) {
-        if (!target) continue;
-
-        // 系統条件・成功率判定で弾く
-        if ((params.condition && !params.condition(target)) || (params.probability !== undefined && Math.random() >= params.probability)) {
-          displayMiss(target);
-          continue;
-        }
-
-        // 生存者への回復処理（healLivingがある場合）
-        if (params.healLiving && !target.flags.isDead) {
-          applyHeal(target, target.defaultStatus.HP, false, false);
-          continue;
-        }
-
-        // 蘇生実行（全体蘇生の場合はskipSleep: trueで送る）
-        const isSuccess = await reviveMonster(target, params.hpRate ?? 1, false, isField);
-        if (isSuccess) {
-          // healLiving持ちスキルなら蘇生成功時にも全回復表示
-          if (params.healLiving) {
-            displayDamage(target, target.defaultStatus.HP, -1);
-          }
-          if (params.appliedBuff) {
-            applyBuff(target, structuredClone(params.appliedBuff));
-          }
-          if (params.onSuccess) {
-            await params.onSuccess(target, skillUser);
-          }
-        }
-      }
-      if (isField) {
-        await sleep(params.healLiving ? 400 : 740);
-      }
-    }
-
-    // 回復実行
-    if (executingSkill.healParams) {
-      const { minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus = 1.15 } = executingSkill.healParams;
-      executeHealSkill(skillUser, buffTarget, minInt, minIntHealAmount, maxInt, maxIntHealAmount, skillPlus);
-    }
-
-    // 光のはどう実行（回復実行→光のはどう実行とすることで、回復封じ付与時は回復しないようにする）
-    if (executingSkill.hasRadiantWave) {
-      await executeRadiantWave(buffTarget, false, true, false); // 特技での実行時はマソ確定解除 ミス表示あり
-    }
-    // ミス表示なし（神秘のはごろも等）
-    if (executingSkill.clearSealed && buffTarget.buffs.sealed) {
-      delete buffTarget.buffs.sealed;
-      isBuffTargetChanged = true;
-    }
-    // ミス表示なし（防壁系・ハザードウェポン等）
-    if (executingSkill.clearMaso && buffTarget.buffs.maso && buffTarget.buffs.maso.strength < 5) {
-      delete buffTarget.buffs.maso;
-      isBuffTargetChanged = true;
-    }
-
-    // act処理を行い、barなどを更新
-    if (executingSkill.act) {
-      await executingSkill.act(skillUser, buffTarget);
-      updateCurrentStatus(skillUser);
-      updateCurrentStatus(buffTarget);
-      // actが実行された場合は、確実にバフ表示を更新する
-      isSkillUserChanged = true;
-      isBuffTargetChanged = true;
-    }
-
-    // すべての処理が完了後、バフが一回でも変更された場合のみバフ表示を更新
-    if (isSkillUserChanged) {
-      await updateMonsterBuffsDisplay(skillUser);
-    }
-    if (isBuffTargetChanged) {
-      await updateMonsterBuffsDisplay(buffTarget);
-    }
   }
 
   // みかわし・マヌーサ処理
@@ -4575,84 +4658,46 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
     }
   }
 
-  //耐性処理
+  // 耐性処理
   let resistance = calculateResistance(assignedSkillUser, executingSkill.element, skillTarget, fieldState.isDistorted, executingSkill);
 
   // 吸収以外の場合に、種別無効処理と反射処理
   let skillUserForAppliedEffect = skillUser;
   let reflectionStrength = 1;
   if (resistance !== -1) {
-    // 種別回避はミス表示後にreturn 無効化条件: 種別無効バフ保持 かつ敵対象であり無効貫通特技でない
-    if (
-      ((skillTarget.buffs.skillEvasion && executingSkill.type !== "notskill" && Math.random() < skillTarget.buffs.skillEvasion.strength) ||
-        (skillTarget.buffs[executingSkill.type + "Evasion"] && !skillTarget.buffs.skillEvasion)) &&
-      executingSkill.targetTeam === "enemy" &&
-      !executingSkill.ignoreTypeEvasion
-    ) {
-      col(`${skillUser.name}の${skillTarget.name}に対する${executingSkill.name}は種別無効により回避`);
-      applyDamage(skillTarget, 0);
+    if (checkSkillTypeEvasion(skillUser, skillTarget, executingSkill, false)) {
       return;
     }
-    // 反射判定 反射時は耐性も変更
+
     if (isSkillReflected(executingSkill, skillTarget)) {
       isReflection = true;
       resistance = 1;
-      //反射演出
       addMirrorEffect(skillTarget.iconElementId);
-      //予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
+
+      // 予測のとき: skillUserはそのまま カンタのとき: skillUserをskillTargetに変更 target自身が打ち返す
       const skillType = executingSkill.type === "notskill" ? "slash" : executingSkill.type;
-      reflectionStrength = skillTarget.buffs[skillType + "Reflection"].strength || 1;
-      if (skillTarget.buffs[skillType + "Reflection"].isKanta) {
+      const reflectionBuff = skillTarget.buffs[skillType + "Reflection"];
+      reflectionStrength = reflectionBuff.strength || 1;
+      if (reflectionBuff.isKanta) {
         skillUser = skillTarget;
         reflectionType = "kanta";
       }
-      //バフは予測カンタにかかわらず反転
+      // バフは予測カンタにかかわらず反転
       skillUserForAppliedEffect = skillTarget;
-      //反射化、skillTargetをskillUserに変更
       skillTarget = assignedSkillUser;
-      //反射のときは反射のstrengthを乗算
     }
   }
 
-  // ダメージ計算 反射などで変更されたuser targetおよび耐性を踏まえて計算
-  let { damage, isCriticalHit } = calculateDamage(
-    skillUser,
-    assignedSkillUser,
-    executingSkill,
-    skillTarget,
-    resistance,
-    isProcessMonsterAction,
-    false,
-    isReflection,
-    reflectionType,
-    reflectionStrength,
-    MPused,
-  );
+  // ダメージ計算
+  const damageResult = calculateDamage(skillUser, assignedSkillUser, executingSkill, skillTarget, resistance, isProcessMonsterAction, false, isReflection, reflectionType, reflectionStrength, MPused);
+  const { isCriticalHit } = damageResult;
 
-  // 障壁 ダメージが1以上で判定(もともと0はmiss判定のまま処理)
-  let reducedByElementalShield = false; //障壁によって0になっただけで、appliedEffectやダメージ0表示は実行
-  if (
-    !isReflection &&
-    damage > 0 &&
-    skillTarget.buffs.elementalShield &&
-    (skillTarget.buffs.elementalShield.targetElement === executingSkill.element || (skillTarget.buffs.elementalShield.targetElement === "all" && ALL_ELEMENTS.includes(executingSkill.element)))
-  ) {
-    reducedByElementalShield = true;
-    if (skillTarget.buffs.elementalShield.remain <= damage) {
-      // 障壁が割れる場合
-      damage -= skillTarget.buffs.elementalShield.remain;
-      delete skillTarget.buffs.elementalShield;
-      await updateMonsterBuffsDisplay(skillTarget);
-      addHexagonShine(skillTarget.iconElementId, true);
-    } else {
-      skillTarget.buffs.elementalShield.remain -= damage;
-      damage = 0;
-      addHexagonShine(skillTarget.iconElementId, false);
-    }
-  }
+  // 障壁処理
+  const { damage, reducedByElementalShield } = await applyElementalShield(skillTarget, executingSkill, damageResult.damage, isReflection);
+  const hasHitDamage = reducedByElementalShield || damage > 0;
 
   // applyDamage実行前に、いては系によるリザオ解除を実行
-  if ((reducedByElementalShield || damage > 0) && executingSkill.waveEffect && skillTarget.buffs.autoRevive && !skillTarget.buffs.autoRevive.unDispellable) {
+  if (hasHitDamage && executingSkill.waveEffect && skillTarget.buffs.autoRevive && !skillTarget.buffs.autoRevive.unDispellable) {
     if (executingSkill.waveEffect === "divineWave" || !skillTarget.buffs.autoRevive.divineDispellable) {
       delete skillTarget.buffs.autoRevive;
     }
@@ -4661,54 +4706,39 @@ async function processHit(assignedSkillUser, executingSkill, assignedSkillTarget
   applyDamage(skillTarget, damage, resistance, false, reducedByElementalShield, isCriticalHit, isReflection, skillUser);
 
   // 殴りによる眠り・混乱解除処理
-  if (isAvertableSkill(executingSkill)) {
-    if (skillTarget.buffs.asleep && Math.random() < 0.6 && !executingSkill.appliedEffect?.asleep) {
-      delete skillTarget.buffs.asleep;
-      updateMonsterBuffsDisplay(skillTarget);
-      displayMessage(`${skillTarget.name}は`, `目をさました！`);
-      col(`${skillTarget.name}は殴られて目をさました！`);
-    }
-    if (skillTarget.buffs.confused && Math.random() < 0.6 && !executingSkill.appliedEffect?.confused) {
-      delete skillTarget.buffs.confused;
-      updateMonsterBuffsDisplay(skillTarget);
-      displayMessage(`${skillTarget.name}は`, `われにかえった！`);
-      col(`${skillTarget.name}はわれにかえった！`);
-    }
-  }
+  removeSleepAndConfusionOnHit(skillTarget, executingSkill);
 
   // wave系はtargetの死亡にかかわらずダメージ存在時に確実に実行(死亡時発動によるリザオ蘇生前に解除)
-  if (reducedByElementalShield || damage > 0) {
+  if (hasHitDamage) {
     await processWaveEffect(skillTarget, executingSkill, true);
   }
-  // それ以外の追加効果はtarget生存かつdamageが0超えのときに追加効果付与を実行 skillUserForAppliedEffectで完全に反転して渡す
-  if (!skillTarget.flags.recentlyKilled && (reducedByElementalShield || damage > 0)) {
+  // それ以外の追加効果はtarget生存かつdamageが0超え(または障壁貫通)のときに実行
+  if (!skillTarget.flags.recentlyKilled && hasHitDamage) {
     await processAppliedEffect(skillTarget, executingSkill, skillUserForAppliedEffect, true, isReflection);
   }
 
   // monsterActionまたはAI追撃のとき、反撃対象にする monsterIdがkey, 受けたskillInfoがvalue
-  if ((isProcessMonsterAction || isAIattack) && (reducedByElementalShield || damage > 0)) {
+  if ((isProcessMonsterAction || isAIattack) && hasHitDamage) {
     damagedMonsters[skillTarget.monsterId] = damagedMonsters[skillTarget.monsterId] || [];
-    // 重複排除
     if (!damagedMonsters[skillTarget.monsterId].includes(executingSkill)) {
       damagedMonsters[skillTarget.monsterId].push(executingSkill);
     }
   }
 
-  // 与ダメージ依存HP吸収
-  if (executingSkill.HPabsorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
-    const absorptionAmount = Math.floor(damage * executingSkill.HPabsorptionRatio); // 切り捨て
-    applyDamage(skillUser, absorptionAmount, -1);
-  }
-  // 与ダメージ依存MP吸収 todo: 亡者に撃つと吸収するのか
-  if (executingSkill.MPabsorptionRatio && !isReflection && resistance !== -1 && damage > 0) {
-    const absorptionAmount = Math.floor(damage * executingSkill.MPabsorptionRatio); // 切り捨て
-    applyDamage(skillTarget, absorptionAmount, 1, true);
-    applyDamage(skillUser, absorptionAmount, -1, true);
-  }
-
-  // 未覚醒時の累計与ダメージ記録
-  if (skillUser.name === "殺りくの神ダークドレアム" && !skillUser.flags.hasTransformed && skillUser.flags.hasOwnProperty("damageDealt") && !isReflection && resistance !== -1 && damage > 0) {
-    skillUser.flags.damageDealt += damage;
+  // 与ダメージ依存HP/MP吸収・累計与ダメージ記録
+  if (!isReflection && resistance !== -1 && damage > 0) {
+    if (executingSkill.HPabsorptionRatio) {
+      const absorptionAmount = Math.floor(damage * executingSkill.HPabsorptionRatio);
+      applyDamage(skillUser, absorptionAmount, -1);
+    }
+    if (executingSkill.MPabsorptionRatio) {
+      const absorptionAmount = Math.floor(damage * executingSkill.MPabsorptionRatio);
+      applyDamage(skillTarget, absorptionAmount, 1, true);
+      applyDamage(skillUser, absorptionAmount, -1, true);
+    }
+    if (skillUser.name === "殺りくの神ダークドレアム" && !skillUser.flags.hasTransformed && Object.prototype.hasOwnProperty.call(skillUser.flags, "damageDealt")) {
+      skillUser.flags.damageDealt += damage;
+    }
   }
 
   // ダメージと付属act処理直後にrecentlyを持っている敵を、渡されてきたexcludedTargetsに追加して回収
